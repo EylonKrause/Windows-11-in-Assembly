@@ -116,3 +116,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [002](changes/002-memchr/) | `memchr` (AVX2) | `ucrtbase.dll!memchr` | **LANDED** — geomean **2.28×**, up to 3.5× |
 | [003](changes/003-wcschr/) | `wcschr` (AVX2) | `ucrtbase.dll!wcschr` | **LANDED** — geomean **2.19×**, up to 3.9× |
 | [004](changes/004-wcscmp/) | `wcscmp` (AVX2) | `ucrtbase.dll!wcscmp` | **LANDED** — geomean **2.88×**, up to 4.2× |
+| [005](changes/005-memcmp/) | `memcmp` (AVX2) | `ucrtbase.dll!memcmp` | **PARKED** — 1.8–2× ≥ 1 KB, but loses at ≤ 32 B |
