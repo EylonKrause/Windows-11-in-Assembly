@@ -42,5 +42,5 @@ int main(void) {
         cases[i].ctx    = &ctx[i];
     }
     // inner small so a huge-string call still fits; min-of-trials cleans noise.
-    return wia_bench_compare("wcslen  (wia AVX2 vs ucrtbase)", cases, N, /*inner*/64, /*trials*/1200);
+    return wia_bench_compare("wcslen  (wia AVX2 vs ucrtbase)", cases, N, 200);
 }

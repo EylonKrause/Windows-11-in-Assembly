@@ -23,26 +23,22 @@ Result: **PASS** — zero mismatches across the whole corpus.
 
 ## Speed — LANDS (no size class regressed)
 
-Min-of-1200-trials, pinned core, warm cache. `ratio > 1` = ours faster.
+Min-of-200 batches, per-case auto-calibrated iteration count, pinned core. `ratio > 1` = ours faster.
 
 | length (wchars) | ours ns | ucrtbase ns | ratio | ours GB/s | verdict |
 |---:|---:|---:|---:|---:|:--|
-| 3 | 1.56 | 1.56 | 1.00× | 3.8 | ~tie |
-| 15 | 1.56 | 7.81 | 5.00× | 19.2 | BETTER |
-| 63 | 3.12 | 6.25 | 2.00× | 40.3 | BETTER |
-| 255 | 4.69 | 12.50 | 2.67× | 108.8 | BETTER |
-| 1023 | 14.06 | 28.12 | 2.00× | 145.5 | BETTER |
-| 8191 | 123.44 | 214.06 | 1.73× | 132.7 | BETTER |
-| 65535 | 929.69 | 1681.25 | 1.81× | 141.0 | BETTER |
+| 3 | 1.56 | 3.57 | 2.29× | 3.8 | BETTER |
+| 15 | 2.23 | 6.24 | 2.80× | 13.5 | BETTER |
+| 63 | 2.90 | 7.14 | 2.46× | 43.5 | BETTER |
+| 255 | 4.91 | 10.70 | 2.18× | 103.8 | BETTER |
+| 1023 | 15.49 | 29.68 | 1.92× | 132.1 | BETTER |
+| 8191 | 123.08 | 221.26 | 1.80× | 133.1 | BETTER |
+| 65535 | 930.75 | 1682.49 | 1.81× | 140.8 | BETTER |
 
-**Overall geomean 2.08× faster. No size class regressed → LANDS.**
-
-Caveat, stated honestly: the `3`- and `15`-wchar rows are near this machine's timer floor
-(`QueryPerformanceCounter` granularity ÷ inner-loop count), so their absolute ns are quantized and the
-tiny-string ratios are noisier than the table implies. The rows that carry the result — `255` and up,
-well above the floor — are solid: a consistent 1.7×–2.7× on the sizes real Windows strings actually hit,
-and the large-string throughput doubles (the two-load `vpminuw` body saturates L2 where the shipped scan
-does not).
+**Overall geomean 2.15× faster. No size class regressed → LANDS.** The large-string throughput is
+~141 GB/s (the two-load `vpminuw` body saturates L2 where the shipped scan does not). These numbers use
+the fixed harness (per-case auto-calibrated iteration count), so even the short-string rows are timed
+above the timer floor and are trustworthy.
 
 ## What we beat
 

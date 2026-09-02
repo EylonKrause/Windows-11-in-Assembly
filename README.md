@@ -112,4 +112,5 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 
 | # | routine | vs system | result |
 |---|---|---|---|
-| [001](changes/001-wcslen/) | `wcslen` (AVX2) | `ucrtbase.dll!wcslen` | **LANDED** — geomean **2.08×**, no regression |
+| [001](changes/001-wcslen/) | `wcslen` (AVX2) | `ucrtbase.dll!wcslen` | **LANDED** — geomean **2.15×**, no regression |
+| [002](changes/002-memchr/) | `memchr` (AVX2) | `ucrtbase.dll!memchr` | **LANDED** — geomean **2.28×**, up to 3.5× |
