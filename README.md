@@ -108,5 +108,8 @@ judged by the same test+benchmark harness — the tests decide, not opinion.
 
 ## Status
 
-Foundation up; measurement pipeline proven end-to-end (hand ml64 asm → link → run). First optimization
-unit in progress. See [`changes/`](changes/).
+Foundation up; measurement pipeline proven end-to-end. Landed changes:
+
+| # | routine | vs system | result |
+|---|---|---|---|
+| [001](changes/001-wcslen/) | `wcslen` (AVX2) | `ucrtbase.dll!wcslen` | **LANDED** — geomean **2.08×**, no regression |
