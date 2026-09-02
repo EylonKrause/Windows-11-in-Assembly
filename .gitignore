@@ -1,0 +1,14 @@
+# build artifacts
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.map
+*.dcv
+# disassembly dumps that are regenerated (keep only curated excerpts in RESULTS.md)
+*.rawdisasm
+# editor
+.vs/
+*.user
