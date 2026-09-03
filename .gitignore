@@ -12,3 +12,7 @@
 # editor
 .vs/
 *.user
+
+# live-substitution build artifacts
+live-substitution/*.obj
+live-substitution/*.exe
