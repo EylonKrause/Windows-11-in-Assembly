@@ -106,6 +106,13 @@ judged by the same test+benchmark harness — the tests decide, not opinion.
 
 ---
 
+## Live substitution
+
+The landed functions don't just win a benchmark — [`live-substitution/`](live-substitution/) hot-patches
+the real `ucrtbase.dll` exports in a running process so calls to them execute our assembly, proves the
+results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
+cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap. See its RESULTS.md.
+
 ## Status
 
 Foundation up; measurement pipeline proven end-to-end. Landed changes:

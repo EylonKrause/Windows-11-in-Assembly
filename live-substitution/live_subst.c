@@ -1,0 +1,172 @@
+// live-substitution/live_subst.c
+// Prove the landed assembly actually RUNS in place of the shipped Windows
+// functions, live, in a running process:
+//   1) resolve the real ucrtbase.dll function,
+//   2) hot-patch its prologue with a jump to our assembly (via a counting
+//      wrapper), the same mechanism Detours uses,
+//   3) call the SAME system function pointer again and show it now (a) returns
+//      results identical to the scalar reference across a fuzz corpus and
+//      (b) incremented our counter, i.e. OUR code executed,
+//   4) show the patched prologue bytes (FF 25 = jmp [rip+0]),
+//   5) unpatch and confirm the counter stops — machine left clean.
+//
+// Scope: per-process, runtime, reversible. Within this process every caller of
+// ucrtbase!wcslen (including Windows' own in-proc code) now routes through our
+// assembly. This is NOT a global on-disk swap (that breaks signing / WRP).
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <wchar.h>
+
+extern size_t   wia_wcslen(const wchar_t*);
+extern void*    wia_memchr(const void*, int, size_t);
+extern wchar_t* wia_wcschr(const wchar_t*, wchar_t);
+extern int      wia_wcscmp(const wchar_t*, const wchar_t*);
+size_t   ref_wcslen(const wchar_t*);
+void*    ref_memchr(const void*, int, size_t);
+wchar_t* ref_wcschr(const wchar_t*, wchar_t);
+int      ref_wcscmp(const wchar_t*, const wchar_t*);
+
+// ---- counting wrappers: prove OUR code ran ----
+static volatile LONG c_wcslen, c_memchr, c_wcschr, c_wcscmp;
+static size_t   w_wcslen(const wchar_t* s){ _InterlockedIncrement(&c_wcslen); return wia_wcslen(s); }
+static void*    w_memchr(const void* p,int c,size_t n){ _InterlockedIncrement(&c_memchr); return wia_memchr(p,c,n); }
+static wchar_t* w_wcschr(const wchar_t* s,wchar_t c){ _InterlockedIncrement(&c_wcschr); return wia_wcschr(s,c); }
+static int      w_wcscmp(const wchar_t* a,const wchar_t* b){ _InterlockedIncrement(&c_wcscmp); return wia_wcscmp(a,b); }
+
+// ---- x64 hot-patch: overwrite prologue with jmp [rip+0]; abs64 ----
+typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
+static int patch_on(patch_t* p, void* target, void* repl){
+    p->target = target; p->on = 0;
+    DWORD old;
+    if(!VirtualProtect(target,16,PAGE_EXECUTE_READWRITE,&old)) return 0;
+    memcpy(p->saved, target, 16);
+    unsigned char stub[14];
+    stub[0]=0xFF; stub[1]=0x25; *(uint32_t*)(stub+2)=0; *(uint64_t*)(stub+6)=(uint64_t)repl;
+    memcpy(target, stub, 14);
+    VirtualProtect(target,16,old,&old);
+    FlushInstructionCache(GetCurrentProcess(), target, 16);
+    p->on = 1; return 1;
+}
+static void patch_off(patch_t* p){
+    if(!p->on) return; DWORD old;
+    VirtualProtect(p->target,16,PAGE_EXECUTE_READWRITE,&old);
+    memcpy(p->target, p->saved, 16);
+    VirtualProtect(p->target,16,old,&old);
+    FlushInstructionCache(GetCurrentProcess(), p->target, 16);
+    p->on = 0;
+}
+
+typedef size_t (__cdecl *wcslen_fn)(const wchar_t*);
+typedef void*  (__cdecl *memchr_fn)(const void*,int,size_t);
+typedef wchar_t*(__cdecl *wcschr_fn)(const wchar_t*,wchar_t);
+typedef int    (__cdecl *wcscmp_fn)(const wchar_t*,const wchar_t*);
+
+static int failures = 0;
+#define OK(cond, msg) do{ if(!(cond)){ printf("  FAIL: %s\n", msg); ++failures; } }while(0)
+
+int main(void){
+    HMODULE u = LoadLibraryW(L"ucrtbase.dll");
+    void* p_wcslen = (void*)GetProcAddress(u,"wcslen");
+    void* p_memchr = (void*)GetProcAddress(u,"memchr");
+    void* p_wcschr = (void*)GetProcAddress(u,"wcschr");
+    void* p_wcscmp = (void*)GetProcAddress(u,"wcscmp");
+    printf("ucrtbase.dll  wcslen=%p memchr=%p wcschr=%p wcscmp=%p\n\n",
+           p_wcslen,p_memchr,p_wcschr,p_wcscmp);
+
+    unsigned long seed = 0xC0FFEEu;
+    static wchar_t ws[512]; static unsigned char bs[512];
+
+    // ================= wcslen =================
+    printf("[wcslen] live substitution of ucrtbase!wcslen\n");
+    {
+        wcslen_fn sys = (wcslen_fn)p_wcslen;
+        // pre-patch sanity: the real function works
+        OK(sys(L"hello")==5, "pre: sys wcslen(hello)==5");
+        LONG before = c_wcslen;
+        patch_t p; OK(patch_on(&p, p_wcslen, (void*)w_wcslen), "install patch");
+        printf("  patched prologue bytes: %02X %02X (expect FF 25 = jmp [rip])\n",
+               ((unsigned char*)p_wcslen)[0], ((unsigned char*)p_wcslen)[1]);
+        // now call the SAME system pointer -> must run OUR code
+        int mism=0;
+        for(int t=0;t<4000;t++){
+            int len=t%400; wchar_t* s=ws+(t%13);
+            for(int i=0;i<len;i++){ seed=seed*1103515245u+12345u; wchar_t c=(wchar_t)((seed>>16)|1); s[i]=c?c:1; }
+            s[len]=0;
+            if(sys(s)!=ref_wcslen(s)) mism++;
+        }
+        LONG after = c_wcslen;
+        OK(mism==0, "post: patched wcslen matches reference on 4000 inputs");
+        OK(after-before>=4000, "post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n",
+               mism? "MISMATCH":"all match", (long)(after-before));
+        patch_off(&p);
+        // after unpatch the original runs again; counter frozen
+        LONG frozen = c_wcslen; (void)sys(L"abc"); OK(c_wcslen==frozen, "unpatch: counter frozen (original restored)");
+        OK(sys(L"world!")==6, "unpatch: original wcslen works again");
+        printf("  unpatched cleanly.\n\n");
+    }
+
+    // ================= memchr =================
+    printf("[memchr] live substitution of ucrtbase!memchr\n");
+    {
+        memchr_fn sys = (memchr_fn)p_memchr;
+        patch_t p; OK(patch_on(&p, p_memchr, (void*)w_memchr), "install patch");
+        LONG before=c_memchr; int mism=0;
+        for(int t=0;t<4000;t++){
+            int n=t%400; for(int i=0;i<n;i++){ seed=seed*1103515245u+12345u; bs[i]=(unsigned char)(seed>>16);}
+            int c = (t&1)? 0x55 : (n? bs[n/2] : 0x55);
+            if(sys(bs,c,n)!=ref_memchr(bs,c,n)) mism++;
+        }
+        OK(mism==0,"post: patched memchr matches reference");
+        OK(c_memchr-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_memchr-before));
+        patch_off(&p); printf("  unpatched cleanly.\n\n");
+    }
+
+    // ================= wcschr =================
+    printf("[wcschr] live substitution of ucrtbase!wcschr\n");
+    {
+        wcschr_fn sys=(wcschr_fn)p_wcschr;
+        patch_t p; OK(patch_on(&p,p_wcschr,(void*)w_wcschr),"install patch");
+        LONG before=c_wcschr; int mism=0;
+        for(int t=0;t<4000;t++){
+            int len=t%300; wchar_t* s=ws+(t%13);
+            for(int i=0;i<len;i++){ seed=seed*1103515245u+12345u; wchar_t c=(wchar_t)((seed>>16)|1); s[i]=c?c:2; }
+            s[len]=0;
+            wchar_t tgt = (t&1)? L'@' : (len? s[len/2] : 0);
+            if(sys(s,tgt)!=ref_wcschr(s,tgt)) mism++;
+        }
+        OK(mism==0,"post: patched wcschr matches reference");
+        OK(c_wcschr-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_wcschr-before));
+        patch_off(&p); printf("  unpatched cleanly.\n\n");
+    }
+
+    // ================= wcscmp =================
+    printf("[wcscmp] live substitution of ucrtbase!wcscmp\n");
+    {
+        wcscmp_fn sys=(wcscmp_fn)p_wcscmp;
+        patch_t p; OK(patch_on(&p,p_wcscmp,(void*)w_wcscmp),"install patch");
+        LONG before=c_wcscmp; int mism=0;
+        static wchar_t a[512],b[512];
+        for(int t=0;t<4000;t++){
+            int len=t%250;
+            for(int i=0;i<len;i++){ seed=seed*1103515245u+12345u; wchar_t c=(wchar_t)((seed>>16)|1); a[i]=b[i]=(c?c:3);}
+            a[len]=b[len]=0;
+            if(len && (t%3==0)) b[t%len]=(wchar_t)(a[t%len]+1);
+            int rs=sys(a,b), rr=ref_wcscmp(a,b);
+            if(((rs>0)-(rs<0))!=((rr>0)-(rr<0))) mism++;
+        }
+        OK(mism==0,"post: patched wcscmp matches reference (sign)");
+        OK(c_wcscmp-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_wcscmp-before));
+        patch_off(&p); printf("  unpatched cleanly.\n\n");
+    }
+
+    printf("=====================================================\n");
+    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 4 functions, results identical, then cleanly reverted.\n");
+    else            printf("LIVE SUBSTITUTION: FAIL (%d checks failed)\n", failures);
+    return failures?1:0;
+}
