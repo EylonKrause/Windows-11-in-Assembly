@@ -126,3 +126,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [005](changes/005-memcmp/) | `memcmp` (AVX2) | `ucrtbase.dll!memcmp` | **PARKED** — 1.8–2× ≥ 1 KB, but loses at ≤ 32 B |
 | [006](changes/006-crc32/) | `crc32` (VPCLMULQDQ) | `ntdll.dll!RtlComputeCrc32` | **PARKED** — correct; ties ntdll (already PCLMUL-optimal) |
 | [007](changes/007-rtlcomparememory/) | `RtlCompareMemory` (AVX2) | `ntdll.dll!RtlCompareMemory` | **LANDED** — geomean **4.42×**, 3–5× (core ntdll) |
+| [008](changes/008-rtlcompareunicodestring/) | `RtlCompareUnicodeString` (AVX2) | `ntdll.dll!RtlCompareUnicodeString` | **LANDED** — geomean **3.97×**, CI up to 6.4× (core ntdll) |
