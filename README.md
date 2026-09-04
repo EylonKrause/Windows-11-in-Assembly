@@ -186,3 +186,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [063](changes/063-rtlipv6addresstostringa/) | `RtlIpv6AddressToStringA` (state machine) | `ntdll.dll!RtlIpv6AddressToStringA` | **LANDED** — **5.92×** (IPv6→string; RFC 5952 + Windows; validated 3M) |
 | [064](changes/064-rtlipv6addresstostringw/) | `RtlIpv6AddressToStringW` (state machine) | `ntdll.dll!RtlIpv6AddressToStringW` | **LANDED** — **7.42×** (IPv6→string, wide) |
 | [065](changes/065-rtlipv4addresstostringexa/) | `RtlIpv4AddressToStringExA` (table) | `ntdll.dll!RtlIpv4AddressToStringExA` | **LANDED** — **9.78×** (IPv4+port→string) |
+| [066](changes/066-rtlipv4addresstostringexw/) | `RtlIpv4AddressToStringExW` (table) | `ntdll.dll!RtlIpv4AddressToStringExW` | **LANDED** — **10.5×** (IPv4+port→string, wide) |
