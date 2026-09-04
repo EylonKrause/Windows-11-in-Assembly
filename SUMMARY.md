@@ -37,6 +37,7 @@ Ryzen 9 5950X bench.
 | RtlIpv4AddressToStringW / RtlEthernetAddressToStringW | **23.7 / 36.0x** | wide IPv4 / MAC formatters |
 | RtlIpv6AddressToStringA | **5.9x** | IPv6 -> string (RFC 5952 :: compression + v4-embed; validated 3M) |
 | RtlIpv6AddressToStringW | **7.4x** | IPv6 -> string, wide |
+| RtlIpv4AddressToStringExA | **9.8x** | IPv4 + port -> string (endpoint logging) |
 | RtlNumberOfSetBits / RtlAreBitsSet | 1.3 / 3.2x | allocator bitmaps |
 | RtlIntegerToUnicodeString | 2.9x (2.6x–3.3x) | integer -> decimal/hex formatting (2-digit table) |
 | RtlInt64ToUnicodeString | 3.1x (2.9x–3.3x) | 64-bit integer formatting |
