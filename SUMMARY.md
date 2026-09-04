@@ -65,7 +65,7 @@ our assembly, verifies identical results with a counter proving our code ran, th
 `wcslen`, `memchr`, `wcschr`, `wcscmp`, `RtlCompareMemory`, `RtlCompareUnicodeString`, and
 `RtlUpcaseUnicodeString` (a transform that writes an upcased output string via the OS-built case-fold
 table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `wcspbrk`/`strpbrk`
-(tokenizer set-search) — 12 functions in all, each verified identical under a live hot-patch.
+(tokenizer set-search) and the integer formatters `RtlIntegerToUnicodeString`/`RtlInt64ToUnicodeString` — 14 functions in all, each verified identical under a live hot-patch.
 
 ## Deferred (need dedicated reverse-engineering)
 

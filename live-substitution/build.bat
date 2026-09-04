@@ -16,6 +16,8 @@ ml64 /nologo /c /Fosi.obj "%C%\043-stricmp\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fomi.obj "%C%\046-memicmp\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fowp.obj "%C%\035-wcspbrk\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fosp.obj "%C%\038-strpbrk\impl.asm" >nul || goto :err
+ml64 /nologo /c /Foitos.obj "%C%\052-rtlintegertounicodestring\impl.asm" >nul || goto :err
+ml64 /nologo /c /Foitos64.obj "%C%\053-rtlint64tounicodestring\impl.asm" >nul || goto :err
 cl /nologo /O2 /c /Foref_wcslen.obj "%C%\001-wcslen\reference.c" >nul || goto :err
 cl /nologo /O2 /c /Foref_memchr.obj "%C%\002-memchr\reference.c" >nul || goto :err
 cl /nologo /O2 /c /Foref_wcschr.obj "%C%\003-wcschr\reference.c" >nul || goto :err
@@ -28,8 +30,11 @@ cl /nologo /O2 /c /Foref_si.obj "%C%\043-stricmp\reference.c" >nul || goto :err
 cl /nologo /O2 /c /Foref_mi.obj "%C%\046-memicmp\reference.c" >nul || goto :err
 cl /nologo /O2 /c /Foref_wp.obj "%C%\035-wcspbrk\reference.c" >nul || goto :err
 cl /nologo /O2 /c /Foref_sp.obj "%C%\038-strpbrk\reference.c" >nul || goto :err
+cl /nologo /O2 /c /Foref_it.obj "%C%\052-rtlintegertounicodestring\reference.c" >nul || goto :err
+cl /nologo /O2 /c /Foref_it64.obj "%C%\053-rtlint64tounicodestring\reference.c" >nul || goto :err
+cl /nologo /O2 /c /Fodec2.obj "%C%\052-rtlintegertounicodestring\dec2.c" >nul || goto :err
 cl /nologo /O2 /c /Foupcase.obj "%C%\008-rtlcompareunicodestring\upcase.c" >nul || goto :err
-cl /nologo /O2 live_subst.c ref_wcslen.obj ref_memchr.obj ref_wcschr.obj ref_wcscmp.obj ref_rcm.obj ref_rcu.obj ref_upcasestr.obj upcase.obj wcslen.obj memchr.obj wcschr.obj wcscmp.obj rcm.obj rcu.obj upcasestr.obj wi.obj si.obj mi.obj wp.obj sp.obj ref_wi.obj ref_si.obj ref_mi.obj ref_wp.obj ref_sp.obj /Fe:live_subst.exe >nul || goto :err
+cl /nologo /O2 live_subst.c ref_wcslen.obj ref_memchr.obj ref_wcschr.obj ref_wcscmp.obj ref_rcm.obj ref_rcu.obj ref_upcasestr.obj upcase.obj wcslen.obj memchr.obj wcschr.obj wcscmp.obj rcm.obj rcu.obj upcasestr.obj wi.obj si.obj mi.obj wp.obj sp.obj ref_wi.obj ref_si.obj ref_mi.obj ref_wp.obj ref_sp.obj itos.obj itos64.obj ref_it.obj ref_it64.obj dec2.obj /Fe:live_subst.exe >nul || goto :err
 "%H%live_subst.exe"
 endlocal & exit /b 0
 :err
