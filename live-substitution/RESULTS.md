@@ -28,7 +28,7 @@ ucrtbase.dll  wcslen=00007FFFF4EA0830 memchr=00007FFFF4F1E130 wcschr=00007FFFF4E
 [RtlCompareUnicodeString]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 [RtlUpcaseUnicodeString]   (transform) correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 
-LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 12 functions (9 ucrtbase + 3 ntdll), results identical, then cleanly reverted.
+LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 14 functions (9 ucrtbase + 5 ntdll), results identical, then cleanly reverted.
 ```
 
 For each of `wcslen`, `memchr`, `wcschr`, `wcscmp` (ucrtbase), `RtlCompareMemory`,
@@ -55,4 +55,4 @@ upcased output string through the OS-built case-fold table and returns an NTSTAT
 ```
 live-substitution\build.bat
 ```
-Assembles the twelve landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
+Assembles the fourteen landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.

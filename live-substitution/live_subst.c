@@ -51,6 +51,13 @@ int             ref_memicmp(const unsigned char*, const unsigned char*, size_t);
 unsigned short* ref_wcspbrk(const unsigned short*, const unsigned short*);
 char*           ref_strpbrk(const char*, const char*);
 
+/* integer formatting (ntdll) */
+extern long wia_itos(unsigned long, unsigned long, U_STR*);
+extern long wia_itos64(unsigned long long, unsigned long, U_STR*);
+long        ref_itos(unsigned long, unsigned long, void*);
+long        ref_itos64(unsigned long long, unsigned long, void*);
+void        wia_dec2_init(void);
+
 // ---- counting wrappers: prove OUR code ran ----
 static volatile LONG c_wcslen, c_memchr, c_wcschr, c_wcscmp;
 static size_t   w_wcslen(const wchar_t* s){ _InterlockedIncrement(&c_wcslen); return wia_wcslen(s); }
@@ -68,6 +75,9 @@ static int      w_si(const char* a,const char* b){ _InterlockedIncrement(&c_si);
 static int      w_mi(const void* a,const void* b,size_t n){ _InterlockedIncrement(&c_mi); return wia_memicmp(a,b,n); }
 static wchar_t* w_wp(const wchar_t* a,const wchar_t* b){ _InterlockedIncrement(&c_wp); return wia_wcspbrk(a,b); }
 static char*    w_sp(const char* a,const char* b){ _InterlockedIncrement(&c_sp); return wia_strpbrk(a,b); }
+static volatile LONG c_it, c_it64;
+static long w_it(unsigned long v,unsigned long b,U_STR* s){ _InterlockedIncrement(&c_it); return wia_itos(v,b,s); }
+static long w_it64(unsigned long long v,unsigned long b,U_STR* s){ _InterlockedIncrement(&c_it64); return wia_itos64(v,b,s); }
 
 // ---- x64 hot-patch: overwrite prologue with jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -349,8 +359,43 @@ int main(void){
         patch_off(&p1); patch_off(&p2); printf("  unpatched cleanly.\n\n");
     }
 
+    // ===== RtlIntegerToUnicodeString / RtlInt64ToUnicodeString (integer formatting) =====
+    void* p_it=(void*)GetProcAddress(nt,"RtlIntegerToUnicodeString");
+    void* p_it64=(void*)GetProcAddress(nt,"RtlInt64ToUnicodeString");
+    wia_dec2_init();
+    printf("[RtlIntegerToUnicodeString/RtlInt64ToUnicodeString] live substitution of ntdll integer formatters\n");
+    {
+        typedef LONG (WINAPI *f32)(ULONG,ULONG,U_STR*);
+        typedef LONG (WINAPI *f64)(ULONGLONG,ULONG,U_STR*);
+        f32 s32=(f32)p_it; f64 s64=(f64)p_it64;
+        patch_t p1,p2;
+        OK(patch_on(&p1,p_it,(void*)w_it),"install RtlIntegerToUnicodeString patch");
+        OK(patch_on(&p2,p_it64,(void*)w_it64),"install RtlInt64ToUnicodeString patch");
+        LONG b1=c_it,b2=c_it64; int m1=0,m2=0;
+        static const ULONG bases[]={10,16,8,2};
+        static wchar_t bo[80],br[80],bo2[80],br2[80];
+        for(int t=0;t<4000;t++){
+            ULONG base=bases[t&3];
+            seed=seed*1103515245u+12345u; ULONG v=seed;
+            U_STR uo={7,160,bo}, ur={7,160,br};
+            LONG ro=s32(v,base,&uo); LONG rr=ref_itos(v,base,&ur);   // s32 runs OUR code (patched)
+            if(ro!=rr||uo.Length!=ur.Length) m1++;
+            else { for(int i=0;i<uo.Length/2;i++) if(bo[i]!=br[i]){m1++;break;} }
+            seed=seed*1103515245u+12345u; ULONGLONG v64=(((ULONGLONG)seed)<<32)|(seed*2654435761u);
+            U_STR uo2={7,160,bo2}, ur2={7,160,br2};
+            LONG ro2=s64(v64,base,&uo2); LONG rr2=ref_itos64(v64,base,&ur2);
+            if(ro2!=rr2||uo2.Length!=ur2.Length) m2++;
+            else { for(int i=0;i<uo2.Length/2;i++) if(bo2[i]!=br2[i]){m2++;break;} }
+        }
+        OK(m1==0&&m2==0,"post: patched integer formatters match reference (digits + status)");
+        OK(c_it-b1>=4000 && c_it64-b2>=4000,"post: counters prove OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld/%ld\n",
+               (m1||m2)?"MISMATCH":"all match",(long)(c_it-b1),(long)(c_it64-b2));
+        patch_off(&p1); patch_off(&p2); printf("  unpatched cleanly.\n\n");
+    }
+
     printf("=====================================================\n");
-    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 12 functions (9 ucrtbase + 3 ntdll), results identical, then cleanly reverted.\n");
+    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 14 functions (9 ucrtbase + 5 ntdll: compares, a transform, and integer formatters), results identical, then cleanly reverted.\n");
     else            printf("LIVE SUBSTITUTION: FAIL (%d checks failed)\n", failures);
     return failures?1:0;
 }
