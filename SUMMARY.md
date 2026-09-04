@@ -28,7 +28,7 @@ Ryzen 9 5950X bench.
 | RtlUnicodeToOemN / RtlOemToUnicodeN | 6.3 / 4.5x | raw OEM converters |
 | RtlUpcaseUnicodeToMultiByteN / RtlUpcaseUnicodeToOemN | 6.5 / 7.4x | upcase+convert |
 | RtlUpcaseUnicodeStringToAnsiString | 9.0x | upcase+convert (string) |
-| RtlUnicodeToUTF8N | 2.8x | UTF-16 -> UTF-8 (full encoder) |
+| RtlUnicodeToUTF8N / RtlUTF8ToUnicodeN | 2.8 / 3.1x | UTF-16 <-> UTF-8 (full encoder + decoder) |
 | RtlCompareMemoryUlong | 5.0x | memory-manager page pattern scan |
 | RtlNumberOfSetBits / RtlAreBitsSet | 1.3 / 3.2x | allocator bitmaps |
 
@@ -53,5 +53,7 @@ our assembly, verifies identical results with a counter proving our code ran, th
 
 ## Deferred (need dedicated reverse-engineering)
 
-- `RtlUTF8ToUnicodeN` (UTF-8 decoder): ntdll's malformed-input resync is an intricate state machine.
-- `RtlCrc64`: a non-standard construction (not a plain reflected CRC).
+- `RtlCrc64`: a non-standard construction (not a plain reflected CRC; `crc({00},0) != 0`).
+
+The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
+(034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md.
