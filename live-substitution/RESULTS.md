@@ -24,11 +24,16 @@ ucrtbase.dll  wcslen=00007FFFF4EA0830 memchr=00007FFFF4F1E130 wcschr=00007FFFF4E
 [wcschr]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 [wcscmp]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 
-LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 functions (4 ucrtbase + 2 core ntdll), results identical, then cleanly reverted.
+[RtlCompareMemory]         correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
+[RtlCompareUnicodeString]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
+[RtlUpcaseUnicodeString]   (transform) correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
+
+LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 7 functions (4 ucrtbase + 3 ntdll: 2 compares + a transform), results identical, then cleanly reverted.
 ```
 
-For each of `wcslen`, `memchr`, `wcschr`, `wcscmp` (ucrtbase) and `RtlCompareMemory`,
-`RtlCompareUnicodeString` (core ntdll):
+For each of `wcslen`, `memchr`, `wcschr`, `wcscmp` (ucrtbase), `RtlCompareMemory`,
+`RtlCompareUnicodeString`, and `RtlUpcaseUnicodeString` (ntdll) — the last a **transform** that writes an
+upcased output string through the OS-built case-fold table and returns an NTSTATUS, not just a compare:
 1. the patched prologue starts `FF 25` (the jump we wrote),
 2. calling the **real ucrtbase function pointer** afterwards incremented our counter by exactly 4000 —
    i.e. our assembly executed, not ucrtbase's,
@@ -50,4 +55,4 @@ For each of `wcslen`, `memchr`, `wcschr`, `wcscmp` (ucrtbase) and `RtlCompareMem
 ```
 live-substitution\build.bat
 ```
-Assembles the four landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
+Assembles the seven landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
