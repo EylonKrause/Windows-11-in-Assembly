@@ -137,3 +137,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [016](changes/016-rtlunicodetoutf8n/) | `RtlUnicodeToUTF8N` (AVX2) | `ntdll.dll!RtlUnicodeToUTF8N` | **LANDED** — geomean **2.82×** (UTF-16→UTF-8, core ntdll) |
 | [017](changes/017-rtldowncaseunicodestring/) | `RtlDowncaseUnicodeString` (AVX2) | `ntdll.dll!RtlDowncaseUnicodeString` | **LANDED** — geomean **11.15×**, up to 21× (core ntdll) |
 | [018](changes/018-rtlunicodestringtoansistring/) | `RtlUnicodeStringToAnsiString` (AVX2) | `ntdll.dll!RtlUnicodeStringToAnsiString` | **LANDED** — geomean **12.79×**, up to 22.6× (core ntdll) |
+| [019](changes/019-rtlansistringtounicodestring/) | `RtlAnsiStringToUnicodeString` (AVX2) | `ntdll.dll!RtlAnsiStringToUnicodeString` | **LANDED** — geomean **11.58×**, up to 22.9× (core ntdll) |
