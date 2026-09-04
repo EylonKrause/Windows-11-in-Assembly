@@ -41,3 +41,12 @@ with no size-check cascade); until then it stays parked.
 ```
 changes\005-memcmp\build.bat
 ```
+
+## Retry (2026-09-04) — still parked, now understood
+
+Replaced the 8–15 byte path with the known-best technique: overlapping 8-byte integer loads + `bswap` to
+derive the sign from an unsigned compare. It changed the 8-byte time by **0.00 ns** — proof that the small
+regression is **not compute-bound**. At 8 and 32 bytes both ours (3.34 / 3.57 ns) and ucrtbase (3.12 ns)
+sit at the function-call / dispatch floor; ucrtbase's dispatch is ~0.2–0.4 ns tighter, inside this
+machine's timing noise. Three approaches tried (scalar tail, overlapping SIMD ladder, bswap) — none move a
+gap that isn't in the algorithm. Kept parked honestly; the ≥128 B wins (1.1–2.05×) are real.
