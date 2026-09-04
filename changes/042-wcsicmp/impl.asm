@@ -12,17 +12,15 @@
 ; otherwise it steps one wchar at a time. The terminator stops the scan.
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
+.const
+c40w dw 0040h
+c5Bw dw 005Bh
+c20w dw 0020h
 .code
 wia_wcsicmp PROC
-        mov       eax, 40h
-        vmovd     xmm5, eax
-        vpbroadcastw ymm5, xmm5                    ; 0x40  ('A'-1)
-        mov       eax, 5Bh
-        vmovd     xmm6, eax
-        vpbroadcastw ymm6, xmm6                    ; 0x5B  ('Z'+1)
-        mov       eax, 20h
-        vmovd     xmm7, eax
-        vpbroadcastw ymm7, xmm7                    ; 0x20  (fold delta)
+        vpbroadcastw ymm5, word ptr [c40w]         ; 0x40  ('A'-1)
+        vpbroadcastw ymm6, word ptr [c5Bw]         ; 0x5B  ('Z'+1)
+        vpbroadcastw ymm7, word ptr [c20w]         ; 0x20  (fold delta)
         vpxor     ymm1, ymm1, ymm1                 ; zero
 
 top:
