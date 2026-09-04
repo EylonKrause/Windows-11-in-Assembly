@@ -127,3 +127,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [006](changes/006-crc32/) | `crc32` (VPCLMULQDQ) | `ntdll.dll!RtlComputeCrc32` | **PARKED** — correct; ties ntdll (already PCLMUL-optimal) |
 | [007](changes/007-rtlcomparememory/) | `RtlCompareMemory` (AVX2) | `ntdll.dll!RtlCompareMemory` | **LANDED** — geomean **4.42×**, 3–5× (core ntdll) |
 | [008](changes/008-rtlcompareunicodestring/) | `RtlCompareUnicodeString` (AVX2) | `ntdll.dll!RtlCompareUnicodeString` | **LANDED** — geomean **3.97×**, CI up to 6.4× (core ntdll) |
+| [009](changes/009-rtlhashunicodestring/) | `RtlHashUnicodeString` (AVX2) | `ntdll.dll!RtlHashUnicodeString` | **LANDED** — geomean **4.50×**, up to 8.2× (core ntdll) |
