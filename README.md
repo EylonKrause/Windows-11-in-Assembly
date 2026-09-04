@@ -172,3 +172,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [049](changes/049-wcslwr/) | `_wcslwr` (AVX2 fold+store) | `ucrtbase.dll!_wcslwr` | **PARKED** — correct + 2–6× ≥ 32, but ucrtbase's tight 8-wchar path wins at size 8 |
 | [050](changes/050-wcsupr/) | `_wcsupr` (AVX2 fold+store) | `ucrtbase.dll!_wcsupr` | **LANDED** — geomean **5.98×** (1×–11.8×; in-place ASCII uppercase, wide) |
 | [051](changes/051-rtlfindcharinunicodestring/) | `RtlFindCharInUnicodeString` (AVX2 set-search) | `ntdll.dll!RtlFindCharInUnicodeString` | **LANDED** — geomean **8.26×** (2.5×–13.3×; counted set-search, all 8 flags, core ntdll path parsing) |
+| [052](changes/052-rtlintegertounicodestring/) | `RtlIntegerToUnicodeString` (2-digit table) | `ntdll.dll!RtlIntegerToUnicodeString` | **LANDED** — geomean **2.94×** (2.6×–3.3×; integer→decimal/hex format, new family) |
