@@ -44,6 +44,7 @@ Ryzen 9 5950X bench.
 | _wcsicmp | 7.7x (2.6x–11.5x, ~26 GB/s) — case-insensitive UTF-16 compare (ASCII fold) |
 | _stricmp / _wcsnicmp / _strnicmp | 8.7 / 7.4 / 9.3x — case-insensitive compare family (byte + bounded) |
 | _memicmp | 10.7x (2.2x–23.7x, ~35 GB/s) — case-insensitive memory compare |
+| _strlwr / _strupr / _wcsupr | 8.8 / 8.9 / 6.0x — in-place ASCII case conversion (fold+store) |
 | wcspbrk | 4.7x (1.55x–8x; rdtscp ~12x at size) — tokenizer set-membership |
 | wcsspn | 5.7x (1.95x–9.4x, 6-char set) — tokenizer span (complement of wcspbrk) |
 | wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the wide trio) |
@@ -52,6 +53,7 @@ Ryzen 9 5950X bench.
 ### Parked (honestly recorded — the shipped code is already optimal)
 
 - `memcmp` (ucrtbase): tuned small path; dispatch-floor. `crc32` (ntdll RtlComputeCrc32): already VPCLMULQDQ.
+- `_wcslwr` (ucrtbase): correct + 2-6x >= 32 B, but ucrtbase's tight 8-wchar small path wins at size 8 (dispatch floor); the identical-structure `_wcsupr` lands.
 
 ## Proven running live
 

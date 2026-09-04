@@ -1,0 +1,83 @@
+; changes/048-strupr/impl.asm
+; char* wia_strupr(char* s)   [Win64: rcx -> rax (returns s)]
+;
+; Uppercase a byte string in place. In the default C locale ucrtbase folds ONLY ASCII
+; a-z -> A-Z (verified); its impl is scalar (~1 GB/s). We fold+store 32 bytes at a time,
+; an 8-byte (vmovq) block for the 8..31-byte remainder, and a scalar tail for < 8.
+;
+; Bounds-safe: a vector load+STORE is issued only when its bytes are >= that many from the
+; page end AND the block holds no terminator (so all its bytes belong to the string and are
+; safe to write back); otherwise it steps one byte at a time, never writing past the
+; terminator. In-register fold (A-Z via two signed vpcmpgtb, +0x20), constants from memory.
+; ISA: AVX2. Validated on Zen3.
+
+.const
+c60b db 60h
+c7Bb db 7Bh
+c20b db 20h
+.code
+wia_strupr PROC
+        mov       rax, rcx                          ; return value = s
+        mov       r8, rcx                           ; cursor
+        vpbroadcastb ymm5, byte ptr [c60b]
+        vpbroadcastb ymm6, byte ptr [c7Bb]
+        vpbroadcastb ymm7, byte ptr [c20b]
+        vpxor     ymm1, ymm1, ymm1
+
+loop0:
+        mov       r9, r8
+        and       r9, 4095
+        cmp       r9, 4064                          ; within 32 bytes of page end?
+        ja        try8
+        vmovdqu   ymm0, ymmword ptr [r8]
+        vpcmpeqb  ymm2, ymm0, ymm1
+        vpmovmskb r9d, ymm2
+        test      r9d, r9d
+        jnz       try8                              ; terminator in this 32 -> try smaller
+        vpcmpgtb  ymm2, ymm0, ymm5
+        vpcmpgtb  ymm3, ymm6, ymm0
+        vpand     ymm2, ymm2, ymm3
+        vpand     ymm2, ymm2, ymm7
+        vpsubb    ymm0, ymm0, ymm2
+        vmovdqu   ymmword ptr [r8], ymm0
+        add       r8, 32
+        jmp       loop0
+
+try8:
+        mov       r9, r8
+        and       r9, 4095
+        cmp       r9, 4088                          ; within 8 bytes of page end?
+        ja        step1
+        vmovq     xmm0, qword ptr [r8]
+        vpcmpeqb  xmm2, xmm0, xmm1
+        vpmovmskb r9d, xmm2
+        and       r9d, 0FFh
+        test      r9d, r9d
+        jnz       step1                             ; terminator in this 8 -> scalar
+        vpcmpgtb  xmm2, xmm0, xmm5
+        vpcmpgtb  xmm3, xmm6, xmm0
+        vpand     xmm2, xmm2, xmm3
+        vpand     xmm2, xmm2, xmm7
+        vpsubb    xmm0, xmm0, xmm2
+        vmovq     qword ptr [r8], xmm0
+        add       r8, 8
+        jmp       loop0
+
+step1:
+        movzx     r9d, byte ptr [r8]
+        test      r9b, r9b
+        jz        done
+        lea       r10d, [r9d - 61h]
+        cmp       r10d, 19h
+        ja        nofold
+        sub       r9d, 20h
+        mov       byte ptr [r8], r9b
+nofold:
+        inc       r8
+        jmp       step1
+
+done:
+        vzeroupper
+        ret
+wia_strupr ENDP
+END
