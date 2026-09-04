@@ -35,6 +35,9 @@ extern long   wia_rtlcmpustr(const U_STR*, const U_STR*, unsigned char);
 size_t ref_rtlcmpmem(const void*, const void*, size_t);
 long   ref_cmp_ustr(const U_STR*, const U_STR*, int);
 void   wia_upcase_init(void);
+/* transform: RtlUpcaseUnicodeString (dst, src, alloc) — a ~9x per-char win */
+extern long wia_upcasestr(U_STR*, const U_STR*, unsigned char);
+long        ref_upcasestr(U_STR*, const U_STR*, int);
 
 // ---- counting wrappers: prove OUR code ran ----
 static volatile LONG c_wcslen, c_memchr, c_wcschr, c_wcscmp;
@@ -45,6 +48,8 @@ static int      w_wcscmp(const wchar_t* a,const wchar_t* b){ _InterlockedIncreme
 static volatile LONG c_rcm, c_rcu;
 static size_t w_rcm(const void* a,const void* b,size_t n){ _InterlockedIncrement(&c_rcm); return wia_rtlcmpmem(a,b,n); }
 static long   w_rcu(const U_STR* a,const U_STR* b,unsigned char ci){ _InterlockedIncrement(&c_rcu); return wia_rtlcmpustr(a,b,ci); }
+static volatile LONG c_ups;
+static long   w_ups(U_STR* d,const U_STR* s,unsigned char a){ _InterlockedIncrement(&c_ups); return wia_upcasestr(d,s,a); }
 
 // ---- x64 hot-patch: overwrite prologue with jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -226,8 +231,39 @@ int main(void){
         patch_off(&p); printf("  unpatched cleanly.\n\n");
     }
 
+    // ===== RtlUpcaseUnicodeString (a transform, not a compare) =====
+    void* p_ups = (void*)GetProcAddress(nt,"RtlUpcaseUnicodeString");
+    printf("[RtlUpcaseUnicodeString] live substitution of ntdll!RtlUpcaseUnicodeString (transform)\n");
+    {
+        typedef LONG (WINAPI *ups_fn)(U_STR*,const U_STR*,BOOLEAN);
+        ups_fn sys = (ups_fn)p_ups;
+        patch_t p; OK(patch_on(&p, p_ups, (void*)w_ups), "install patch");
+        printf("  patched prologue bytes: %02X %02X (expect FF 25)\n",
+               ((unsigned char*)p_ups)[0], ((unsigned char*)p_ups)[1]);
+        LONG before=c_ups; int mism=0;
+        static wchar_t in[300], o1[300], o2[300];
+        for(int t=0;t<4000;t++){
+            int n=t%140, rng=(t%4)?0x80:0x600;   // mix ASCII and non-ASCII (Cyrillic/Greek) so the table path runs
+            for(int i=0;i<n;i++){seed=seed*1103515245u+12345u; in[i]=(wchar_t)((seed>>16)%rng+1);}
+            U_STR us={(unsigned short)(n*2),(unsigned short)(n*2),in};
+            U_STR du={0,(unsigned short)(n*2),o1};      // patched-system output (writes in place, alloc=FALSE)
+            U_STR dr={0,(unsigned short)(n*2),o2};      // reference output
+            long rs=sys(&du,&us,FALSE), rr=ref_upcasestr(&dr,&us,0);
+            int bad=(rs!=rr)||(du.Length!=dr.Length);
+            for(int i=0;i<du.Length/2 && !bad;i++) if(o1[i]!=o2[i]) bad=1;
+            if(bad) mism++;
+        }
+        OK(mism==0,"post: patched RtlUpcaseUnicodeString matches reference (status + upcased bytes)");
+        OK(c_ups-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_ups-before));
+        patch_off(&p);
+        LONG frozen=c_ups; U_STR us={10,10,L"abcde"}, du={0,10,o1}; (void)sys(&du,&us,FALSE);
+        OK(c_ups==frozen && du.Buffer[0]==L'A', "unpatch: original RtlUpcaseUnicodeString restored (ABCDE), counter frozen");
+        printf("  unpatched cleanly.\n\n");
+    }
+
     printf("=====================================================\n");
-    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 functions (4 ucrtbase + 2 core ntdll), results identical, then cleanly reverted.\n");
+    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 7 functions (4 ucrtbase + 3 ntdll: 2 compares + a transform), results identical, then cleanly reverted.\n");
     else            printf("LIVE SUBSTITUTION: FAIL (%d checks failed)\n", failures);
     return failures?1:0;
 }

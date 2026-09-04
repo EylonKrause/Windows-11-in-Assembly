@@ -49,7 +49,9 @@ Ryzen 9 5950X bench.
 
 `live-substitution/` hot-patches the real `ucrtbase`/`ntdll` exports in a running process so calls execute
 our assembly, verifies identical results with a counter proving our code ran, then reverts cleanly — for
-`wcslen`, `memchr`, `wcschr`, `wcscmp`, `RtlCompareMemory`, `RtlCompareUnicodeString`.
+`wcslen`, `memchr`, `wcschr`, `wcscmp`, `RtlCompareMemory`, `RtlCompareUnicodeString`, and
+`RtlUpcaseUnicodeString` (the last a transform that writes an upcased output string via the OS-built
+case-fold table, not just a compare).
 
 ## Deferred (need dedicated reverse-engineering)
 
