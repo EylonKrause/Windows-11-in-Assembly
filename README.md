@@ -179,3 +179,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [056](changes/056-itoa/) | `_itoa` (2-digit table / nibble) | `ucrtbase.dll!_itoa` | **LANDED** — geomean **1.44×** (signed C-runtime integer format) |
 | [057](changes/057-i64toa/) | `_i64toa` (2-digit table / nibble) | `ucrtbase.dll!_i64toa` | **LANDED** — geomean **1.61×** (signed 64-bit integer format) |
 | [058](changes/058-rtlstringfromguidex/) | `RtlStringFromGUIDEx` (table byte→hex) | `ntdll.dll!RtlStringFromGUIDEx` | **LANDED** — **25.5×** (GUID→string; COM/registry/ETW; project's largest win) |
+| [059](changes/059-rtlipv4addresstostringa/) | `RtlIpv4AddressToStringA` (table) | `ntdll.dll!RtlIpv4AddressToStringA` | **LANDED** — **16.6×** (IPv4→dotted decimal; networking) |
