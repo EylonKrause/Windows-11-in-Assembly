@@ -33,6 +33,7 @@ Ryzen 9 5950X bench.
 | RtlFindCharInUnicodeString | 8.3x (2.5x–13.3x) | path/name set-search (all 8 flags; CI via OS upcase) |
 | RtlNumberOfSetBits / RtlAreBitsSet | 1.3 / 3.2x | allocator bitmaps |
 | RtlIntegerToUnicodeString | 2.9x (2.6x–3.3x) | integer -> decimal/hex formatting (2-digit table) |
+| RtlInt64ToUnicodeString | 3.1x (2.9x–3.3x) | 64-bit integer formatting |
 
 ### ucrtbase (C runtime, loaded in ~220 processes)
 
