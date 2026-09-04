@@ -189,3 +189,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [066](changes/066-rtlipv4addresstostringexw/) | `RtlIpv4AddressToStringExW` (table) | `ntdll.dll!RtlIpv4AddressToStringExW` | **LANDED** — **10.5×** (IPv4+port→string, wide) |
 | [067](changes/067-rtlconvertsidtounicodestring/) | `RtlConvertSidToUnicodeString` (state machine) | `ntdll.dll!RtlConvertSidToUnicodeString` | **LANDED** — **1.42×** (SID→string; security/ACLs; validated 2M) |
 | [068](changes/068-rtlipv6addresstostringexa/) | `RtlIpv6AddressToStringExA` (reuses 063 core) | `ntdll.dll!RtlIpv6AddressToStringExA` | **LANDED** — **6.87×** (IPv6+scope+port→string) |
+| [069](changes/069-rtlipv6addresstostringexw/) | `RtlIpv6AddressToStringExW` (reuses 064 core) | `ntdll.dll!RtlIpv6AddressToStringExW` | **LANDED** — **8.38×** (IPv6+scope+port→string, wide) |
