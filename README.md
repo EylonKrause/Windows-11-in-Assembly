@@ -166,3 +166,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [043](changes/043-stricmp/) | `_stricmp` (AVX2 case-insensitive) | `ucrtbase.dll!_stricmp` | **LANDED** — geomean **8.73×** (2.3×–16×; case-insensitive byte compare) |
 | [044](changes/044-wcsnicmp/) | `_wcsnicmp` (AVX2 ci-bounded) | `ucrtbase.dll!_wcsnicmp` | **LANDED** — geomean **7.44×** (2.5×–10.9×; bounded ci UTF-16 compare) |
 | [045](changes/045-strnicmp/) | `_strnicmp` (AVX2 ci-bounded) | `ucrtbase.dll!_strnicmp` | **LANDED** — geomean **9.31×** (2.2×–17×; completes the ci compare family) |
+| [046](changes/046-memicmp/) | `_memicmp` (AVX2 case-insensitive) | `ucrtbase.dll!_memicmp` | **LANDED** — geomean **10.70×** (2.2×–23.7×, ~35 GB/s; ci memory compare) |

@@ -43,6 +43,7 @@ Ryzen 9 5950X bench.
 | wcsncmp | 3.3x (~26 GB/s) — bounded UTF-16 compare |
 | _wcsicmp | 7.7x (2.6x–11.5x, ~26 GB/s) — case-insensitive UTF-16 compare (ASCII fold) |
 | _stricmp / _wcsnicmp / _strnicmp | 8.7 / 7.4 / 9.3x — case-insensitive compare family (byte + bounded) |
+| _memicmp | 10.7x (2.2x–23.7x, ~35 GB/s) — case-insensitive memory compare |
 | wcspbrk | 4.7x (1.55x–8x; rdtscp ~12x at size) — tokenizer set-membership |
 | wcsspn | 5.7x (1.95x–9.4x, 6-char set) — tokenizer span (complement of wcspbrk) |
 | wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the wide trio) |
