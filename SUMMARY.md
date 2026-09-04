@@ -41,6 +41,7 @@ Ryzen 9 5950X bench.
 | wcschr | 2.2x |
 | wcscmp / strcmp | 2.9 / 1.3x |
 | wcsncmp | 3.3x (~26 GB/s) — bounded UTF-16 compare |
+| _wcsicmp | 7.7x (2.6x–11.5x, ~26 GB/s) — case-insensitive UTF-16 compare (ASCII fold) |
 | wcspbrk | 4.7x (1.55x–8x; rdtscp ~12x at size) — tokenizer set-membership |
 | wcsspn | 5.7x (1.95x–9.4x, 6-char set) — tokenizer span (complement of wcspbrk) |
 | wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the wide trio) |
