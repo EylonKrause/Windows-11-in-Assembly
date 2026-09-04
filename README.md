@@ -133,3 +133,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [012](changes/012-rtlcomparestring/) | `RtlCompareString` (ANSI, AVX2) | `ntdll.dll!RtlCompareString` | **LANDED** — geomean **4.47×**, CI up to 10× (core ntdll) |
 | [013](changes/013-rtlequalstring/) | `RtlEqualString` (ANSI, AVX2) | `ntdll.dll!RtlEqualString` | **LANDED** — geomean **4.02×**, CI up to 7.4× (core ntdll) |
 | [014](changes/014-rtlprefixstring/) | `RtlPrefixString` (ANSI, AVX2) | `ntdll.dll!RtlPrefixString` | **LANDED** — geomean **2.88×**, CI up to 11.4× (core ntdll) |
+| [015](changes/015-rtlupcaseunicodestring/) | `RtlUpcaseUnicodeString` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeString` | **LANDED** — geomean **9.12×**, up to 15.7× (core ntdll) |
