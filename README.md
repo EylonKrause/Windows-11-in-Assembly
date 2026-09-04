@@ -111,8 +111,8 @@ judged by the same test+benchmark harness — the tests decide, not opinion.
 The landed functions don't just win a benchmark — [`live-substitution/`](live-substitution/) hot-patches
 the real `ucrtbase.dll` exports in a running process so calls to them execute our assembly, proves the
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
-cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap. Covers seven functions across
-`ucrtbase` and `ntdll`, including `RtlUpcaseUnicodeString` — a transform that writes an upcased output
+cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap. Covers twelve functions across
+`ucrtbase` and `ntdll` — the compares, a transform (`RtlUpcaseUnicodeString`), — a transform that writes an upcased output
 string through the OS-built case-fold table, not just a compare. See its RESULTS.md.
 
 ## Status
