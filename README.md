@@ -142,3 +142,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [021](changes/021-rtlunicodetomultibyten/) | `RtlUnicodeToMultiByteN` (AVX2) | `ntdll.dll!RtlUnicodeToMultiByteN` | **LANDED** — geomean **3.93×** (core ntdll) |
 | [022](changes/022-rtlmultibytetounicoden/) | `RtlMultiByteToUnicodeN` (AVX2) | `ntdll.dll!RtlMultiByteToUnicodeN` | **LANDED** — geomean **4.05×** (core ntdll) |
 | [023](changes/023-rtlnumberofsetbits/) | `RtlNumberOfSetBits` (POPCNT) | `ntdll.dll!RtlNumberOfSetBits` | **LANDED** — geomean **1.32×**, 2.3× small (core ntdll) |
+| [024](changes/024-rtlunicodestringtooemstring/) | `RtlUnicodeStringToOemString` (AVX2) | `ntdll.dll!RtlUnicodeStringToOemString` | **LANDED** — geomean **7.68×** (core ntdll) |
