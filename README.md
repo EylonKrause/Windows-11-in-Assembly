@@ -167,3 +167,7 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [044](changes/044-wcsnicmp/) | `_wcsnicmp` (AVX2 ci-bounded) | `ucrtbase.dll!_wcsnicmp` | **LANDED** — geomean **7.44×** (2.5×–10.9×; bounded ci UTF-16 compare) |
 | [045](changes/045-strnicmp/) | `_strnicmp` (AVX2 ci-bounded) | `ucrtbase.dll!_strnicmp` | **LANDED** — geomean **9.31×** (2.2×–17×; completes the ci compare family) |
 | [046](changes/046-memicmp/) | `_memicmp` (AVX2 case-insensitive) | `ucrtbase.dll!_memicmp` | **LANDED** — geomean **10.70×** (2.2×–23.7×, ~35 GB/s; ci memory compare) |
+| [047](changes/047-strlwr/) | `_strlwr` (AVX2 fold+store) | `ucrtbase.dll!_strlwr` | **LANDED** — geomean **8.80×** (1×–24.9×; in-place ASCII lowercase) |
+| [048](changes/048-strupr/) | `_strupr` (AVX2 fold+store) | `ucrtbase.dll!_strupr` | **LANDED** — geomean **8.94×** (1.1×–25×; in-place ASCII uppercase) |
+| [049](changes/049-wcslwr/) | `_wcslwr` (AVX2 fold+store) | `ucrtbase.dll!_wcslwr` | **PARKED** — correct + 2–6× ≥ 32, but ucrtbase's tight 8-wchar path wins at size 8 |
+| [050](changes/050-wcsupr/) | `_wcsupr` (AVX2 fold+store) | `ucrtbase.dll!_wcsupr` | **LANDED** — geomean **5.98×** (1×–11.8×; in-place ASCII uppercase, wide) |
