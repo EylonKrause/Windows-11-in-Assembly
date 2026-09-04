@@ -24,10 +24,11 @@ ucrtbase.dll  wcslen=00007FFFF4EA0830 memchr=00007FFFF4F1E130 wcschr=00007FFFF4E
 [wcschr]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 [wcscmp]  correctness under live patch: all match;  our-code calls = 4000; unpatched cleanly.
 
-LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 4 functions, results identical, then cleanly reverted.
+LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 functions (4 ucrtbase + 2 core ntdll), results identical, then cleanly reverted.
 ```
 
-For each of `wcslen`, `memchr`, `wcschr`, `wcscmp`:
+For each of `wcslen`, `memchr`, `wcschr`, `wcscmp` (ucrtbase) and `RtlCompareMemory`,
+`RtlCompareUnicodeString` (core ntdll):
 1. the patched prologue starts `FF 25` (the jump we wrote),
 2. calling the **real ucrtbase function pointer** afterwards incremented our counter by exactly 4000 —
    i.e. our assembly executed, not ucrtbase's,
