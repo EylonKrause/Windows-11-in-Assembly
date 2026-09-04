@@ -28,12 +28,23 @@ void*    ref_memchr(const void*, int, size_t);
 wchar_t* ref_wcschr(const wchar_t*, wchar_t);
 int      ref_wcscmp(const wchar_t*, const wchar_t*);
 
+/* core ntdll functions */
+typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U_STR;
+extern size_t wia_rtlcmpmem(const void*, const void*, size_t);
+extern long   wia_rtlcmpustr(const U_STR*, const U_STR*, unsigned char);
+size_t ref_rtlcmpmem(const void*, const void*, size_t);
+long   ref_cmp_ustr(const U_STR*, const U_STR*, int);
+void   wia_upcase_init(void);
+
 // ---- counting wrappers: prove OUR code ran ----
 static volatile LONG c_wcslen, c_memchr, c_wcschr, c_wcscmp;
 static size_t   w_wcslen(const wchar_t* s){ _InterlockedIncrement(&c_wcslen); return wia_wcslen(s); }
 static void*    w_memchr(const void* p,int c,size_t n){ _InterlockedIncrement(&c_memchr); return wia_memchr(p,c,n); }
 static wchar_t* w_wcschr(const wchar_t* s,wchar_t c){ _InterlockedIncrement(&c_wcschr); return wia_wcschr(s,c); }
 static int      w_wcscmp(const wchar_t* a,const wchar_t* b){ _InterlockedIncrement(&c_wcscmp); return wia_wcscmp(a,b); }
+static volatile LONG c_rcm, c_rcu;
+static size_t w_rcm(const void* a,const void* b,size_t n){ _InterlockedIncrement(&c_rcm); return wia_rtlcmpmem(a,b,n); }
+static long   w_rcu(const U_STR* a,const U_STR* b,unsigned char ci){ _InterlockedIncrement(&c_rcu); return wia_rtlcmpustr(a,b,ci); }
 
 // ---- x64 hot-patch: overwrite prologue with jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -165,8 +176,58 @@ int main(void){
         patch_off(&p); printf("  unpatched cleanly.\n\n");
     }
 
+    // ============ core ntdll functions ============
+    HMODULE nt = LoadLibraryW(L"ntdll.dll");
+    void* p_rcm = (void*)GetProcAddress(nt,"RtlCompareMemory");
+    void* p_rcu = (void*)GetProcAddress(nt,"RtlCompareUnicodeString");
+    wia_upcase_init();   // build the case-fold table before wia_rtlcmpustr can run
+    printf("ntdll.dll  RtlCompareMemory=%p RtlCompareUnicodeString=%p\n\n", p_rcm, p_rcu);
+
+    printf("[RtlCompareMemory] live substitution of ntdll!RtlCompareMemory\n");
+    {
+        typedef SIZE_T (WINAPI *rcm_fn)(const void*,const void*,SIZE_T);
+        rcm_fn sys = (rcm_fn)p_rcm;
+        patch_t p; OK(patch_on(&p, p_rcm, (void*)w_rcm), "install patch");
+        printf("  patched prologue bytes: %02X %02X (expect FF 25)\n",
+               ((unsigned char*)p_rcm)[0], ((unsigned char*)p_rcm)[1]);
+        LONG before=c_rcm; int mism=0;
+        for(int t=0;t<4000;t++){
+            int n=t%400; for(int i=0;i<n;i++){seed=seed*1103515245u+12345u; bs[i]=(unsigned char)(seed>>16);}
+            static unsigned char b2[512]; for(int i=0;i<n;i++)b2[i]=bs[i];
+            if(n && (t%3==0)) b2[t%n]^=0xFF;   // sometimes differ
+            if((size_t)sys(bs,b2,n)!=ref_rtlcmpmem(bs,b2,n)) mism++;
+        }
+        OK(mism==0,"post: patched RtlCompareMemory matches reference");
+        OK(c_rcm-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_rcm-before));
+        patch_off(&p); printf("  unpatched cleanly.\n\n");
+    }
+
+    printf("[RtlCompareUnicodeString] live substitution of ntdll!RtlCompareUnicodeString\n");
+    {
+        typedef LONG (WINAPI *rcu_fn)(const U_STR*,const U_STR*,BOOLEAN);
+        rcu_fn sys = (rcu_fn)p_rcu;
+        patch_t p; OK(patch_on(&p, p_rcu, (void*)w_rcu), "install patch");
+        LONG before=c_rcu; int mism=0;
+        static wchar_t a[300],b[300];
+        for(int t=0;t<4000;t++){
+            int n1=t%140, n2=(t*7+11)%140, rng=(t%4)?0x80:0x600;
+            for(int i=0;i<n1;i++){seed=seed*1103515245u+12345u; a[i]=(wchar_t)((seed>>16)%rng+1);}
+            for(int i=0;i<n2;i++){seed=seed*1103515245u+12345u; b[i]=(wchar_t)((seed>>16)%rng+1);}
+            if(t%3==0){int m=n1<n2?n1:n2; for(int i=0;i<m;i++)b[i]=a[i];}
+            U_STR u1={(unsigned short)(n1*2),(unsigned short)(n1*2),a}, u2={(unsigned short)(n2*2),(unsigned short)(n2*2),b};
+            unsigned char ci=(unsigned char)(t&1);
+            long rs=sys(&u1,&u2,ci), rr=ref_cmp_ustr(&u1,&u2,ci);
+            if(((rs>0)-(rs<0))!=((rr>0)-(rr<0))) mism++;
+        }
+        OK(mism==0,"post: patched RtlCompareUnicodeString matches reference (sign)");
+        OK(c_rcu-before>=4000,"post: our counter proves OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_rcu-before));
+        patch_off(&p); printf("  unpatched cleanly.\n\n");
+    }
+
     printf("=====================================================\n");
-    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 4 functions, results identical, then cleanly reverted.\n");
+    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 functions (4 ucrtbase + 2 core ntdll), results identical, then cleanly reverted.\n");
     else            printf("LIVE SUBSTITUTION: FAIL (%d checks failed)\n", failures);
     return failures?1:0;
 }
