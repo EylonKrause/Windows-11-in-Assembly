@@ -157,4 +157,7 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [034](changes/034-rtlutf8tounicoden/) | `RtlUTF8ToUnicodeN` (AVX2) | `ntdll.dll!RtlUTF8ToUnicodeN` | **LANDED** — geomean **3.12×** (UTF-8→UTF-16 decoder, core ntdll) |
 | [035](changes/035-wcspbrk/) | `wcspbrk` (AVX2 set-broadcast) | `ucrtbase.dll!wcspbrk` | **LANDED** — geomean **4.74×** (1.55×–8×; rdtscp ~12× at size; tokenizer primitive) |
 | [036](changes/036-wcsspn/) | `wcsspn` (AVX2 set-broadcast) | `ucrtbase.dll!wcsspn` | **LANDED** — geomean **5.67×** (1.95×–9.4×; tokenizer span, 6-char set) |
-| [037](changes/037-wcscspn/) | `wcscspn` (AVX2 set-broadcast) | `ucrtbase.dll!wcscspn` | **LANDED** — geomean **5.61×** (1.83×–9.4×; completes the tokenizer trio) |
+| [037](changes/037-wcscspn/) | `wcscspn` (AVX2 set-broadcast) | `ucrtbase.dll!wcscspn` | **LANDED** — geomean **5.61×** (1.83×–9.4×; completes the wide tokenizer trio) |
+| [038](changes/038-strpbrk/) | `strpbrk` (AVX2 set-broadcast) | `ucrtbase.dll!strpbrk` | **LANDED** — geomean **3.53×** (1.42×–6×; byte tokenizer, ASCII/UTF-8 parsing) |
+| [039](changes/039-strspn/) | `strspn` (AVX2 set-broadcast) | `ucrtbase.dll!strspn` | **LANDED** — geomean **4.82×** (1.83×–8×; byte span) |
+| [040](changes/040-strcspn/) | `strcspn` (AVX2 set-broadcast) | `ucrtbase.dll!strcspn` | **LANDED** — geomean **3.31×** (1.06×–6.1×; completes the byte tokenizer trio) |

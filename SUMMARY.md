@@ -42,7 +42,8 @@ Ryzen 9 5950X bench.
 | wcscmp / strcmp | 2.9 / 1.3x |
 | wcspbrk | 4.7x (1.55x–8x; rdtscp ~12x at size) — tokenizer set-membership |
 | wcsspn | 5.7x (1.95x–9.4x, 6-char set) — tokenizer span (complement of wcspbrk) |
-| wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the trio) |
+| wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the wide trio) |
+| strpbrk / strspn / strcspn | 3.5 / 4.8 / 3.3x — byte (narrow) tokenizer trio, ASCII/UTF-8 parsing |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
