@@ -39,6 +39,18 @@ void   wia_upcase_init(void);
 extern long wia_upcasestr(U_STR*, const U_STR*, unsigned char);
 long        ref_upcasestr(U_STR*, const U_STR*, int);
 
+/* newer ucrtbase families: case-insensitive compares + tokenizer set-search */
+extern int      wia_wcsicmp(const wchar_t*, const wchar_t*);
+extern int      wia_stricmp(const char*, const char*);
+extern int      wia_memicmp(const void*, const void*, size_t);
+extern wchar_t* wia_wcspbrk(const wchar_t*, const wchar_t*);
+extern char*    wia_strpbrk(const char*, const char*);
+int             ref_wcsicmp(const unsigned short*, const unsigned short*);
+int             ref_stricmp(const unsigned char*, const unsigned char*);
+int             ref_memicmp(const unsigned char*, const unsigned char*, size_t);
+unsigned short* ref_wcspbrk(const unsigned short*, const unsigned short*);
+char*           ref_strpbrk(const char*, const char*);
+
 // ---- counting wrappers: prove OUR code ran ----
 static volatile LONG c_wcslen, c_memchr, c_wcschr, c_wcscmp;
 static size_t   w_wcslen(const wchar_t* s){ _InterlockedIncrement(&c_wcslen); return wia_wcslen(s); }
@@ -50,6 +62,12 @@ static size_t w_rcm(const void* a,const void* b,size_t n){ _InterlockedIncrement
 static long   w_rcu(const U_STR* a,const U_STR* b,unsigned char ci){ _InterlockedIncrement(&c_rcu); return wia_rtlcmpustr(a,b,ci); }
 static volatile LONG c_ups;
 static long   w_ups(U_STR* d,const U_STR* s,unsigned char a){ _InterlockedIncrement(&c_ups); return wia_upcasestr(d,s,a); }
+static volatile LONG c_wi, c_si, c_mi, c_wp, c_sp;
+static int      w_wi(const wchar_t* a,const wchar_t* b){ _InterlockedIncrement(&c_wi); return wia_wcsicmp(a,b); }
+static int      w_si(const char* a,const char* b){ _InterlockedIncrement(&c_si); return wia_stricmp(a,b); }
+static int      w_mi(const void* a,const void* b,size_t n){ _InterlockedIncrement(&c_mi); return wia_memicmp(a,b,n); }
+static wchar_t* w_wp(const wchar_t* a,const wchar_t* b){ _InterlockedIncrement(&c_wp); return wia_wcspbrk(a,b); }
+static char*    w_sp(const char* a,const char* b){ _InterlockedIncrement(&c_sp); return wia_strpbrk(a,b); }
 
 // ---- x64 hot-patch: overwrite prologue with jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -262,8 +280,77 @@ int main(void){
         printf("  unpatched cleanly.\n\n");
     }
 
+    // ===== _wcsicmp / _stricmp / _memicmp (case-insensitive compares) =====
+    void* p_wi=(void*)GetProcAddress(u,"_wcsicmp");
+    void* p_si=(void*)GetProcAddress(u,"_stricmp");
+    void* p_mi=(void*)GetProcAddress(u,"_memicmp");
+    printf("[_wcsicmp/_stricmp/_memicmp] live substitution of ucrtbase case-insensitive compares\n");
+    {
+        typedef int (__cdecl *wf)(const wchar_t*,const wchar_t*);
+        typedef int (__cdecl *bf)(const char*,const char*);
+        typedef int (__cdecl *mf)(const void*,const void*,size_t);
+        wf swi=(wf)p_wi; bf ssi=(bf)p_si; mf smi=(mf)p_mi;
+        patch_t p1,p2,p3;
+        OK(patch_on(&p1,p_wi,(void*)w_wi),"install _wcsicmp patch");
+        OK(patch_on(&p2,p_si,(void*)w_si),"install _stricmp patch");
+        OK(patch_on(&p3,p_mi,(void*)w_mi),"install _memicmp patch");
+        LONG b1=c_wi,b2=c_si,b3=c_mi; int m1=0,m2=0,m3=0;
+        static wchar_t wa[300],wb[300]; static char ca[300],cb[300];
+        for(int t=0;t<4000;t++){
+            int len=t%200;
+            for(int i=0;i<len;i++){ seed=seed*1103515245u+12345u; unsigned r=seed>>16;
+                wchar_t wc=(r%3==0)?(wchar_t)(L'A'+(r%26)):(r%3==1)?(wchar_t)(L'a'+(r%26)):(wchar_t)((r|1));
+                wa[i]=wc?wc:2; ca[i]=(char)('A'+(r%40)); }
+            wa[len]=0; ca[len]=0;
+            for(int i=0;i<len;i++){ wchar_t c=wa[i]; if((c>=L'A'&&c<=L'Z')||(c>=L'a'&&c<=L'z')){ seed=seed*1103515245u+12345u; if(seed&1)c^=0x20;} wb[i]=c;
+                char d=ca[i]; if((d>='A'&&d<='Z')||(d>='a'&&d<='z')){ seed=seed*1103515245u+12345u; if(seed&1)d^=0x20;} cb[i]=d; }
+            wb[len]=0; cb[len]=0;
+            if(len&&(t%3==0)){ wb[t%len]=(wchar_t)(wa[t%len]+1); cb[t%len]=(char)(ca[t%len]+1); }
+            int rw=swi(wa,wb), rrw=ref_wcsicmp((unsigned short*)wa,(unsigned short*)wb);
+            if(((rw>0)-(rw<0))!=((rrw>0)-(rrw<0))) m1++;
+            int rc=ssi(ca,cb), rrc=ref_stricmp((unsigned char*)ca,(unsigned char*)cb);
+            if(((rc>0)-(rc<0))!=((rrc>0)-(rrc<0))) m2++;
+            int rm=smi(ca,cb,len), rrm=ref_memicmp((unsigned char*)ca,(unsigned char*)cb,len);
+            if(((rm>0)-(rm<0))!=((rrm>0)-(rrm<0))) m3++;
+        }
+        OK(m1==0&&m2==0&&m3==0,"post: patched _wcsicmp/_stricmp/_memicmp match reference (sign)");
+        OK(c_wi-b1>=4000 && c_si-b2>=4000 && c_mi-b3>=4000,"post: counters prove OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld/%ld/%ld\n",
+               (m1||m2||m3)?"MISMATCH":"all match",(long)(c_wi-b1),(long)(c_si-b2),(long)(c_mi-b3));
+        patch_off(&p1); patch_off(&p2); patch_off(&p3); printf("  unpatched cleanly.\n\n");
+    }
+
+    // ===== wcspbrk / strpbrk (tokenizer set-search) =====
+    void* p_wp=(void*)GetProcAddress(u,"wcspbrk");
+    void* p_sp=(void*)GetProcAddress(u,"strpbrk");
+    printf("[wcspbrk/strpbrk] live substitution of ucrtbase tokenizer set-search\n");
+    {
+        typedef wchar_t* (__cdecl *wf)(const wchar_t*,const wchar_t*);
+        typedef char* (__cdecl *bf)(const char*,const char*);
+        wf swp=(wf)p_wp; bf ssp=(bf)p_sp;
+        patch_t p1,p2;
+        OK(patch_on(&p1,p_wp,(void*)w_wp),"install wcspbrk patch");
+        OK(patch_on(&p2,p_sp,(void*)w_sp),"install strpbrk patch");
+        LONG b1=c_wp,b2=c_sp; int m1=0,m2=0;
+        static wchar_t wa[300]; static char ca[300];
+        const wchar_t* wset=L" \t;,/"; const char* cset=" \t;,/";
+        for(int t=0;t<4000;t++){
+            int len=t%250;
+            for(int i=0;i<len;i++){ seed=seed*1103515245u+12345u; wchar_t c=(wchar_t)((seed>>16)|1); wa[i]=c?c:2; ca[i]=(char)((seed>>16)|1); }
+            wa[len]=0; ca[len]=0;
+            if(len&&(t%4==0)){ wa[t%len]=wset[t%5]; ca[t%len]=cset[t%5]; }  // sometimes a member
+            if(swp(wa,wset)!=(wchar_t*)ref_wcspbrk((unsigned short*)wa,(unsigned short*)wset)) m1++;
+            if(ssp(ca,cset)!=ref_strpbrk(ca,cset)) m2++;
+        }
+        OK(m1==0&&m2==0,"post: patched wcspbrk/strpbrk match reference");
+        OK(c_wp-b1>=4000 && c_sp-b2>=4000,"post: counters prove OUR code executed");
+        printf("  correctness under live patch: %s;  our-code calls = %ld/%ld\n",
+               (m1||m2)?"MISMATCH":"all match",(long)(c_wp-b1),(long)(c_sp-b2));
+        patch_off(&p1); patch_off(&p2); printf("  unpatched cleanly.\n\n");
+    }
+
     printf("=====================================================\n");
-    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 7 functions (4 ucrtbase + 3 ntdll: 2 compares + a transform), results identical, then cleanly reverted.\n");
+    if(failures==0) printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 12 functions (9 ucrtbase + 3 ntdll), results identical, then cleanly reverted.\n");
     else            printf("LIVE SUBSTITUTION: FAIL (%d checks failed)\n", failures);
     return failures?1:0;
 }
