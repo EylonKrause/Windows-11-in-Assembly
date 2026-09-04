@@ -162,3 +162,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [039](changes/039-strspn/) | `strspn` (AVX2 set-broadcast) | `ucrtbase.dll!strspn` | **LANDED** — geomean **4.82×** (1.83×–8×; byte span) |
 | [040](changes/040-strcspn/) | `strcspn` (AVX2 set-broadcast) | `ucrtbase.dll!strcspn` | **LANDED** — geomean **3.31×** (1.06×–6.1×; completes the byte tokenizer trio) |
 | [041](changes/041-wcsncmp/) | `wcsncmp` (AVX2 bounded compare) | `ucrtbase.dll!wcsncmp` | **LANDED** — geomean **3.33×** (1.23×–5×, ~26 GB/s; bounded UTF-16 compare) |
+| [042](changes/042-wcsicmp/) | `_wcsicmp` (AVX2 case-insensitive) | `ucrtbase.dll!_wcsicmp` | **LANDED** — geomean **7.66×** (2.6×–11.5×, ~26 GB/s; case-insensitive UTF-16 compare) |
