@@ -181,3 +181,5 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [058](changes/058-rtlstringfromguidex/) | `RtlStringFromGUIDEx` (table byte→hex) | `ntdll.dll!RtlStringFromGUIDEx` | **LANDED** — **25.5×** (GUID→string; COM/registry/ETW; project's largest win) |
 | [059](changes/059-rtlipv4addresstostringa/) | `RtlIpv4AddressToStringA` (table) | `ntdll.dll!RtlIpv4AddressToStringA` | **LANDED** — **16.6×** (IPv4→dotted decimal; networking) |
 | [060](changes/060-rtlethernetaddresstostringa/) | `RtlEthernetAddressToStringA` (table) | `ntdll.dll!RtlEthernetAddressToStringA` | **LANDED** — **36.5×** (MAC→string; project's largest ratio) |
+| [061](changes/061-rtlipv4addresstostringw/) | `RtlIpv4AddressToStringW` (table) | `ntdll.dll!RtlIpv4AddressToStringW` | **LANDED** — **23.7×** (IPv4→dotted decimal, wide) |
+| [062](changes/062-rtlethernetaddresstostringw/) | `RtlEthernetAddressToStringW` (table) | `ntdll.dll!RtlEthernetAddressToStringW` | **LANDED** — **36.0×** (MAC→string, wide) |
