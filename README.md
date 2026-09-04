@@ -174,3 +174,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [051](changes/051-rtlfindcharinunicodestring/) | `RtlFindCharInUnicodeString` (AVX2 set-search) | `ntdll.dll!RtlFindCharInUnicodeString` | **LANDED** — geomean **8.26×** (2.5×–13.3×; counted set-search, all 8 flags, core ntdll path parsing) |
 | [052](changes/052-rtlintegertounicodestring/) | `RtlIntegerToUnicodeString` (2-digit table) | `ntdll.dll!RtlIntegerToUnicodeString` | **LANDED** — geomean **2.94×** (2.6×–3.3×; integer→decimal/hex format, new family) |
 | [053](changes/053-rtlint64tounicodestring/) | `RtlInt64ToUnicodeString` (2-digit table) | `ntdll.dll!RtlInt64ToUnicodeString` | **LANDED** — geomean **3.10×** (2.9×–3.3×; 64-bit integer format) |
+| [054](changes/054-ultoa/) | `_ultoa` (2-digit table / nibble) | `ucrtbase.dll!_ultoa` | **LANDED** — geomean **1.50×** (radix 2–36, C-runtime integer format) |

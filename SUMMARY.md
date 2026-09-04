@@ -44,6 +44,7 @@ Ryzen 9 5950X bench.
 | wcschr | 2.2x |
 | wcscmp / strcmp | 2.9 / 1.3x |
 | wcsncmp | 3.3x (~26 GB/s) — bounded UTF-16 compare |
+| _ultoa | 1.5x (radix 2–36) — C-runtime integer -> string formatting |
 | _wcsicmp | 7.7x (2.6x–11.5x, ~26 GB/s) — case-insensitive UTF-16 compare (ASCII fold) |
 | _stricmp / _wcsnicmp / _strnicmp | 8.7 / 7.4 / 9.3x — case-insensitive compare family (byte + bounded) |
 | _memicmp | 10.7x (2.2x–23.7x, ~35 GB/s) — case-insensitive memory compare |
