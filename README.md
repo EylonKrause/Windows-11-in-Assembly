@@ -183,3 +183,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [060](changes/060-rtlethernetaddresstostringa/) | `RtlEthernetAddressToStringA` (table) | `ntdll.dll!RtlEthernetAddressToStringA` | **LANDED** — **36.5×** (MAC→string; project's largest ratio) |
 | [061](changes/061-rtlipv4addresstostringw/) | `RtlIpv4AddressToStringW` (table) | `ntdll.dll!RtlIpv4AddressToStringW` | **LANDED** — **23.7×** (IPv4→dotted decimal, wide) |
 | [062](changes/062-rtlethernetaddresstostringw/) | `RtlEthernetAddressToStringW` (table) | `ntdll.dll!RtlEthernetAddressToStringW` | **LANDED** — **36.0×** (MAC→string, wide) |
+| [063](changes/063-rtlipv6addresstostringa/) | `RtlIpv6AddressToStringA` (state machine) | `ntdll.dll!RtlIpv6AddressToStringA` | **LANDED** — **5.92×** (IPv6→string; RFC 5952 + Windows; validated 3M) |
