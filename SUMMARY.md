@@ -40,6 +40,7 @@ Ryzen 9 5950X bench.
 | memchr | 2.3x |
 | wcschr | 2.2x |
 | wcscmp / strcmp | 2.9 / 1.3x |
+| wcspbrk | 4.7x (1.55x–8x; rdtscp ~12x at size) — tokenizer set-membership |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
