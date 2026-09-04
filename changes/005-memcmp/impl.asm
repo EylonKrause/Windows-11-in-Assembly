@@ -91,28 +91,28 @@ small:                                               ; 0 <= n < 32, r9/r10 = sta
 lt16:
         cmp       r8, 8
         jb        lt8
-        ; ---- 8..15 (upper 8 bytes of vmovq are zero; mask to low 8) ----
-        vmovq     xmm0, qword ptr [r9]
-        vmovq     xmm1, qword ptr [r10]
-        vpcmpeqb  xmm2, xmm0, xmm1
-        vpmovmskb eax, xmm2
-        not       eax
-        and       eax, 0FFh
-        jnz       diff_lo
-        lea       r11, [r8 - 8]
-        vmovq     xmm0, qword ptr [r9 + r11]
-        vmovq     xmm1, qword ptr [r10 + r11]
-        vpcmpeqb  xmm2, xmm0, xmm1
-        vpmovmskb eax, xmm2
-        not       eax
-        and       eax, 0FFh
-        mov       ecx, 16
-        sub       ecx, r8d                            ; cl = 16 - n
-        shr       eax, cl                             ; keep positions >= 8
-        jz        equal
-        tzcnt     eax, eax
-        add       eax, 8
-        jmp       diff_at
+        ; ---- 8..15: overlapping 8-byte integer loads, bswap gives the sign ----
+        mov       rax, qword ptr [r9]
+        mov       r11, qword ptr [r10]
+        cmp       rax, r11
+        jne       bswap_sign
+        lea       rcx, [r8 - 8]                        ; tail offset n-8
+        mov       rax, qword ptr [r9 + rcx]
+        mov       r11, qword ptr [r10 + rcx]
+        cmp       rax, r11
+        je        equal
+bswap_sign:
+        bswap     rax
+        bswap     r11
+        cmp       rax, r11
+        ja        bswap_pos                            ; first differing byte a>b (unsigned)
+        mov       eax, -1
+        vzeroupper
+        ret
+bswap_pos:
+        mov       eax, 1
+        vzeroupper
+        ret
 
 lt8:                                                   ; 1..7 scalar
         xor       eax, eax
