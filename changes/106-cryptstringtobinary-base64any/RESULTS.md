@@ -14,15 +14,15 @@ convert, across **PEM** inputs (detected → ff=0) and **plain base64** inputs, 
 and NOCRLF (detected → ff=1).
 
 ## Benchmark — vs live `crypt32!CryptStringToBinaryA` BASE64_ANY, plain base64 (`/Od`)
-geomean **3.72×** (3.61×–4.11×); ours ~0.45 GB/s vs crypt32 ~0.12 GB/s. (Lower ratio than the
-PEM-only 104 because crypt32's plain-base64 path is a bit faster than its header path.)
+geomean **5.30×** (4.01×–5.84×); ours up to ~0.72 GB/s vs crypt32 ~0.12 GB/s. The shared body
+decode uses change 082's SSSE3 dec16 core (up from 3.72× when it was all-scalar).
 
 | payload | ours ns | crypt32 ns | ratio |
 |---|---|---|---|
-| 16 | 37.6 | 154.2 | 4.11x |
-| 256 | 579 | 2105 | 3.63x |
-| 1024 | 2269 | 8305 | 3.66x |
-| 49152 | 109130 | 393880 | 3.61x |
+| 16 | 38.5 | 154.2 | 4.01x |
+| 256 | 378 | 2105 | 5.57x |
+| 1024 | 1441 | 8305 | 5.76x |
+| 49152 | 67938 | 393173 | 5.79x |
 
 ## Scope
 BASE64_ANY (0x6): header-or-plain base64 auto-detect on well-formed input. `CRYPT_STRING_ANY`
