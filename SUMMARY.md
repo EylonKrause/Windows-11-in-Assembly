@@ -122,24 +122,18 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 ## Deferred (need dedicated reverse-engineering)
 
-- **`RtlIpv6StringToAddress[Ex][A/W]`** (the IPv6 parse-side complement to the landed IPv6 formatters
-  063/064/068/069). The whole **IPv4** parser family has been reverse-engineered and landed —
-  `RtlIpv4StringToAddressA/W` (114/115) and `RtlIpv4StringToAddressExA/W` (116/117), 1.5–2.0× — as have
-  `RtlGUIDFromString` (118, 4.45×) and `RtlEthernetStringToAddressA/W` (119/120, MAC, 6.3×/4.2×). IPv6
-  is the last, hardest tier and ntdll's is **very slow (~283 ns, ~5–10× headroom)**.
-  **Reverse-engineering largely done (scratchpad `probe/i6val.c`, not yet in-tree):** a BSD-inet_pton6-style
-  oracle now matches the live export **bit-exactly — STATUS + 16 address bytes + `*Terminator` — on all
-  non-embedded-v4 input over 800k fuzz** (the whole `::`/leading-`::`/lenient-stop/terminator core is
-  pinned). Pinned rules: (a) leading single `:` → `*Terminator = S`; (b) `>4` hex in a group → error
-  **without** setting `*Terminator`; (c) Windows **stops (success)** at a 2nd `::` or a 9th group —
-  store the group, then examine the `:` (a following `:` with `colonp` set, or `tp==endp`, or
-  `colonp && tp+2==endp` = "full via `::`", stops *at* that `:`; a `::` that lands on `tp==14` is full
-  and stops right after it); (d) a `:` (or a non-v4 `.`) followed by a non-hex is a *dangling error*
-  unless the address is already full, in which case it's a clean stop. **Embedded IPv4 is ~80%:** a `.`
-  in an all-decimal group with room (`tp+4≤endp`) and a following digit parses 4 decimal octets (leading
-  zeros ok, ≤255) into the last 4 bytes; the remaining open edges are the `.`-non-v4 terminator's
-  fullness dependence and the octet-overflow terminator (sometimes set, sometimes not). Then the A/W
-  ports. The parser core is proven; this is a scoped continuation, not from scratch.
+- **`RtlIpv6StringToAddressExA/W`** and **`RtlIpv6StringToAddressW`** (the rest of the IPv6 parse-side
+  complement to the landed IPv6 formatters 063/064/068/069). The narrow **`RtlIpv6StringToAddressA` has
+  since been reverse-engineered and landed** (121, 4.91×, up to 10.8× — the full `::`/embedded-IPv4
+  grammar + all the Windows-lenient stop/terminator rules, validated bit-exact over 5M fuzz). The wide
+  `RtlIpv6StringToAddressW` is **scoped out**, not deferred: unlike IPv4-W/MAC-W it recognizes Unicode
+  decimal digits (Arabic-Indic, fullwidth, … by value) as hex digits — the same CRT/OS Unicode-digit-table
+  blocker that scopes out `_wtoi`. The `Ex` forms (`[addr]:port` / `%zone` scope-id) remain.
+
+  The rest of the parse-side family is done: `RtlIpv4StringToAddressA/W` (114/115) + `…ExA/W` (116/117),
+  `RtlGUIDFromString` (118), `RtlEthernetStringToAddressA/W` (119/120), and now `RtlIpv6StringToAddressA`
+  (121). Only the IPv6 `Ex`/`W` forms above remain (and `W` only for the Unicode-digit reason, not RE
+  difficulty).
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
