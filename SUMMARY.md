@@ -136,6 +136,14 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
   and `RtlIpv6StringToAddressExA` (122). Only the two IPv6 wide forms remain, and only for the
   Unicode-digit reason, not RE difficulty.
 
+- **RTL_BITMAP run-finders** — a fresh high-headroom vein after the parse-side family. ntdll's bitmap
+  scanners run **bit-by-bit** (~0.87 cyc/bit). **`RtlFindLongestRunClear` (123, 4.79×, up to 30×)** is
+  landed: 64-bit word scan + AVX2 all-zero-chunk skip, with a popcount-adaptive interior scan so it wins
+  on sparse **and** dense bitmaps (5M-fuzz bit-exact on length + `*StartingIndex`). Natural follow-ups
+  with measured headroom: `RtlFindSetBits`/`RtlFindClearBits` (find N consecutive clear/set bits — hint +
+  wraparound contract) and `RtlNumberOfClearBits` (AVX2 popcount, the complement of the landed 023
+  `RtlNumberOfSetBits`).
+
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
 also here; it has now been reverse-engineered **and landed** (076: reflected CRC-64, poly
