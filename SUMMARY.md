@@ -50,6 +50,7 @@ Ryzen 9 5950X bench.
 | RtlInitString / RtlInitAnsiString | 1.4x (1.1x–3.0x) | ANSI_STRING setup (inline AVX2 strlen) |
 | RtlInitUnicodeStringEx | 1.4x (1.1x–2.0x) | validating UNICODE_STRING setup (NTSTATUS) |
 | RtlIntegerToChar | 1.4x (1.1x–2.1x) | ANSI integer → string, all bases (2-digit table + direct hex/binary) |
+| RtlLargeIntegerToChar | 1.4x (1.1x–1.8x) | 64-bit integer → string, all bases (2-digit table + direct hex/binary) |
 
 ### ucrtbase (C runtime, loaded in ~220 processes)
 

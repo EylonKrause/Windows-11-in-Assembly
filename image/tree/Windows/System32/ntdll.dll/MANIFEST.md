@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (47)
+# ntdll.dll — reimplemented exports (48)
 
 | export | speedup | source |
 |---|---|---|
@@ -32,6 +32,7 @@
 | `RtlIpv6AddressToStringExA` | 6.87x | [changes/068-rtlipv6addresstostringexa](../../../../../changes/068-rtlipv6addresstostringexa/) |
 | `RtlIpv6AddressToStringExW` | 8.38x | [changes/069-rtlipv6addresstostringexw](../../../../../changes/069-rtlipv6addresstostringexw/) |
 | `RtlIpv6AddressToStringW` | 7.42x | [changes/064-rtlipv6addresstostringw](../../../../../changes/064-rtlipv6addresstostringw/) |
+| `RtlLargeIntegerToChar` | 1.43x | [changes/100-rtllargeintegertochar](../../../../../changes/100-rtllargeintegertochar/) |
 | `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
 | `RtlNumberOfSetBits` | 1.32x | [changes/023-rtlnumberofsetbits](../../../../../changes/023-rtlnumberofsetbits/) |
 | `RtlOemStringToUnicodeString` | 5.50x | [changes/025-rtloemstringtounicodestring](../../../../../changes/025-rtloemstringtounicodestring/) |
