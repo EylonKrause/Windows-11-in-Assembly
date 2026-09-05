@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (46)
+# ntdll.dll — reimplemented exports (47)
 
 | export | speedup | source |
 |---|---|---|
@@ -18,6 +18,7 @@
 | `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
 | `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |
 | `RtlInitString` | 1.43x | [changes/095-rtlinitstring](../../../../../changes/095-rtlinitstring/) |
+| `RtlInitStringEx` | 1.37x | [changes/098-rtlinitstringex](../../../../../changes/098-rtlinitstringex/) |
 | `RtlInitUnicodeString` | 1.76x | [changes/094-rtlinitunicodestring](../../../../../changes/094-rtlinitunicodestring/) |
 | `RtlInitUnicodeStringEx` | 1.40x | [changes/096-rtlinitunicodestringex](../../../../../changes/096-rtlinitunicodestringex/) |
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
