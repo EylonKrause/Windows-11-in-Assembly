@@ -202,4 +202,6 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [079](changes/079-wcsset/) | `_wcsset` (AVX2 word broadcast-fill) | `ucrtbase.dll!_wcsset` | **LANDED** — **3.68×** (1.12×–7.02×; fill wide string with a wchar) |
 | [080](changes/080-wcsnset/) | `_wcsnset` (AVX2 word broadcast + 4-wchar tail) | `ucrtbase.dll!_wcsnset` | **LANDED** — **6.45×** (1.44×–12.50×; bounded wide fill) |
 | [081](changes/081-cryptbinarytostring-base64/) | `CryptBinaryToStringA` base64 (SSSE3 Muła) | `crypt32.dll!CryptBinaryToStringA` | **LANDED** — **24.5×** (8.8×–36×; binary→base64, crypt32's is scalar ~0.32 GB/s) |
-| [082](changes/082-cryptstringtobinary-base64/) | `CryptStringToBinaryA` base64 decode (SSSE3 Muła) | `crypt32.dll!CryptStringToBinaryA` | **LANDED** — **36.3×** (11.7×–56×; base64→binary, project's biggest win; crypt32's is scalar ~0.13 GB/s) |
+| [082](changes/082-cryptstringtobinary-base64/) | `CryptStringToBinaryA` base64 decode (SSSE3 Muła) | `crypt32.dll!CryptStringToBinaryA` | **LANDED** — **36.3×** (11.7×–56×; base64→binary; crypt32's is scalar ~0.13 GB/s) |
+| [083](changes/083-cryptbinarytostringw-base64/) | `CryptBinaryToStringW` wide base64 (SSSE3 + widen) | `crypt32.dll!CryptBinaryToStringW` | **LANDED** — **8.9×** (8.3×–9.2×; wide binary→base64) |
+| [084](changes/084-cryptstringtobinaryw-base64/) | `CryptStringToBinaryW` wide base64 decode (SSSE3) | `crypt32.dll!CryptStringToBinaryW` | **LANDED** — **38.7×** (13.7×–59×; wide base64→binary, project's biggest geomean) |
