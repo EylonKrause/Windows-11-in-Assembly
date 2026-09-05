@@ -14,25 +14,28 @@ after every 64 chars including the final line) + `-----END <mid>-----\r\n`, wher
 
 ## Implementation
 Reuses 081's SSSE3 base64 core (12 bytes → 16 chars: pshufb spread + pmulhuw/pmullw 6-bit
-extract + offset-LUT translate) and its in-place CRLF expansion, wrapped by a flag-selected
-header/footer copy. crypt32's is scalar (~0.3 GB/s).
+extract + offset-LUT translate), wrapped by a flag-selected header/footer copy. crypt32's is
+scalar (~0.3 GB/s). The CRLF is emitted **inline in a single pass** — a `linepos` counter
+advances with each 16-char SIMD store / 4-char tail quartet and drops a CRLF the moment it
+reaches 64 — so there is no separate expansion pass (an earlier version encoded contiguously
+then shifted every line right; single-pass removed that whole second pass).
 
 ## Correctness — bit-exact vs live crypt32 + oracle
 `correctness.exe`: **PASS** for all three modes, query + convert, `n=1..1500` + 40 KB.
 Length, bytes, and NUL verified against the live export and the scalar oracle.
 
 ## Benchmark — vs live `crypt32!CryptBinaryToStringA` BASE64HEADER (`/Od`)
-geomean **10.95×** (4.0×–20×); ours ~5.5 GB/s vs crypt32 ~0.3 GB/s. The in-place CRLF
-expansion was originally a scalar byte-by-byte backward copy (capped ~2.3 GB/s); it is now a
-**SIMD 16-byte-chunk backward copy** (safe: dst ≥ src, each 16-byte chunk is read into a
-register before it is stored), which lifted the whole family ~2.4×.
+geomean **16.13×** (4.3×–30×); ours ~9.1 GB/s vs crypt32 ~0.3 GB/s — near the raw-encode
+ceiling. Progression on this bench as the CRLF handling was optimized: scalar byte-copy
+expansion 5.9× (2.3 GB/s) → SIMD-chunk backward-copy expansion 10.95× (5.5 GB/s) →
+**single-pass inline CRLF 16.13× (9.1 GB/s)**.
 
 | size | ours ns | crypt32 ns | ratio |
 |---|---|---|---|
-| 16 | 26.9 | 106.7 | 3.97x |
-| 256 | 72.4 | 972.3 | 13.43x |
-| 1024 | 199.2 | 3433.6 | 17.23x |
-| 65536 | 11838 | 230697 | 19.49x |
+| 16 | 23.8 | 101.2 | 4.25x |
+| 256 | 47.9 | 900.6 | 18.81x |
+| 1024 | 129.7 | 3281 | 25.29x |
+| 65536 | 7188 | 207188 | 28.83x |
 
 ## Scope
 Encode side of the three header modes; NOCRLF and the too-small-buffer partial write are
