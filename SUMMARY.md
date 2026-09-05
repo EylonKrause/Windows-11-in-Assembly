@@ -91,6 +91,7 @@ Ryzen 9 5950X bench.
 
 - `memcmp` (ucrtbase): tuned small path; dispatch-floor. `crc32` (ntdll RtlComputeCrc32): already VPCLMULQDQ.
 - `_wcslwr` (ucrtbase): correct + 2-6x >= 32 B, but ucrtbase's tight 8-wchar small path wins at size 8 (dispatch floor, narrowed to 0.91x); the identical-structure `_wcsupr` lands.
+- `strstr` / `wcsstr` (ucrtbase): **already SSE4.2 `pcmpistri`** (hardware substring search, ~22 GB/s). Our AVX2 two-char anchor streams at ~28 GB/s and beats it at >=4 KB (up to 1.27x) but loses below ~2 KB to `pcmpistri`'s low per-call cost, so a size class regresses. See 089.
 
 ## Proven running live
 
