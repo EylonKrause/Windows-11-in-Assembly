@@ -136,6 +136,14 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
   and `RtlIpv6StringToAddressExA` (122). Only the two IPv6 wide forms remain, and only for the
   Unicode-digit reason, not RE difficulty.
 
+- **RTL date/time conversion** — landed as a matched pair: **`RtlTimeToTimeFields` (126, 1.73×)** and its
+  inverse **`RtlTimeFieldsToTime` (127, 1.54×)**. Both replace ntdll's division-heavy scalar date math
+  with the era-based civil-from-days algorithm (no month table, no leap-year branch, no loop) where every
+  constant divide is a multiply-high whose magic number was verified *exhaustively at every quotient
+  boundary*. 126 is bit-exact on every one of the 10.67M day boundaries in the domain; 127 adds an
+  800-year sweep plus 109k round-trips. Contract findings: 126's negative-`Time` output is internally
+  overflowed garbage (documented, not emulated); 127 rejects year 30828 by a hard bound, not overflow.
+
 - **RTL_BITMAP run-finders** — a fresh high-headroom vein after the parse-side family. ntdll's bitmap
   scanners run **bit-by-bit** (~0.87 cyc/bit). **`RtlFindLongestRunClear` (123, 4.79×, up to 30×)** is
   landed: 64-bit word scan + AVX2 all-zero-chunk skip, with a popcount-adaptive interior scan so it wins
