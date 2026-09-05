@@ -16,5 +16,5 @@
 | `CryptStringToBinaryA` | 5.3x | [changes/106-cryptstringtobinary-base64any](../../../../../changes/106-cryptstringtobinary-base64any/) |
 | `CryptStringToBinaryW` | 11.7x | [changes/105-cryptstringtobinaryw-base64header](../../../../../changes/105-cryptstringtobinaryw-base64header/) |
 | `CryptStringToBinaryW` | 248x | [changes/088-cryptstringtobinaryw-hexraw](../../../../../changes/088-cryptstringtobinaryw-hexraw/) |
-| `CryptStringToBinaryW` | 3.8x | [changes/107-cryptstringtobinaryw-base64any](../../../../../changes/107-cryptstringtobinaryw-base64any/) |
 | `CryptStringToBinaryW` | 38.7x | [changes/084-cryptstringtobinaryw-base64](../../../../../changes/084-cryptstringtobinaryw-base64/) |
+| `CryptStringToBinaryW` | 5.8x | [changes/107-cryptstringtobinaryw-base64any](../../../../../changes/107-cryptstringtobinaryw-base64any/) |

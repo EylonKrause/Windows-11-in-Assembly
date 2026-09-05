@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 extern int wia_s2bw_any(const WCHAR*, DWORD, DWORD, BYTE*, DWORD*, DWORD*, DWORD*);
+extern void wia_b64rev_init(void);
 int ref_any_decode(const char*, BYTE*, DWORD*, DWORD*, DWORD*);   // narrow oracle
 typedef BOOL (WINAPI *fn)(LPCWSTR,DWORD,DWORD,BYTE*,DWORD*,DWORD*,DWORD*);
 static fn sys;
@@ -27,6 +28,7 @@ static void chk(const WCHAR* s, const char* what){
 }
 int main(void){
     HMODULE h=LoadLibraryW(L"crypt32.dll"); sys=(fn)GetProcAddress(h,"CryptStringToBinaryW");
+    wia_b64rev_init();
     if(!sys){printf("no CryptStringToBinaryW\n");return 2;}
     for(int n=1;n<=500;n++){
         BYTE* d=(BYTE*)malloc(n); for(int i=0;i<n;i++)d[i]=(BYTE)(i*5+n*3);
