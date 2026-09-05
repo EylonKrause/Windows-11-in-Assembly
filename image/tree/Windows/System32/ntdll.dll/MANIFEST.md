@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (44)
+# ntdll.dll — reimplemented exports (45)
 
 | export | speedup | source |
 |---|---|---|
@@ -19,6 +19,7 @@
 | `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |
 | `RtlInitString` | 1.43x | [changes/095-rtlinitstring](../../../../../changes/095-rtlinitstring/) |
 | `RtlInitUnicodeString` | 1.76x | [changes/094-rtlinitunicodestring](../../../../../changes/094-rtlinitunicodestring/) |
+| `RtlInitUnicodeStringEx` | 1.40x | [changes/096-rtlinitunicodestringex](../../../../../changes/096-rtlinitunicodestringex/) |
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
 | `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
 | `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
