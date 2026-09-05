@@ -12,11 +12,14 @@ an arbitrary label, leading junk before `-----BEGIN` (counted in `pdwSkip`), LF-
 multi-line bodies, and trailing data after `-----END`.
 
 ## Implementation
-Tight scalar: a 256-entry decode table (base64 value or `0xFF` for skip), a rolling 6-bit
-accumulator that emits a byte whenever ≥ 8 bits are buffered, stopping at `-`/`=`. The
-`-----BEGIN` search is a bounded byte scan. crypt32's decoder is scalar and slow (~0.13 GB/s).
-(The body's embedded CRLFs break a straight SIMD block decode; a line-aware SIMD pass is a
-future improvement — the scalar path already wins 6× on every size.)
+The body decode reuses change [082](../082-cryptstringtobinary-base64/)'s **SSSE3 core**: at a
+group boundary with ≥ 16 chars ahead and an output buffer, `dec16` decodes 16 base64 chars →
+12 bytes (Muła: pshufb char→6-bit LUT + `ptest` validity + pmaddubs/pmaddwd pack). Any
+non-base64 char — the CRLF between body lines, `=`, or the `-` that starts `-----END` — fails
+the validity check and drops to a scalar path that skips whitespace, handles `=`, and **stops
+at `-`**. The `-----BEGIN` search is a bounded byte scan. crypt32's decoder is scalar (~0.13
+GB/s). The per-line CRLFs force a scalar drop every 64 chars, so this lands short of 082's
+plain-base64 36× but still ~1.8× over the earlier all-scalar version.
 
 ## Correctness — bit-exact vs live crypt32 + oracle
 `correctness.exe`: **PASS**. Return, `cbBinary`, `pdwSkip`, `pdwFlags`, and the decoded bytes
@@ -24,14 +27,15 @@ match the live export **and** the scalar oracle for `n = 1..500`, query + conver
 leading/trailing garbage + multi-line bodies + a no-header string (both return FALSE).
 
 ## Benchmark — vs live `crypt32!CryptStringToBinaryA` BASE64HEADER (`/Od`)
-geomean **6.06×** (5.57×–6.24×); ours ~0.76 GB/s vs crypt32 ~0.12 GB/s.
+geomean **11.04×** (3.90×–17.25×); ours up to ~2.15 GB/s vs crypt32 ~0.12 GB/s. (Up from
+6.06× when the body decode was all-scalar.)
 
 | PEM payload | ours ns | crypt32 ns | ratio |
 |---|---|---|---|
-| 16 | 34.8 | 193.6 | 5.57x |
-| 256 | 352 | 2151 | 6.11x |
-| 1024 | 1347 | 8367 | 6.21x |
-| 49152 | 64850 | 395083 | 6.09x |
+| 16 | 49.4 | 192.5 | 3.90x |
+| 256 | 166 | 2145 | 12.90x |
+| 1024 | 529 | 8344 | 15.78x |
+| 49152 | 22845 | 394136 | 17.25x |
 
 ## Scope
 BASE64HEADER (0x0) on well-formed PEM. The `_ANY` auto-detect flag and byte-exact partial
