@@ -136,6 +136,15 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
   and `RtlIpv6StringToAddressExA` (122). Only the two IPv6 wide forms remain, and only for the
   Unicode-digit reason, not RE difficulty.
 
+- **`shlwapi.dll` — a rich new vein (opened by 131).** Unlike ntdll's string routines, shlwapi's helpers
+  are still **scalar one-character-at-a-time scans**. Measured on this machine: `StrChrW` ~1.1 cyc/wchar
+  (64.7 ns for 254 chars), `PathFindFileNameW` 122 ns, `PathFindExtensionW` 188 ns, `StrCmpNIW` **498 ns**
+  (≈2 ns/char) for the same 254-char input. **`StrChrW` is landed (131, 3.67×, up to 6.32×)** using the
+  AVX2 dual-compare scan from 003 plus page-safe aligned loads. The path helpers are the obvious
+  follow-ups but need contract care: separator handling is idiosyncratic (`C:\Windows\` yields
+  `Windows\`, since a separator only counts when the next character exists and is not itself a slash),
+  and the `:` rules are not yet fully pinned.
+
 - **RTL date/time conversion** — landed as a matched pair: **`RtlTimeToTimeFields` (126, 1.73×)** and its
   inverse **`RtlTimeFieldsToTime` (127, 1.54×)**. Both replace ntdll's division-heavy scalar date math
   with the era-based civil-from-days algorithm (no month table, no leap-year branch, no loop) where every
