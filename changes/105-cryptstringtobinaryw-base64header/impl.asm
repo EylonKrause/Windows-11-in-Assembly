@@ -1,7 +1,3 @@
-; crypt32.dll!CryptStringToBinaryW  --  hand-written x86-64 reimplementation (5.9x vs shipped)
-; source of truth: changes/105-cryptstringtobinaryw-base64header/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/105-cryptstringtobinaryw-base64header/impl.asm
 ; BOOL wia_s2bw_pem(LPCWSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
 ;                   DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)

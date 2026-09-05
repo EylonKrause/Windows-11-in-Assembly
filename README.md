@@ -225,3 +225,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [102](changes/102-rtlappendunicodestringtostring/) | `RtlAppendUnicodeStringToString` (counted append) | `ntdll.dll!RtlAppendUnicodeStringToString` | **PARKED** — no wcslen to cut; ntdll already optimal |
 | [103](changes/103-rtlappendasciiztostring/) | `RtlAppendAsciizToString` (inline AVX2 strlen + copy) | `ntdll.dll!RtlAppendAsciizToString` | **PARKED** — ntdll's ANSI strlen already fast; at parity |
 | [104](changes/104-cryptstringtobinary-base64header/) | `CryptStringToBinaryA` PEM decode — BASE64HEADER (scalar table decode + header scan) | `crypt32.dll!CryptStringToBinaryA` | **LANDED** — **6.1×** (5.6×–6.2×; PEM→binary, completes the round-trip) |
+| [105](changes/105-cryptstringtobinaryw-base64header/) | `CryptStringToBinaryW` wide PEM decode — BASE64HEADER (per-wchar scan/decode) | `crypt32.dll!CryptStringToBinaryW` | **LANDED** — **5.9×** (5.7×–6.2×; wide PEM→binary) |
