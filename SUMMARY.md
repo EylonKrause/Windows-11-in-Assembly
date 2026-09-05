@@ -122,18 +122,19 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 ## Deferred (need dedicated reverse-engineering)
 
-- **`RtlIpv6StringToAddressExA/W`** and **`RtlIpv6StringToAddressW`** (the rest of the IPv6 parse-side
-  complement to the landed IPv6 formatters 063/064/068/069). The narrow **`RtlIpv6StringToAddressA` has
-  since been reverse-engineered and landed** (121, 4.91×, up to 10.8× — the full `::`/embedded-IPv4
-  grammar + all the Windows-lenient stop/terminator rules, validated bit-exact over 5M fuzz). The wide
-  `RtlIpv6StringToAddressW` is **scoped out**, not deferred: unlike IPv4-W/MAC-W it recognizes Unicode
-  decimal digits (Arabic-Indic, fullwidth, … by value) as hex digits — the same CRT/OS Unicode-digit-table
-  blocker that scopes out `_wtoi`. The `Ex` forms (`[addr]:port` / `%zone` scope-id) remain.
+- **`RtlIpv6StringToAddressW`** and **`RtlIpv6StringToAddressExW`** (the wide IPv6 parse-side forms). The
+  narrow **`RtlIpv6StringToAddressA` (121, 4.91×, up to 10.8×)** and **`RtlIpv6StringToAddressExA` (122,
+  4.17×, up to 7.5×)** have both since been reverse-engineered and landed — 121 is the full
+  `::`/embedded-IPv4 grammar + all the Windows-lenient stop/terminator rules (5M-fuzz bit-exact); 122
+  wraps that core with `[addr%zone]:port` bracket/scope/port handling (2M-fuzz bit-exact). Both wide
+  forms are **scoped out**, not deferred: unlike IPv4-W/MAC-W they recognize Unicode decimal digits
+  (Arabic-Indic, fullwidth, … by value) as digits — the same CRT/OS Unicode-digit-table blocker that
+  scopes out `_wtoi`.
 
-  The rest of the parse-side family is done: `RtlIpv4StringToAddressA/W` (114/115) + `…ExA/W` (116/117),
-  `RtlGUIDFromString` (118), `RtlEthernetStringToAddressA/W` (119/120), and now `RtlIpv6StringToAddressA`
-  (121). Only the IPv6 `Ex`/`W` forms above remain (and `W` only for the Unicode-digit reason, not RE
-  difficulty).
+  The parse-side family is now **complete**: `RtlIpv4StringToAddressA/W` (114/115) + `…ExA/W` (116/117),
+  `RtlGUIDFromString` (118), `RtlEthernetStringToAddressA/W` (119/120), `RtlIpv6StringToAddressA` (121)
+  and `RtlIpv6StringToAddressExA` (122). Only the two IPv6 wide forms remain, and only for the
+  Unicode-digit reason, not RE difficulty.
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
