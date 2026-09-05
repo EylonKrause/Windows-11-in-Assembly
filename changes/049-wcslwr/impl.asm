@@ -2,12 +2,15 @@
 ; wchar_t* wia_wcslwr(wchar_t* s)   [Win64: rcx -> rax (returns s)]
 ;
 ; Lowercase a UTF-16 string in place. In the default C locale ucrtbase folds ONLY ASCII
-; A-Z -> a-z (verified); its impl is scalar. We fold+store 16 wchars at a time, an 8-wchar
-; block for the 8..15 remainder, and a scalar tail. Bounds-safe: a vector load+STORE is
-; issued only when its bytes are that far from the page end AND the block holds no
-; terminator; else it steps one wchar at a time (never writing past the terminator).
-; In-register fold (A-Z via two signed vpcmpgtw, +0x20), constants from memory.
-; ISA: AVX2. Validated on Zen3.
+; A-Z -> a-z (verified); its impl is scalar and, uniquely, has a tight small path our first
+; cut (which paid full ymm setup up front) couldn't beat at 8 wchars -> was PARKED. This
+; version clears that dispatch floor the same way 070 _strrev did: an UNROLLED scalar
+; fold+store over the first 16 wchars (independent lea/load/store per position, no serial
+; pointer chain, no vector setup, short-circuits at the NUL so it never writes past the
+; terminator). Only a string longer than 16 wchars pays the AVX2 setup and runs the 32-byte
+; fold+store block loop (bounds-safe: a vector store issues only when its bytes are that far
+; from the page end AND the block holds no terminator). In-register fold (A-Z via two signed
+; vpcmpgtw, +0x20), constants from memory. ISA: AVX2. Validated on Zen3.
 
 .const
 c40w dw 0040h
@@ -15,8 +18,40 @@ c5Bw dw 005Bh
 c20w dw 0020h
 .code
 wia_wcslwr PROC
-        mov       rax, rcx
-        mov       r8, rcx
+        mov       rax, rcx                            ; return s
+
+        ; ---- unrolled scalar fold+store, first 16 wchars (no ymm setup on short strings) ----
+FOLD1   MACRO off
+        LOCAL     skip
+        movzx     r9d, word ptr [rcx + off]
+        test      r9w, r9w
+        jz        done
+        lea       r10d, [r9d - 41h]
+        cmp       r10d, 19h
+        ja        skip                              ; not A-Z -> no store (avoid redundant write)
+        add       r9d, 20h
+        mov       word ptr [rcx + off], r9w
+skip:
+        ENDM
+        FOLD1 0
+        FOLD1 2
+        FOLD1 4
+        FOLD1 6
+        FOLD1 8
+        FOLD1 10
+        FOLD1 12
+        FOLD1 14
+        FOLD1 16
+        FOLD1 18
+        FOLD1 20
+        FOLD1 22
+        FOLD1 24
+        FOLD1 26
+        FOLD1 28
+        FOLD1 30
+
+        ; ---- 16 wchars folded, no terminator yet: long string -> AVX2 from rcx+32 ----
+        lea       r8, [rcx + 32]
         vpbroadcastw ymm5, word ptr [c40w]
         vpbroadcastw ymm6, word ptr [c5Bw]
         vpbroadcastw ymm7, word ptr [c20w]
@@ -79,7 +114,7 @@ near_page:
 step1:
         movzx     r9d, word ptr [r8]
         test      r9w, r9w
-        jz        done
+        jz        done_v
         lea       r10d, [r9d - 41h]
         cmp       r10d, 19h
         ja        nofold
@@ -89,8 +124,9 @@ nofold:
         add       r8, 2
         jmp       step1
 
-done:
+done_v:
         vzeroupper
+done:
         ret
 wia_wcslwr ENDP
 END
