@@ -13,14 +13,16 @@ decoded bytes match the live export **and** the (narrowed) scalar oracle for `n 
 query + convert, canonical + leading garbage + multi-line bodies + a no-header string.
 
 ## Benchmark — vs live `crypt32!CryptStringToBinaryW` BASE64HEADER (`/Od`)
-geomean **5.90×** (5.71×–6.16×); ours ~0.68 GB/s vs crypt32 ~0.11 GB/s.
+geomean **11.66×** (4.85×–17.0×); ours up to ~2.03 GB/s vs crypt32 ~0.11 GB/s. The body decode
+uses change 082's SSSE3 dec16 core preceded by a `packuswb` narrow (16 WCHARs → 16 bytes); a
+non-ASCII wchar saturates to 0xFF and falls to the scalar path. Up from 5.90× all-scalar.
 
 | PEM payload | ours ns | crypt32 ns | ratio |
 |---|---|---|---|
-| 16 | 40.4 | 249.3 | 6.16x |
-| 256 | 395.6 | 2302 | 5.82x |
-| 1024 | 1516 | 8788 | 5.80x |
-| 49152 | 72050 | 411463 | 5.71x |
+| 16 | 51.1 | 248.1 | 4.85x |
+| 256 | 174 | 2303 | 13.22x |
+| 1024 | 560 | 8786 | 15.69x |
+| 49152 | 24200 | 411177 | 16.99x |
 
 ## Scope
 Same as 104 (BASE64HEADER on well-formed PEM; `_ANY` and byte-exact malformed-partial output
