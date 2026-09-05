@@ -234,3 +234,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [111](changes/111-strtoul/) | `strtoul` (unsigned; `-` negates mod 2³²; ERANGE) | `ucrtbase.dll!strtoul` | **LANDED** — **1.97×** (1.8×–2.2×; value+endptr+errno bit-exact) |
 | [112](changes/112-strtoi64/) | `_strtoi64` (64-bit signed; mul-carry overflow guard) | `ucrtbase.dll!_strtoi64` | **LANDED** — **1.79×** (1.7×–2.0×; ±2⁶³ saturation; value+endptr+errno) |
 | [113](changes/113-strtoui64/) | `_strtoui64` (64-bit unsigned; `-` negates mod 2⁶⁴) | `ucrtbase.dll!_strtoui64` | **LANDED** — **1.76×** (1.6×–1.9×; value+endptr+errno bit-exact) |
+| [114](changes/114-rtlipv4stringtoaddress/) | `RtlIpv4StringToAddressA` (inet_aton IPv4 parse; parse-side of 059) | `ntdll.dll!RtlIpv4StringToAddressA` | **LANDED** — **1.53×** (1.3×–1.8×; STATUS+addr+Terminator bit-exact; reference-first 7-pass RE) |
