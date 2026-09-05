@@ -99,6 +99,7 @@ Ryzen 9 5950X bench.
 | CryptStringToBinaryA (BASE64HEADER decode) | **6.1x** (5.6x–6.2x) — PEM → binary (scalar table decode + header scan); crypt32 ~0.12 GB/s |
 | CryptStringToBinaryW (wide BASE64HEADER decode) | **5.9x** (5.7x–6.2x) — wide PEM → binary (per-wchar scan/decode) |
 | CryptStringToBinaryA (BASE64_ANY decode) | **3.7x** (3.6x–4.1x) — auto-detect PEM vs plain base64 (sets pdwFlags 0/1) |
+| CryptStringToBinaryW (wide BASE64_ANY decode) | **3.8x** (3.5x–5.0x) — wide auto-detect PEM vs plain base64 |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
