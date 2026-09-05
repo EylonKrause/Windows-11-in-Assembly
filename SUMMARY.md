@@ -51,6 +51,7 @@ Ryzen 9 5950X bench.
 | RtlInitUnicodeStringEx | 1.4x (1.1x–2.0x) | validating UNICODE_STRING setup (NTSTATUS) |
 | RtlIntegerToChar | 1.4x (1.1x–2.1x) | ANSI integer → string, all bases (2-digit table + direct hex/binary) |
 | RtlLargeIntegerToChar | 1.4x (1.1x–1.8x) | 64-bit integer → string, all bases (2-digit table + direct hex/binary) |
+| RtlAppendUnicodeToString | 1.4x (1.0x–2.3x) | UNICODE_STRING builder (inline AVX2 wcslen + SIMD copy, no `call`s) |
 
 ### ucrtbase (C runtime, loaded in ~220 processes)
 

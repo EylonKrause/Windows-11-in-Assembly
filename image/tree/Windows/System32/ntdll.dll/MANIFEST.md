@@ -1,8 +1,9 @@
-# ntdll.dll — reimplemented exports (48)
+# ntdll.dll — reimplemented exports (49)
 
 | export | speedup | source |
 |---|---|---|
 | `RtlAnsiStringToUnicodeString` | 11.58x | [changes/019-rtlansistringtounicodestring](../../../../../changes/019-rtlansistringtounicodestring/) |
+| `RtlAppendUnicodeToString` | 1.42x | [changes/101-rtlappendunicodetostring](../../../../../changes/101-rtlappendunicodetostring/) |
 | `RtlAreBitsSet` | 3.17x | [changes/030-rtlarebitsset](../../../../../changes/030-rtlarebitsset/) |
 | `RtlCompareMemory` | 4.42x | [changes/007-rtlcomparememory](../../../../../changes/007-rtlcomparememory/) |
 | `RtlCompareMemoryUlong` | 5.04x | [changes/026-rtlcomparememoryulong](../../../../../changes/026-rtlcomparememoryulong/) |
