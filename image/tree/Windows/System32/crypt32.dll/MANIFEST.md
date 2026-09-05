@@ -1,4 +1,4 @@
-# crypt32.dll — reimplemented exports (15)
+# crypt32.dll — reimplemented exports (16)
 
 | export | speedup | source |
 |---|---|---|
@@ -15,5 +15,6 @@
 | `CryptStringToBinaryA` | 36.3x | [changes/082-cryptstringtobinary-base64](../../../../../changes/082-cryptstringtobinary-base64/) |
 | `CryptStringToBinaryA` | 6.1x | [changes/104-cryptstringtobinary-base64header](../../../../../changes/104-cryptstringtobinary-base64header/) |
 | `CryptStringToBinaryW` | 248x | [changes/088-cryptstringtobinaryw-hexraw](../../../../../changes/088-cryptstringtobinaryw-hexraw/) |
+| `CryptStringToBinaryW` | 3.8x | [changes/107-cryptstringtobinaryw-base64any](../../../../../changes/107-cryptstringtobinaryw-base64any/) |
 | `CryptStringToBinaryW` | 38.7x | [changes/084-cryptstringtobinaryw-base64](../../../../../changes/084-cryptstringtobinaryw-base64/) |
 | `CryptStringToBinaryW` | 5.9x | [changes/105-cryptstringtobinaryw-base64header](../../../../../changes/105-cryptstringtobinaryw-base64header/) |
