@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (42)
+# ntdll.dll — reimplemented exports (44)
 
 | export | speedup | source |
 |---|---|---|
@@ -17,6 +17,8 @@
 | `RtlEthernetAddressToStringW` | 36.0x | [changes/062-rtlethernetaddresstostringw](../../../../../changes/062-rtlethernetaddresstostringw/) |
 | `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
 | `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |
+| `RtlInitString` | 1.43x | [changes/095-rtlinitstring](../../../../../changes/095-rtlinitstring/) |
+| `RtlInitUnicodeString` | 1.76x | [changes/094-rtlinitunicodestring](../../../../../changes/094-rtlinitunicodestring/) |
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
 | `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
 | `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
