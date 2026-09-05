@@ -205,13 +205,20 @@ ll_ok:
         lea       r11, [rdi + r10]                   ; dst
         ; backward byte copy of r8d bytes src->dst (dst >= src)
         mov       eax, r8d
-cpb:
+cpb:                                                   ; backward copy, 16 bytes at a time
+        cmp       eax, 16
+        jb        cpb_tail
+        sub       eax, 16
+        movdqu    xmm0, xmmword ptr [rsi + rax]
+        movdqu    xmmword ptr [r11 + rax], xmm0
+        jmp       cpb
+cpb_tail:
         test      eax, eax
         jz        cpb_done
         dec       eax
         movzx     edx, byte ptr [rsi + rax]
         mov       byte ptr [r11 + rax], dl
-        jmp       cpb
+        jmp       cpb_tail
 cpb_done:
         ; append CRLF at dst[linelen]
         mov       byte ptr [r11 + r8], 0Dh

@@ -12,16 +12,16 @@ fixed cost.
 Length, all WCHARs, and the wide NUL verified against the live export and the widened oracle.
 
 ## Benchmark — vs live `crypt32!CryptBinaryToStringW` BASE64HEADER (`/Od`)
-geomean **50.7×** (5.85×–393×); ours ~1.3 GB/s vs crypt32 ~0.001–0.05 GB/s. crypt32's wide
-path has an enormous fixed cost (22 µs for 16 bytes → 393×); at large sizes both converge
-toward the throughput ceiling (scalar CRLF-expansion + widen).
+geomean **53.0×** (8.6×–417×); ours ~2.0 GB/s vs crypt32 ~0.001–0.05 GB/s. crypt32's wide
+path has an enormous fixed cost (19 µs for 16 bytes → 417×). The in-place CRLF expansion is
+now a SIMD 16-byte-chunk backward copy (shared with 092), lifting the large sizes ~1.5×.
 
 | size | ours ns | crypt32 ns | ratio |
 |---|---|---|---|
-| 16 | 55.6 | 21894 | 393.5x |
-| 256 | 227.9 | 22917 | 100.5x |
-| 1024 | 793.9 | 25922 | 32.7x |
-| 65536 | 49058 | 287223 | 5.85x |
+| 16 | 45.4 | 18928 | 416.9x |
+| 256 | 165.6 | 20500 | 123.8x |
+| 1024 | 532.4 | 22436 | 42.1x |
+| 65536 | 31983 | 276177 | 8.64x |
 
 ## Scope
 Same as 092 (encode side of the three header modes; NOCRLF and too-small buffer scoped out).
