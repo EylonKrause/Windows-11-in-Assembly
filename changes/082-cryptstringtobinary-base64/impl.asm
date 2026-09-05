@@ -34,8 +34,17 @@ wia_s2b PROC
         push      r14
         push      r15
         mov       rsi, rcx                           ; input ptr
-        mov       ebx, edx                           ; remaining chars
         mov       r15, r9                            ; out ptr (0 => query)
+        mov       ebx, edx                           ; remaining chars
+        test      ebx, ebx
+        jnz       have_len                           ; cchString==0 => NUL-terminated: strlen
+        xor       ebx, ebx
+sl_lp:
+        cmp       byte ptr [rsi + rbx], 0
+        je        have_len
+        inc       ebx
+        jmp       sl_lp
+have_len:
         lea       r14, wia_b64rev
         xor       r10d, r10d                         ; acc
         xor       r11d, r11d                         ; bits

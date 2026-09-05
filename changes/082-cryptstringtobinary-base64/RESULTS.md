@@ -45,6 +45,12 @@ geomean                          36.3x  => LANDS (no size class regressed)
 ```
 crypt32's scalar decode runs ~0.13 GB/s; ours ~7.6 GB/s — up to **56×**.
 
+## Correctness fix (2026-09-05)
+The original fuzz always passed an explicit `cchString`, so the `cchString==0` (NUL-terminated)
+default went untested and returned `cbBinary=0` (the length came straight from `edx` with no strlen).
+Fixed with an inline strlen when `cch==0`; `correctness.c` now compares the `cch=0` path (valid,
+padded, and empty inputs) directly against live crypt32. Explicit-length benchmark unchanged.
+
 ## Reproduce
 ```
 changes\082-cryptstringtobinary-base64\build.bat

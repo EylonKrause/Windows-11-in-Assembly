@@ -35,6 +35,14 @@ geomean                           259x  => LANDS (no size class regressed)
 ```
 crypt32's scalar hex decode ~0.017 GB/s; ours ~6 GB/s — up to **335×**.
 
+## Correctness fix (2026-09-05)
+The original fuzz only fed crypt32's own contiguous-hex+CRLF encoder output, so two paths went
+untested and diverged from the live export: (1) `cchString==0` (the NUL-terminated default) returned
+`cbBinary=0` because the length was taken straight from `edx` with no strlen; (2) the separator set
+omitted comma (`0x2c`) and dash (`0x2d`), which crypt32 skips. Both are fixed (inline strlen when
+`cch==0`; `,` and `-` added to `wia_hexrev`), and `correctness.c` now compares those cases directly
+against live crypt32. The explicit-length benchmark is unchanged (the strlen branch is skipped there).
+
 ## Reproduce
 ```
 changes\086-cryptstringtobinary-hexraw\build.bat

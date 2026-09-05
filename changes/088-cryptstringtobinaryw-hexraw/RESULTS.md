@@ -13,6 +13,13 @@ and a wide char (`U+0141`) → FALSE.
 ## Benchmark — vs live `crypt32!CryptStringToBinaryW` HEXRAW (`/Od`)
 geomean **248.4×** (crypt32 ~0.017 GB/s; ours ~6 GB/s).
 
+## Correctness fix (2026-09-05)
+Same fuzz gap as [086](../086-cryptstringtobinary-hexraw/): three paths diverged from the live
+export and are now fixed — (1) `cchString==0` returned `cbBinary=0` (added a wide strlen);
+(2) comma/dash were not in the skip set (added to `wia_hexrev`); (3) a 0-length wide input must
+return FALSE with `ERROR_INVALID_PARAMETER` (87) — the ANSI form returns TRUE `cb=0` — now emitted.
+`correctness.c` compares all three directly against live crypt32. Explicit-length benchmark unchanged.
+
 ## Reproduce
 ```
 changes\088-cryptstringtobinaryw-hexraw\build.bat

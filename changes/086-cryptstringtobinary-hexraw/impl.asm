@@ -33,8 +33,17 @@ wia_s2bh PROC
         push      r14
         push      r15
         mov       rsi, rcx
-        mov       ebx, edx
         mov       r15, r9
+        mov       ebx, edx                           ; remaining bytes
+        test      ebx, ebx
+        jnz       have_len                           ; cchString==0 => NUL-terminated: strlen
+        xor       ebx, ebx
+sl_lp:
+        cmp       byte ptr [rsi + rbx], 0
+        je        have_len
+        inc       ebx
+        jmp       sl_lp
+have_len:
         lea       r14, wia_hexrev
         xor       r13d, r13d                         ; ocount
         xor       r11d, r11d                         ; hi pending
