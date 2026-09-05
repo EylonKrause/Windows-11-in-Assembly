@@ -6,20 +6,24 @@
 ; 0x9A6C9329AC4BC9B5, internal accumulator = ~Init, output = ~crc.
 ;   * Len < 128: slicing-by-8 (8 bytes/iter, 8-table lookup) + byte tail -- beats ntdll's
 ;     slicing at small sizes (its per-call overhead is heavy: ~0.9 GB/s at 32 B).
-;   * Len >= 128: VPCLMULQDQ fold. Reflected-fold constants (derived + validated vs the live
-;     export over 300k inputs): fold a 128-bit block by advancing 128 bits with
-;     X' = clmul(X.lo, KA) ^ clmul(X.hi, KB) ^ next16, KA = x^128 = 0xEADC41FD2BA3D420,
-;     KB = x^64 = 0x21E9761E252621AC. Final reduce of the 128-bit accumulator is
+;   * Len >= 128: VPCLMULQDQ fold. Reflected-fold constants (derived from the scalar recurrence
+;     and validated vs the live export over 300k inputs): advancing a 128-bit lane by D bits is
+;     clmul(lane.lo, x^D) ^ clmul(lane.hi, x^(D-64)). We fold TWO 16-byte blocks per iteration
+;     with a 256-bit ymm accumulator (each 128-bit lane advanced 256 bits, K256={x^256,x^192})
+;     -- Zen3's ymm vpclmulqdq is ~1.7x the xmm clmul throughput -- then combine the two lanes
+;     (advance the low lane 128 bits, xor the high lane) and fold any last 16-byte block with
+;     K128={x^128,x^64}. Final reduce of the 128-bit accumulator is
 ;     crc = SLICE8(SLICE8(X.lo)) ^ SLICE8(X.hi), where SLICE8(v) = mulx^64(v) is one
 ;     slicing-by-8 step over the SAME tables (mulx^64(v) == icrc(v as 8 bytes, 0)).
 ; wia_crc64_tab (slicing-by-8 tables) built once by wia_crc64_init.
-; ISA: PCLMULQDQ + AVX + BMI2. Validated bit-exact vs live ntdll on Zen3.
+; ISA: VPCLMULQDQ + AVX2 + BMI2. Validated bit-exact vs live ntdll on Zen3.
 
 EXTERN wia_crc64_tab:QWORD
 
 .const
 ALIGN 16
-foldK   dq 0EADC41FD2BA3D420h, 021E9761E252621ACh   ; xmm: lo=KA(x^128), hi=KB(x^64)
+foldK256 dq 0B0BC2E589204F500h, 0E1E0BB9D45D7A44Ch  ; xmm: lo=x^256, hi=x^192 (broadcast to 2 lanes)
+foldK128 dq 0EADC41FD2BA3D420h, 021E9761E252621ACh  ; xmm: lo=x^128, hi=x^64
 
 .code
 
@@ -76,22 +80,50 @@ hhl:
         dec       rax
         jmp       hhl
 hdone:
-        vmovq     xmm0, r9                            ; crc in low 64
-        vpxor     xmm0, xmm0, xmmword ptr [rcx]       ; X0 = first16 ^ crc
+        cmp       rdx, 32
+        jb        x_single
+        ; --- ymm fold: 2 blocks (32 bytes) / iter, each lane advanced 256 bits ---
+        vbroadcasti128 ymm2, xmmword ptr [foldK256]
+        vmovq     xmm5, r9                            ; crc in lowest 64 (VEX zeroes rest)
+        vpxor     ymm0, ymm5, ymmword ptr [rcx]       ; Y = first32 ^ crc(low)
+        add       rcx, 32
+        sub       rdx, 32
+yloop:
+        cmp       rdx, 32
+        jb        ycombine
+        vpclmulqdq ymm3, ymm0, ymm2, 00h
+        vpclmulqdq ymm4, ymm0, ymm2, 11h
+        vpxor     ymm0, ymm3, ymm4
+        vpxor     ymm0, ymm0, ymmword ptr [rcx]
+        add       rcx, 32
+        sub       rdx, 32
+        jmp       yloop
+ycombine:
+        vextracti128 xmm1, ymm0, 1                    ; Yhi (lane 1)
+        vmovdqa   xmm2, xmmword ptr [foldK128]
+        vpclmulqdq xmm3, xmm0, xmm2, 00h              ; advance Ylo by 128 bits
+        vpclmulqdq xmm4, xmm0, xmm2, 11h
+        vpxor     xmm0, xmm3, xmm4
+        vpxor     xmm0, xmm0, xmm1                    ; X = fold128(Ylo) ^ Yhi
+        jmp       xtail
+x_single:
+        vmovq     xmm5, r9
+        vpxor     xmm0, xmm5, xmmword ptr [rcx]       ; X = first16 ^ crc
         add       rcx, 16
         sub       rdx, 16
-        vmovdqa   xmm2, xmmword ptr [foldK]
-floop:
+        vmovdqa   xmm2, xmmword ptr [foldK128]
+xtail:
         cmp       rdx, 16
         jb        freduce
-        vpclmulqdq xmm3, xmm0, xmm2, 00h              ; X.lo * KA
-        vpclmulqdq xmm4, xmm0, xmm2, 11h              ; X.hi * KB
+        vpclmulqdq xmm3, xmm0, xmm2, 00h
+        vpclmulqdq xmm4, xmm0, xmm2, 11h
         vpxor     xmm0, xmm3, xmm4
-        vpxor     xmm0, xmm0, xmmword ptr [rcx]       ; ^ next block
+        vpxor     xmm0, xmm0, xmmword ptr [rcx]
         add       rcx, 16
         sub       rdx, 16
-        jmp       floop
+        jmp       xtail
 freduce:
+        vzeroupper
         vmovq     r9, xmm0                            ; X.lo
         vpextrq   r10, xmm0, 1                        ; X.hi
         SLICE8    r9, rax                             ; rax = mulx^64(X.lo)
