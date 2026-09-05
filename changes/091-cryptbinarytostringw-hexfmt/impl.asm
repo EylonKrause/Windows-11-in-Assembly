@@ -1,23 +1,15 @@
-; crypt32.dll!CryptBinaryToStringA  --  hand-written x86-64 reimplementation (150x vs shipped)
-; source of truth: changes/090-cryptbinarytostring-hexfmt/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
-; changes/090-cryptbinarytostring-hexfmt/impl.asm
-; BOOL wia_b2shf(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; changes/091-cryptbinarytostringw-hexfmt/impl.asm
+; BOOL wia_b2shfw(const BYTE* pb, DWORD cb, DWORD flags, wchar_t* out, DWORD* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
-; crypt32!CryptBinaryToStringA for the FORMATTED hex modes:
+; Wide sibling of 090 — crypt32!CryptBinaryToStringW for the formatted hex modes
 ;   CRYPT_STRING_HEX (0x4), HEXASCII (0x5), HEXADDR (0xa), HEXASCIIADDR (0xb).
-; 16 bytes/line: optional "addr\t" (lowercase hex offset, min 4 digits); hex bytes "XX"
-; single-spaced with a DOUBLE space after byte 8; optional pad-to-col-51 + ASCII column
-; (0x20..0x7e -> char else '.'); CRLF per line. crypt32's is scalar and glacial (~0.01 GB/s).
-;
-; Full 16-byte lines: SSSE3 hex core (pshufb "0123456789abcdef" on hi/lo nibbles,
-; punpcklbw/punpckhbw) -> 32 hex chars in a stack scratch, then three pshufb+por passes
-; splice in the spaces to build the 48-byte hex field; the ASCII column is a SIMD printable
-; clamp (paddb 0x80 + two pcmpgtb + blend). Address + the partial last line are scalar.
-; Query (out==NULL -> *pcch=len+1), sufficient-buffer convert, cb==0 -> FALSE, too-small
-; buffer -> FALSE+ERROR_MORE_DATA size. ISA: SSSE3. Validated bit-exact vs live crypt32.
+; The wide output is exactly the widened narrow output (each char zero-extended to a WCHAR),
+; verified against the live export. So we reuse 090's SSSE3 formatter to lay the L narrow
+; bytes into the LOW bytes of the caller's 2x-size buffer, then reverse-widen in place
+; (word[i] = byte[i], high index to low -> every prior write is at a higher offset than the
+; byte it reads, so it is overwrite-safe) + a wide NUL. crypt32's is scalar (~0.006 GB/s).
+; *pcch counts WCHARs. Query (out==NULL -> *pcch=L+1), convert, cb==0 -> FALSE. ISA: SSSE3.
 
 .const
 ALIGN 16
@@ -36,7 +28,7 @@ cff     db 16 dup(0FFh)
 c2e     db 16 dup(02Eh)
 
 .code
-wia_b2shf PROC
+wia_b2shfw PROC
         push      rbx
         push      rsi
         push      rdi
@@ -47,30 +39,30 @@ wia_b2shf PROC
         sub       rsp, 40h
         test      edx, edx
         jz        fail
-        mov       ebx, edx                           ; n
-        mov       rsi, rcx                           ; in
-        mov       rdi, r9                            ; out
-        mov       r13d, r8d                          ; flags
+        mov       ebx, edx
+        mov       rsi, rcx
+        mov       rdi, r9
+        mov       r13d, r8d
 
-        ; ---- outlen ----
+        ; ---- outlen L (narrow char count) ----
         mov       eax, ebx
         add       eax, 15
-        shr       eax, 4                             ; nlines
+        shr       eax, 4
         mov       r15d, eax
         lea       ecx, [eax-1]
         shl       ecx, 4
         mov       edx, ebx
-        sub       edx, ecx                           ; lastk (1..16)
+        sub       edx, ecx
         lea       r8d, [edx+edx*2]
-        dec       r8d                                ; 3k-1
+        dec       r8d
         cmp       edx, 8
         jbe       nohi
-        inc       r8d                                ; +1 (double space)
-nohi:                                                ; r8d = hexw(lastk)
+        inc       r8d
+nohi:
         test      r13d, 1
         jz        noasc_len
-        lea       r8d, [edx+51]                      ; content_last = 51+lastk
-        mov       r10d, 67                           ; content_full
+        lea       r8d, [edx+51]
+        mov       r10d, 67
         jmp       have_content
 noasc_len:
         mov       r10d, 48
@@ -79,11 +71,11 @@ have_content:
         add       r10d, 2
         imul      eax, r10d
         add       r8d, 2
-        add       eax, r8d                           ; base outlen
+        add       eax, r8d
         test      r13d, 2
         jz        outlen_done
-        mov       r10d, r15d                         ; L
-        xor       r11, r11                           ; off
+        mov       r10d, r15d
+        xor       r11, r11
 addr_loop:
         mov       ecx, 4
         mov       r9, r11
@@ -95,28 +87,29 @@ adl2:
         shr       r9, 4
         jmp       adl2
 adl3:
-        inc       ecx                                ; + tab
+        inc       ecx
         add       eax, ecx
         add       r11, 16
         dec       r10d
         jnz       addr_loop
 outlen_done:
-        mov       [rsp+20h], eax                     ; outlen
+        mov       [rsp+20h], eax                     ; L
         mov       r14, [rsp+0A0h]                    ; pcch
         test      rdi, rdi
         jnz       do_convert
         lea       ecx, [eax+1]
-        mov       [r14], ecx                         ; query: *pcch = outlen+1
+        mov       [r14], ecx                         ; query: *pcch = L+1 (wchars)
         jmp       ret_true
 do_convert:
         mov       ecx, [r14]
         lea       edx, [eax+1]
         cmp       ecx, edx
         jb        ret_moredata
+        mov       [rsp+28h], rdi                     ; save wide-buffer base
 
-        mov       r12d, ebx                          ; remaining
-        xor       rbx, rbx                           ; offset
-        lea       r15, [hxtab]                       ; RIP-rel base for nibble lookups
+        mov       r12d, ebx
+        xor       rbx, rbx
+        lea       r15, [hxtab]
 conv_loop:
         test      r12d, r12d
         jz        conv_done
@@ -124,10 +117,9 @@ conv_loop:
         cmp       eax, 16
         jb        have_k
         mov       eax, 16
-have_k:                                              ; eax = k
+have_k:
         test      r13d, 2
         jz        no_addr
-        ; ---- address (scalar): min 4 lowercase hex digits + tab ----
         mov       r8, rbx
         lea       r9, [rsp+30h]
         xor       ecx, ecx
@@ -152,13 +144,12 @@ adg_wr:
         inc       rdi
         test      ecx, ecx
         jnz       adg_wr
-        mov       byte ptr [rdi], 9                  ; tab
+        mov       byte ptr [rdi], 9
         inc       rdi
 no_addr:
         cmp       eax, 16
         jne       hex_scalar
 
-        ; ---- SIMD full-line hex field (48 bytes) ----
         movdqu    xmm0, xmmword ptr [rsi]
         movdqa    xmm1, xmm0
         psrlw     xmm1, 4
@@ -169,8 +160,8 @@ no_addr:
         movdqa    xmm3, xmmword ptr [hexlut]
         pshufb    xmm3, xmm0
         movdqa    xmm4, xmm2
-        punpcklbw xmm2, xmm3                          ; b0..b7 chars
-        punpckhbw xmm4, xmm3                          ; b8..b15 chars
+        punpcklbw xmm2, xmm3
+        punpckhbw xmm4, xmm3
         movdqu    xmmword ptr [rsp], xmm2
         movdqu    xmmword ptr [rsp+16], xmm4
         movdqu    xmm5, xmmword ptr [rsp]
@@ -188,7 +179,6 @@ no_addr:
         add       rdi, 48
         test      r13d, 1
         jz        full_crlf
-        ; 3 spaces + SIMD ascii clamp
         mov       word ptr [rdi], 2020h
         mov       byte ptr [rdi+2], 20h
         add       rdi, 3
@@ -196,13 +186,13 @@ no_addr:
         movdqa    xmm1, xmm0
         paddb     xmm1, xmmword ptr [c80]
         movdqa    xmm2, xmm1
-        pcmpgtb   xmm2, xmmword ptr [c9f]            ; c >= 0x20
+        pcmpgtb   xmm2, xmmword ptr [c9f]
         movdqa    xmm3, xmmword ptr [cff]
-        pcmpgtb   xmm3, xmm1                          ; c <= 0x7e
-        pand      xmm2, xmm3                          ; valid
+        pcmpgtb   xmm3, xmm1
+        pand      xmm2, xmm3
         pand      xmm0, xmm2
         movdqa    xmm4, xmm2
-        pandn     xmm4, xmmword ptr [c2e]            ; '.' where invalid
+        pandn     xmm4, xmmword ptr [c2e]
         por       xmm0, xmm4
         movdqu    xmmword ptr [rdi], xmm0
         add       rdi, 16
@@ -214,10 +204,9 @@ full_crlf:
         add       rdi, 2
         jmp       conv_loop
 
-        ; ---- partial last line (scalar) ----
 hex_scalar:
-        xor       r8d, r8d                            ; j
-        xor       r9d, r9d                            ; hexw
+        xor       r8d, r8d
+        xor       r9d, r9d
 hs_byte:
         test      r8d, r8d
         jz        hs_nosep
@@ -278,9 +267,21 @@ hs_crlf:
         jmp       conv_loop
 
 conv_done:
-        mov       byte ptr [rdi], 0                  ; NUL
-        mov       eax, [rsp+20h]
-        mov       [r14], eax                          ; *pcch = outlen
+        ; reverse-widen the L narrow bytes in place: word[i] = byte[i], high -> low
+        mov       eax, [rsp+20h]                     ; L
+        mov       r8, [rsp+28h]                      ; base
+        mov       ecx, eax
+wd:
+        test      ecx, ecx
+        jz        wd_done
+        dec       ecx
+        movzx     edx, byte ptr [r8 + rcx]
+        mov       word ptr [r8 + rcx*2], dx
+        jmp       wd
+wd_done:
+        mov       edx, eax
+        mov       word ptr [r8 + rdx*2], 0            ; wide NUL
+        mov       [r14], eax                          ; *pcch = L (wchars)
 ret_true:
         mov       eax, 1
         jmp       epi
@@ -302,5 +303,5 @@ epi:
         pop       rsi
         pop       rbx
         ret
-wia_b2shf ENDP
+wia_b2shfw ENDP
 END
