@@ -74,7 +74,8 @@ Ryzen 9 5950X bench.
 ### Parked (honestly recorded — the shipped code is already optimal)
 
 - `memcmp` (ucrtbase): tuned small path; dispatch-floor. `crc32` (ntdll RtlComputeCrc32): already VPCLMULQDQ.
-- `_wcslwr` (ucrtbase): correct + 2-6x >= 32 B, but ucrtbase's tight 8-wchar small path wins at size 8 (dispatch floor); the identical-structure `_wcsupr` lands.
+- `_wcslwr` (ucrtbase): correct + 2-6x >= 32 B, but ucrtbase's tight 8-wchar small path wins at size 8 (dispatch floor, narrowed to 0.91x); the identical-structure `_wcsupr` lands.
+- `RtlCrc64` (ntdll): **reverse-engineered & validated** (reflected CRC-64, poly `0x9A6C9329AC4BC9B5`, `~init`/`~out`) — previously deferred. Slicing-by-8 impl beats ntdll at 8-64 B (2-3x) but is loop-carried-bound at ~2.5 GB/s vs ntdll's ~4.8 at >= 256 B; a full win needs VPCLMULQDQ folding (future work). Algorithm documented in 076/RESULTS.md.
 
 ## Proven running live
 
@@ -87,7 +88,10 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 ## Deferred (need dedicated reverse-engineering)
 
-- `RtlCrc64`: a non-standard construction (not a plain reflected CRC; `crc({00},0) != 0`).
+- *(none outstanding.)*
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
-(034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md.
+(034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
+also here; it has now been reverse-engineered (034-style: reflected CRC-64, poly `0x9A6C9329AC4BC9B5`,
+`~init`/`~out`, validated 400k vs the live export — see 076/RESULTS.md) and moved to Parked (its large-size
+throughput needs VPCLMULQDQ folding to beat ntdll's slicing-by-8).
