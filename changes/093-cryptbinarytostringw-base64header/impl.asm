@@ -112,10 +112,13 @@ hdr_cp:
         jb        hdr_cp
         add       rdi, rdx                           ; rdi = body base = out + hdrlen
 
-        ; ================= SSSE3 base64 encode (NOCRLF layout) into rdi =================
+        ; ========== SSSE3 base64 encode WITH inline CRLF (single pass) into rdi ==========
+        ; r12d = linepos (base64 chars in the current 64-char line); a CRLF is emitted when
+        ; it reaches 64, one final CRLF closes the last line. No second expansion pass.
         mov       r8d, ebx
         mov       rax, rsi
         mov       r9, rdi
+        xor       r12d, r12d                         ; linepos
 simd_loop:
         cmp       r8d, 16
         jb        stail
@@ -139,6 +142,12 @@ simd_loop:
         add       rax, 12
         add       r9, 16
         sub       r8d, 12
+        add       r12d, 16
+        cmp       r12d, 64
+        jne       simd_loop
+        mov       word ptr [r9], 0A0Dh
+        add       r9, 2
+        xor       r12d, r12d
         jmp       simd_loop
 stail:
         lea       r11, [b64tab]
@@ -173,6 +182,12 @@ st3:
         add       rax, 3
         add       r9, 4
         sub       r8d, 3
+        add       r12d, 4
+        cmp       r12d, 64
+        jne       st3
+        mov       word ptr [r9], 0A0Dh
+        add       r9, 2
+        xor       r12d, r12d
         jmp       st3
 st_rem:
         test      r8d, r8d
@@ -201,6 +216,7 @@ st_rem:
         mov       byte ptr [r9 + 2], dl
         mov       byte ptr [r9 + 3], 3Dh
         add       r9, 4
+        add       r12d, 4
         jmp       enc_done
 st_1:
         movzx     ecx, byte ptr [rax]
@@ -217,50 +233,12 @@ st_1:
         mov       byte ptr [r9 + 1], dl
         mov       word ptr [r9 + 2], 3D3Dh
         add       r9, 4
+        add       r12d, 4
 enc_done:
-        ; ================= in-place CRLF expansion of the b64len chars at rdi =================
-        mov       eax, r14d
-        lea       ecx, [eax + 63]
-        shr       ecx, 6
-        dec       ecx
-exp_line:
-        mov       eax, ecx
-        shl       eax, 6
-        mov       r8d, r14d
-        sub       r8d, eax
-        cmp       r8d, 64
-        jbe       ll_ok
-        mov       r8d, 64
-ll_ok:
-        movsxd    r9, eax
-        lea       rsi, [rdi + r9]
-        mov       r10d, ecx
-        lea       r10d, [r10d + r10d]
-        add       r10d, eax
-        movsxd    r10, r10d
-        lea       r11, [rdi + r10]
-        mov       eax, r8d
-cpb:                                                   ; backward copy, 16 bytes at a time
-        cmp       eax, 16
-        jb        cpb_tail
-        sub       eax, 16
-        movdqu    xmm0, xmmword ptr [rsi + rax]
-        movdqu    xmmword ptr [r11 + rax], xmm0
-        jmp       cpb
-cpb_tail:
-        test      eax, eax
-        jz        cpb_done
-        dec       eax
-        movzx     edx, byte ptr [rsi + rax]
-        mov       byte ptr [r11 + rax], dl
-        jmp       cpb_tail
-cpb_done:
-        mov       byte ptr [r11 + r8], 0Dh
-        mov       byte ptr [r11 + r8 + 1], 0Ah
-        test      ecx, ecx
+        ; close the last line: a CRLF unless the last char already completed a full 64-line
+        test      r12d, r12d
         jz        body_done
-        dec       ecx
-        jmp       exp_line
+        mov       word ptr [r9], 0A0Dh
 
 body_done:
         ; ---- write footer at body_base + bodylen ----
