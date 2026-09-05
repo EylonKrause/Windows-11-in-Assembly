@@ -1,4 +1,4 @@
-; crypt32.dll!CryptBinaryToStringW  --  hand-written x86-64 reimplementation (51x vs shipped)
+; crypt32.dll!CryptBinaryToStringW  --  hand-written x86-64 reimplementation (53x vs shipped)
 ; source of truth: changes/093-cryptbinarytostringw-base64header/  (reference.c + correctness.c + bench.c)
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
@@ -244,13 +244,20 @@ ll_ok:
         movsxd    r10, r10d
         lea       r11, [rdi + r10]
         mov       eax, r8d
-cpb:
+cpb:                                                   ; backward copy, 16 bytes at a time
+        cmp       eax, 16
+        jb        cpb_tail
+        sub       eax, 16
+        movdqu    xmm0, xmmword ptr [rsi + rax]
+        movdqu    xmmword ptr [r11 + rax], xmm0
+        jmp       cpb
+cpb_tail:
         test      eax, eax
         jz        cpb_done
         dec       eax
         movzx     edx, byte ptr [rsi + rax]
         mov       byte ptr [r11 + rax], dl
-        jmp       cpb
+        jmp       cpb_tail
 cpb_done:
         mov       byte ptr [r11 + r8], 0Dh
         mov       byte ptr [r11 + r8 + 1], 0Ah

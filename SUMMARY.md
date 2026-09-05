@@ -93,8 +93,8 @@ Ryzen 9 5950X bench.
 | CryptStringToBinaryW (wide HEXRAW decode) | **248x** — wide hex → binary (SSSE3 + packuswb narrow) |
 | CryptBinaryToStringA (HEX/HEXASCII/HEXADDR/HEXASCIIADDR) | **150x** (117x–169x) — binary → formatted hexdump (SSSE3 hex core + pshufb space-splice + SIMD ASCII clamp); crypt32's is scalar ~0.011 GB/s |
 | CryptBinaryToStringW (wide formatted hex, all 4 modes) | **77x** (35x–465x) — wide formatted hexdump (SSSE3 core + reverse widen) |
-| CryptBinaryToStringA (BASE64HEADER/REQUESTHEADER/X509CRLHEADER) | **6.1x** (3.2x–7.7x) — PEM-header base64 (081 core + BEGIN/END wrapper); crypt32 ~0.3 GB/s |
-| CryptBinaryToStringW (wide PEM-header base64, 3 modes) | **51x** (5.9x–393x) — wide PEM-header base64 (SSSE3 core + reverse widen) |
+| CryptBinaryToStringA (BASE64HEADER/REQUESTHEADER/X509CRLHEADER) | **10.9x** (4.0x–20x) — PEM-header base64 (081 core + BEGIN/END wrapper); crypt32 ~0.3 GB/s |
+| CryptBinaryToStringW (wide PEM-header base64, 3 modes) | **53x** (8.6x–417x) — wide PEM-header base64 (SSSE3 core + reverse widen) |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
