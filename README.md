@@ -192,3 +192,7 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [069](changes/069-rtlipv6addresstostringexw/) | `RtlIpv6AddressToStringExW` (reuses 064 core) | `ntdll.dll!RtlIpv6AddressToStringExW` | **LANDED** — **8.38×** (IPv6+scope+port→string, wide) |
 | [070](changes/070-strrev/) | `_strrev` (bswap/vpshufb reverse + unrolled probe) | `ucrtbase.dll!_strrev` | **LANDED** — **7.7×** geomean (1.56×–17×; in-place byte-string reverse, wins even at 8 B) |
 | [071](changes/071-wcsrev/) | `_wcsrev` (word-reverse vpshufb/vpshuflw + unrolled probe) | `ucrtbase.dll!_wcsrev` | **LANDED** — **5.0×** geomean (1.43×–8.7×; in-place wide-string reverse) |
+| [072](changes/072-ultow/) | `_ultow` (2-digit word table / nibble) | `ucrtbase.dll!_ultow` | **LANDED** — **1.55×** (unsigned 32-bit → wide string, radix 2–36) |
+| [073](changes/073-ui64tow/) | `_ui64tow` (64-bit 2-digit word table) | `ucrtbase.dll!_ui64tow` | **LANDED** — **1.60×** (unsigned 64-bit → wide string, radix 2–36) |
+| [074](changes/074-itow/) | `_itow` / `_ltow` (signed, 2-digit word table) | `ucrtbase.dll!_itow` | **LANDED** — **1.42×** (signed 32-bit → wide string; `_itow`≡`_ltow`) |
+| [075](changes/075-i64tow/) | `_i64tow` (signed 64-bit) | `ucrtbase.dll!_i64tow` | **LANDED** — **1.59×** (signed 64-bit → wide string, radix 2–36) |
