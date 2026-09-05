@@ -48,6 +48,8 @@ Ryzen 9 5950X bench.
 | RtlCrc64 | 3.3x (2.0x–4.5x) | reflected CRC-64 (reverse-engineered); slicing-by-8 + 256-bit VPCLMULQDQ fold, ~21 GB/s |
 | RtlInitUnicodeString | 1.8x (1.2x–2.2x) | UNICODE_STRING setup (inline AVX2 wcslen, no `call`); called constantly |
 | RtlInitString / RtlInitAnsiString | 1.4x (1.1x–3.0x) | ANSI_STRING setup (inline AVX2 strlen) |
+| RtlInitUnicodeStringEx | 1.4x (1.1x–2.0x) | validating UNICODE_STRING setup (NTSTATUS) |
+| RtlIntegerToChar | 1.4x (1.1x–2.1x) | ANSI integer → string, all bases (2-digit table + direct hex/binary) |
 
 ### ucrtbase (C runtime, loaded in ~220 processes)
 
