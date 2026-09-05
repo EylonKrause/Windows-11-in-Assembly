@@ -238,3 +238,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [115](changes/115-rtlipv4stringtoaddressw/) | `RtlIpv4StringToAddressW` (wide inet_aton IPv4 parse) | `ntdll.dll!RtlIpv4StringToAddressW` | **LANDED** — **1.51×** (1.4×–1.7×; WCHAR≥0x100→terminator; bit-exact incl. non-ASCII) |
 | [116](changes/116-rtlipv4stringtoaddressex/) | `RtlIpv4StringToAddressExA` (IPv4 + `:port`, whole-string) | `ntdll.dll!RtlIpv4StringToAddressExA` | **LANDED** — **1.96×** (1.7×–2.2×; STATUS+addr+net-order port bit-exact) |
 | [117](changes/117-rtlipv4stringtoaddressexw/) | `RtlIpv4StringToAddressExW` (wide IPv4 + `:port`) | `ntdll.dll!RtlIpv4StringToAddressExW` | **LANDED** — **1.80×** (1.6×–2.0×; completes IPv4 parser family A/W/Ex A/W) |
+| [118](changes/118-rtlguidfromstring/) | `RtlGUIDFromString` (`{...}` GUID parse; parse-side of 058) | `ntdll.dll!RtlGUIDFromString` | **LANDED** — **4.45×** (12 vs 53 ns; fixed-offset hex parse, frameless) |
