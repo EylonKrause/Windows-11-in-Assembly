@@ -190,3 +190,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [067](changes/067-rtlconvertsidtounicodestring/) | `RtlConvertSidToUnicodeString` (state machine) | `ntdll.dll!RtlConvertSidToUnicodeString` | **LANDED** — **1.42×** (SID→string; security/ACLs; validated 2M) |
 | [068](changes/068-rtlipv6addresstostringexa/) | `RtlIpv6AddressToStringExA` (reuses 063 core) | `ntdll.dll!RtlIpv6AddressToStringExA` | **LANDED** — **6.87×** (IPv6+scope+port→string) |
 | [069](changes/069-rtlipv6addresstostringexw/) | `RtlIpv6AddressToStringExW` (reuses 064 core) | `ntdll.dll!RtlIpv6AddressToStringExW` | **LANDED** — **8.38×** (IPv6+scope+port→string, wide) |
+| [070](changes/070-strrev/) | `_strrev` (bswap/vpshufb reverse + unrolled probe) | `ucrtbase.dll!_strrev` | **LANDED** — **7.7×** geomean (1.56×–17×; in-place byte-string reverse, wins even at 8 B) |
