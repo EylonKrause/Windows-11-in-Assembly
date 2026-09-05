@@ -232,3 +232,5 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [109](changes/109-atoi64/) | `_atoi64` (64-bit saturating scalar parse) | `ucrtbase.dll!_atoi64` | **LANDED** — **2.20×** (2.1×–2.5×; ±2⁶³ saturation; `_wtoi` scoped out — Unicode digits) |
 | [110](changes/110-strtol/) | `strtol` (base 0/2–36, endptr, ERANGE; 256-entry digit table) | `ucrtbase.dll!strtol` | **LANDED** — **2.23×** (2.1×–2.4×; value+endptr+errno bit-exact; reference-first) |
 | [111](changes/111-strtoul/) | `strtoul` (unsigned; `-` negates mod 2³²; ERANGE) | `ucrtbase.dll!strtoul` | **LANDED** — **1.97×** (1.8×–2.2×; value+endptr+errno bit-exact) |
+| [112](changes/112-strtoi64/) | `_strtoi64` (64-bit signed; mul-carry overflow guard) | `ucrtbase.dll!_strtoi64` | **LANDED** — **1.79×** (1.7×–2.0×; ±2⁶³ saturation; value+endptr+errno) |
+| [113](changes/113-strtoui64/) | `_strtoui64` (64-bit unsigned; `-` negates mod 2⁶⁴) | `ucrtbase.dll!_strtoui64` | **LANDED** — **1.76×** (1.6×–1.9×; value+endptr+errno bit-exact) |
