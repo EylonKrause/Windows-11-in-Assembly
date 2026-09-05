@@ -201,3 +201,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [078](changes/078-strnset/) | `_strnset` (AVX2 broadcast + 8-byte tail) | `ucrtbase.dll!_strnset` | **LANDED** — **5.72×** (1.25×–13.77×; bounded fill) |
 | [079](changes/079-wcsset/) | `_wcsset` (AVX2 word broadcast-fill) | `ucrtbase.dll!_wcsset` | **LANDED** — **3.68×** (1.12×–7.02×; fill wide string with a wchar) |
 | [080](changes/080-wcsnset/) | `_wcsnset` (AVX2 word broadcast + 4-wchar tail) | `ucrtbase.dll!_wcsnset` | **LANDED** — **6.45×** (1.44×–12.50×; bounded wide fill) |
+| [081](changes/081-cryptbinarytostring-base64/) | `CryptBinaryToStringA` base64 (SSSE3 Muła) | `crypt32.dll!CryptBinaryToStringA` | **LANDED** — **24.5×** (8.8×–36×; binary→base64, crypt32's is scalar ~0.32 GB/s) |
