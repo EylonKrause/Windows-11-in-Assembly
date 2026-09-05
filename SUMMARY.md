@@ -45,6 +45,7 @@ Ryzen 9 5950X bench.
 | RtlNumberOfSetBits / RtlAreBitsSet | 1.3 / 3.2x | allocator bitmaps |
 | RtlIntegerToUnicodeString | 2.9x (2.6x–3.3x) | integer -> decimal/hex formatting (2-digit table) |
 | RtlInt64ToUnicodeString | 3.1x (2.9x–3.3x) | 64-bit integer formatting |
+| RtlCrc64 | 2.3x (2.0x–3.1x) | reflected CRC-64 (reverse-engineered); slicing-by-8 + VPCLMULQDQ fold, ~11 GB/s |
 
 ### ucrtbase (C runtime, loaded in ~220 processes)
 
@@ -77,7 +78,6 @@ Ryzen 9 5950X bench.
 
 - `memcmp` (ucrtbase): tuned small path; dispatch-floor. `crc32` (ntdll RtlComputeCrc32): already VPCLMULQDQ.
 - `_wcslwr` (ucrtbase): correct + 2-6x >= 32 B, but ucrtbase's tight 8-wchar small path wins at size 8 (dispatch floor, narrowed to 0.91x); the identical-structure `_wcsupr` lands.
-- `RtlCrc64` (ntdll): **reverse-engineered & validated** (reflected CRC-64, poly `0x9A6C9329AC4BC9B5`, `~init`/`~out`) — previously deferred. Slicing-by-8 impl beats ntdll at 8-64 B (2-3x) but is loop-carried-bound at ~2.5 GB/s vs ntdll's ~4.8 at >= 256 B; a full win needs VPCLMULQDQ folding (future work). Algorithm documented in 076/RESULTS.md.
 
 ## Proven running live
 
@@ -94,6 +94,6 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
-also here; it has now been reverse-engineered (034-style: reflected CRC-64, poly `0x9A6C9329AC4BC9B5`,
-`~init`/`~out`, validated 400k vs the live export — see 076/RESULTS.md) and moved to Parked (its large-size
-throughput needs VPCLMULQDQ folding to beat ntdll's slicing-by-8).
+also here; it has now been reverse-engineered **and landed** (076: reflected CRC-64, poly
+`0x9A6C9329AC4BC9B5`, `~init`/`~out`, validated 400k vs the live export; hybrid slicing-by-8 + VPCLMULQDQ
+fold, **2.33× geomean**, ~11 GB/s vs ntdll's 4.8 at size).

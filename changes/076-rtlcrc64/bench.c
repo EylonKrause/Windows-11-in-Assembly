@@ -21,5 +21,5 @@ int main(void){
     enum{K=7}; static ctx_t cx[K]; static wia_case cs[K];
     for(int i=0;i<K;++i){ unsigned char* p=malloc(L[i]); for(int k=0;k<L[i];k++)p[k]=(unsigned char)(k*7+1);
         cx[i].p=p; cx[i].n=L[i]; cs[i].label=N[i]; cs[i].bytes=L[i]; cs[i].ours=op_ours; cs[i].system=op_sys; cs[i].ctx=&cx[i]; }
-    return wia_bench_compare("RtlCrc64  (wia slicing-by-8 vs ntdll)", cs, K, 200);
+    return wia_bench_compare("RtlCrc64  (wia slicing-by-8 + VPCLMULQDQ fold vs ntdll)", cs, K, 200);
 }
