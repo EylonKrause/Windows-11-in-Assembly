@@ -217,3 +217,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [094](changes/094-rtlinitunicodestring/) | `RtlInitUnicodeString` (inline AVX2 wcslen + struct fill, no `call`) | `ntdll.dll!RtlInitUnicodeString` | **LANDED** — **1.76×** (1.18×–2.18×; called on every UNICODE_STRING setup) |
 | [095](changes/095-rtlinitstring/) | `RtlInitString` = `RtlInitAnsiString` (inline AVX2 strlen + struct fill) | `ntdll.dll!RtlInitString` | **LANDED** — **1.43×** (1.12×–3.04×; ANSI_STRING setup) |
 | [096](changes/096-rtlinitunicodestringex/) | `RtlInitUnicodeStringEx` (inline AVX2 wcslen + validate, NTSTATUS) | `ntdll.dll!RtlInitUnicodeStringEx` | **LANDED** — **1.40×** (1.05×–2.02×; validating UNICODE_STRING setup) |
+| [097](changes/097-rtlintegertochar/) | `RtlIntegerToChar` (2-digit decimal table; direct MSB-first hex/binary) | `ntdll.dll!RtlIntegerToChar` | **LANDED** — **1.39×** (1.11×–2.05×; ANSI integer→string, all bases) |
