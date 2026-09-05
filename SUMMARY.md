@@ -66,6 +66,7 @@ Ryzen 9 5950X bench.
 | wcsspn | 5.7x (1.95x–9.4x, 6-char set) — tokenizer span (complement of wcspbrk) |
 | wcscspn | 5.6x (1.83x–9.4x, 6-char set) — tokenizer complement span (completes the wide trio) |
 | strpbrk / strspn / strcspn | 3.5 / 4.8 / 3.3x — byte (narrow) tokenizer trio, ASCII/UTF-8 parsing |
+| _strrev | 7.7x (1.56x–17x) — in-place byte-string reverse (bswap/vpshufb; wins even at 8 B) |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
