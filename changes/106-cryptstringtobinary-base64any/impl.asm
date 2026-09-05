@@ -1,7 +1,3 @@
-; crypt32.dll!CryptStringToBinaryA  --  hand-written x86-64 reimplementation (3.7x vs shipped)
-; source of truth: changes/106-cryptstringtobinary-base64any/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/106-cryptstringtobinary-base64any/impl.asm
 ; BOOL wia_s2b_any(LPCSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
 ;                  DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
