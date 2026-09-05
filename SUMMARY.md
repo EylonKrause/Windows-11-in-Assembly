@@ -97,6 +97,7 @@ Ryzen 9 5950X bench.
 | CryptBinaryToStringA (BASE64HEADER/REQUESTHEADER/X509CRLHEADER) | **16.1x** (4.3x–30x) — PEM-header base64 (single-pass inline CRLF) (081 core + BEGIN/END wrapper); crypt32 ~0.3 GB/s |
 | CryptBinaryToStringW (wide PEM-header base64, 3 modes) | **57x** (9.9x–348x) — wide PEM-header base64 (SSSE3 core + reverse widen) |
 | CryptStringToBinaryA (BASE64HEADER decode) | **6.1x** (5.6x–6.2x) — PEM → binary (scalar table decode + header scan); crypt32 ~0.12 GB/s |
+| CryptStringToBinaryW (wide BASE64HEADER decode) | **5.9x** (5.7x–6.2x) — wide PEM → binary (per-wchar scan/decode) |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
