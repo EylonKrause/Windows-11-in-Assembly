@@ -230,3 +230,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [107](changes/107-cryptstringtobinaryw-base64any/) | `CryptStringToBinaryW` wide BASE64_ANY decode (auto-detect) | `crypt32.dll!CryptStringToBinaryW` | **LANDED** — **5.8×** (5.2×–6.0×; wide SSSE3+packuswb, sets pdwFlags 0/1) |
 | [108](changes/108-atoi/) | `atoi` (frameless scalar; skip ws, sign, saturating decimal) | `ucrtbase.dll!atoi` | **LANDED** — **2.11×** (2.0×–2.4×; parse-side of the itoa family; no CRT/locale) |
 | [109](changes/109-atoi64/) | `_atoi64` (64-bit saturating scalar parse) | `ucrtbase.dll!_atoi64` | **LANDED** — **2.20×** (2.1×–2.5×; ±2⁶³ saturation; `_wtoi` scoped out — Unicode digits) |
+| [110](changes/110-strtol/) | `strtol` (base 0/2–36, endptr, ERANGE; 256-entry digit table) | `ucrtbase.dll!strtol` | **LANDED** — **2.23×** (2.1×–2.4×; value+endptr+errno bit-exact; reference-first) |
