@@ -29,6 +29,13 @@ geomean   38.7x  => LANDS (project record)
 ```
 crypt32's scalar wide decode ~0.12 GB/s; ours ~7.6 GB/s — up to **59×**.
 
+## Correctness fix (2026-09-05)
+Two paths went untested by the explicit-length fuzz and diverged from the live export: (1)
+`cchString==0` returned `cbBinary=0` (no strlen); (2) a 0-length wide input must return FALSE with
+`ERROR_INVALID_PARAMETER` (87) where the ANSI form returns TRUE `cb=0`. Both fixed (wide strlen +
+empty guard); `correctness.c` compares the `cch=0` and empty cases directly against live crypt32.
+Explicit-length benchmark unchanged.
+
 ## Reproduce
 ```
 changes\084-cryptstringtobinaryw-base64\build.bat

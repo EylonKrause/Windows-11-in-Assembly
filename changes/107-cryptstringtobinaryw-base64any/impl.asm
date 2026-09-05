@@ -46,6 +46,8 @@ sl_lp:
         jmp       sl_lp
 have_len:
         lea       r9, [rsi + rdx*2]                   ; end ptr
+        test      edx, edx
+        jz        empty_fail                          ; wide: 0-length input -> ERROR_INVALID_PARAMETER
 scan:
         cmp       rsi, r9
         jae       plain
@@ -192,6 +194,7 @@ s_sk:
         mov       dword ptr [rax], r9d
 s_fl:
         mov       eax, 1
+do_ret:
         pop       r15
         pop       r14
         pop       r13
@@ -200,5 +203,10 @@ s_fl:
         pop       rsi
         pop       rbx
         ret
+empty_fail:
+        mov       eax, 57h                            ; ERROR_INVALID_PARAMETER
+        mov       dword ptr gs:[68h], eax
+        xor       eax, eax
+        jmp       do_ret
 wia_s2bw_any ENDP
 END

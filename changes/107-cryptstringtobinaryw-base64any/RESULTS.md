@@ -25,6 +25,13 @@ change 082's SSSE3 dec16 core + a `packuswb` narrow (up from 3.83× all-scalar).
 ## Scope
 Same as 106 (BASE64_ANY 0x6 well-formed; `ANY` 0x7 hex fallback + malformed-partial scoped out).
 
+## Correctness fix (2026-09-05)
+A 0-length wide input must return FALSE with `ERROR_INVALID_PARAMETER` (87) for every wide
+`CryptStringToBinaryW` flag (BASE64HEADER / BASE64_ANY / ANY) — the plain path previously returned
+TRUE `cb=0`. Now guarded; `correctness.c` compares empty + valid-plain (`cch=0`) against live crypt32.
+Malformed-partial base64 (stray invalid chars, bad trailing-quantum spare bits, the `-`-leading
+format-redetection) remains scoped out, as documented above.
+
 ## Reproduce
 ```
 changes\107-cryptstringtobinaryw-base64any\build.bat

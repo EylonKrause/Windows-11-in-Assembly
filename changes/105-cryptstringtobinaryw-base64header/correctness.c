@@ -47,6 +47,18 @@ int main(void){
         free(pem); free(d);
     }
     chk(L"not a pem\r\njust text\r\n","noheader");
+    // --- regression: empty (wide -> FALSE/87) + headerless, direct vs live crypt32 ---
+    {
+        const wchar_t* S[]={L"",L"TWFu",L"garbage!!"}; const char* G[]={"empty","headerless","garbage"};
+        for(int i=0;i<3;i++){
+            BYTE b1[64],b2[64]; DWORD c1=sizeof(b1),s1=9,f1=9,c2=sizeof(b2),s2=9,f2=9;
+            memset(b1,0x11,sizeof(b1)); memset(b2,0x22,sizeof(b2));
+            int r1=wia_s2bw_pem(S[i],0,0x0,b1,&c1,&s1,&f1);
+            BOOL r2=sys(S[i],0,0x0,b2,&c2,&s2,&f2);
+            if((!!r1)!=(!!r2)||(r2&&(c1!=c2||s1!=s2||f1!=f2||memcmp(b1,b2,c1)))){
+                printf("REG FAIL [%s] ours{r=%d c=%lu} sys{r=%d c=%lu}\n",G[i],r1,c1,r2,c2); ++failures; }
+        }
+    }
     if(!failures) printf("CORRECTNESS: PASS (wide BASE64HEADER decode: canonical + leadgarbage + multi-line + no-header, n=1..500, query+convert, vs live crypt32 + oracle)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",failures);
     return failures?1:0;

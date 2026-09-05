@@ -40,6 +40,19 @@ int main(void){
         chk(b64n,"plainb64-nocrlf");
         free(pem);free(b64);free(b64n);free(d);
     }
+    // --- regression: empty (in scope) + valid plain base64 (cch=0), direct vs live crypt32.
+    // Malformed-partial inputs (stray invalid chars, bad trailing quantum) stay out of scope per RESULTS. ---
+    {
+        const char* T[][2]={{"","empty"},{"TWFu","plain-b64"}};
+        for(int i=0;i<2;i++){
+            BYTE b1[64],b2[64]; DWORD c1=sizeof(b1),s1=9,f1=9,c2=sizeof(b2),s2=9,f2=9;
+            memset(b1,0x11,sizeof(b1)); memset(b2,0x22,sizeof(b2));
+            int r1=wia_s2b_any(T[i][0],0,0x6,b1,&c1,&s1,&f1);
+            BOOL r2=sys(T[i][0],0,0x6,b2,&c2,&s2,&f2);
+            if((!!r1)!=(!!r2)||(r2&&(c1!=c2||s1!=s2||f1!=f2||memcmp(b1,b2,c1)))){
+                printf("REG FAIL [%s] ours{r=%d c=%lu f=%lx} sys{r=%d c=%lu f=%lx}\n",T[i][1],r1,c1,f1,r2,c2,f2); ++failures; }
+        }
+    }
     if(!failures) printf("CORRECTNESS: PASS (BASE64_ANY decode: PEM (ff=0) + plain base64 crlf/nocrlf (ff=1), n=1..500, query+convert, vs live + oracle)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",failures);
     return failures?1:0;

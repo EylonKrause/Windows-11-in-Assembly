@@ -30,8 +30,19 @@ wia_s2bhw PROC
         push      r14
         push      r15
         mov       rsi, rcx
-        mov       ebx, edx                           ; remaining wchars
         mov       r15, r9
+        mov       ebx, edx                           ; remaining wchars
+        test      ebx, ebx
+        jnz       have_len                           ; cchString==0 => NUL-terminated: strlen
+        xor       ebx, ebx
+sl_lp:
+        cmp       word ptr [rsi + rbx*2], 0
+        je        have_len
+        inc       ebx
+        jmp       sl_lp
+have_len:
+        test      ebx, ebx
+        jz        empty_fail                         ; wide: 0-length input -> ERROR_INVALID_PARAMETER
         lea       r14, wia_hexrev
         xor       r13d, r13d
         xor       r11d, r11d
@@ -127,6 +138,11 @@ s2:
         mov       dword ptr [rax], 0Ch
 s3:
         mov       eax, 1
+        jmp       epilogue
+empty_fail:
+        mov       eax, 57h                           ; ERROR_INVALID_PARAMETER
+        mov       dword ptr gs:[68h], eax
+        xor       eax, eax
         jmp       epilogue
 fail:
         xor       eax, eax

@@ -35,6 +35,23 @@ int main(void){
 done:;
     DWORD cb=100,sk,fl; if(wia_s2bw(L"AQ*D",4,0x1u,oO,&cb,&sk,&fl)!=0){ printf("invalid not FALSE\n"); ++fails; }
     if(wia_s2bw(L"AQ\x0141""D",4,0x1u,oO,&cb,&sk,&fl)!=0){ printf("wide-char not FALSE\n"); ++fails; }
+    // --- regression: cchString==0 (NUL-terminated) path + empty->FALSE, vs live crypt32 ---
+    {
+        struct { const wchar_t* s; const char* tag; } T[] = {
+            {L"TWFu","cch0-Man"}, {L"TWFu\r\n","cch0-crlf"}, {L"SGVsbG8=","cch0-pad"},
+            {L"","cch0-empty"}, {L"AQ*D","cch0-invalid"},
+        };
+        for(int i=0;i<(int)(sizeof(T)/sizeof(T[0]));i++){
+            unsigned char b1[64],b2[64]; DWORD c1=sizeof(b1),s1=9,f1=9,c2=sizeof(b2),s2=9,f2=9;
+            memset(b1,0x11,sizeof(b1)); memset(b2,0x22,sizeof(b2));
+            int r1=wia_s2bw(T[i].s,0,0x1u,b1,&c1,&s1,&f1);
+            BOOL r2=dec(T[i].s,0,0x1u,b2,&c2,&s2,&f2);
+            if((!!r1)!=(!!r2) || (r2 && (c1!=c2||s1!=s2||f1!=f2||memcmp(b1,b2,c1)))){
+                printf("REG FAIL [%s] ours{r=%d c=%lu s=%lu f=%lx} sys{r=%d c=%lu s=%lu f=%lx}\n",
+                       T[i].tag,r1,c1,s1,f1,r2,c2,s2,f2); ++fails;
+            }
+        }
+    }
     if(!fails) printf("CORRECTNESS: PASS (CryptStringToBinaryW base64 decode NOCRLF+CRLF+query, fuzz 70000 x n 1..1500, vs live crypt32 + oracle + roundtrip)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",fails);
     return fails?1:0;

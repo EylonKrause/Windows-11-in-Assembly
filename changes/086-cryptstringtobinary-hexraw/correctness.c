@@ -33,6 +33,25 @@ done:;
     DWORD cb=100,sk,fl;
     if(wia_s2bh("AB*D",4,0x0cu,oO,&cb,&sk,&fl)!=0){ printf("invalid not FALSE\n"); ++fails; }
     if(wia_s2bh("ABC",3,0x0cu,oO,&cb,&sk,&fl)!=0){ printf("odd not FALSE\n"); ++fails; }
+    // --- regression: cchString==0 (NUL-terminated) + the comma/dash/space skip set, vs live crypt32 ---
+    {
+        struct { const char* s; DWORD cch; const char* tag; } T[] = {
+            {"0a0c17",0,"cch0-contig"}, {"0a 0c 17",0,"cch0-space"},
+            {"0a,0c,17",0,"comma"}, {"0a-0c-17",0,"dash"}, {"de,ad-BE EF",0,"mixed-sep"},
+            {"deadBEEF",0,"cch0-mixedcase"}, {"",0,"cch0-empty"}, {"  0a0c  ",0,"pad"},
+            {"0a:0c",0,"colon-invalid"}, {"0a0cZ",0,"Z-invalid"},
+        };
+        for(int i=0;i<(int)(sizeof(T)/sizeof(T[0]));i++){
+            unsigned char b1[64],b2[64]; DWORD c1=sizeof(b1),s1=9,f1=9,c2=sizeof(b2),s2=9,f2=9;
+            memset(b1,0x11,sizeof(b1)); memset(b2,0x22,sizeof(b2));
+            int r1=wia_s2bh(T[i].s,T[i].cch,0x0cu,b1,&c1,&s1,&f1);
+            BOOL r2=dec(T[i].s,T[i].cch,0x0cu,b2,&c2,&s2,&f2);
+            if((!!r1)!=(!!r2) || (r2 && (c1!=c2||s1!=s2||f1!=f2||memcmp(b1,b2,c1)))){
+                printf("REG FAIL [%s] ours{r=%d c=%lu s=%lu f=%lx} sys{r=%d c=%lu s=%lu f=%lx}\n",
+                       T[i].tag,r1,c1,s1,f1,r2,c2,s2,f2); ++fails;
+            }
+        }
+    }
     if(!fails) printf("CORRECTNESS: PASS (CryptStringToBinaryA HEXRAW decode + query, fuzz 90000 x n 1..1500, vs live crypt32 + oracle + roundtrip)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",fails);
     return fails?1:0;
