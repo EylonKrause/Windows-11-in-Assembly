@@ -1,0 +1,46 @@
+# ntdll.dll — reimplemented exports (42)
+
+| export | speedup | source |
+|---|---|---|
+| `RtlAnsiStringToUnicodeString` | 11.58x | [changes/019-rtlansistringtounicodestring](../../../../../changes/019-rtlansistringtounicodestring/) |
+| `RtlAreBitsSet` | 3.17x | [changes/030-rtlarebitsset](../../../../../changes/030-rtlarebitsset/) |
+| `RtlCompareMemory` | 4.42x | [changes/007-rtlcomparememory](../../../../../changes/007-rtlcomparememory/) |
+| `RtlCompareMemoryUlong` | 5.04x | [changes/026-rtlcomparememoryulong](../../../../../changes/026-rtlcomparememoryulong/) |
+| `RtlCompareString` | 4.47x | [changes/012-rtlcomparestring](../../../../../changes/012-rtlcomparestring/) |
+| `RtlCompareUnicodeString` | 3.97x | [changes/008-rtlcompareunicodestring](../../../../../changes/008-rtlcompareunicodestring/) |
+| `RtlConvertSidToUnicodeString` | 1.42x | [changes/067-rtlconvertsidtounicodestring](../../../../../changes/067-rtlconvertsidtounicodestring/) |
+| `RtlCrc64` | 3.29x | [changes/076-rtlcrc64](../../../../../changes/076-rtlcrc64/) |
+| `RtlDowncaseUnicodeString` | 11.15x | [changes/017-rtldowncaseunicodestring](../../../../../changes/017-rtldowncaseunicodestring/) |
+| `RtlEqualString` | 4.02x | [changes/013-rtlequalstring](../../../../../changes/013-rtlequalstring/) |
+| `RtlEqualUnicodeString` | 1.96x | [changes/010-rtlequalunicodestring](../../../../../changes/010-rtlequalunicodestring/) |
+| `RtlEthernetAddressToStringA` | 36.5x | [changes/060-rtlethernetaddresstostringa](../../../../../changes/060-rtlethernetaddresstostringa/) |
+| `RtlEthernetAddressToStringW` | 36.0x | [changes/062-rtlethernetaddresstostringw](../../../../../changes/062-rtlethernetaddresstostringw/) |
+| `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
+| `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |
+| `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
+| `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
+| `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
+| `RtlIpv4AddressToStringExA` | 9.78x | [changes/065-rtlipv4addresstostringexa](../../../../../changes/065-rtlipv4addresstostringexa/) |
+| `RtlIpv4AddressToStringExW` | 10.5x | [changes/066-rtlipv4addresstostringexw](../../../../../changes/066-rtlipv4addresstostringexw/) |
+| `RtlIpv4AddressToStringW` | 23.7x | [changes/061-rtlipv4addresstostringw](../../../../../changes/061-rtlipv4addresstostringw/) |
+| `RtlIpv6AddressToStringA` | 5.92x | [changes/063-rtlipv6addresstostringa](../../../../../changes/063-rtlipv6addresstostringa/) |
+| `RtlIpv6AddressToStringExA` | 6.87x | [changes/068-rtlipv6addresstostringexa](../../../../../changes/068-rtlipv6addresstostringexa/) |
+| `RtlIpv6AddressToStringExW` | 8.38x | [changes/069-rtlipv6addresstostringexw](../../../../../changes/069-rtlipv6addresstostringexw/) |
+| `RtlIpv6AddressToStringW` | 7.42x | [changes/064-rtlipv6addresstostringw](../../../../../changes/064-rtlipv6addresstostringw/) |
+| `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
+| `RtlNumberOfSetBits` | 1.32x | [changes/023-rtlnumberofsetbits](../../../../../changes/023-rtlnumberofsetbits/) |
+| `RtlOemStringToUnicodeString` | 5.50x | [changes/025-rtloemstringtounicodestring](../../../../../changes/025-rtloemstringtounicodestring/) |
+| `RtlOemToUnicodeN` | 4.51x | [changes/029-rtloemtounicoden](../../../../../changes/029-rtloemtounicoden/) |
+| `RtlPrefixString` | 2.88x | [changes/014-rtlprefixstring](../../../../../changes/014-rtlprefixstring/) |
+| `RtlPrefixUnicodeString` | 1.97x | [changes/011-rtlprefixunicodestring](../../../../../changes/011-rtlprefixunicodestring/) |
+| `RtlStringFromGUIDEx` | 25.5x | [changes/058-rtlstringfromguidex](../../../../../changes/058-rtlstringfromguidex/) |
+| `RtlUTF8ToUnicodeN` | 3.12x | [changes/034-rtlutf8tounicoden](../../../../../changes/034-rtlutf8tounicoden/) |
+| `RtlUnicodeStringToAnsiString` | 12.79x | [changes/018-rtlunicodestringtoansistring](../../../../../changes/018-rtlunicodestringtoansistring/) |
+| `RtlUnicodeStringToOemString` | 7.68x | [changes/024-rtlunicodestringtooemstring](../../../../../changes/024-rtlunicodestringtooemstring/) |
+| `RtlUnicodeToMultiByteN` | 3.93x | [changes/021-rtlunicodetomultibyten](../../../../../changes/021-rtlunicodetomultibyten/) |
+| `RtlUnicodeToOemN` | 6.34x | [changes/028-rtlunicodetooemn](../../../../../changes/028-rtlunicodetooemn/) |
+| `RtlUnicodeToUTF8N` | 2.82x | [changes/016-rtlunicodetoutf8n](../../../../../changes/016-rtlunicodetoutf8n/) |
+| `RtlUpcaseUnicodeString` | 9.12x | [changes/015-rtlupcaseunicodestring](../../../../../changes/015-rtlupcaseunicodestring/) |
+| `RtlUpcaseUnicodeStringToAnsiString` | 9.0x | [changes/020-rtlupcaseunicodestringtoansistring](../../../../../changes/020-rtlupcaseunicodestringtoansistring/) |
+| `RtlUpcaseUnicodeToMultiByteN` | 6.54x | [changes/027-rtlupcaseunicodetomultibyten](../../../../../changes/027-rtlupcaseunicodetomultibyten/) |
+| `RtlUpcaseUnicodeToOemN` | 7.41x | [changes/031-rtlupcaseunicodetooemn](../../../../../changes/031-rtlupcaseunicodetooemn/) |

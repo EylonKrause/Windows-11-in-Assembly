@@ -1,0 +1,76 @@
+; ntdll.dll!RtlAnsiStringToUnicodeString  --  hand-written x86-64 reimplementation (11.58x vs shipped)
+; source of truth: changes/019-rtlansistringtounicodestring/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
+; changes/019-rtlansistringtounicodestring/impl.asm
+; NTSTATUS wia_a2u(UNICODE_STRING* dst, const ANSI_STRING* src, BOOLEAN alloc)
+;   [Win64: rcx, rdx, r8b -> eax]
+;
+; Reimplements the no-allocate path of ntdll!RtlAnsiStringToUnicodeString: widens
+; single-byte ANSI src to UTF-16 dst->Buffer (one wchar per byte) and sets
+; dst->Length = 2 * src->Length. All-ASCII 16-byte blocks widen with vpmovzxbw
+; (16 -> 16 words); blocks with any byte >= 0x80 use wia_a2umap[] (256-entry
+; byte->wchar table from the OS codepage). alloc=TRUE -> STATUS_INVALID_PARAMETER.
+;
+; ISA: AVX2. Validated on Zen3.
+
+EXTERN wia_a2umap:WORD
+
+.code
+wia_a2u PROC
+        test      r8b, r8b
+        jnz       alloc_unsupported
+        movzx     eax, word ptr [rdx]              ; src Length (bytes) = n
+        mov       r11, [rdx + 8]                   ; srcBuf
+        mov       r10, [rcx + 8]                   ; dstBuf
+        lea       edx, [eax*2]                     ; out bytes = 2n
+        movzx     r9d, word ptr [rcx + 2]          ; dst MaximumLength
+        cmp       edx, r9d
+        ja        overflow
+        mov       word ptr [rcx], dx               ; dst->Length = 2n
+        mov       r8d, eax                          ; n (byte count = wchar count)
+        xor       r9d, r9d                          ; i
+        lea       rcx, wia_a2umap                  ; table
+w_loop:
+        mov       edx, r8d
+        sub       edx, r9d
+        cmp       edx, 16
+        jb        w_tail
+        vmovdqu   xmm0, xmmword ptr [r11 + r9]
+        vpmovmskb eax, xmm0
+        test      eax, eax
+        jnz       w_sblock
+        vpmovzxbw ymm0, xmm0
+        vmovdqu   ymmword ptr [r10 + r9*2], ymm0
+        add       r9, 16
+        jmp       w_loop
+w_sblock:
+        mov       edx, 16
+w_sb:
+        movzx     eax, byte ptr [r11 + r9]
+        movzx     eax, word ptr [rcx + rax*2]
+        mov       word ptr [r10 + r9*2], ax
+        add       r9, 1
+        dec       edx
+        jnz       w_sb
+        jmp       w_loop
+w_tail:
+        cmp       r9d, r8d
+        jae       w_done
+        movzx     eax, byte ptr [r11 + r9]
+        movzx     eax, word ptr [rcx + rax*2]
+        mov       word ptr [r10 + r9*2], ax
+        add       r9, 1
+        jmp       w_tail
+w_done:
+        xor       eax, eax
+        vzeroupper
+        ret
+overflow:
+        mov       eax, 80000005h
+        ret
+alloc_unsupported:
+        mov       eax, 0C000000Dh
+        ret
+wia_a2u ENDP
+END
