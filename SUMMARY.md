@@ -74,6 +74,12 @@ Ryzen 9 5950X bench.
 | _ultow / _ui64tow | 1.55 / 1.60x (radix 2–36) — unsigned 32/64-bit integer → wide string (2-digit table) |
 | _itow(=_ltow) / _i64tow | 1.42 / 1.59x (radix 2–36) — signed 32/64-bit integer → wide string |
 
+### crypt32 (certificates / TLS / tokens — loaded by every crypto path)
+
+| routine | geomean |
+|---|---|
+| CryptBinaryToStringA (base64) | **24.5x** (8.8x–36x) — binary → base64 (SSSE3 Muła); crypt32's is scalar ~0.32 GB/s |
+
 ### Parked (honestly recorded — the shipped code is already optimal)
 
 - `memcmp` (ucrtbase): tuned small path; dispatch-floor. `crc32` (ntdll RtlComputeCrc32): already VPCLMULQDQ.
