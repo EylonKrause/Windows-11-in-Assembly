@@ -197,3 +197,7 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [074](changes/074-itow/) | `_itow` / `_ltow` (signed, 2-digit word table) | `ucrtbase.dll!_itow` | **LANDED** — **1.42×** (signed 32-bit → wide string; `_itow`≡`_ltow`) |
 | [075](changes/075-i64tow/) | `_i64tow` (signed 64-bit) | `ucrtbase.dll!_i64tow` | **LANDED** — **1.59×** (signed 64-bit → wide string, radix 2–36) |
 | [076](changes/076-rtlcrc64/) | `RtlCrc64` (slicing-by-8; **RE'd**) | `ntdll.dll!RtlCrc64` | **RE'd + PARKED** — cracked (reflected CRC-64, poly `0x9A6C9329AC4BC9B5`, `~init`/`~out`, validated 400k); beats ntdll 2–3× at ≤64 B but loop-carried-bound at ≥256 B (needs VPCLMULQDQ) |
+| [077](changes/077-strset/) | `_strset` (AVX2 broadcast-fill) | `ucrtbase.dll!_strset` | **LANDED** — **4.58×** (1.21×–14.24×; fill string with a char) |
+| [078](changes/078-strnset/) | `_strnset` (AVX2 broadcast + 8-byte tail) | `ucrtbase.dll!_strnset` | **LANDED** — **5.72×** (1.25×–13.77×; bounded fill) |
+| [079](changes/079-wcsset/) | `_wcsset` (AVX2 word broadcast-fill) | `ucrtbase.dll!_wcsset` | **LANDED** — **3.68×** (1.12×–7.02×; fill wide string with a wchar) |
+| [080](changes/080-wcsnset/) | `_wcsnset` (AVX2 word broadcast + 4-wchar tail) | `ucrtbase.dll!_wcsnset` | **LANDED** — **6.45×** (1.44×–12.50×; bounded wide fill) |
