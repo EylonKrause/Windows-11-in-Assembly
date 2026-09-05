@@ -136,14 +136,28 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
   and `RtlIpv6StringToAddressExA` (122). Only the two IPv6 wide forms remain, and only for the
   Unicode-digit reason, not RE difficulty.
 
-- **`shlwapi.dll` — a rich new vein (opened by 131).** Unlike ntdll's string routines, shlwapi's helpers
-  are still **scalar one-character-at-a-time scans**. Measured on this machine: `StrChrW` ~1.1 cyc/wchar
-  (64.7 ns for 254 chars), `PathFindFileNameW` 122 ns, `PathFindExtensionW` 188 ns, `StrCmpNIW` **498 ns**
-  (≈2 ns/char) for the same 254-char input. **`StrChrW` is landed (131, 3.67×, up to 6.32×)** using the
-  AVX2 dual-compare scan from 003 plus page-safe aligned loads. The path helpers are the obvious
-  follow-ups but need contract care: separator handling is idiosyncratic (`C:\Windows\` yields
-  `Windows\`, since a separator only counts when the next character exists and is not itself a slash),
-  and the `:` rules are not yet fully pinned.
+- **`shlwapi.dll` — the richest vein found so far (opened by 131).** Unlike ntdll's string routines,
+  shlwapi's helpers are still **scalar one-character-at-a-time scans**, and several are O(n·m). Landed:
+  **`StrChrW` (131, 3.67×)**, **`PathFindExtensionW` (132, 5.73×)**, **`StrStrW` (133, 5.77×, up to
+  12.7×)**, **`StrRChrW` (134, 4.75×)** and **`StrSpnW` (135, 5.87×, up to 12.1×)** — all AVX2 with
+  page-safe aligned loads.
+
+  Contract findings worth keeping: the path helpers are **mutually inconsistent about separators** —
+  `PathFindExtensionW` stops only at `\` (`/` and `:` do *not* end the search), while
+  `PathFindFileNameW` treats all three as separators, only counts one whose next character exists and
+  is not itself a slash (so `C:\Windows\` yields `Windows\`), and has a `:` rule that resisted four
+  successive hypotheses — **it is still not pinned, so `PathFindFileNameW` remains unimplemented**
+  rather than guessed at.
+
+  **Scoped out — the case-insensitive family is collation-based, not case-folding.** `StrChrIW`
+  (10.7 µs/254 chars), `StrStrIW` (10.5 µs) and `StrCSpnIW` (34.4 µs) are by far the slowest routines
+  measured anywhere in this project, but `StrChrIW`'s matching is *exactly*
+  `CompareStringW(NORM_IGNORECASE)` equality — **0 differences over 110 573 code-point pairs** — whereas
+  `CharUpperW`, `CharLowerW`, `upper(lower(x))` and `RtlUpcaseUnicodeChar` equality each fail on the same
+  10 664 pairs (the Latin digraphs U+01C4/01C5/01C6 match each other though no case mapping unifies
+  them). `StrCmpW`/`StrCmpNW` are likewise collation-**ordered** (`'a' < 'B'`, 76k/300k sign differences
+  vs `wcsncmp`). Reproducing any of these needs the OS collation tables, so they are unreachable
+  bit-exactly and are deliberately not attempted.
 
 - **RTL date/time conversion** — landed as a matched pair: **`RtlTimeToTimeFields` (126, 1.73×)** and its
   inverse **`RtlTimeFieldsToTime` (127, 1.54×)**. Both replace ntdll's division-heavy scalar date math
