@@ -68,6 +68,8 @@ Ryzen 9 5950X bench.
 | strpbrk / strspn / strcspn | 3.5 / 4.8 / 3.3x — byte (narrow) tokenizer trio, ASCII/UTF-8 parsing |
 | _strrev | 7.7x (1.56x–17x) — in-place byte-string reverse (bswap/vpshufb; wins even at 8 B) |
 | _wcsrev | 5.0x (1.43x–8.7x) — in-place wide-string reverse (word-reverse vpshufb/vpshuflw) |
+| _ultow / _ui64tow | 1.55 / 1.60x (radix 2–36) — unsigned 32/64-bit integer → wide string (2-digit table) |
+| _itow(=_ltow) / _i64tow | 1.42 / 1.59x (radix 2–36) — signed 32/64-bit integer → wide string |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
