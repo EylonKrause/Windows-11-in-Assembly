@@ -122,13 +122,12 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 ## Deferred (need dedicated reverse-engineering)
 
-- **`RtlIpv4StringToAddressW` / `RtlIpv4StringToAddressEx[A/W]` / `RtlIpv6StringToAddress[Ex][A/W]`**
-  (the rest of the parse-side complement to the landed IPv4/IPv6/MAC *formatters* 059–069). The narrow
-  IPv4 parser **`RtlIpv4StringToAddressA` has since been reverse-engineered and landed** (114, 1.53×) —
-  its idiosyncratic error-path terminator rules (octal-8/9 edge, empty-component `p`/`p+1`, strict-`0x`,
-  range-vs-overflow) are documented in that change's RESULTS.md and were pinned by reference-first
-  fuzzing (7 passes) before the asm. The wide `W` form is a near-direct port; the `Ex` forms add a
-  `:port`/prefix and the IPv6 parsers add `::` / embedded-IPv4 / zone-scope, so those remain here.
+- **`RtlIpv6StringToAddress[Ex][A/W]`** (the IPv6 parse-side complement to the landed IPv6 formatters
+  063/064/068/069). The whole **IPv4** parser family has since been reverse-engineered and landed —
+  `RtlIpv4StringToAddressA/W` (114/115) and `RtlIpv4StringToAddressExA/W` (116/117, which add `:port`),
+  1.5–2.0×, all bit-exact incl. the idiosyncratic malformed-input rules documented in 114's RESULTS.md.
+  IPv6 is the harder remaining tier: `::` zero-compression, embedded trailing IPv4 (`::ffff:1.2.3.4`),
+  and (`Ex`) `[addr]:port` / `%zone` scope-id — a dedicated reverse-engineering effort of its own.
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
