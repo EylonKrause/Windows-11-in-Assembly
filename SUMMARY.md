@@ -79,6 +79,7 @@ Ryzen 9 5950X bench.
 | routine | geomean |
 |---|---|
 | CryptBinaryToStringA (base64) | **24.5x** (8.8x–36x) — binary → base64 (SSSE3 Muła); crypt32's is scalar ~0.32 GB/s |
+| CryptStringToBinaryA (base64 decode) | **36.3x** (11.7x–56x) — base64 → binary (SSSE3 Muła); crypt32's is scalar ~0.13 GB/s (project's biggest win) |
 
 ### Parked (honestly recorded — the shipped code is already optimal)
 
