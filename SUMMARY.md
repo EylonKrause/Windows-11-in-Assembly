@@ -123,11 +123,21 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 ## Deferred (need dedicated reverse-engineering)
 
 - **`RtlIpv6StringToAddress[Ex][A/W]`** (the IPv6 parse-side complement to the landed IPv6 formatters
-  063/064/068/069). The whole **IPv4** parser family has since been reverse-engineered and landed —
-  `RtlIpv4StringToAddressA/W` (114/115) and `RtlIpv4StringToAddressExA/W` (116/117, which add `:port`),
-  1.5–2.0×, all bit-exact incl. the idiosyncratic malformed-input rules documented in 114's RESULTS.md.
-  IPv6 is the harder remaining tier: `::` zero-compression, embedded trailing IPv4 (`::ffff:1.2.3.4`),
-  and (`Ex`) `[addr]:port` / `%zone` scope-id — a dedicated reverse-engineering effort of its own.
+  063/064/068/069). The whole **IPv4** parser family has been reverse-engineered and landed —
+  `RtlIpv4StringToAddressA/W` (114/115) and `RtlIpv4StringToAddressExA/W` (116/117), 1.5–2.0× — as have
+  `RtlGUIDFromString` (118, 4.45×) and `RtlEthernetStringToAddressA/W` (119/120, MAC, 6.3×/4.2×). IPv6
+  is the last, hardest tier and ntdll's is **very slow (~283 ns, ~5–10× headroom)**.
+  **Substantial reverse-engineering done (scratchpad, not yet in-tree):** a BSD-inet_pton6-style oracle
+  now matches the live export's **16 address bytes exactly on all well-formed input over 800k fuzz**.
+  What remains is the idiosyncratic *terminator* + Windows-lenient stop rules and embedded IPv4:
+  (a) leading single `:` → `*Terminator = S`; (b) `>4` hex digits in a group → error **without** setting
+  `*Terminator`; (c) Windows **stops (success)** rather than erroring at a 2nd `::` or a 9th group,
+  with `*Terminator` at the group-ending `:` (store the group, then examine the `:`: a following `:`
+  with `colonp` already set, or `tp==endp`, means stop *at* that `:`); (d) a `:` followed by a non-hex
+  is a *dangling error* in some states but a clean *stop* once the address is already full — this
+  fullness-dependent rule and the embedded-IPv4 tail (`::ffff:1.2.3.4`, strict dotted-quad → last 4
+  bytes) are the open items, then the A/W ports. The byte-assembly core is proven; this is a focused
+  continuation, not a from-scratch effort.
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
