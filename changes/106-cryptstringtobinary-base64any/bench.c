@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "bench.h"
+extern void wia_b64rev_init(void);
 extern int wia_s2b_any(const char*, DWORD, DWORD, BYTE*, DWORD*, DWORD*, DWORD*);
 typedef BOOL (WINAPI *fn)(LPCSTR,DWORD,DWORD,BYTE*,DWORD*,DWORD*,DWORD*);
 static fn sys;
@@ -13,7 +14,7 @@ static uint64_t op_ours(void*c){ ctx_t*m=(ctx_t*)c; DWORD cb=1u<<30,sk=0,ff=0; w
 static uint64_t op_sys (void*c){ ctx_t*m=(ctx_t*)c; DWORD cb=1u<<30,sk=0,ff=0; sys(m->s,0,0x6,m->out,&cb,&sk,&ff); return cb; }
 #pragma optimize("", on)
 int main(void){
-    HMODULE h=LoadLibraryW(L"crypt32.dll"); sys=(fn)GetProcAddress(h,"CryptStringToBinaryA");
+    wia_b64rev_init(); HMODULE h=LoadLibraryW(L"crypt32.dll"); sys=(fn)GetProcAddress(h,"CryptStringToBinaryA");
     static const int L[]={16,64,256,1024,8192,49152};
     static const char* N[]={"16","64","256","1024","8192","49152"};
     enum{K=6}; static ctx_t cx[K]; static wia_case cs[K];
