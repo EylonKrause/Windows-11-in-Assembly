@@ -239,3 +239,5 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [116](changes/116-rtlipv4stringtoaddressex/) | `RtlIpv4StringToAddressExA` (IPv4 + `:port`, whole-string) | `ntdll.dll!RtlIpv4StringToAddressExA` | **LANDED** — **1.96×** (1.7×–2.2×; STATUS+addr+net-order port bit-exact) |
 | [117](changes/117-rtlipv4stringtoaddressexw/) | `RtlIpv4StringToAddressExW` (wide IPv4 + `:port`) | `ntdll.dll!RtlIpv4StringToAddressExW` | **LANDED** — **1.80×** (1.6×–2.0×; completes IPv4 parser family A/W/Ex A/W) |
 | [118](changes/118-rtlguidfromstring/) | `RtlGUIDFromString` (`{...}` GUID parse; parse-side of 058) | `ntdll.dll!RtlGUIDFromString` | **LANDED** — **4.45×** (12 vs 53 ns; fixed-offset hex parse, frameless) |
+| [119](changes/119-rtlethernetstringtoaddress/) | `RtlEthernetStringToAddressA` (MAC parse; parse-side of 060) | `ntdll.dll!RtlEthernetStringToAddressA` | **LANDED** — **6.29×** (11 vs 70 ns; STATUS+addr+Terminator bit-exact) |
+| [120](changes/120-rtlethernetstringtoaddressw/) | `RtlEthernetStringToAddressW` (wide MAC parse) | `ntdll.dll!RtlEthernetStringToAddressW` | **LANDED** — **4.17×** (11 vs 44 ns; WCHAR≥0x100 handling; bit-exact) |
