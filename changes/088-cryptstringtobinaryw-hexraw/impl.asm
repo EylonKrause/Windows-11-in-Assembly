@@ -1,7 +1,3 @@
-; crypt32.dll!CryptStringToBinaryW  --  hand-written x86-64 reimplementation (248x vs shipped)
-; source of truth: changes/088-cryptstringtobinaryw-hexraw/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/088-cryptstringtobinaryw-hexraw/impl.asm
 ; BOOL wia_s2bhw(LPCWSTR s, DWORD cch, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
 ;   [rcx=s, edx=cch, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]

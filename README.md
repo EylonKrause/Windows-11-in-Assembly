@@ -207,3 +207,5 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [084](changes/084-cryptstringtobinaryw-base64/) | `CryptStringToBinaryW` wide base64 decode (SSSE3) | `crypt32.dll!CryptStringToBinaryW` | **LANDED** — **38.7×** (13.7×–59×; wide base64→binary) |
 | [085](changes/085-cryptbinarytostring-hexraw/) | `CryptBinaryToStringA` HEXRAW (SSSE3 nibble-LUT) | `crypt32.dll!CryptBinaryToStringA` | **LANDED** — **920×** (230×–1655×; binary→hex; **the project's largest win** — crypt32's hex is ~0.01 GB/s) |
 | [086](changes/086-cryptstringtobinary-hexraw/) | `CryptStringToBinaryA` HEXRAW decode (SSSE3) | `crypt32.dll!CryptStringToBinaryA` | **LANDED** — **259×** (125×–335×; hex→binary; crypt32's hex decode is ~0.017 GB/s) |
+| [087](changes/087-cryptbinarytostringw-hexraw/) | `CryptBinaryToStringW` wide HEXRAW (SSSE3 + widen) | `crypt32.dll!CryptBinaryToStringW` | **LANDED** — **133×** (wide binary→hex) |
+| [088](changes/088-cryptstringtobinaryw-hexraw/) | `CryptStringToBinaryW` wide HEXRAW decode (SSSE3) | `crypt32.dll!CryptStringToBinaryW` | **LANDED** — **248×** (wide hex→binary) |
