@@ -1,7 +1,3 @@
-; crypt32.dll!CryptBinaryToStringA  --  hand-written x86-64 reimplementation (920x vs shipped)
-; source of truth: changes/085-cryptbinarytostring-hexraw/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/085-cryptbinarytostring-hexraw/impl.asm
 ; BOOL wia_b2sh(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
