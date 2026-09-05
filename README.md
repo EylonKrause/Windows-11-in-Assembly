@@ -216,3 +216,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [093](changes/093-cryptbinarytostringw-base64header/) | `CryptBinaryToStringW` wide PEM-header base64, 3 modes (SSSE3 core + reverse widen) | `crypt32.dll!CryptBinaryToStringW` | **LANDED** — **51×** (5.9×–393×; wide PEM output) |
 | [094](changes/094-rtlinitunicodestring/) | `RtlInitUnicodeString` (inline AVX2 wcslen + struct fill, no `call`) | `ntdll.dll!RtlInitUnicodeString` | **LANDED** — **1.76×** (1.18×–2.18×; called on every UNICODE_STRING setup) |
 | [095](changes/095-rtlinitstring/) | `RtlInitString` = `RtlInitAnsiString` (inline AVX2 strlen + struct fill) | `ntdll.dll!RtlInitString` | **LANDED** — **1.43×** (1.12×–3.04×; ANSI_STRING setup) |
+| [096](changes/096-rtlinitunicodestringex/) | `RtlInitUnicodeStringEx` (inline AVX2 wcslen + validate, NTSTATUS) | `ntdll.dll!RtlInitUnicodeStringEx` | **LANDED** — **1.40×** (1.05×–2.02×; validating UNICODE_STRING setup) |
