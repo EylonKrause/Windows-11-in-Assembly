@@ -51,8 +51,37 @@ upcased output string through the OS-built case-fold table and returns an NTSTAT
   or an IFEO/`.local` redirection to a rebuilt CRT) is a separate, gated step and is deliberately not done
   here.
 
+## Hardened harness for the newer functions — `live_subst_new.c` (2026-09-05)
+
+A second, **freeze-safe** harness (`build_new.bat`) extends the proof to the 070–075 functions —
+`_strrev`, `_wcsrev`, `_ultow`, `_ui64tow`, `_itow`, `_i64tow` — under a stricter protocol adopted after
+repeated PC freezes on this machine (bad RAM makes any fault worse):
+
+1. **Sacrificial child.** It is a standalone, **single-threaded** console process that patches only its
+   own per-process (COW) copy of `ucrtbase` — never a live system process. A fault kills only this process,
+   not the PC.
+2. **Run ours first.** Every `wia_*` is validated standalone against its scalar reference over the fuzz
+   corpus *before* any patch is installed; a function that fails validation is **not patched**.
+3. **Patch only when idle.** These particular functions are never called by Windows' loader/heap/CRT
+   internals, and the process is single-threaded, so nothing async can be mid-execution in the 14-byte
+   prologue during the write. The window is tiny: patch → verify loop → unpatch. (Threads are deliberately
+   **not** suspended — suspending a lock-holder would deadlock.)
+4. **Reversible.** Original prologue bytes restored and re-verified before exit.
+
+```
+HARDENED live substitution (validate-first, sacrificial single-thread child, own-process COW).
+[_strrev]                       all match;  our-code calls = 3000; unpatched cleanly.
+[_wcsrev]                       all match;  our-code calls = 3000; unpatched cleanly.
+[_ultow/_ui64tow/_itow/_i64tow] all match;  our-code calls = 7000/7000/7000/7000; unpatched cleanly.
+HARDENED LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 new functions (070-075),
+validated standalone first, results identical under live patch, cleanly reverted. Zero system processes touched.
+```
+
+**20 functions now proven running live** (14 via `build.bat` + 6 via `build_new.bat`).
+
 ## Reproduce
 ```
-live-substitution\build.bat
+live-substitution\build.bat        (the original 14)
+live-substitution\build_new.bat    (the hardened 6: 070-075)
 ```
-Assembles the fourteen landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
+Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
