@@ -79,6 +79,9 @@ Ryzen 9 5950X bench.
 | _wcsset / _wcsnset | 3.7 / 6.4x — fill wide string with a wchar (AVX2 broadcast; _wcsnset bounded) |
 | _ultow / _ui64tow | 1.55 / 1.60x (radix 2–36) — unsigned 32/64-bit integer → wide string (2-digit table) |
 | _itow(=_ltow) / _i64tow | 1.42 / 1.59x (radix 2–36) — signed 32/64-bit integer → wide string |
+| atoi / _atoi64 | 2.1 / 2.2x — string → integer (skip ws, sign, saturating decimal); parse-side of the itoa family, no locale |
+| strtol / strtoul | 2.2 / 2.0x — base 0/2–36 parse, endptr + ERANGE bit-exact (256-entry digit table; reference-first) |
+| _strtoi64 / _strtoui64 | 1.8 / 1.8x — 64-bit base 0/2–36 parse, endptr + ERANGE (branchless mul-carry overflow guard, no div) |
 
 ### crypt32 (certificates / TLS / tokens — loaded by every crypto path)
 
