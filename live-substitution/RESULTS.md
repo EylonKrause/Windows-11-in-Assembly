@@ -53,9 +53,10 @@ upcased output string through the OS-built case-fold table and returns an NTSTAT
 
 ## Hardened harness for the newer functions — `live_subst_new.c` (2026-09-05)
 
-A second, **freeze-safe** harness (`build_new.bat`) extends the proof to the 070–075 functions —
-`_strrev`, `_wcsrev`, `_ultow`, `_ui64tow`, `_itow`, `_i64tow` — under a stricter protocol adopted after
-repeated PC freezes on this machine (bad RAM makes any fault worse):
+A second, **freeze-safe** harness (`build_new.bat`) extends the proof to ten more functions — the 070–075
+reverses/formatters (`_strrev`, `_wcsrev`, `_ultow`, `_ui64tow`, `_itow`, `_i64tow`) and the 077–080 fills
+(`_strset`, `_strnset`, `_wcsset`, `_wcsnset`) — under a stricter protocol adopted after repeated PC freezes
+on this machine (bad RAM makes any fault worse):
 
 1. **Sacrificial child.** It is a standalone, **single-threaded** console process that patches only its
    own per-process (COW) copy of `ucrtbase` — never a live system process. A fault kills only this process,
@@ -70,14 +71,15 @@ repeated PC freezes on this machine (bad RAM makes any fault worse):
 
 ```
 HARDENED live substitution (validate-first, sacrificial single-thread child, own-process COW).
-[_strrev]                       all match;  our-code calls = 3000; unpatched cleanly.
-[_wcsrev]                       all match;  our-code calls = 3000; unpatched cleanly.
-[_ultow/_ui64tow/_itow/_i64tow] all match;  our-code calls = 7000/7000/7000/7000; unpatched cleanly.
-HARDENED LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 6 new functions (070-075),
+[_strrev]                          all match;  our-code calls = 3000; unpatched cleanly.
+[_wcsrev]                          all match;  our-code calls = 3000; unpatched cleanly.
+[_ultow/_ui64tow/_itow/_i64tow]    all match;  our-code calls = 7000/7000/7000/7000; unpatched cleanly.
+[_strset/_strnset/_wcsset/_wcsnset] all match; our-code calls = 3000/3000/3000/3000; unpatched cleanly.
+HARDENED LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 10 new functions (070-075 + 077-080),
 validated standalone first, results identical under live patch, cleanly reverted. Zero system processes touched.
 ```
 
-**20 functions now proven running live** (14 via `build.bat` + 6 via `build_new.bat`).
+**24 functions now proven running live** (14 via `build.bat` + 10 via `build_new.bat`).
 
 ## Reproduce
 ```
