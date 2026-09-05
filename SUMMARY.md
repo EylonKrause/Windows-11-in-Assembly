@@ -122,19 +122,13 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
 
 ## Deferred (need dedicated reverse-engineering)
 
-- **`RtlIpv4StringToAddress[Ex]` / `RtlIpv6StringToAddress[Ex]`** (the parse-side complement to the
-  landed IPv4/IPv6/MAC *formatters* 059–069). The live `RtlIpv4StringToAddressA` is genuinely slow
-  (~36 ns, ~3× headroom) and the `STATUS` + 4-byte address are straightforward inet_aton semantics
-  (dotted decimal / octal / hex, 1–4 parts with `a`, `a.b`, `a.b.c` short forms, `Strict` flag). What
-  blocks a clean bit-exact land is the **error-path terminator + octal-edge behavior**, which is
-  idiosyncratic: an `8`/`9` immediately after a leading `0` errors *at* that digit but after another
-  octal digit it *terminates*; an empty component sets `*Terminator = p` normally but `p+1` when the
-  offending char is `.`; a strict `0x` advances the terminator one past the `x`; range vs
-  accumulation-overflow errors point at end-of-number vs the offending digit. Matching all of it needs
-  ~9 special cases discovered purely empirically (high risk of more), so this is deferred rather than
-  shipped as a partial (STATUS+address-only) match. IPv6 is strictly harder (`::`, embedded IPv4,
-  zone/scope). Reference-first work got STATUS+address bit-exact over 800k fuzz; the terminator is the
-  remaining wall.
+- **`RtlIpv4StringToAddressW` / `RtlIpv4StringToAddressEx[A/W]` / `RtlIpv6StringToAddress[Ex][A/W]`**
+  (the rest of the parse-side complement to the landed IPv4/IPv6/MAC *formatters* 059–069). The narrow
+  IPv4 parser **`RtlIpv4StringToAddressA` has since been reverse-engineered and landed** (114, 1.53×) —
+  its idiosyncratic error-path terminator rules (octal-8/9 edge, empty-component `p`/`p+1`, strict-`0x`,
+  range-vs-overflow) are documented in that change's RESULTS.md and were pinned by reference-first
+  fuzzing (7 passes) before the asm. The wide `W` form is a near-direct port; the `Ex` forms add a
+  `:port`/prefix and the IPv6 parsers add `::` / embedded-IPv4 / zone-scope, so those remain here.
 
 The UTF-8 decoder (`RtlUTF8ToUnicodeN`) was in this list; it has since been reverse-engineered and landed
 (034) — its exact maximal-subpart malformed rule is documented in that change's RESULTS.md. `RtlCrc64` was
