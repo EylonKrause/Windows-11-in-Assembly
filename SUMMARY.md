@@ -159,6 +159,15 @@ table), plus `_wcsicmp`/`_stricmp`/`_memicmp` (case-insensitive compares) and `w
   vs `wcsncmp`). Reproducing any of these needs the OS collation tables, so they are unreachable
   bit-exactly and are deliberately not attempted.
 
+- **`kernelbase.dll` PathCch* — the "safe" modern path API is SLOWER than what it replaces.**
+  Measured for the same 254-char path: `PathCchFindExtension` **191 ns** vs shlwapi `PathFindExtensionW`
+  147 ns; `PathCchRemoveExtension` 156 ns vs 174 ns; `PathCchRemoveFileSpec` 145 ns. The extension
+  semantics are *identical* to the shlwapi function (same 15 edges), so the extra cost buys the
+  `cchPath` bound and an HRESULT, not speed. **`PathCchFindExtension` is landed (143, 4.42×, up to
+  6.35×)** by reusing change 132's scan with every mask clipped to the bound. Contract notes: `cch`
+  must be in [1, 32768], the string must terminate strictly inside `cch`, and `*ppszExt` **is** written
+  (NULL) on failure rather than left untouched.
+
 - **RTL date/time conversion** — landed as a matched pair: **`RtlTimeToTimeFields` (126, 1.73×)** and its
   inverse **`RtlTimeFieldsToTime` (127, 1.54×)**. Both replace ntdll's division-heavy scalar date math
   with the era-based civil-from-days algorithm (no month table, no leap-year branch, no loop) where every
