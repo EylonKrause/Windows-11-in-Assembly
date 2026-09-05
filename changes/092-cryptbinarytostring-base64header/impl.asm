@@ -1,17 +1,15 @@
-; crypt32.dll!CryptBinaryToStringW  --  hand-written x86-64 reimplementation (51x vs shipped)
-; source of truth: changes/093-cryptbinarytostringw-base64header/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
-; changes/093-cryptbinarytostringw-base64header/impl.asm
-; BOOL wia_b2sh64w(const BYTE* pb, DWORD cb, DWORD flags, wchar_t* out, DWORD* pcch)
+; changes/092-cryptbinarytostring-base64header/impl.asm
+; BOOL wia_b2sh64(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
-; Wide sibling of 092 — crypt32!CryptBinaryToStringW for the PEM-header base64 modes
-;   BASE64HEADER (0x0) / BASE64REQUESTHEADER (0x3) / BASE64X509CRLHEADER (0x9).
-; The wide output is exactly the widened narrow output, so we run 092's SSSE3 formatter to
-; lay the L narrow bytes into the low bytes of the caller's 2x-size buffer, then reverse-widen
-; in place (word[i]=byte[i], high index -> low, overwrite-safe) + a wide NUL. *pcch counts
-; WCHARs. Query (out==NULL -> *pcch=L+1), convert, cb==0 -> FALSE. ISA: SSSE3. Bit-exact vs live.
+; crypt32!CryptBinaryToStringA for the PEM-header base64 modes:
+;   CRYPT_STRING_BASE64HEADER (0x0)        -----BEGIN CERTIFICATE-----
+;   CRYPT_STRING_BASE64REQUESTHEADER (0x3) -----BEGIN NEW CERTIFICATE REQUEST-----
+;   CRYPT_STRING_BASE64X509CRLHEADER (0x9) -----BEGIN X509 CRL-----
+; = "-----BEGIN <mid>-----\r\n" + the CRYPT_STRING_BASE64 body (81's SSSE3 base64, CRLF every
+; 64 chars incl the last) + "-----END <mid>-----\r\n". crypt32's is scalar (~0.3 GB/s).
+; Body core is identical to change 081. Query (out==NULL -> *pcch=len+1), sufficient-buffer
+; convert, cb==0 -> FALSE. ISA: SSSE3. Validated bit-exact vs live crypt32 on Zen3.
 
 .const
 ALIGN 16
@@ -32,7 +30,7 @@ hdr9    db "-----BEGIN X509 CRL-----",13,10
 ftr9    db "-----END X509 CRL-----",13,10
 
 .code
-wia_b2sh64w PROC
+wia_b2sh64 PROC
         push      rbx
         push      rsi
         push      rdi
@@ -272,22 +270,12 @@ ftr_cp:
         inc       rdx
         cmp       edx, ecx
         jb        ftr_cp
-        ; ---- reverse-widen the L narrow bytes in place: word[i]=byte[i], high -> low ----
-        mov       eax, [rsp+00h]                     ; L (narrow len)
-        mov       r8, [rsp+30h]                      ; out base
-        mov       ecx, eax
-wd:
-        test      ecx, ecx
-        jz        wd_done
-        dec       ecx
-        movzx     edx, byte ptr [r8 + rcx]
-        mov       word ptr [r8 + rcx*2], dx
-        jmp       wd
-wd_done:
-        mov       edx, eax
-        mov       word ptr [r8 + rdx*2], 0            ; wide NUL
+        add       rdi, rdx                           ; end of footer
+
+        mov       byte ptr [rdi], 0                  ; NUL
         mov       r10, [rsp+08h]
-        mov       [r10], eax                          ; *pcch = L (wchars)
+        mov       eax, [rsp+00h]
+        mov       [r10], eax                          ; *pcch = outlen
 ok:
         mov       eax, 1
         jmp       epilogue
@@ -309,5 +297,5 @@ epilogue:
         pop       rsi
         pop       rbx
         ret
-wia_b2sh64w ENDP
+wia_b2sh64 ENDP
 END
