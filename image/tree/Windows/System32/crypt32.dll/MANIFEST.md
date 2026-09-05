@@ -1,4 +1,4 @@
-# crypt32.dll — reimplemented exports (14)
+# crypt32.dll — reimplemented exports (15)
 
 | export | speedup | source |
 |---|---|---|
@@ -11,6 +11,7 @@
 | `CryptBinaryToStringW` | 77x | [changes/091-cryptbinarytostringw-hexfmt](../../../../../changes/091-cryptbinarytostringw-hexfmt/) |
 | `CryptBinaryToStringW` | 8.9x | [changes/083-cryptbinarytostringw-base64](../../../../../changes/083-cryptbinarytostringw-base64/) |
 | `CryptStringToBinaryA` | 259x | [changes/086-cryptstringtobinary-hexraw](../../../../../changes/086-cryptstringtobinary-hexraw/) |
+| `CryptStringToBinaryA` | 3.7x | [changes/106-cryptstringtobinary-base64any](../../../../../changes/106-cryptstringtobinary-base64any/) |
 | `CryptStringToBinaryA` | 36.3x | [changes/082-cryptstringtobinary-base64](../../../../../changes/082-cryptstringtobinary-base64/) |
 | `CryptStringToBinaryA` | 6.1x | [changes/104-cryptstringtobinary-base64header](../../../../../changes/104-cryptstringtobinary-base64header/) |
 | `CryptStringToBinaryW` | 248x | [changes/088-cryptstringtobinaryw-hexraw](../../../../../changes/088-cryptstringtobinaryw-hexraw/) |
