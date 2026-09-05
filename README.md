@@ -221,3 +221,4 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [098](changes/098-rtlinitstringex/) | `RtlInitStringEx` (inline AVX2 strlen + validate, NTSTATUS) | `ntdll.dll!RtlInitStringEx` | **LANDED** — **1.37×** (1.04×–2.85×; validating ANSI_STRING setup) |
 | [099](changes/099-strncmp/) | `strncmp` byte bounded compare (AVX2 two-regime) | `ucrtbase.dll!strncmp` | **PARKED** — ucrtbase is tuned aligned SWAR; we win ≥128 B (up to 2.06×) but lose the 32 B class |
 | [100](changes/100-rtllargeintegertochar/) | `RtlLargeIntegerToChar` (64-bit; 2-digit decimal table + direct hex/binary) | `ntdll.dll!RtlLargeIntegerToChar` | **LANDED** — **1.43×** (1.14×–1.81×; 64-bit integer→string, all bases) |
+| [101](changes/101-rtlappendunicodetostring/) | `RtlAppendUnicodeToString` (inline AVX2 wcslen + SIMD copy, no calls) | `ntdll.dll!RtlAppendUnicodeToString` | **LANDED** — **1.42×** (1.00×–2.34×; UNICODE_STRING builder) |
