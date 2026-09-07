@@ -1,58 +1,134 @@
 // changes/040-strcspn/correctness.c
+// Bit-exact fuzz of wia_strcspn vs live ucrtbase!strcspn + oracle.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
-#include <stddef.h>
+#include <string.h>
+
 extern size_t wia_strcspn(const char*, const char*);
 size_t ref_strcspn(const char*, const char*);
 typedef size_t (__cdecl *fn)(const char*, const char*);
-static int failures=0;
-static void chk(size_t r,size_t o,size_t y,const char* what,size_t len,int off,int sl){
-    if(o!=r||y!=r){ printf("FAIL [%s] len=%zu off=%d setlen=%d: ref=%zu ours=%zu sys=%zu\n",
-        what,len,off,sl,r,o,y); ++failures; }
+static fn sys;
+static int fails = 0;
+
+static void chk(const char* s, const char* set, const char* what)
+{
+    if (fails >= 20) return;
+    size_t a = sys(s, set), b = wia_strcspn(s, set), r = ref_strcspn(s, set);
+    if (a != b || a != r)
+    { ++fails; printf("FAIL %s sys=%zu ours=%zu ref=%zu\n", what, a, b, r); }
 }
-int main(void){
-    HMODULE h=LoadLibraryW(L"ucrtbase.dll");
-    fn sys=(fn)GetProcAddress(h,"strcspn");
-    if(!sys){printf("no strcspn\n");return 2;}
-    static char buf[600], set[64];
-    unsigned long seed=0x40abcu;
-    for(size_t len=0; len<=300; ++len){
-        for(int off=0; off<8; ++off){
-            char* s=buf+off;
-            static const int sls[]={0,1,2,3,4,7,8,16,31,32,40};
-            for(int si=0; si<(int)(sizeof(sls)/sizeof(sls[0])); ++si){
-                int sl=sls[si];
-                for(int k=0;k<sl;++k){ seed=seed*1103515245u+12345u; char c=(char)((seed>>16)|1); set[k]=c?c:3; }
-                set[sl]=0;
-                for(size_t i=0;i<len;++i){ seed=seed*1103515245u+12345u;
-                    if(sl && ((seed&3)==0)) s[i]=set[(seed>>16)%sl];
-                    else { char c; do{ seed=seed*1103515245u+12345u; c=(char)((seed>>16)|1);}while(!c); s[i]=c; } }
-                s[len]=0;
-                chk(ref_strcspn(s,set), wia_strcspn(s,set), sys(s,set), "mix", len, off, sl);
-                // no member -> full span (use bytes 0x80.. that won't collide with a small ascii-ish set often;
-                // to be safe, actively strip any set member out)
-                for(size_t i=0;i<len;++i){ char c=(char)(0x80+((i*7+off)&0x3f)); s[i]=c?c:0x7f; }
-                for(size_t i=0;i<len;++i){ const char* p=set; while(*p && *p!=s[i]) ++p; if(*p) s[i]=0x7e; }
-                s[len]=0;
-                chk(ref_strcspn(s,set), wia_strcspn(s,set), sys(s,set), "no-member", len, off, sl);
+
+static char buf[900], sset[300];
+
+int main(void)
+{
+    setvbuf(stdout, 0, _IONBF, 0);
+    HMODULE u = LoadLibraryW(L"ucrtbase.dll");
+    sys = (fn)GetProcAddress(u, "strcspn");
+    if (!sys) { printf("no strcspn\n"); return 2; }
+
+    chk("abcXdef", "X",   "hit at 3");
+    chk("abcdef",  "abc", "member at 0");
+    chk("Xabc",    "abc", "member at 1");
+    chk("",        "abc", "empty string");
+    chk("abc",     "",    "EMPTY SET -> whole length");
+    chk("",        "",    "both empty");
+    chk("aaaa",    "a",   "all members");
+    chk("abc",     "xyz", "no member -> whole length");
+
+    static const char ALPHA[8] = { 'A','B','C','D','E','F','G','H' };
+    for (int align = 0; align < 32 && fails < 20; ++align)
+    {
+        char* s = buf + align;
+        for (int len = 0; len <= 200 && fails < 20; ++len)
+        {
+            for (int i = 0; i < len; ++i) s[i] = ALPHA[(i * 5 + i / 7) & 7];
+            s[len] = 0;
+            /* set sizes 0..8 exercise the three hoisted registers and the empty set; 12..40
+               push well into the memory tail that handles members past the third */
+            static const int MS[] = { 0,1,2,3,4,5,6,7,8,12,20,33,40 };
+            for (int mi = 0; mi < 13; ++mi)
+            {
+                int m = MS[mi];
+                for (int i = 0; i < m; ++i) sset[i] = ALPHA[i & 7];
+                if (m > 8) sset[m - 1] = (char)(0x41);      /* the only member that can match */
+                sset[m] = 0;
+                chk(s, sset, "grid");
             }
+            /* disjoint from the alphabet: the complement span must reach the terminator, which is
+               the case the NUL has to be OR-ed into the stop mask for */
+            strcpy(sset, "xyz");
+            chk(s, sset, "disjoint set");
         }
     }
-    SYSTEM_INFO si; GetSystemInfo(&si); DWORD pg=si.dwPageSize;
-    unsigned char* base=(unsigned char*)VirtualAlloc(NULL,pg*2,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
-    DWORD old; VirtualProtect(base+pg,pg,PAGE_NOACCESS,&old);
-    char set2[3]={0x42,0x43,0};
-    for(int tail=1; tail<=140; tail++){
-        char* term=(char*)(base+pg-tail);
-        char* start=(char*)(base+pg-400);
-        for(char* p=start;p<term;++p)*p='A';
-        *term=0;
-        chk(ref_strcspn(start,set2), wia_strcspn(start,set2), sys(start,set2),"pg-full",0,0,tail);
-        char setA[2]={'A',0};
-        chk(ref_strcspn(start,setA), wia_strcspn(start,setA), sys(start,setA),"pg-span0",0,0,tail);
+
+    /* a single MEMBER planted at every position: the complement span must stop exactly there */
+    for (int align = 0; align < 32 && fails < 20; ++align)
+    {
+        char* s = buf + align;
+        for (int len = 1; len <= 140 && fails < 20; ++len)
+        {
+            memset(s, 'A', len); s[len] = 0;
+            strcpy(sset, "Z");
+            for (int pos = 0; pos < len; ++pos)
+            { s[pos] = 'Z'; chk(s, sset, "single stop"); s[pos] = 'A'; }
+        }
     }
-    if(!failures) printf("CORRECTNESS: PASS (strcspn fuzz 0..300 x8 align x set{0..40}, mix+no-member + page-guard, vs ucrtbase)\n");
-    else printf("CORRECTNESS: FAIL (%d)\n",failures);
-    return failures?1:0;
+
+    /* high-bit bytes: `char` is signed on MSVC, so 0x80..0xFF is where a sign-extension bug shows */
+    for (int len = 1; len <= 140 && fails < 20; ++len)
+    {
+        for (int i = 0; i < len; ++i) buf[i] = (char)(0x80 + (i % 128));
+        buf[len] = 0;
+        sset[0] = (char)0x80; sset[1] = 0;             chk(buf, sset, "0x80 only");
+        sset[0] = (char)0xFF; sset[1] = 0;             chk(buf, sset, "0xFF only");
+        sset[0] = 'a';        sset[1] = 0;             chk(buf, sset, "no high byte in set");
+        for (int i = 0; i < 255; ++i) sset[i] = (char)(i + 1);
+        sset[255] = 0;                                 chk(buf, sset, "every non-zero byte");
+    }
+
+    /* string ending at a page boundary. The disjoint-set case is the important one: the scan only
+       stops on the terminator, so an over-read would fault. */
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        char* mem = (char*)VirtualAlloc(0, si.dwPageSize * 2, MEM_RESERVE, PAGE_NOACCESS);
+        VirtualAlloc(mem, si.dwPageSize, MEM_COMMIT, PAGE_READWRITE);
+        for (int len = 0; len < 200 && fails < 20; ++len)
+        {
+            char* p = mem + si.dwPageSize - (len + 1);
+            memset(p, 'A', len); p[len] = 0;
+            chk(p, "Z",   "guard disjoint set");
+            chk(p, "A",   "guard member at 0");
+            chk(p, "",    "guard empty set");
+            chk(p, "XYZ", "guard 3-member set");
+        }
+        VirtualFree(mem, 0, MEM_RELEASE);
+    }
+
+    /* the SET ending at a page boundary */
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        char* mem = (char*)VirtualAlloc(0, si.dwPageSize * 2, MEM_RESERVE, PAGE_NOACCESS);
+        VirtualAlloc(mem, si.dwPageSize, MEM_COMMIT, PAGE_READWRITE);
+        for (int m = 0; m < 60 && fails < 20; ++m)
+        {
+            char* t = mem + si.dwPageSize - (m + 1);
+            for (int i = 0; i < m; ++i) t[i] = (char)('a' + i);
+            t[m] = 0;
+            for (int i = 0; i < 100; ++i) buf[i] = (char)('A' + (i % 30));
+            buf[100] = 0;
+            chk(buf, t, "set at page edge");
+        }
+        VirtualFree(mem, 0, MEM_RELEASE);
+    }
+
+    if (!fails)
+        printf("CORRECTNESS: PASS (strcspn vs live + oracle: 32 alignments x lengths 0..200 x set sizes 0..8 and 12/20/33/40\n"
+               "  plus a disjoint set at every length (the case that needs the NUL in the stop mask), a single\n"
+               "  member planted at every position of every length, high-bit (0x80..0xFF) bytes where signed\n"
+               "  char would betray a sign-extension bug, a 255-member set running well past the three hoisted\n"
+               "  registers, and NOACCESS page-guard sweeps on BOTH the string and the set)\n");
+    else printf("CORRECTNESS: FAIL (%d)\n", fails);
+    return fails ? 1 : 0;
 }

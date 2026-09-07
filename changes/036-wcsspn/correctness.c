@@ -1,65 +1,138 @@
 // changes/036-wcsspn/correctness.c
+// Bit-exact fuzz of wia_wcsspn vs live ucrtbase!wcsspn + oracle.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
-#include <stddef.h>
+#include <string.h>
+#include <wchar.h>
+
 extern size_t wia_wcsspn(const wchar_t*, const wchar_t*);
-size_t ref_wcsspn(const unsigned short*, const unsigned short*);
+size_t ref_wcsspn(const wchar_t*, const wchar_t*);
 typedef size_t (__cdecl *fn)(const wchar_t*, const wchar_t*);
-static int failures=0;
-static void chk(size_t r,size_t o,size_t y,const char* what,size_t len,int off,int sl){
-    if(o!=r||y!=r){ printf("FAIL [%s] len=%zu off=%d setlen=%d: ref=%zu ours=%zu sys=%zu\n",
-        what,len,off,sl,r,o,y); ++failures; }
+static fn sys;
+static int fails = 0;
+
+static void chk(const wchar_t* s, const wchar_t* set, const char* what)
+{
+    if (fails >= 20) return;
+    size_t a = sys(s, set), b = wia_wcsspn(s, set), r = ref_wcsspn(s, set);
+    if (a != b || a != r)
+    { ++fails; printf("FAIL %s sys=%zu ours=%zu ref=%zu\n", what, a, b, r); }
 }
-int main(void){
-    HMODULE h=LoadLibraryW(L"ucrtbase.dll");
-    fn sys=(fn)GetProcAddress(h,"wcsspn");
-    if(!sys){printf("no wcsspn\n");return 2;}
-    static wchar_t buf[512], set[64];
-    unsigned long seed=0x71234u;
-    for(size_t len=0; len<=260; ++len){
-        for(int off=0; off<8; ++off){
-            wchar_t* s=buf+off;
-            static const int sls[]={0,1,2,3,4,7,8,16,31,32,40};
-            for(int si=0; si<(int)(sizeof(sls)/sizeof(sls[0])); ++si){
-                int sl=sls[si];
-                for(int k=0;k<sl;++k){ seed=seed*1103515245u+12345u; wchar_t c=(wchar_t)((seed>>16)|1); set[k]=c?c:3; }
-                set[sl]=0;
-                // build str: each char is, with prob ~3/4, drawn from the set (long spans),
-                // else a random (likely non-member) char -> exercises the stop at the boundary
-                for(size_t i=0;i<len;++i){
-                    seed=seed*1103515245u+12345u;
-                    if(sl && (seed&3)) s[i]=set[(seed>>16)%sl];
-                    else { wchar_t c=(wchar_t)((seed>>16)|1); s[i]=c?c:5; }
-                }
-                s[len]=0;
-                chk(ref_wcsspn((unsigned short*)s,(unsigned short*)set),
-                    wia_wcsspn(s,set), sys(s,set), "mix", len, off, sl);
-                // all-in-set (full span to terminator), if set nonempty
-                if(sl){ for(size_t i=0;i<len;++i) s[i]=set[i%sl]; s[len]=0;
-                    chk(ref_wcsspn((unsigned short*)s,(unsigned short*)set),
-                        wia_wcsspn(s,set), sys(s,set), "all-in", len, off, sl); }
+
+static wchar_t buf[900], sset[64];
+
+int main(void)
+{
+    setvbuf(stdout, 0, _IONBF, 0);
+    HMODULE u = LoadLibraryW(L"ucrtbase.dll");
+    sys = (fn)GetProcAddress(u, "wcsspn");
+    if (!sys) { printf("no wcsspn\n"); return 2; }
+
+    /* named edge cases */
+    chk(L"abcXdef", L"abc", "hit at 3");
+    chk(L"abcdef",  L"abc", "prefix only");
+    chk(L"Xabc",    L"abc", "no prefix");
+    chk(L"",        L"abc", "empty string");
+    chk(L"abc",     L"",    "empty set");
+    chk(L"",        L"",    "both empty");
+    chk(L"aaaa",    L"a",   "all match");
+    chk(L"abc",     L"xyz", "no match");
+
+    /* every alignment x every length x a set of every size 0..8, with the string built from a small
+       alphabet so the span ends at a different place for each set */
+    static const wchar_t ALPHA[8] = { L'A', L'B', L'C', L'D', L'E', L'F', L'G', L'H' };
+    for (int align = 0; align < 16 && fails < 20; ++align)
+    {
+        wchar_t* s = buf + align;
+        for (int len = 0; len <= 200 && fails < 20; ++len)
+        {
+            for (int i = 0; i < len; ++i) s[i] = ALPHA[(i * 5 + i / 7) & 7];
+            s[len] = 0;
+            /* set sizes 0..8 exercise the three hoisted registers and the empty set; 12..40
+               push well into the memory tail that handles members past the third */
+            static const int MS[] = { 0,1,2,3,4,5,6,7,8,12,20,33,40 };
+            for (int mi = 0; mi < 13; ++mi)
+            {
+                int m = MS[mi];
+                for (int i = 0; i < m; ++i) sset[i] = ALPHA[i & 7];
+                if (m > 8) sset[m - 1] = (wchar_t)(0x0041);      /* the only member that can match */
+                sset[m] = 0;
+                chk(s, sset, "grid");
             }
+            /* the whole alphabet: the span must run to the terminator */
+            for (int i = 0; i < 8; ++i) sset[i] = ALPHA[i];
+            sset[8] = 0;
+            chk(s, sset, "full alphabet");
         }
     }
-    // page-guard: str all-in-set ends right before a NOACCESS page (must stop at terminator)
-    SYSTEM_INFO si; GetSystemInfo(&si); DWORD pg=si.dwPageSize;
-    unsigned char* base=(unsigned char*)VirtualAlloc(NULL,pg*2,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
-    DWORD old; VirtualProtect(base+pg,pg,PAGE_NOACCESS,&old);
-    wchar_t inset[2]={L'A',0};
-    for(int tail=2; tail<=120; tail+=2){
-        wchar_t* term=(wchar_t*)(base+pg-tail);
-        wchar_t* start=(wchar_t*)(base+pg-320);
-        for(wchar_t* p=start;p<term;++p)*p=L'A';   // all members of {A}
-        *term=0;
-        chk(ref_wcsspn((unsigned short*)start,(unsigned short*)inset),
-            wia_wcsspn(start,inset), sys(start,inset),"pg-all-in",0,0,tail);
-        // and a set NOT containing 'A' -> span 0 at start
-        wchar_t none[2]={L'Z',0};
-        chk(ref_wcsspn((unsigned short*)start,(unsigned short*)none),
-            wia_wcsspn(start,none), sys(start,none),"pg-span0",0,0,tail);
+
+    /* a single non-member planted at every position: the span must stop exactly there */
+    for (int align = 0; align < 16 && fails < 20; ++align)
+    {
+        wchar_t* s = buf + align;
+        for (int len = 1; len <= 140 && fails < 20; ++len)
+        {
+            for (int i = 0; i < len; ++i) s[i] = L'A';
+            s[len] = 0;
+            wcscpy(sset, L"A");
+            for (int pos = 0; pos < len; ++pos)
+            { s[pos] = L'Z'; chk(s, sset, "single stop"); s[pos] = L'A'; }
+        }
     }
-    if(!failures) printf("CORRECTNESS: PASS (wcsspn fuzz 0..260 x8 align x set{0..40}, mix+all-in + page-guard, vs ucrtbase)\n");
-    else printf("CORRECTNESS: FAIL (%d)\n",failures);
-    return failures?1:0;
+
+    /* wchar traps: a zero low byte, a zero high byte, and 0xFFFF */
+    for (int len = 1; len <= 140 && fails < 20; ++len)
+    {
+        for (int i = 0; i < len; ++i) buf[i] = (wchar_t)0x4100;   /* low byte 0x00 */
+        buf[len] = 0;
+        sset[0] = (wchar_t)0x4100; sset[1] = 0;  chk(buf, sset, "zero-low-byte in set");
+        sset[0] = (wchar_t)0x0041; sset[1] = 0;  chk(buf, sset, "zero-low-byte vs 0x0041");
+        for (int i = 0; i < len; ++i) buf[i] = (wchar_t)0xFFFF;
+        buf[len] = 0;
+        sset[0] = (wchar_t)0xFFFF; sset[1] = 0;  chk(buf, sset, "ffff");
+        sset[0] = (wchar_t)0x00FF; sset[1] = 0;  chk(buf, sset, "ffff vs 0x00FF");
+    }
+
+    /* string ending at a page boundary, next page NOACCESS */
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        char* mem = (char*)VirtualAlloc(0, si.dwPageSize * 2, MEM_RESERVE, PAGE_NOACCESS);
+        VirtualAlloc(mem, si.dwPageSize, MEM_COMMIT, PAGE_READWRITE);
+        for (int len = 0; len < 200 && fails < 20; ++len)
+        {
+            wchar_t* p = (wchar_t*)(mem + si.dwPageSize - (len + 1) * 2);
+            for (int i = 0; i < len; ++i) p[i] = L'A';
+            p[len] = 0;
+            chk(p, L"A",   "guard all-in-set");     /* runs to the terminator */
+            chk(p, L"Z",   "guard none-in-set");
+            chk(p, L"ABC", "guard 3-member set");
+        }
+        VirtualFree(mem, 0, MEM_RELEASE);
+    }
+
+    /* the SET ending at a page boundary: it is walked scalar-wise, so it must stop at its own NUL */
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        char* mem = (char*)VirtualAlloc(0, si.dwPageSize * 2, MEM_RESERVE, PAGE_NOACCESS);
+        VirtualAlloc(mem, si.dwPageSize, MEM_COMMIT, PAGE_READWRITE);
+        for (int m = 0; m < 40 && fails < 20; ++m)
+        {
+            wchar_t* t = (wchar_t*)(mem + si.dwPageSize - (m + 1) * 2);
+            for (int i = 0; i < m; ++i) t[i] = (wchar_t)(L'A' + i);
+            t[m] = 0;
+            for (int i = 0; i < 100; ++i) buf[i] = (wchar_t)(L'A' + (i % 30));
+            buf[100] = 0;
+            chk(buf, t, "set at page edge");
+        }
+        VirtualFree(mem, 0, MEM_RELEASE);
+    }
+
+    if (!fails)
+        printf("CORRECTNESS: PASS (wcsspn vs live + oracle: 16 alignments x lengths 0..200 x set sizes 0..8 and 12/20/33/40,\n"
+               "  a single non-member planted at every position of every length, zero-low-byte /\n"
+               "  zero-high-byte / 0xFFFF wchar traps, and NOACCESS page-guard sweeps on BOTH the string\n"
+               "  and the set)\n");
+    else printf("CORRECTNESS: FAIL (%d)\n", fails);
+    return fails ? 1 : 0;
 }

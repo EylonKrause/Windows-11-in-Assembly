@@ -33,3 +33,48 @@ Per-block cost is O(set length); wins at every size for the small sets that domi
 ```
 changes\039-strspn\build.bat
 ```
+
+---
+
+## Revision (2026-09-07) — geomean **6.983** (was 4.816)
+
+The original implementation re-walked the set **inside every 32-byte block**, broadcasting each
+member afresh -- roughly seven instructions per member per block. Two things were wrong with that.
+
+The obvious one is the instruction count. The less obvious one only showed up when it was measured:
+a branchy loop that small **aliases in the branch predictor**, so its cost is decided by where the
+code happens to land. While working on the sibling routine, adding three uops at the top of the
+function -- or inserting alignment padding on the per-block fall-through -- moved a 1024-character
+result between **96 and 125 ns with no change whatever to the work done**. Chasing that surfaced the
+real fix.
+
+So the first three set members are now broadcast **once**, before the block loop, into
+`ymm2`/`ymm4`/`ymm5`, and the block body is straight-line. When the set is shorter, the spare
+registers take a **duplicate of member 0** -- harmless, because the compare results are OR-ed and
+$a \lor a = a$ -- which is what avoids needing three separate specialised loops. Members past the
+third are walked from memory in a tail that costs two uops per block when it is empty, so the old
+"sets of 32 or more fall to a scalar path" special case is gone: one code path now handles every set
+size correctly.
+
+Only `ymm0`-`ymm5` are usable (xmm6-xmm15 are non-volatile under Win64), which is exactly enough for
+data, accumulator, three members and one scratch.
+
+### Correctness — re-run with a strengthened harness
+`correctness.exe`: **PASS**, comparing against both the live export and the oracle over **32 alignments** (a full 32-byte sweep; bytes have no alignment restriction) **x lengths
+0..200 x set sizes 0..8 and 12/20/33/40**; a **disjoint set at every length**; a **single member
+planted at every position of every length**; **high-bit bytes `0x80..0xFF`**, which is where a
+sign-extension bug would show because `char` is signed on MSVC; sets of **128 and 255 members**;
+and **NOACCESS page-guard sweeps on both the string and the set**.
+
+### Benchmark — re-run vs live `ucrtbase`
+
+| size | ours ns | ucrtbase ns | ratio |
+|---|---|---|---|
+| 8 | 4.00 | 9.79 | 2.44x |
+| 32 | 6.23 | 25.36 | 4.07x |
+| 128 | 11.57 | 95.42 | 8.25x |
+| 512 | 34.03 | 351.58 | 10.33x |
+| 4096 | 239.31 | 2742.97 | 11.46x |
+| 32000 | 1791.32 | 21365.62 | 11.93x |
+
+geomean **6.983x** (was 4.816x), **every size class better**.

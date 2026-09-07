@@ -74,54 +74,87 @@ wia_wcsrev PROC
         cmp       word ptr [rax], 0
         je        sl_done
 
-        ; ---- not terminated in 16 wchars: long string, page-safe vector scan from here ----
-        lea       rax, [rcx + 32]
-        vpxor     xmm1, xmm1, xmm1
-slv:
-        mov       r9, rax
-        and       r9, 4095
-        cmp       r9, 4080                           ; within 16 of a page end?
-        ja        slv_scalar
-        vmovdqu   xmm0, xmmword ptr [rax]
-        vpcmpeqw  xmm0, xmm0, xmm1                   ; per-WORD zero test
-        vpmovmskb r9d, xmm0
-        test      r9d, r9d
-        jnz       slv_found
-        add       rax, 16
-        jmp       slv
-slv_scalar:
-        cmp       word ptr [rax], 0
-        je        sl_done
-        add       rax, 2
-        jmp       slv
-slv_found:
-        bsf       r9d, r9d                           ; low bit of first zero word = its byte offset
-        add       rax, r9
+
+        ; ---- not terminated in 16 wchars: page-safe AVX2 aligned length scan ---------------------
+        ; Aligning the load down to 32 bytes removes the old version's explicit "am I within 16 of a
+        ; page end?" test entirely: an ALIGNED 32-byte load can never straddle a page, so there is
+        ; nothing to check and no scalar fallback lane to maintain. `vpcmpeqw` sets both bytes of a
+        ; matching word, so `tzcnt` lands on the low (even) byte and the offset it produces is
+        ; already a byte count.
+        vpxor     ymm1, ymm1, ymm1
+        mov       r9, rcx
+        and       r9, -32
+        mov       r10d, ecx
+        and       r10d, 31
+        vmovdqa   ymm0, ymmword ptr [r9]
+        vpcmpeqw  ymm0, ymm0, ymm1
+        vpmovmskb eax, ymm0
+        shrx      eax, eax, r10d                     ; bit i means byte i of s is in a zero word
+        mov       r11d, 32
+        sub       r11d, r10d                         ; bytes of s this first block covered
+        test      eax, eax
+        jnz       lv_lo
+lv_next:
+        add       r9, 32
+        vmovdqa   ymm0, ymmword ptr [r9]
+        vpcmpeqw  ymm0, ymm0, ymm1
+        vpmovmskb eax, ymm0
+        test      eax, eax
+        jnz       lv_hi
+        add       r11, 32
+        jmp       lv_next
+lv_hi:  tzcnt     eax, eax
+        add       rax, r11
+        jmp       lv_have
+lv_lo:  tzcnt     eax, eax
+lv_have:
+        add       rax, rcx                           ; rax -> the NUL, as the scalar probe leaves it
+
 sl_done:
         ; rax -> NUL wchar. lo = rcx (= s, untouched), hi = rax (one past last wchar).
         mov       rdx, rax                           ; hi
 
-        ; ---- tier 1: 16-byte (8-wchar) vpshufb block swaps (remaining >= 32) ----
+        ; ---- tier 1: 32-byte block swaps, with the LAST PAIR ALLOWED TO OVERLAP ------------------
+        ; The old tier 1 swapped 16-byte vpshufb blocks and stopped while at least 32 bytes
+        ; remained, handing 16..31 down to the next tier. Widening to 32 needs vperm2i128 to swap
+        ; the two 128-bit lanes after vpshufb reverses the eight words inside each, and lets the
+        ; loop run until the two blocks OVERLAP rather than stopping short.
+        ;
+        ; Overlapping is safe. With lo + hi = n - 32 held invariant, storing rev(B) at lo writes
+        ; s'[lo+k] = s[n-1-lo-k] and storing rev(A) at hi writes s'[hi+k] = s[n-1-hi-k]; both are
+        ; exactly s[n-1-j] for the element they land on, so where the blocks overlap they write
+        ; IDENTICAL values and the store order cannot matter. The argument needs only that
+        ; invariant and a reversal that is its own inverse within the block, so it holds for words
+        ; exactly as it does for bytes in change 070. Both loads must precede either store.
         mov       rax, rdx
         sub       rax, rcx                           ; remaining bytes
         cmp       rax, 32
         jb        blk8
-        vmovdqa   xmm2, xmmword ptr [revmw]
-rloop:
-        vmovdqu   xmm0, xmmword ptr [rcx]            ; front
-        vmovdqu   xmm3, xmmword ptr [rdx - 16]       ; back
-        vpshufb   xmm0, xmm0, xmm2
-        vpshufb   xmm3, xmm3, xmm2
-        vmovdqu   xmmword ptr [rcx], xmm3            ; front <- reverse(back)
-        vmovdqu   xmmword ptr [rdx - 16], xmm0       ; back  <- reverse(front)
-        add       rcx, 16
-        sub       rdx, 16
+        vbroadcasti128 ymm2, xmmword ptr [revmw]
+        lea       r9, [rdx - 32]
+r32:
+        cmp       rcx, r9
+        ja        r32done
+        vmovdqu   ymm0, ymmword ptr [rcx]            ; both loads before either store
+        vmovdqu   ymm3, ymmword ptr [r9]
+        vpshufb   ymm0, ymm0, ymm2
+        vperm2i128 ymm0, ymm0, ymm0, 1
+        vpshufb   ymm3, ymm3, ymm2
+        vperm2i128 ymm3, ymm3, ymm3, 1
+        vmovdqu   ymmword ptr [rcx], ymm3
+        vmovdqu   ymmword ptr [r9], ymm0
+        add       rcx, 32
+        sub       r9, 32
+        jmp       r32
+r32done:
+        lea       rdx, [r9 + 32]                     ; what is left is centred and shorter than 32
+        vzeroupper
         mov       rax, rdx
         sub       rax, rcx
-        cmp       rax, 32
-        jae       rloop
+        cmp       rax, 4
+        jl        rdone                              ; signed: the ends may have crossed completely
 
-        ; ---- tier 2: 8-byte (4-wchar) vpshuflw block swaps (remaining in [16,31]) ----
+        ; ---- tier 2: 8-byte (4-wchar) vpshuflw block swaps (remaining in [16,31]) ----------------
 blk8:
         mov       rax, rdx
         sub       rax, rcx
@@ -137,18 +170,39 @@ blk8:
         sub       rdx, 8
         jmp       blk8
 
-        ; ---- tier 3: exact 8-byte (4-wchar) remainder -> single vpshuflw (common short case) ----
+        ; ---- tier 3: 8..15 bytes -> one OVERLAPPING vpshuflw pair --------------------------------
+        ; The same overlap argument again, one size down: two 4-wchar halves cover any remainder up
+        ; to 16 bytes, and where they overlap they write the same words. This replaces up to three
+        ; scalar word-pair swaps -- which matters beyond the instruction count, because a caller
+        ; that reverses the same buffer repeatedly leaves those narrow stores in flight when the
+        ; next call's wide load arrives, and a narrow store feeding a wide load cannot forward.
 rem8:
         mov       rax, rdx
         sub       rax, rcx
         cmp       rax, 8
-        jne       rmid
+        jb        rem4
         vmovq     xmm0, qword ptr [rcx]
+        vmovq     xmm3, qword ptr [rdx - 8]
         vpshuflw  xmm0, xmm0, 1Bh
-        vmovq     qword ptr [rcx], xmm0
+        vpshuflw  xmm3, xmm3, 1Bh
+        vmovq     qword ptr [rcx], xmm3
+        vmovq     qword ptr [rdx - 8], xmm0
         jmp       rdone
 
-        ; ---- tier 4: scalar two-pointer word swap (remaining 2/4/6 or 10/12/14) ----
+        ; ---- tier 4: 4..7 bytes (2 or 3 wchars) -> one overlapping 2-wchar swap ------------------
+        ; `ror` by 16 exchanges the two words of a dword, which is the whole reversal at this size.
+rem4:
+        cmp       rax, 4
+        jb        rmid
+        mov       r9d,  dword ptr [rcx]
+        mov       r10d, dword ptr [rdx - 4]
+        ror       r9d, 16
+        ror       r10d, 16
+        mov       dword ptr [rcx], r10d
+        mov       dword ptr [rdx - 4], r9d
+        jmp       rdone
+
+        ; ---- tier 5: a single scalar word swap ---------------------------------------------------
 rmid:
         lea       rax, [rdx - 2]
         cmp       rcx, rax
