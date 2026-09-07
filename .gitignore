@@ -16,3 +16,6 @@
 # live-substitution build artifacts
 live-substitution/*.obj
 live-substitution/*.exe
+
+# local notes, not part of the project
+Instructions for Claude.txt
