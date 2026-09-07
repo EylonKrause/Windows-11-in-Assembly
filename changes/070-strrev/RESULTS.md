@@ -51,3 +51,60 @@ pure call out of the timing loop).
 ```
 changes\070-strrev\build.bat
 ```
+
+---
+
+## Revision (2026-09-07) — geomean **9.891** (was 7.786)
+
+The original swapped **16-byte** `vpshufb` blocks from both ends and stopped while at least 32 bytes
+remained, handing 16..31 bytes down to a narrower tier. Two changes:
+
+**Wider blocks.** 32 bytes per step, which needs `vperm2i128` to swap the two 128-bit lanes after
+`vpshufb` reverses within each. That is where the large-size win comes from.
+
+**The last pair is allowed to overlap.** The loop now runs until the two blocks overlap rather than
+stopping short, which removes the tier cascade for 32..63 bytes entirely. That is safe, and the proof
+is what makes it worth doing. With $lo + hi = n - 32$ held invariant, storing $\mathrm{rev}(B)$ at
+$lo$ writes
+
+$$s'[lo+k] = B[31-k] = s[hi+31-k] = s[n-1-lo-k],$$
+
+and storing $\mathrm{rev}(A)$ at $hi$ writes
+
+$$s'[hi+k] = A[31-k] = s[lo+31-k] = s[n-1-hi-k].$$
+
+Both are exactly $s[n-1-j]$ for whichever element they land on, so wherever the two blocks overlap
+they write **identical values** and the store order cannot matter. The only requirement is that both
+loads are issued before either store.
+
+The same argument one size down replaced the old scalar tail: 8..15 bytes are now one overlapping
+`bswap`/`vpshuflw` pair and 4..7 bytes one overlapping 4-byte pair, leaving at most a single scalar
+swap. That matters beyond the instruction count -- a caller that reverses the same buffer repeatedly
+leaves those narrow stores in flight when the next call's wide load arrives, and **a narrow store
+feeding a wide load cannot forward**.
+
+The page-safe length scan was also rebuilt on 32-byte *aligned* loads, which removes the old explicit
+"am I within 16 bytes of a page end?" test and its scalar fallback lane: an aligned 32-byte load can
+never straddle a page, so there is nothing to check. The unrolled scalar probe over the first 16
+characters is kept unchanged -- it is what keeps short strings fast, and a vector length scan cannot
+amortise its setup over 8 bytes.
+
+### Correctness — re-run with a strengthened harness
+`correctness.exe`: **PASS**, comparing against both the live export and the oracle over the returned pointer and **every byte** of a canary-filled buffer -- so a single byte written past
+the terminator fails -- over **alignments x lengths 0..300 x 4 value patterns**, including
+all-`0xFF`/`0xFFFF` and patterns designed to catch a granularity bug, plus a **NOACCESS
+page-guard sweep at every length**. The lengths around each multiple of 32 and 64 are exactly
+where the overlapping final pair and the odd middle live, and every one of them is covered.
+
+### Benchmark — re-run vs live `ucrtbase`
+
+| size | ours ns | ucrtbase ns | ratio |
+|---|---|---|---|
+| 8 | 4.22 | 5.89 | 1.40x |
+| 32 | 7.57 | 17.54 | 2.32x |
+| 128 | 8.99 | 105.78 | 11.77x |
+| 512 | 16.15 | 408.86 | 25.32x |
+| 4096 | 102.11 | 3425.78 | 33.55x |
+| 32000 | 934.06 | 27060.94 | 28.97x |
+
+geomean **9.891x** (was 7.786x), **every size class better**.

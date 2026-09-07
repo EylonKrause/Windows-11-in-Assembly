@@ -77,54 +77,84 @@ wia_strrev PROC
         cmp       byte ptr [rax], 0
         je        sl_done
 
-        ; ---- not terminated in 16 bytes: long string, page-safe vector scan from here ----
-        lea       rax, [rcx + 16]
-        vpxor     xmm1, xmm1, xmm1
-slv:
-        mov       r9, rax
-        and       r9, 4095
-        cmp       r9, 4080                           ; within 16 of a page end?
-        ja        slv_scalar
-        vmovdqu   xmm0, xmmword ptr [rax]
-        vpcmpeqb  xmm0, xmm0, xmm1
-        vpmovmskb r9d, xmm0
-        test      r9d, r9d
-        jnz       slv_found
-        add       rax, 16
-        jmp       slv
-slv_scalar:
-        cmp       byte ptr [rax], 0
-        je        sl_done
-        inc       rax
-        jmp       slv
-slv_found:
-        bsf       r9d, r9d
-        add       rax, r9
+
+        ; ---- not terminated in 16 bytes: page-safe AVX2 aligned length scan ----------------------
+        ; Aligning the load down to 32 bytes removes the old version's explicit
+        ; "am I within 16 of a page end?" test entirely: an ALIGNED 32-byte load can never straddle
+        ; a page, so there is nothing to check and no scalar fallback lane to maintain.
+        vpxor     ymm1, ymm1, ymm1
+        mov       r9, rcx
+        and       r9, -32
+        mov       r10d, ecx
+        and       r10d, 31
+        vmovdqa   ymm0, ymmword ptr [r9]
+        vpcmpeqb  ymm0, ymm0, ymm1
+        vpmovmskb eax, ymm0
+        shrx      eax, eax, r10d                     ; bit i means s[i] == 0
+        mov       r11d, 32
+        sub       r11d, r10d                         ; bytes of s this first block covered
+        test      eax, eax
+        jnz       lv_lo
+lv_next:
+        add       r9, 32
+        vmovdqa   ymm0, ymmword ptr [r9]
+        vpcmpeqb  ymm0, ymm0, ymm1
+        vpmovmskb eax, ymm0
+        test      eax, eax
+        jnz       lv_hi
+        add       r11, 32
+        jmp       lv_next
+lv_hi:  tzcnt     eax, eax
+        add       rax, r11
+        jmp       lv_have
+lv_lo:  tzcnt     eax, eax
+lv_have:
+        add       rax, rcx                           ; rax -> the NUL, as the scalar probe leaves it
+
 sl_done:
         ; rax -> NUL. lo = rcx (= s, untouched), hi = rax (one past last char).
         mov       rdx, rax                           ; hi
 
-        ; ---- tier 1: 16-byte vpshufb block swaps (remaining >= 32) ----
+        ; ---- tier 1: 32-byte block swaps, with the LAST PAIR ALLOWED TO OVERLAP ------------------
+        ; The old tier 1 swapped 16-byte vpshufb blocks and stopped while at least 32 bytes
+        ; remained, handing 16..31 bytes down to the bswap tier. Widening to 32 bytes needs
+        ; vperm2i128 to swap the two 128-bit lanes after vpshufb reverses within them, and lets the
+        ; loop run until the two blocks OVERLAP rather than stopping short.
+        ;
+        ; Overlapping is safe, and that is what removes the tier cascade for 32..63 bytes. With
+        ; lo + hi = n - 32 held invariant, storing rev(B) at lo writes s'[lo+k] = s[n-1-lo-k], and
+        ; storing rev(A) at hi writes s'[hi+k] = s[n-1-hi-k]. Both are exactly s[n-1-j] for the byte
+        ; they land on, so where the blocks overlap they write IDENTICAL values and the store order
+        ; cannot matter. The only requirement is that both loads are issued before either store.
         mov       rax, rdx
         sub       rax, rcx                           ; remaining
         cmp       rax, 32
         jb        blk8
-        vmovdqa   xmm2, xmmword ptr [revm]
-rloop:
-        vmovdqu   xmm0, xmmword ptr [rcx]            ; front
-        vmovdqu   xmm3, xmmword ptr [rdx - 16]       ; back
-        vpshufb   xmm0, xmm0, xmm2
-        vpshufb   xmm3, xmm3, xmm2
-        vmovdqu   xmmword ptr [rcx], xmm3            ; front <- reverse(back)
-        vmovdqu   xmmword ptr [rdx - 16], xmm0       ; back  <- reverse(front)
-        add       rcx, 16
-        sub       rdx, 16
+        vbroadcasti128 ymm2, xmmword ptr [revm]
+        lea       r9, [rdx - 32]
+r32:
+        cmp       rcx, r9
+        ja        r32done
+        vmovdqu   ymm0, ymmword ptr [rcx]            ; both loads before either store
+        vmovdqu   ymm3, ymmword ptr [r9]
+        vpshufb   ymm0, ymm0, ymm2
+        vperm2i128 ymm0, ymm0, ymm0, 1
+        vpshufb   ymm3, ymm3, ymm2
+        vperm2i128 ymm3, ymm3, ymm3, 1
+        vmovdqu   ymmword ptr [rcx], ymm3
+        vmovdqu   ymmword ptr [r9], ymm0
+        add       rcx, 32
+        sub       r9, 32
+        jmp       r32
+r32done:
+        lea       rdx, [r9 + 32]                     ; what is left is centred and shorter than 32
+        vzeroupper
         mov       rax, rdx
         sub       rax, rcx
-        cmp       rax, 32
-        jae       rloop
+        cmp       rax, 2
+        jl        rdone                              ; signed: the ends may have crossed completely
 
-        ; ---- tier 2: 8-byte bswap block swaps (remaining in [16,31]) ----
+        ; ---- tier 2: 8-byte bswap block swaps (remaining in [16,31]) -----------------------------
 blk8:
         mov       rax, rdx
         sub       rax, rcx
@@ -140,18 +170,38 @@ blk8:
         sub       rdx, 8
         jmp       blk8
 
-        ; ---- tier 3: exact 8-byte remainder -> single bswap (the common short case) ----
+        ; ---- tier 3: 8..15 bytes -> one OVERLAPPING bswap pair -----------------------------------
+        ; The same overlap argument as tier 1, one size down: two 8-byte halves cover any length up
+        ; to 16, and where they overlap they write the same bytes. This replaces up to seven scalar
+        ; byte-pair swaps -- which matters beyond the instruction count, because a caller that
+        ; reverses the same buffer repeatedly has those single-byte stores in flight when the next
+        ; call's wide load arrives, and a narrow store feeding a wide load cannot forward.
 rem8:
         mov       rax, rdx
         sub       rax, rcx
         cmp       rax, 8
-        jne       rmid
-        mov       rax, qword ptr [rcx]
-        bswap     rax
-        mov       qword ptr [rcx], rax
+        jb        rem4
+        mov       r9,  qword ptr [rcx]
+        mov       r10, qword ptr [rdx - 8]
+        bswap     r9
+        bswap     r10
+        mov       qword ptr [rcx], r10
+        mov       qword ptr [rdx - 8], r9
         jmp       rdone
 
-        ; ---- tier 4: scalar two-pointer swap (remaining 1..7 or 9..15) ----
+        ; ---- tier 4: 4..7 bytes -> one overlapping 4-byte bswap pair ------------------------------
+rem4:
+        cmp       rax, 4
+        jb        rmid
+        mov       r9d,  dword ptr [rcx]
+        mov       r10d, dword ptr [rdx - 4]
+        bswap     r9d
+        bswap     r10d
+        mov       dword ptr [rcx], r10d
+        mov       dword ptr [rdx - 4], r9d
+        jmp       rdone
+
+        ; ---- tier 5: 2..3 bytes -> a single scalar swap ------------------------------------------
 rmid:
         lea       rax, [rdx - 1]
         cmp       rcx, rax
