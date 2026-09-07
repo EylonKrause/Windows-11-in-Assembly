@@ -123,6 +123,11 @@ v4_nocap:
         inc       rcx
         jmp       v4_digs
 v4_digd:
+        cmp       r8d, 3
+        je        v4_chk                              ; last octet: no separator to check
+        cmp       byte ptr [rcx], '.'
+        jne       v4_dotmiss                          ; separator is checked BEFORE the octet is validated
+v4_chk:
         cmp       r11d, 3
         ja        v4_octbad
         cmp       edx, 255
@@ -137,9 +142,7 @@ v4_octok:
         inc       rbx
         cmp       r8d, 3
         je        v4_alldone
-        cmp       byte ptr [rcx], '.'
-        jne       v4_dotmiss
-        inc       rcx
+        inc       rcx                                 ; skip the '.' already verified above
         inc       r8d
         jmp       v4_oct
 v4_dotmiss:
@@ -170,7 +173,14 @@ maybe_colon:
         jmp       main_loop
 colon_seen:
         cmp       r10d, 4
-        ja        err_ret                             ; >4-hex group + ':' -> ERR, *term unchanged
+        jbe       cs_ok                               ; >4-hex group + ':' -> ERR, *term unchanged
+        cmp       byte ptr [rsi + 1], ':'             ;   ... unless this ':' opens a SECOND "::",
+        jne       err_ret                             ;       which then sets *term = p
+        test      r12, r12
+        jz        err_ret
+        mov       [r14], rsi
+        jmp       err_ret
+cs_ok:
         mov       eax, r11d
         mov       [rbx + 1], al
         shr       eax, 8
@@ -213,10 +223,39 @@ after_loop:
         test      r10d, r10d
         jz        al_colonp
         cmp       r10d, 4
-        ja        err_ret                             ; >4-hex final group -> ERR, *term unchanged
+        jbe       al_fits
+        mov       [r14], rsi                          ; >4-hex FINAL group -> ERR, *term = p
+        jmp       err_ret
+al_fits:
         lea       rax, [rbx + 2]
         cmp       rax, r13
         ja        al_tpover
+        ; --- the stored value is a RE-PARSE of the token, not the scan's accumulator: the helper
+        ;     honours a "0x"/"0X" prefix and saturates to 0FFFFh on 32-bit overflow ---
+        mov       rcx, rdi                            ; cursor = curtok
+        xor       r11d, r11d
+        cmp       byte ptr [rcx], '0'
+        jne       h16_loop
+        movzx     eax, byte ptr [rcx + 1]             ; safe: [rcx] is '0', so [rcx+1] is in range
+        or        al, 20h
+        cmp       al, 'x'
+        jne       h16_loop
+        add       rcx, 2
+h16_loop:
+        movzx     eax, byte ptr [rcx]
+        movzx     edx, byte ptr [r9 + rax]
+        cmp       dl, 0FFh
+        je        h16_done
+        test      r11d, 0F8000000h
+        jz        h16_ok
+        mov       r11d, 0FFFFh
+        jmp       h16_done
+h16_ok:
+        shl       r11d, 4
+        or        r11d, edx
+        inc       rcx
+        jmp       h16_loop
+h16_done:
         mov       eax, r11d
         mov       [rbx + 1], al
         shr       eax, 8
