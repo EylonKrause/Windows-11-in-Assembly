@@ -58,15 +58,28 @@ $L$ rises with $k$ up to 3, then **drops** at $k = 4$. No single "skip the leadi
 interior rule" formulation reproduces both tables: a leading skip of two backslashes fits $k \ge 4$
 and breaks $k = 3$; a skip of the whole run fits $k \le 3$ and breaks $k \ge 4$.
 
-## The likely missing piece
-That non-monotonicity looks like two mechanisms interacting rather than one rule — most plausibly a
-root-length computation (`PathSkipRootW`, which is itself an uncovered export at 13 ns) clamping a
-separately computed cut position. The next attempt should measure `PathSkipRootW` over the same
-exhaustive enumeration first and test whether
+## One hypothesis, tested and REFUTED
+That non-monotonicity looked like two mechanisms interacting rather than one rule — most plausibly
+a root-length computation clamping a separately computed cut position, since `PathSkipRootW` is
+right there and would explain why short leading runs are protected. So it was measured rather than
+assumed, and it is **wrong**:
 
-$$L = \max\bigl(\text{rootLength}(s),\ \text{cut}(s)\bigr)$$
+| input | `PathSkipRootW` length | truncation `L` |
+|---|---|---|
+| `"\\\\srv\\share"` | 11 | **5** |
+| `"\\\\srv"` | 5 | **2** |
+| `"a:\\b"` | 3 | 3 |
+| `"\\\\srv\\share\\f"` | 12 | 11 |
 
-reproduces both tables. That is a concrete, checkable next step, not a new guess.
+The first two truncate to **well inside** the root, so $L = \max(\text{rootLength}, \text{cut})$
+is refuted outright — the root is not protected in the UNC case at all. Whatever produces the
+leading-run table, it is not a root clamp.
+
+That is one blind alley the next attempt does not need to walk down. What remains unexplained is
+specifically why a leading run of 3 backslashes followed by a character truncates to 3 while a run
+of 4 truncates to 2, and the exhaustive-enumeration machinery from
+[161](../161-pathfindfilenamew/) — model the scan, collect must-set/must-not-set constraints, find
+where a local window conflicts — is the tool that should be pointed at it.
 
 ## Why this is parked rather than approximated
 The bench gate is not the obstacle — a vectorised version would very likely beat 76 ns comfortably.
@@ -77,5 +90,6 @@ solve the constraints, verify exhaustively. It has not been done here yet.
 
 ## Reproduce the investigation
 The probes used are in `probes/`. `prfs.c` scores the obvious rule variants, `prfs2.c` classifies the
-truncation length against the last backslash, `prfs3.c` dumps every string of length ≤ 4, and
-`prfs4.c` isolates the run behaviour above.
+truncation length against the last backslash, `prfs3.c` dumps every string of length <= 4,
+`prfs4.c` isolates the run behaviour above, and `prfs5.c` produces the `PathSkipRootW`
+comparison that refuted the clamp hypothesis.
