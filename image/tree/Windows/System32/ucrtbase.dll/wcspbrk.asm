@@ -1,148 +1,138 @@
-; ucrtbase.dll!wcspbrk  --  hand-written x86-64 reimplementation (4.74x vs shipped)
+; ucrtbase.dll!wcspbrk  --  hand-written x86-64 reimplementation (7.98x vs shipped)
 ; source of truth: changes/035-wcspbrk/  (reference.c + correctness.c + bench.c)
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/035-wcspbrk/impl.asm
-; wchar_t* wia_wcspbrk(const wchar_t* str, const wchar_t* set)   [Win64: rcx, rdx -> rax]
+; wchar_t* wia_wcspbrk(const wchar_t* s, const wchar_t* set)   [Win64: rcx, rdx -> rax]
 ;
-; Returns a pointer to the first wchar of str that is a member of set, else NULL.
-; ucrtbase does the naive O(n*m) scan (~1.5 GB/s). We pre-broadcast each set char
-; into a stack table of ymmwords once, then scan str 16 wchars at a time: for each
-; block, OR together vpcmpeqw against every set entry and against 0 (the terminator),
-; and take the first "stop" position. If that position is a set match -> return it;
-; if it is the terminator -> NULL. Page-safe: 32-aligned base + prologue mask-shift,
-; then a 32-aligned loop, so no load crosses into a page str does not occupy.
+; Reimplements ucrtbase!wcspbrk: pointer to the first character of `s` that appears in `set`, or NULL.
+; The live one is the naive O(n*m) scalar loop -- 346 ns for 254 characters against a 3-character
+; set, against 130 ns for the narrow `strpbrk`, which can bitmap its 256 possible values.
 ;
-; Sets with >= 32 chars (rare) take a correct scalar fallback. Empty set -> NULL.
-; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3 (see docs/PLATFORM.md).
+; Contract: a probe confirmed this export and shlwapi!StrPBrkW (change 137) agree on every edge case
+; that could distinguish them -- empty set -> NULL, empty string -> NULL, no match -> NULL, and a set
+; member with a zero low byte.
+;
+; Same hoisted block scan as changes 156/157: the first three set members are broadcast ONCE into
+; ymm2/ymm4/ymm5 before the loop, with the spare slots taking a duplicate of member 0 (harmless,
+; because the compares are OR-ed and `a OR a == a`), and any members past the third walked from
+; memory in a tail that costs two uops per block when it is empty.
+;
+; Unlike the complement span, which only needs to know *where* the scan stopped, this has to know
+; *why*: a set hit returns its address and the terminator returns NULL. So the hits and the
+; terminator are kept in SEPARATE masks, OR-ed only to find the first stop, and `bt` then asks which
+; of the two that first stop was.
+;
+; Page-safe: masked aligned prologue, all later loads 32-aligned (an aligned 32-byte load cannot
+; cross a page boundary).
+;
+; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
+
+; --- ymm1 = "this character is in the set", for the block in ymm0; ymm3 is scratch, rdx = tail -----
+HITS MACRO
+    LOCAL tail, tdone
+        vpcmpeqw  ymm1, ymm0, ymm2
+        vpcmpeqw  ymm3, ymm0, ymm4
+        vpor      ymm1, ymm1, ymm3
+        vpcmpeqw  ymm3, ymm0, ymm5
+        vpor      ymm1, ymm1, ymm3
+        mov       r10, rdx                          ; set members past the third, if any
+tail:   cmp       word ptr [r10], 0
+        jz        tdone
+        vpbroadcastw ymm3, word ptr [r10]
+        vpcmpeqw  ymm3, ymm0, ymm3
+        vpor      ymm1, ymm1, ymm3
+        add       r10, 2
+        jmp       tail
+tdone:
+ENDM
 
 .code
 wia_wcspbrk PROC
-        push      rbx
-        push      rsi
-        push      rdi
-        mov       rsi, rcx                         ; str
-        mov       rdi, rdx                         ; set
-        mov       rbx, rsp                         ; saved rsp (buffer base restored from here)
+        ; ---- scalar early-out ------------------------------------------------------------------
+        ; If the FIRST character is already a hit the answer is `s`, and the vector prologue
+        ; (load -> compare -> vpmovmskb -> tzcnt) is pure latency the live scalar loop beats outright.
+        ; The empty-set case falls through safely: set[0] is then 0 while s[0] has just been shown to
+        ; be non-zero, so the compare cannot hit.
+        movzx     eax, word ptr [rcx]               ; the two loads are independent, so they issue
+        movzx     r10d, word ptr [rdx]              ;   together rather than one feeding the other
+        cmp       eax, r10d
+        je        wp_first                          ; equal: either a hit, or both are terminators
+        test      r10d, r10d
+        jz        wp_null_early                     ; empty set: nothing can be found
+        test      eax, eax
+        jz        wp_null_early                     ; empty string
 
-        ; ---- slen = wcslen(set), capped at 32 ----
-        xor       r10, r10
-sl_lp:
-        cmp       word ptr [rdi + r10*2], 0
-        je        sl_done
-        inc       r10
-        cmp       r10, 32
-        jae       scalar_setup                     ; big set -> scalar (still correct)
-        jmp       sl_lp
-sl_done:
-        test      r10, r10
-        jz        ret_null                         ; empty set -> NULL
+        ; ---- hoist the first three set members -------------------------------------------------
+        mov       r10, rdx
+        vpbroadcastw ymm2, word ptr [r10]
+        vmovdqa   ymm4, ymm2
+        vmovdqa   ymm5, ymm2
+        add       r10, 2
+        cmp       word ptr [r10], 0
+        jz        wp_hoisted
+        vpbroadcastw ymm4, word ptr [r10]
+        add       r10, 2
+        cmp       word ptr [r10], 0
+        jz        wp_hoisted
+        vpbroadcastw ymm5, word ptr [r10]
+        add       r10, 2
+wp_hoisted:
+        mov       rdx, r10                          ; where the memory tail of the set starts
 
-        ; ---- pre-broadcast each set char into a 32-aligned stack table ----
-        sub       rsp, 1024
-        and       rsp, -32                         ; rsp = table base (up to 32 * 32B)
-        xor       rax, rax
-bc_lp:
-        movzx     ecx, word ptr [rdi + rax*2]
-        vmovd     xmm0, ecx
-        vpbroadcastw ymm0, xmm0
-        mov       rcx, rax
-        shl       rcx, 5                           ; j*32
-        vmovdqa   ymmword ptr [rsp + rcx], ymm0
-        inc       rax
-        cmp       rax, r10
-        jb        bc_lp
+        mov       r11, rcx                          ; position base for the first block
+        mov       r9, rcx
+        and       r9, -32
+        and       ecx, 31
 
-        vpxor     ymm1, ymm1, ymm1                 ; ymm1 = 0
-        mov       r9, rsi
-        and       r9, -32                          ; aligned-down base
-        mov       ecx, esi
-        and       ecx, 31                          ; cl = start byte offset within block
-
-        ; ---- prologue block ----
-        vmovdqu   ymm6, ymmword ptr [r9]
-        vpcmpeqw  ymm3, ymm6, ymm1                 ; == 0 (null)
-        vpxor     ymm4, ymm4, ymm4                 ; inset accumulator
-        xor       rax, rax
-in_lp0:
-        mov       r11, rax
-        shl       r11, 5
-        vpcmpeqw  ymm0, ymm6, ymmword ptr [rsp + r11]
-        vpor      ymm4, ymm4, ymm0
-        inc       rax
-        cmp       rax, r10
-        jb        in_lp0
-        vpor      ymm5, ymm4, ymm3                 ; stop = inset | null
-        vpmovmskb r8d, ymm5
-        vpmovmskb edx, ymm4                        ; inset byte mask
+        vmovdqa   ymm0, ymmword ptr [r9]
+        HITS
+        vpmovmskb r8d, ymm1                         ; set hits
+        vpxor     ymm3, ymm3, ymm3
+        vpcmpeqw  ymm3, ymm0, ymm3
+        vpmovmskb eax, ymm3                         ; terminator
+        or        eax, r8d                          ; stop = hit or terminator
+        shr       eax, cl                           ; drop bytes before the string start
         shr       r8d, cl
-        shr       edx, cl
-        test      r8d, r8d
-        jz        nextblk
-        tzcnt     r8d, r8d                          ; byte offset from str
-        bt        edx, r8d
-        jnc       ret_null2                         ; stop was terminator -> NULL
-        lea       rax, [rsi + r8]
-        jmp       ret_ok
-
-nextblk:
-        add       r9, 32
-        vmovdqu   ymm6, ymmword ptr [r9]
-        vpcmpeqw  ymm3, ymm6, ymm1
-        vpxor     ymm4, ymm4, ymm4
-        xor       rax, rax
-in_lp1:
-        mov       r11, rax
-        shl       r11, 5
-        vpcmpeqw  ymm0, ymm6, ymmword ptr [rsp + r11]
-        vpor      ymm4, ymm4, ymm0
-        inc       rax
-        cmp       rax, r10
-        jb        in_lp1
-        vpor      ymm5, ymm4, ymm3
-        vpmovmskb r8d, ymm5
-        test      r8d, r8d
-        jz        nextblk
-        vpmovmskb edx, ymm4
-        tzcnt     r8d, r8d
-        bt        edx, r8d
-        jnc       ret_null2
-        lea       rax, [r9 + r8]
-        jmp       ret_ok
-
-        ; ---- scalar fallback (set >= 32 chars) ----
-scalar_setup:
-sc_next:
-        movzx     eax, word ptr [rsi]
-        test      ax, ax
-        jz        ret_null                          ; end of str -> NULL
-        xor       r10, r10
-sc_in:
-        movzx     ecx, word ptr [rdi + r10*2]
-        test      cx, cx
-        jz        sc_adv                            ; not in set
-        cmp       cx, ax
-        je        sc_hit
-        inc       r10
-        jmp       sc_in
-sc_hit:
-        mov       rax, rsi
-        jmp       ret_ok
-sc_adv:
-        add       rsi, 2
-        jmp       sc_next
-
-ret_null2:
-        xor       eax, eax
-        jmp       ret_ok
-ret_null:
-        xor       eax, eax
-ret_ok:
-        lea       rsp, [rbx]                        ; restore rsp (undo buffer alloc if any)
+        test      eax, eax
+        jz        wp_next
+        tzcnt     eax, eax
+        bt        r8d, eax                          ; was the first stop a set hit?
+        jnc       wp_null
+        lea       rax, [r11 + rax]
         vzeroupper
-        pop       rdi
-        pop       rsi
-        pop       rbx
+        ret
+
+wp_next:
+        add       r9, 32
+        mov       r11, r9
+        vmovdqa   ymm0, ymmword ptr [r9]
+        HITS
+        vpmovmskb r8d, ymm1
+        vpxor     ymm3, ymm3, ymm3
+        vpcmpeqw  ymm3, ymm0, ymm3
+        vpmovmskb eax, ymm3
+        or        eax, r8d
+        test      eax, eax
+        jz        wp_next
+        tzcnt     eax, eax
+        bt        r8d, eax
+        jnc       wp_null
+        lea       rax, [r11 + rax]
+        vzeroupper
+        ret
+
+wp_null:
+        xor       eax, eax
+        vzeroupper
+        ret
+wp_null_early:
+        xor       eax, eax                          ; no ymm touched yet
+        ret
+wp_first:
+        test      eax, eax                          ; both terminators -> NULL; otherwise a real hit
+        jz        wp_null_early
+        mov       rax, rcx
         ret
 wia_wcspbrk ENDP
 END

@@ -1,120 +1,142 @@
-; msvcrt.dll!wcscspn  --  hand-written x86-64 reimplementation (5.61x vs shipped)
+; msvcrt.dll!wcscspn  --  hand-written x86-64 reimplementation (8.61x vs shipped)
 ; source of truth: changes/037-wcscspn/  (reference.c + correctness.c + bench.c)
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/037-wcscspn/impl.asm
-; size_t wia_wcscspn(const wchar_t* str, const wchar_t* set)   [Win64: rcx, rdx -> rax]
+; size_t wia_wcscspn(const wchar_t* s, const wchar_t* set)   [Win64: rcx, rdx -> rax]
 ;
-; Length of the initial run of str made up entirely of chars that are NOT in set
-; (i.e. the index of the first char that IS in set, or strlen(str) if none). The
-; index form of wcspbrk. ucrtbase does the naive O(n*m) scan (~1.3 GB/s).
+; Reimplements ucrtbase!wcscspn: length of the initial run of characters that appear in NEITHER `set`
+; nor {NUL} -- the complement span. The live one is the naive O(n*m) scalar loop, 403 ns for 254
+; characters against a 3-character set, while its narrow sibling `strcspn` manages 139 ns with a
+; 256-bit set bitmap that cannot be built for 65536 wide values. Same "wide half left scalar" split
+; as changes 148/149.
 ;
-; Scan str 16 wchars at a time; per block OR vpcmpeqw against every set char
-; (broadcast straight from memory -> no per-call setup, no stack frame) to get an
-; "in-set" mask, OR in the ==0 (terminator) mask, and stop at the first such wchar.
-; Return = that wchar index. Because the terminator is a stop, a str with no set
-; member returns its length and the scan never runs past the string.
+; Contract: a probe confirmed this export and shlwapi!StrCSpnW (change 136) agree on every edge case
+; that could distinguish them -- empty set -> the whole string length, empty string, no match, and a
+; set member with a zero low byte. Only the return type differs (size_t vs int), and both exits
+; already leave a zero-extended value in rax.
 ;
-; Page-safe: 32-aligned base + prologue mask-shift, then a 32-aligned loop. Sets with
-; >= 32 chars take a correct scalar fallback. Empty set -> strlen (first stop is the
-; terminator). No non-volatile registers, no stack. ISA: AVX2 + BMI1. Validated on Zen3.
+; The complement of change 156, with one real difference: there the terminator needed no special case
+; because a NUL can never be a member of a NUL-terminated set, so it stopped the span for free. Here
+; the span continues *while* characters are outside the set, so the NUL would NOT stop it -- it must
+; be compared explicitly and OR-ed into the stop mask.
+;
+; ---- why the set is hoisted into registers ------------------------------------------------------
+; Change 136 re-walked the set inside every 32-byte block, broadcasting each member afresh: about
+; seven instructions per member per block. That made the routine badly sensitive to code layout --
+; adding three uops at the top of the function, or alignment padding on the per-block fall-through,
+; moved the 1024-character result between 96 and 125 ns with no change whatever to the work done. A
+; branchy loop that small aliases in the branch predictor, so its cost is decided by where it lands.
+;
+; So the first three set members are broadcast ONCE, before the block loop, into ymm2/ymm4/ymm5, and
+; the block loop is straight-line. When the set is shorter the spare registers get a DUPLICATE of
+; member 0 -- comparing against the same character twice is harmless because the results are OR-ed,
+; and `a OR a == a`. An empty set fills all three with zero, which merely duplicates the terminator
+; compare that seeds the accumulator, and that is exactly right for `wcscspn` with an empty set:
+; scan to the terminator. Sets longer than three still walk the remainder from memory, but that tail
+; costs two uops per block when it is empty, which is the common case.
+;
+; Only ymm0-ymm5 are usable (xmm6-xmm15 are non-volatile under Win64), and data, accumulator and the
+; three members take five of them -- so ymm3 doubles as the compare scratch and is re-zeroed at the
+; top of each block. That `vpxor` is a zeroing idiom: renamed, not executed.
+;
+; Page-safe: masked aligned prologue (shifting zeros into the stop mask means "no stop", which merely
+; continues into the next block); all later loads are 32-aligned and cannot cross a page.
+;
+; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
+
+; --- OR every "stop" reason for the block in ymm0 into ymm1; ymm3 is scratch ----------------------
+STOPMASK MACRO
+    LOCAL tail, tdone
+        vpxor     ymm3, ymm3, ymm3
+        vpcmpeqw  ymm1, ymm0, ymm3                  ; the terminator stops a complement span
+        vpcmpeqw  ymm3, ymm0, ymm2
+        vpor      ymm1, ymm1, ymm3
+        vpcmpeqw  ymm3, ymm0, ymm4
+        vpor      ymm1, ymm1, ymm3
+        vpcmpeqw  ymm3, ymm0, ymm5
+        vpor      ymm1, ymm1, ymm3
+        mov       r10, r11                          ; set members past the third, if any
+tail:   cmp       word ptr [r10], 0
+        jz        tdone
+        vpbroadcastw ymm3, word ptr [r10]
+        vpcmpeqw  ymm3, ymm0, ymm3
+        vpor      ymm1, ymm1, ymm3
+        add       r10, 2
+        jmp       tail
+tdone:
+ENDM
 
 .code
 wia_wcscspn PROC
-        mov       r8, rcx                          ; str
-        mov       r9, rdx                          ; set
-        ; ---- slen = wcslen(set), capped at 32 ----
-        xor       r10, r10
-sl_lp:
-        cmp       word ptr [r9 + r10*2], 0
-        je        sl_done
-        inc       r10
-        cmp       r10, 32
-        jae       scalar_setup
-        jmp       sl_lp
-sl_done:
-        ; (empty set is fine: inset accumulator stays 0, so only the terminator stops)
-        vpxor     ymm1, ymm1, ymm1                  ; ymm1 = 0
-        mov       r11, r8
-        and       r11, -32                          ; aligned-down block base
-        mov       ecx, r8d
-        and       ecx, 31                           ; cl = start byte offset within block
+        ; ---- scalar early-out ------------------------------------------------------------------
+        ; When the FIRST character already stops the scan the answer is 0, and the vector prologue
+        ; (load -> compare -> vpmovmskb -> tzcnt) is pure latency that the live scalar loop beats
+        ; outright. An empty set needs no guard here: its first word is 0 and the string's first
+        ; character has just been shown to be non-zero, so the compare cannot hit.
+        movzx     eax, word ptr [rcx]
+        test      ax, ax
+        jz        wc_zero
+        cmp       ax, word ptr [rdx]
+        je        wc_zero
 
-        ; ---- prologue block ----
-        vmovdqu   ymm6, ymmword ptr [r11]
-        vpcmpeqw  ymm3, ymm6, ymm1                  ; == 0 (terminator)
-        vpxor     ymm4, ymm4, ymm4                  ; in-set accumulator
-        xor       rax, rax
-        test      r10, r10
-        jz        have0                             ; empty set -> skip compares
-in_lp0:
-        vpbroadcastw ymm0, word ptr [r9 + rax*2]
-        vpcmpeqw  ymm0, ymm6, ymm0
-        vpor      ymm4, ymm4, ymm0
-        inc       rax
-        cmp       rax, r10
-        jb        in_lp0
-have0:
-        vpor      ymm5, ymm4, ymm3                  ; stop = in-set OR terminator
-        vpmovmskb edx, ymm5
-        shr       edx, cl                           ; relative to str
-        test      edx, edx
-        jz        nextblk
-        tzcnt     edx, edx                          ; byte offset of first stop from str
-        shr       edx, 1                            ; -> wchar index
-        mov       eax, edx
+        ; ---- hoist the first three set members -------------------------------------------------
+        mov       r10, rdx
+        vpxor     ymm3, ymm3, ymm3
+        cmp       word ptr [r10], 0
+        jz        wc_empty_set
+        vpbroadcastw ymm2, word ptr [r10]
+        vmovdqa   ymm4, ymm2                        ; spare slots take a duplicate of member 0:
+        vmovdqa   ymm5, ymm2                        ;   the results are OR-ed, and a OR a == a
+        add       r10, 2
+        cmp       word ptr [r10], 0
+        jz        wc_hoisted
+        vpbroadcastw ymm4, word ptr [r10]
+        add       r10, 2
+        cmp       word ptr [r10], 0
+        jz        wc_hoisted
+        vpbroadcastw ymm5, word ptr [r10]
+        add       r10, 2
+        jmp       wc_hoisted
+wc_empty_set:
+        vmovdqa   ymm2, ymm3                        ; all zero: duplicates the terminator compare,
+        vmovdqa   ymm4, ymm3                        ;   which is what an empty set must do here
+        vmovdqa   ymm5, ymm3
+wc_hoisted:
+        mov       r11, r10                          ; where the memory tail of the set starts
+
+        mov       r8, rcx                           ; string start
+        mov       r9, rcx
+        and       r9, -32                           ; aligned-down load address
+        and       ecx, 31                           ; byte offset of the string within that block
+
+        vmovdqa   ymm0, ymmword ptr [r9]
+        STOPMASK
+        vpmovmskb eax, ymm1
+        shr       eax, cl                           ; drop bytes before the string start
+        test      eax, eax
+        jz        wc_next
+        tzcnt     eax, eax
+        shr       eax, 1                            ; bytes -> characters
         vzeroupper
         ret
 
-nextblk:
-        add       r11, 32
-        vmovdqu   ymm6, ymmword ptr [r11]
-        vpcmpeqw  ymm3, ymm6, ymm1
-        vpxor     ymm4, ymm4, ymm4
-        xor       rax, rax
-        test      r10, r10
-        jz        have1
-in_lp1:
-        vpbroadcastw ymm0, word ptr [r9 + rax*2]
-        vpcmpeqw  ymm0, ymm6, ymm0
-        vpor      ymm4, ymm4, ymm0
-        inc       rax
-        cmp       rax, r10
-        jb        in_lp1
-have1:
-        vpor      ymm5, ymm4, ymm3
-        vpmovmskb edx, ymm5
-        test      edx, edx
-        jz        nextblk
-        tzcnt     edx, edx                          ; byte offset within block
-        lea       rax, [r11 + rdx]                  ; absolute byte address of first stop
-        sub       rax, r8                           ; byte offset from str
-        shr       rax, 1                             ; -> wchar index
+wc_next:
+        add       r9, 32
+        vmovdqa   ymm0, ymmword ptr [r9]
+        STOPMASK
+        vpmovmskb eax, ymm1
+        test      eax, eax
+        jz        wc_next
+        tzcnt     eax, eax
+        add       rax, r9                           ; absolute address of the stopping character
+        sub       rax, r8                           ; bytes from the string start
+        shr       rax, 1                            ; -> characters
         vzeroupper
         ret
 
-        ; ---- scalar fallback (set >= 32 chars) ----
-scalar_setup:
-        xor       rax, rax                           ; index
-sc_next:
-        movzx     r10d, word ptr [r8 + rax*2]        ; str char
-        test      r10w, r10w
-        jz        ret_have                           ; terminator -> stop (return index)
-        xor       rcx, rcx
-sc_in:
-        movzx     edx, word ptr [r9 + rcx*2]
-        test      dx, dx
-        jz        sc_adv                             ; end of set, not a member -> keep going
-        cmp       dx, r10w
-        je        ret_have                           ; in set -> stop (return index)
-        inc       rcx
-        jmp       sc_in
-sc_adv:
-        inc       rax
-        jmp       sc_next
-
-ret_have:
-        vzeroupper
+wc_zero:
+        xor       eax, eax                          ; no ymm touched yet, so no vzeroupper needed
         ret
 wia_wcscspn ENDP
 END
