@@ -1,4 +1,4 @@
-# ucrtbase.dll — reimplemented exports (69)
+# ucrtbase.dll — reimplemented exports (72)
 
 | export | speedup | source |
 |---|---|---|
@@ -6,6 +6,7 @@
 | `_i64toa` | 1.61x | [changes/057-i64toa](../../../../../changes/057-i64toa/) |
 | `_i64toa_s` | 2.32x | [changes/194-i64toa-s](../../../../../changes/194-i64toa-s/) |
 | `_i64tow` | 1.59x | [changes/075-i64tow](../../../../../changes/075-i64tow/) |
+| `_i64tow_s` | 2.29x | [changes/196-i64tow-s](../../../../../changes/196-i64tow-s/) |
 | `_itoa` | 1.44x | [changes/056-itoa](../../../../../changes/056-itoa/) |
 | `_itow` | 1.42x | [changes/074-itow](../../../../../changes/074-itow/) |
 | `_memccpy` | 8.69x | [changes/146-memccpy](../../../../../changes/146-memccpy/) |
@@ -25,7 +26,9 @@
 | `_strupr_s` | 7.17x | [changes/181-strupr-s](../../../../../changes/181-strupr-s/) |
 | `_swab` | 7.91x | [changes/145-swab](../../../../../changes/145-swab/) |
 | `_ui64toa` | 1.56x | [changes/055-ui64toa](../../../../../changes/055-ui64toa/) |
+| `_ui64toa_s` | 2.38x | [changes/195-ui64toa-s](../../../../../changes/195-ui64toa-s/) |
 | `_ui64tow` | 1.60x | [changes/073-ui64tow](../../../../../changes/073-ui64tow/) |
+| `_ui64tow_s` | 2.06x | [changes/197-ui64tow-s](../../../../../changes/197-ui64tow-s/) |
 | `_ultoa` | 1.50x | [changes/054-ultoa](../../../../../changes/054-ultoa/) |
 | `_ultow` | 1.55x | [changes/072-ultow](../../../../../changes/072-ultow/) |
 | `_wcsicmp` | 7.66x | [changes/042-wcsicmp](../../../../../changes/042-wcsicmp/) |
