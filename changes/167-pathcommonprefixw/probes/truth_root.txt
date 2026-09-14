@@ -1,0 +1,167 @@
+== PathSkipRootW reference points ==
+  rootlen(         ) = -1
+  rootlen(a        ) = -1
+  rootlen(\        ) = 1
+  rootlen(\\       ) = 2
+  rootlen(\\\      ) = 3
+  rootlen(\a       ) = 1
+  rootlen(\\a      ) = 3
+  rootlen(\\a\     ) = 4
+  rootlen(\\a\b    ) = 5
+  rootlen(\\a\b\   ) = 6
+  rootlen(\\a\b\c  ) = 6
+  rootlen(C:       ) = -1
+  rootlen(C:\      ) = 3
+  rootlen(C:\a     ) = 3
+  rootlen(C:a      ) = -1
+  rootlen(aa       ) = -1
+  rootlen(a\       ) = -1
+  rootlen(a\a      ) = -1
+  rootlen(\a\      ) = 1
+  rootlen(\\\a     ) = 4
+
+== the cases my rule got wrong ==
+  a=\       b=\\      c=1 rootA= 1 rootB= 2 lastSep= 0 -> live=0
+  a=\\      b=\\a     c=2 rootA= 2 rootB= 3 lastSep= 1 -> live=0
+  a=\\      b=\\\     c=2 rootA= 2 rootB= 3 lastSep= 1 -> live=3
+  a=a       b=a\      c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=aa      b=aa\     c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=a\      b=a\a     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\      b=a\\     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\a     b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=\a      b=\a\     c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\\a     b=\\a\    c=3 rootA= 3 rootB= 4 lastSep= 1 -> live=3
+  a=\\a\b   b=\\a\b\c c=5 rootA= 5 rootB= 6 lastSep= 3 -> live=5
+  a=\\a\b\c b=\\a\b\d c=6 rootA= 6 rootB= 6 lastSep= 5 -> live=5
+  a=C:\a    b=C:\b    c=3 rootA= 3 rootB= 3 lastSep= 2 -> live=3
+  a=C:\a\b  b=C:\a\b\c c=6 rootA= 3 rootB= 3 lastSep= 4 -> live=6
+
+== full sweep over {a,backslash} len<=4, with root info ==
+  a=a       b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\      c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\a     c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\\     c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\aa    c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\\a    c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\a\    c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a       b=a\\\    c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=\       b=\       c=1 rootA= 1 rootB= 1 lastSep= 0 -> live=1
+  a=aa      b=aa      c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa      b=aa\     c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa      b=aa\a    c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa      b=aa\\    c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=\a      b=\a      c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a      b=\a\     c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a      b=\a\a    c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a      b=\a\\    c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=a\      b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\      b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\      b=a\a     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\      b=a\\     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\      b=a\aa    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\      b=a\\a    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\      b=a\a\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\      b=a\\\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=\\      b=\\      c=2 rootA= 2 rootB= 2 lastSep= 1 -> live=3
+  a=\\      b=\\\     c=2 rootA= 2 rootB= 3 lastSep= 1 -> live=3
+  a=\\      b=\\\a    c=2 rootA= 2 rootB= 4 lastSep= 1 -> live=3
+  a=\\      b=\\\\    c=2 rootA= 2 rootB= 3 lastSep= 1 -> live=3
+  a=aaa     b=aaa     c=3 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aaa     b=aaa\    c=3 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=\aa     b=\aa     c=3 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\aa     b=\aa\    c=3 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=a\a     b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\a     b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a     b=a\a     c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\a     b=a\\     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a     b=a\aa    c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a     b=a\\a    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a     b=a\a\    c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\a     b=a\\\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=\\a     b=\\a     c=3 rootA= 3 rootB= 3 lastSep= 1 -> live=3
+  a=\\a     b=\\a\    c=3 rootA= 3 rootB= 4 lastSep= 1 -> live=3
+  a=aa\     b=aa      c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa\     b=aa\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=aa\     b=aa\a    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=aa\     b=aa\\    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=\a\     b=\a      c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a\     b=\a\     c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=\a\     b=\a\a    c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=\a\     b=\a\\    c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=a\\     b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\\     b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\\     b=a\a     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\     b=a\\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=a\\     b=a\aa    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\     b=a\\a    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=a\\     b=a\a\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\     b=a\\\    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=\\\     b=\\      c=2 rootA= 3 rootB= 2 lastSep= 1 -> live=3
+  a=\\\     b=\\\     c=3 rootA= 3 rootB= 3 lastSep= 2 -> live=3
+  a=\\\     b=\\\a    c=3 rootA= 3 rootB= 4 lastSep= 2 -> live=3
+  a=\\\     b=\\\\    c=3 rootA= 3 rootB= 3 lastSep= 2 -> live=3
+  a=aaaa    b=aaaa    c=4 rootA=-1 rootB=-1 lastSep=-1 -> live=4
+  a=\aaa    b=\aaa    c=4 rootA= 1 rootB= 1 lastSep= 0 -> live=4
+  a=a\aa    b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\aa    b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\aa    b=a\a     c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\aa    b=a\\     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\aa    b=a\aa    c=4 rootA=-1 rootB=-1 lastSep= 1 -> live=4
+  a=a\aa    b=a\\a    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\aa    b=a\a\    c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\aa    b=a\\\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=\\aa    b=\\aa    c=4 rootA= 4 rootB= 4 lastSep= 1 -> live=4
+  a=aa\a    b=aa      c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa\a    b=aa\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=aa\a    b=aa\a    c=4 rootA=-1 rootB=-1 lastSep= 2 -> live=4
+  a=aa\a    b=aa\\    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=\a\a    b=\a      c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a\a    b=\a\     c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=\a\a    b=\a\a    c=4 rootA= 1 rootB= 1 lastSep= 2 -> live=4
+  a=\a\a    b=\a\\    c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=a\\a    b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\\a    b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\\a    b=a\a     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\a    b=a\\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=a\\a    b=a\aa    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\a    b=a\\a    c=4 rootA=-1 rootB=-1 lastSep= 2 -> live=4
+  a=a\\a    b=a\a\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\a    b=a\\\    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=\\\a    b=\\      c=2 rootA= 4 rootB= 2 lastSep= 1 -> live=3
+  a=\\\a    b=\\\     c=3 rootA= 4 rootB= 3 lastSep= 2 -> live=3
+  a=\\\a    b=\\\a    c=4 rootA= 4 rootB= 4 lastSep= 2 -> live=4
+  a=\\\a    b=\\\\    c=3 rootA= 4 rootB= 3 lastSep= 2 -> live=3
+  a=aaa\    b=aaa     c=3 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aaa\    b=aaa\    c=4 rootA=-1 rootB=-1 lastSep= 3 -> live=4
+  a=\aa\    b=\aa     c=3 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\aa\    b=\aa\    c=4 rootA= 1 rootB= 1 lastSep= 3 -> live=4
+  a=a\a\    b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\a\    b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a\    b=a\a     c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\a\    b=a\\     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a\    b=a\aa    c=3 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a\    b=a\\a    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\a\    b=a\a\    c=4 rootA=-1 rootB=-1 lastSep= 3 -> live=4
+  a=a\a\    b=a\\\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=\\a\    b=\\a     c=3 rootA= 4 rootB= 3 lastSep= 1 -> live=3
+  a=\\a\    b=\\a\    c=4 rootA= 4 rootB= 4 lastSep= 3 -> live=4
+  a=aa\\    b=aa      c=2 rootA=-1 rootB=-1 lastSep=-1 -> live=3
+  a=aa\\    b=aa\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=aa\\    b=aa\a    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=aa\\    b=aa\\    c=4 rootA=-1 rootB=-1 lastSep= 3 -> live=4
+  a=\a\\    b=\a      c=2 rootA= 1 rootB= 1 lastSep= 0 -> live=3
+  a=\a\\    b=\a\     c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=\a\\    b=\a\a    c=3 rootA= 1 rootB= 1 lastSep= 2 -> live=3
+  a=\a\\    b=\a\\    c=4 rootA= 1 rootB= 1 lastSep= 3 -> live=4
+  a=a\\\    b=a       c=1 rootA=-1 rootB=-1 lastSep=-1 -> live=1
+  a=a\\\    b=a\      c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=3
+  a=a\\\    b=a\a     c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\\    b=a\\     c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=a\\\    b=a\aa    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\\    b=a\\a    c=3 rootA=-1 rootB=-1 lastSep= 2 -> live=3
+  a=a\\\    b=a\a\    c=2 rootA=-1 rootB=-1 lastSep= 1 -> live=1
+  a=a\\\    b=a\\\    c=4 rootA=-1 rootB=-1 lastSep= 3 -> live=4
+  a=\\\\    b=\\      c=2 rootA= 3 rootB= 2 lastSep= 1 -> live=3
+  a=\\\\    b=\\\     c=3 rootA= 3 rootB= 3 lastSep= 2 -> live=3
+  a=\\\\    b=\\\a    c=3 rootA= 3 rootB= 4 lastSep= 2 -> live=3
+  a=\\\\    b=\\\\    c=4 rootA= 3 rootB= 3 lastSep= 3 -> live=4
