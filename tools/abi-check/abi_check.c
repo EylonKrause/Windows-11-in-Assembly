@@ -178,6 +178,18 @@ static void thunk(void){
     sink += (long long)rem;
 }
 
+#elif defined(T_205)
+#define NAME "205-uuidfromstringa"
+extern long wia_uuidfromstringa(unsigned char*, GUID*);
+static void thunk(void){
+    static GUID g;
+    /* a valid parse, a rejected one, and the NULL-pointer success path */
+    sink += wia_uuidfromstringa((unsigned char*)"deadbeef-1234-5678-9abc-def011223344", &g);
+    sink += wia_uuidfromstringa((unsigned char*)"{deadbeef-1234-5678-9abc-def011223344}", &g);
+    sink += wia_uuidfromstringa(NULL, &g);
+    sink += ((unsigned char*)&g)[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
