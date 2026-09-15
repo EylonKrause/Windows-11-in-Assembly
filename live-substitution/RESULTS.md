@@ -95,6 +95,7 @@ live-substitution\build_fmt_s_live.bat      (the bounded 64-bit formatters: 194-
 live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-201, SIX exports)
 live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
+live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -128,3 +129,12 @@ onto `Divisor == 0` (which must saturate rather than fault). Under the live patc
 **142 725** took the hardware divide, **199 929** the reproduced 64-iteration loop and **57 346** had a
 zero divisor, so all three paths ran in bulk. Quotient and remainder both compared, every case re-run
 with a NULL remainder pointer.
+
+### 205 - the output must be untouched on failure
+
+`UuidFromStringA` leaves the caller's GUID alone on every error, so this harness pre-poisons the GUID
+and compares all sixteen bytes on **every** case, failing ones included -- a return-value-only check
+would pass an implementation that scribbled a partial parse before noticing a bad digit. The corpus
+also forces the two contract traps: a braced string must be REJECTED (the opposite of ntdll's parser),
+and a NULL pointer must SUCCEED with the nil UUID. Under the live patch, of 200 000 cases **141 233**
+parsed, **58 767** were rejected and **5 406** were the NULL pointer.
