@@ -165,6 +165,19 @@ static void thunk(void){
     sink += wia_ConvertGuidToStringA(&g, a8, 64);
 }
 
+#elif defined(T_204)
+#define NAME "204-rtludiv128"
+extern unsigned __int64 wia_udiv128(unsigned __int64, unsigned __int64,
+                                    unsigned __int64, unsigned __int64*);
+static void thunk(void){
+    unsigned __int64 rem = 0;
+    /* both paths: the hardware-divide region AND the loop, which spills rbx and rdi itself */
+    sink += (long long)wia_udiv128(0x1234ull, 0xDEADBEEFCAFEBABEull, 0x9E3779B97F4A7C15ull, &rem);
+    sink += (long long)wia_udiv128(0xFFFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull, 2, &rem);
+    sink += (long long)wia_udiv128(0x1234ull, 1000, 0, &rem);   /* divisor 0 -> the loop */
+    sink += (long long)rem;
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

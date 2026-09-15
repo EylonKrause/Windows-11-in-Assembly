@@ -94,6 +94,7 @@ live-substitution\build_ntdll2_live.bat     (192-193)
 live-substitution\build_fmt_s_live.bat      (the bounded 64-bit formatters: 194-197)
 live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-201, SIX exports)
 live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
+live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -117,3 +118,13 @@ prologues restored byte-for-byte.
 A and W are patched and driven **separately**. `changes/203-convertguidtostringa/probes/cgsa.c`
 measured them character-identical over 200 000 pairs, which is a reason to check both rather than a
 licence to check one.
+
+### 204 - a boundary where being wrong means crashing, not mismatching
+
+`RtlUdiv128`'s fast path issues a hardware `div`, which raises `#DE` when the quotient will not fit in
+64 bits. That happens on exactly `DividendHigh >= Divisor`, so the compare selecting the fast path has
+no slack: an off-by-one is a fault, not a bad answer. The corpus is weighted onto that boundary and
+onto `Divisor == 0` (which must saturate rather than fault). Under the live patch, of 400 000 cases
+**142 725** took the hardware divide, **199 929** the reproduced 64-iteration loop and **57 346** had a
+zero divisor, so all three paths ran in bulk. Quotient and remainder both compared, every case re-run
+with a NULL remainder pointer.
