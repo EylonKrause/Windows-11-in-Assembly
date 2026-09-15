@@ -813,6 +813,31 @@ static void thunk(void){
     sink += wia_pathcommonprefixa(p, q, 0);                /* no buffer at all */
 }
 
+#elif defined(T_237)
+#define NAME "237-pathisprefixa"
+extern int wia_pathisprefixa(const char*, const char*);
+static void thunk(void){
+    /* a TRUE and a FALSE, the fold path (differing case forces the vector fold), both anomalies
+       that fall out of the reported-count defect, NULL, and a 300-character scan. */
+    static char p[600], q[600];
+    int i;
+    sink += wia_pathisprefixa("C:\\dir", "C:\\dir\\file");
+    sink += wia_pathisprefixa("C:\\DIR", "c:\\dir\\file");  /* folds */
+    sink += wia_pathisprefixa("C:\\dir", "C:\\dirfile");    /* not a boundary */
+    sink += wia_pathisprefixa("aa", "aa");                 /* NOT a prefix of itself */
+    sink += wia_pathisprefixa("xy\\", "xy");            /* longer IS a prefix */
+    sink += wia_pathisprefixa("", "C:\\dir");           /* the empty string is TRUE */
+    sink += wia_pathisprefixa(0, "C:\\a");
+    sink += wia_pathisprefixa("C:\\a", 0);
+    for (i = 0; i < 300; ++i) { q[i] = (i % 8 == 7) ? 0x5C : (char)(0x61 + i % 23); p[i] = q[i]; }
+    q[300] = 0; p[255] = 0;
+    sink += wia_pathisprefixa(p, q);                       /* a long TRUE */
+    for (i = 0; i < 255; ++i) if (p[i] >= 0x61 && p[i] <= 0x7A) p[i] = (char)(p[i] - 0x20);
+    sink += wia_pathisprefixa(p, q);                       /* a long TRUE through the FOLD */
+    p[100] = 0x51;
+    sink += wia_pathisprefixa(p, q);                       /* a long FALSE */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
