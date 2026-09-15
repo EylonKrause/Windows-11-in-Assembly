@@ -205,3 +205,19 @@ each different field boundary, and every case compares all sixteen bytes from a 
 live patch, of 200 000 cases **70 429** parsed, **48 093** returned `CO_E_IIDSTRING` *with partial
 writes*, and **81 478** returned `E_INVALIDARG` -- so the partial-write path ran in bulk against the
 real export, not only in the unit test.
+
+### 212 - why this one's live corpus is EXHAUSTIVE and not sampled
+
+Every other entry above validates against a random corpus, and for every other entry that is enough.
+`PathFindFileNameA` is the exception, because **its separator rule is not local**: a colon sets the
+answer only when it is the SOLE colon in its run -- the stretch between two backslash/slash
+characters -- so no bounded window of characters decides the answer.
+
+A random path corpus would therefore **validate a wrong implementation**. `probes/rule.c` measured
+exactly that: the plausible simpler rule, which drops the run condition, agrees with the live export
+on every ordinary path and differs on **76 672 of the 349 525** strings over
+{a, backslash, slash, colon} of length 0..9.
+
+So the live run enumerates that alphabet as well: **21 845** strings of length 0..7, of which
+**11 457 hold two or more colons** -- the shapes that separate the real rule from the plausible one --
+plus 4 000 long real-shaped paths through the block-skipping path.
