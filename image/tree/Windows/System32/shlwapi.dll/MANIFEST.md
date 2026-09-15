@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (42)
+# shlwapi.dll — reimplemented exports (43)
 
 | export | speedup | source |
 |---|---|---|
@@ -11,6 +11,7 @@
 | `PathFindNextComponentW` | 3.98x | [changes/173-pathfindnextcomponentw](../../../../../changes/173-pathfindnextcomponentw/) |
 | `PathIsFileSpecA` | 55.14x | [changes/235-pathisfilespeca](../../../../../changes/235-pathisfilespeca/) |
 | `PathIsFileSpecW` | 5.73x | [changes/138-pathisfilespecw](../../../../../changes/138-pathisfilespecw/) |
+| `PathIsPrefixA` | 111.16x | [changes/237-pathisprefixa](../../../../../changes/237-pathisprefixa/) |
 | `PathQuoteSpacesA` | 3.34x | [changes/233-pathquotespacesa](../../../../../changes/233-pathquotespacesa/) |
 | `PathQuoteSpacesW` | 2.06x | [changes/172-pathquotespacesw](../../../../../changes/172-pathquotespacesw/) |
 | `PathRemoveArgsA` | 34.73x | [changes/226-pathremoveargsa](../../../../../changes/226-pathremoveargsa/) |

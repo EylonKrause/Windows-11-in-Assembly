@@ -55,6 +55,7 @@ extern int            wia_pathquotespacesa(char*);
 extern char*          wia_pathfindnextcomponenta(const char*);
 extern int            wia_pathisfilespeca(const char*);
 extern int            wia_pathcommonprefixa(const char*, const char*, char*);
+extern int            wia_pathisprefixa(const char*, const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -109,6 +110,8 @@ static volatile LONG c_pifsa;
 static BOOL WINAPI w_pifsa(LPCSTR p){ _InterlockedIncrement(&c_pifsa); return (BOOL)wia_pathisfilespeca(p); }
 static volatile LONG c_pcpa;
 static int WINAPI w_pcpa(LPCSTR x, LPCSTR y, LPSTR o){ _InterlockedIncrement(&c_pcpa); return wia_pathcommonprefixa(x, y, o); }
+static volatile LONG c_pipa;
+static BOOL WINAPI w_pipa(LPCSTR x, LPCSTR y){ _InterlockedIncrement(&c_pipa); return (BOOL)wia_pathisprefixa(x, y); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -2358,9 +2361,145 @@ int main(void){
         }
     }
 
+
+    // ===================== 237 PathIsPrefixA =====================
+    // The answer is one bit, so the corpus is chosen for BRANCH coverage -- and the branches worth
+    // reaching are the ones no realistic path corpus contains. Two of them fall out of change 236's
+    // reported-count defect, which this function inherits and makes VISIBLE IN ITS ANSWER:
+    //
+    //   * a TWO-CHARACTER path is NOT a prefix of itself, at that length and no other;
+    //   * a path of length 3 ending in a separator IS a prefix of its own first two characters.
+    //
+    // Both are counted below, and both counts have closed forms over the enumerated alphabet, which
+    // is how we know the sweep reached them rather than merely not contradicting them -- and the
+    // second closed form is not the obvious one. The self-prefix hole is 6^2 = 36, one per length-2
+    // string, because the test compares a string with ITSELF and there is no second choice to make.
+    // The reversal is NOT 6^2: b need only be FOLD-equal to a's first two characters, so each
+    // position contributes its fold-CLASS size -- {a,A} and {0x5E,0x88} are 2 each, the separator and
+    // the colon 1 each -- giving (2+2+1+1+2+2)^2 = 100. The first version of this driver asserted 36
+    // and the sweep reported 100, which is the assertion being wrong rather than the code.
+    //
+    // The alphabet also carries 0x5E and 0x88 -- the pair the shipped comparison conflates -- so an
+    // implementation that folded with a case-mapping API instead of the measured table would differ
+    // here and nowhere else.
+    printf("[237 PathIsPrefixA]  shlwapi (exhaustive, fold-heavy, both defect anomalies counted)\n");
+    {
+        typedef BOOL (WINAPI *fip)(LPCSTR, LPCSTR);
+        void* p_pipa = (void*)GetProcAddress(hs, "PathIsPrefixA");
+        OK(p_pipa != NULL, "resolve PathIsPrefixA");
+        if (p_pipa) {
+            fip sys = (fip)p_pipa;
+            patch_t pipa_patch;
+            static const char AL6[6] = { 'a', 'A', 0x5C, 0x3A, 0x5E, (char)0x88 };
+            char t1[16], t2[16];
+            static char lp[800], lq[800];
+            long cases = 0, trues = 0, folded = 0, self_false = 0, longer = 0, longsweep = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = trues = folded = self_false = longer = longsweep = 0;
+                for (int la = 0; la <= 4; ++la) {
+                    long ca = 1;
+                    for (int i = 0; i < la; ++i) ca *= 6;
+                    for (long ka = 0; ka < ca; ++ka) {
+                        long v = ka;
+                        for (int i = 0; i < la; ++i) { t1[i] = AL6[v % 6]; v /= 6; }
+                        t1[la] = 0;
+                        if (!wia_pathisprefixa(t1, t1) != !sys(t1, t1)) ++mism;
+                        if (!sys(t1, t1)) ++self_false;
+                        ++cases;
+                        for (int lb = 0; lb <= 4; ++lb) {
+                            long cb = 1;
+                            for (int i = 0; i < lb; ++i) cb *= 6;
+                            for (long kb = 0; kb < cb; ++kb) {
+                                long w = kb;
+                                for (int i = 0; i < lb; ++i) { t2[i] = AL6[w % 6]; w /= 6; }
+                                t2[lb] = 0;
+                                int r1 = !!wia_pathisprefixa(t1, t2);
+                                int r2 = !!sys(t1, t2);
+                                if (r1 != r2) ++mism;
+                                if (r1) ++trues;
+                                if (r1 && la > lb) ++longer;
+                                for (int i = 0; i < la && i < lb; ++i)
+                                    if (t1[i] != t2[i]) { ++folded; break; }
+                                ++cases;
+                            }
+                        }
+                    }
+                }
+                /* LENGTH IS A DIMENSION -- change 236's model survived 3.65 million short pairs and
+                   was wrong about a rule that starts at 260, so this crosses it in both directions. */
+                for (int n = 240; n <= 620; n += 3) {
+                    for (int i = 0; i < n; ++i) {
+                        lq[i] = (i % 8 == 7) ? 0x5C : (char)(0x61 + i % 23);
+                        lp[i] = lq[i];
+                    }
+                    lq[n] = 0;
+                    static const int CUTS[] = { 247, 255, 259, 260, 263, 271, -1 };
+                    for (int ci = 0; CUTS[ci] >= 0; ++ci) {
+                        int cut = CUTS[ci];
+                        if (cut >= n) continue;
+                        char save = lp[cut]; lp[cut] = 0;
+                        if (!!wia_pathisprefixa(lp, lq) != !!sys(lp, lq)) ++mism;
+                        if (!!wia_pathisprefixa(lq, lp) != !!sys(lq, lp)) ++mism;
+                        lp[cut] = save;
+                        cases += 2; longsweep += 2;
+                    }
+                    /* and the same, differing only in CASE, so the vector fold runs per block */
+                    lp[n] = 0;
+                    for (int i = 0; i < n; ++i)
+                        if (lp[i] >= 0x61 && lp[i] <= 0x7A) lp[i] = (char)(lp[i] - 0x20);
+                    if (!!wia_pathisprefixa(lp, lq) != !!sys(lp, lq)) ++mism;
+                    ++cases; ++folded; ++longsweep;
+                }
+                /* NULL */
+                {
+                    if (!!wia_pathisprefixa(0, "C:\\a") != !!sys(0, "C:\\a")) ++mism;
+                    if (!!wia_pathisprefixa("C:\\a", 0) != !!sys("C:\\a", 0)) ++mism;
+                    if (!!wia_pathisprefixa(0, 0)       != !!sys(0, 0))       ++mism;
+                    cases += 3;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pipa_patch, p_pipa, (void*)w_pipa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pipa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pipa);
+                    printf("  corpus: %ld cases -- %ld TRUE; in %ld the raw bytes differ inside the\n"
+                           "          overlap so the fold path ran; %ld strings are NOT a prefix of\n"
+                           "          THEMSELVES (6^2 = 36 length-2 strings in this alphabet); %ld\n"
+                           "          pairs where a LONGER path is a prefix of a SHORTER one -- length 3\n"
+                           "          ending in a separator over its own first two characters, and the\n"
+                           "          count is the SUM OF FOLD-CLASS SIZES squared, not the alphabet\n"
+                           "          size squared, because b may be any string FOLD-equal to those\n"
+                           "          two: (2+2+1+1+2+2)^2 = 100;\n"
+                           "          and %ld cases at lengths 240..620, crossing the threshold that\n"
+                           "          got past six probes in change 236\n",
+                           cases, trues, folded, self_false, longer, longsweep);
+                    OK(folded     > 1000, "the fold path ran in bulk");
+                    OK(self_false == 36,  "exactly the 36 length-2 strings fail the self test");
+                    /* NOT 6*6. b need only be FOLD-equal to a's first two characters, so each
+                       position contributes its fold-CLASS size: {a,A} and {0x5E,0x88} are 2
+                       each, the separator and the colon 1 each, summing to 10 -> 10^2 = 100.
+                       probes/pipa2.c measured 16 over {a,b,backslash,colon}, where no letter
+                       folds and the same formula gives 4^2. Asserting 36 here was my error,
+                       and the sweep reporting 100 is what caught it. */
+                    OK(longer     == 100, "exactly the 100 reversal shapes are TRUE");
+                    OK(longsweep  > 500,  "the across-MAX_PATH sweep ran in full");
+                    OK(patch_off(&pipa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 30 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-236: 29 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 31 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-237: 30 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
