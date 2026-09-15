@@ -869,6 +869,57 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_243)
+#define NAME "243-pathcchcanonicalizeex"
+extern long wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
+extern void wia_pccx_set_fallback(void*);
+static void thunk(void){
+    /* every path: the AVX2 fast path at several lengths, the per-component walk that a dot component
+       forces, a pop that empties the output, a pop refused by PathCchIsRoot, the two prefix forms,
+       the trailing-dot finish, the drive-root fixup, both length caps, and a too-small cch. dwFlags
+       stays 0 throughout, which is the implemented domain -- a nonzero value tail-jumps to the
+       fallback, and this driver does not install one. */
+    static wchar_t out[1200];
+    static wchar_t in[1200];
+    int i;
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"C:\\dir\\file.txt", 0);
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"C:\\a\\..\\b", 0);       /* a pop */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"a\\..\\b", 0);          /* a pop to empty */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"C:\\..", 0);            /* refused by isroot */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"\\\\srv\\shr\\a\\..\\..", 0);
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"\\\\?\\C:\\a\\.\\b", 0); /* the drive prefix */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"\\\\?\\UNC\\s\\h\\..", 0); /* the UNC prefix */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"C:\\z..", 0);           /* the trailing strip */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"C:", 0);                /* the drive fixup */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, L"", 0);                  /* the empty fixup */
+    sink += out[0];
+    sink += wia_pathcchcanonicalizeex(out, 1, L"", 0);                       /* the fixup skipped */
+    sink += wia_pathcchcanonicalizeex(out, 8, L"C:\\a\\b\\c\\d\\e", 0);       /* cch too small */
+    sink += wia_pathcchcanonicalizeex(out, 0, L"C:\\a", 0);                  /* cch 0 */
+    sink += wia_pathcchcanonicalizeex(out, 0x8001, L"C:\\a", 0);             /* past the maximum */
+    in[0] = 0x43; in[1] = 0x3A; in[2] = 0x5C;
+    for (i = 3; i < 250; ++i) in[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    in[250] = 0;
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, in, 0);                   /* the vector fast path */
+    sink += out[0];
+    for (i = 3; i < 300; ++i) in[i] = (wchar_t)(0x61 + i % 23);              /* one long component */
+    in[300] = 0;
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, in, 0);
+    for (i = 3; i < 400; ++i) in[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    in[400] = 0;
+    sink += wia_pathcchcanonicalizeex(out, 0x8000, in, 0);                   /* past the result cap */
+    sink += out[0];
+}
+
 #elif defined(T_240)
 #define NAME "240-pathcchremovefilespec"
 extern long wia_pathcchremovefilespec(wchar_t*, size_t);

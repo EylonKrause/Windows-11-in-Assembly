@@ -50,6 +50,8 @@ extern char*    wia_lstrcpya(char*, const char*);
 extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
+extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
+extern void     wia_pccx_set_fallback(void*);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
@@ -65,6 +67,10 @@ static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static volatile LONG c_prfs;
 static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs); return wia_pathcchremovefilespec(p, cch); }
+static volatile LONG c_pccx;
+static long WINAPI w_pccx(wchar_t* o, size_t cch, const wchar_t* in, unsigned long f){
+    _InterlockedIncrement(&c_pccx); return wia_pathcchcanonicalizeex(o, cch, in, f);
+}
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
 }
@@ -848,11 +854,188 @@ int main(void){
         }
     }
 
+    // ===================== 243 PathCchCanonicalizeEx =====================
+    // THE COMPARISON STOPS AT THE TERMINATOR, and that is a measured decision rather than a weakening.
+    // The shipped implementation canonicalises DIRECTLY IN THE CALLER'S BUFFER and truncates as it
+    // pops, so it leaves its own scratch behind the answer: "C:\a\.." comes back as "C:\" followed by
+    // the leftover "\" of the "C:\a\" it built on the way. Demanding those bytes would forbid any
+    // vectorised store, since a 32-byte store necessarily writes cells a per-character loop does not.
+    // What IS demanded is the HRESULT, the string, its terminator, and -- for cch 0 versus cch 1 --
+    // whether anything was written at all, which is where this contract actually hides:
+    // cch 0 leaves the buffer untouched, cch 1 empties it, and every error path empties it.
+    //
+    // THE DOMAIN IS dwFlags == 0, so the nonzero values must TAIL-JUMP TO THE ORIGINAL, and proving
+    // that under the patch is the interesting part. The export is a five-byte jmp thunk to the real
+    // body, so patching the thunk leaves the body intact and the body can serve as the fallback --
+    // resolved BEFORE patching, since afterwards the thunk points at us. If the export were not a
+    // thunk there would be nothing to fall back to, so the shape is asserted rather than assumed.
+    printf("[243 PathCchCanonicalizeEx]  kernelbase (enumerated; HRESULT, string and terminator)\n");
+    {
+        typedef long (WINAPI *fpccx)(wchar_t*, size_t, const wchar_t*, unsigned long);
+        void* p_pccx = (void*)GetProcAddress(hk, "PathCchCanonicalizeEx");
+        OK(p_pccx != NULL, "resolve PathCchCanonicalizeEx");
+        if (p_pccx) {
+            unsigned char* eb = (unsigned char*)p_pccx;
+            void* body = 0;
+            if (eb[0] == 0xE9) body = (void*)(eb + 5 + *(int32_t*)(eb + 1));
+            printf("  export prologue %02X -> body %p (the fallback for nonzero dwFlags)\n",
+                   eb[0], body);
+            OK(body != NULL, "the export is a jmp thunk, so the body survives the patch");
+            wia_pccx_set_fallback(body);
+        }
+        if (p_pccx) {
+            fpccx sys = (fpccx)p_pccx;
+            patch_t pccx_patch;
+            static const wchar_t AL[4] = { L'a', L'\\', L'.', L':' };
+            static wchar_t t[32], mine[9000], theirs[9000];
+            long cases = 0, sok = 0, ebuf = 0, eexced = 0, einval = 0, flagged = 0;
+            long popped = 0, dotted = 0, longsweep = 0, capped = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = sok = ebuf = eexced = einval = flagged = 0;
+                popped = dotted = longsweep = capped = 0;
+
+                /* ENUMERATED, not sampled: the three anomalies this contract turns on -- "C:a\.."
+                   losing its drive, "\\srv\..\.." growing back to "\\", "a\..\b" coming back rooted
+                   -- all live in short strings of separators and dots, and a corpus of realistic
+                   paths would agree with a wrong rule everywhere it was looked at. */
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        /* a generous cch, one exactly at the boundary, one deliberately too small,
+                           and cch 0, which must leave the buffer untouched */
+                        for (int k = 0; k < 4; ++k) {
+                            size_t cch = (k == 0) ? 0x8000 : (k == 1) ? (size_t)len + 1
+                                       : (k == 2) ? 1 : 0;
+                            size_t q, n;
+                            long r1, r2;
+                            for (int i = 0; i < 64; ++i) { mine[i] = 0xCDCD; theirs[i] = 0xCDCD; }
+                            r1 = wia_pathcchcanonicalizeex(mine, cch, t, 0);
+                            r2 = sys(theirs, cch, t, 0);
+                            n = (cch < 64) ? cch : 64;
+                            q = 0;
+                            while (q < n && theirs[q] != 0) ++q;
+                            if (q < n) ++q;
+                            if (n == 0) q = 1;
+                            if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                            if (r1 == 0) ++sok;
+                            else if ((unsigned long)r1 == 0x8007007AUL) ++ebuf;
+                            else if ((unsigned long)r1 == 0x800700CEUL) ++eexced;
+                            else ++einval;
+                            ++cases;
+                        }
+                        for (int i = 0; i + 1 < len; ++i)
+                            if (t[i] == L'.' && t[i+1] == L'.') { ++popped; break; }
+                        for (int i = 0; i < len; ++i) if (t[i] == L'.') { ++dotted; break; }
+                    }
+                }
+
+                /* LENGTH AS A DIMENSION, in four shapes, across the MAX_PATH result cap. With
+                   dwFlags 0 a result of 260 characters or more is ERROR_FILENAME_EXCED_RANGE however
+                   large cch is, so the sweep has to cross 259 rather than stop short of it. */
+                for (int shape = 0; shape < 4; ++shape) {
+                    for (int n = 8; n <= 300; n += 7) {
+                        static wchar_t s[600];
+                        int k = 0;
+                        size_t q, nn;
+                        long r1, r2;
+                        if (shape == 0) { s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        else if (shape == 1) { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L's'; s[k++]=L'\\';
+                                               s[k++]=L'h'; s[k++]=L'\\'; }
+                        else if (shape == 2) { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L'?'; s[k++]=L'\\';
+                                               s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        while (k < n) {
+                            if (shape == 3 && (k % 21) == 0 && k + 3 < n) {
+                                s[k++] = L'.'; s[k++] = L'.'; if (k < n) s[k++] = L'\\';
+                            }
+                            for (int i = 0; i < 7 && k < n; ++i) s[k++] = (wchar_t)(L'a' + i);
+                            if (k < n) s[k++] = L'\\';
+                        }
+                        if (k > 0 && s[k-1] == L'\\') s[k-1] = L'z';
+                        s[k] = 0;
+                        for (int i = 0; i < 600; ++i) { mine[i] = 0xCDCD; theirs[i] = 0xCDCD; }
+                        r1 = wia_pathcchcanonicalizeex(mine, 0x8000, s, 0);
+                        r2 = sys(theirs, 0x8000, s, 0);
+                        nn = 600; q = 0;
+                        while (q < nn && theirs[q] != 0) ++q;
+                        if (q < nn) ++q;
+                        if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                        /* classify here too: a seven-character string can never reach the MAX_PATH
+                           result cap, so the enumerated corpus alone would report zero of them */
+                        if (r1 == 0) ++sok;
+                        else if ((unsigned long)r1 == 0x8007007AUL) ++ebuf;
+                        else if ((unsigned long)r1 == 0x800700CEUL) { ++eexced; ++capped; }
+                        else ++einval;
+                        ++cases; ++longsweep;
+                    }
+                }
+
+                /* THE DELEGATION, which only means anything under the patch: a nonzero dwFlags must
+                   come back with the ORIGINAL implementation's answer, debris and all, because ours
+                   tail-jumps to the body rather than reimplementing it. Flag 0x01 is the reason the
+                   domain stops at zero -- it is a different backward walk, not a post-step. */
+                {
+                    static const unsigned long F[8] = { 1, 2, 4, 8, 0x10, 0x20, 0x40, 0x30 };
+                    static const wchar_t* T[6] = {
+                        L"C:\\a\\..\\b", L"C:a\\..", L"\\\\srv\\..\\..", L"C:\\z..",
+                        L"C:/a/../b", L"a\\..\\b"
+                    };
+                    for (int fi = 0; fi < 8; ++fi) {
+                        for (int ti = 0; ti < 6; ++ti) {
+                            long r1, r2;
+                            for (int i = 0; i < 64; ++i) { mine[i] = 0xCDCD; theirs[i] = 0xCDCD; }
+                            r1 = wia_pathcchcanonicalizeex(mine, 0x8000, T[ti], F[fi]);
+                            r2 = sys(theirs, 0x8000, T[ti], F[fi]);
+                            /* the whole 64-cell window, debris included: ours IS the original here */
+                            if (r1 != r2 || memcmp(mine, theirs, 64 * 2) != 0) ++mism;
+                            ++cases; ++flagged;
+                        }
+                    }
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (HRESULT, string, terminator)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pccx_patch, p_pccx, (void*)w_pccx), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pccx > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pccx);
+                    printf("  corpus: %ld cases -- %ld S_OK, %ld ERROR_INSUFFICIENT_BUFFER,\n"
+                           "          %ld ERROR_FILENAME_EXCED_RANGE, %ld E_INVALIDARG; %ld strings\n"
+                           "          carrying a \"..\" and %ld carrying a dot at all, enumerated over\n"
+                           "          separators, dots, a letter and a colon; %ld cases at lengths\n"
+                           "          8..300 in four shapes, %ld of them past the MAX_PATH result\n"
+                           "          cap; and %ld nonzero-dwFlags cases proving the tail jump to the\n"
+                           "          original body reaches it THROUGH the patched thunk\n",
+                           cases, sok, ebuf, eexced, einval, popped, dotted,
+                           longsweep, capped, flagged);
+                    OK(sok      > 1000, "the canonicalising path ran in bulk");
+                    OK(ebuf     > 100,  "the too-small-cch path ran in bulk");
+                    OK(eexced   > 10,   "the MAX_PATH cap path ran");
+                    OK(einval   > 100,  "the argument-rejection path ran in bulk");
+                    OK(popped   > 100,  "strings with a \"..\" ran in bulk");
+                    OK(capped   > 10,   "the result cap was crossed by the length sweep");
+                    OK(flagged  == 48,  "every nonzero-dwFlags case delegated");
+                    OK(patch_off(&pccx_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
-               "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW AND\n"
-               "kernelbase!PathCchRemoveFileSpec.\n"
+               "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
+               "kernelbase!PathCchRemoveFileSpec AND kernelbase!PathCchCanonicalizeEx.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -880,7 +1063,19 @@ int main(void){
                "whole, and the export writes WHOLE CHARACTERS ONLY. An implementation whose clamp\n"
                "rounds in BYTES rather than CHARACTERS passes every ordinary corpus, returns the\n"
                "right NULL, and leaves one extra byte in the caller buffer -- so every destination\n"
-               "width from 1 to 201 bytes is swept, odd and even. All six\n"
+               "width from 1 to 201 bytes is swept, odd and even. For 243 the corpus is ENUMERATED\n"
+               "over separators, dots, a letter and a colon, because the three rules that contract\n"
+               "turns on -- a drive-relative path LOSING its drive to a pop, an underflowing pop\n"
+               "making the path LONGER, and a relative path coming back ROOTED -- all live in short\n"
+               "strings of separators and dots, so a corpus of realistic paths would agree with a\n"
+               "wrong rule everywhere it was looked at. Its comparison stops at the terminator,\n"
+               "because the shipped code canonicalises in the caller's buffer and leaves its own\n"
+               "scratch behind the answer, which no vectorised store can reproduce; what is demanded\n"
+               "instead is the HRESULT, the string, its terminator, and -- across cch 0 against cch 1\n"
+               "-- whether anything was written at all. And because its implemented domain is\n"
+               "dwFlags == 0, 48 cases pass NONZERO flags THROUGH the patched thunk to prove the tail\n"
+               "jump reaches the original body, which is only possible because the export is a jmp\n"
+               "thunk and the body therefore survives the patch. All eight\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;

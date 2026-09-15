@@ -1,8 +1,16 @@
-# 243 `kernelbase!PathCchCanonicalizeEx` — **CONTRACT SOLVED, 0 mismatches over 11,772,366 cases**
+# 243 `kernelbase!PathCchCanonicalizeEx` — **LANDED, 13.12× geomean (up to 28.2×)**, `dwFlags == 0`
 
-The exploration pass left three root anomalies outstanding. They are resolved, and the whole contract
-for `dwFlags == 0` is now a model that agrees with the live export on **11,772,366 enumerated and random
-paths, exactly 0 mismatches**. No assembly yet; this is the model and the evidence.
+| gate | result |
+|---|---|
+| correctness | **7,474,384 cases, 0 mismatches** three ways — ours, an independent oracle, and the live export |
+| the oracle itself | validated first against live over **5,837,405 cases, 0 mismatches** |
+| speed | **13.119× geomean**, 14.25× at 16 characters to 27.5× at 250, peak **28.2×**, no size class below 1× |
+| ABI | PASS — all 8 non-volatile GPRs and xmm6–xmm15 preserved, stack balanced, DF clear |
+| live substitution | PASS — Windows ran our assembly inside the real export **87,596 times**, all matching, prologue restored byte-identical |
+
+The exploration pass left three root anomalies outstanding. They are resolved, the whole contract for
+`dwFlags == 0` is a model that agrees with the live export on **11,772,366 enumerated and random paths
+with exactly 0 mismatches**, and it is implemented in AVX2 assembly.
 
 ## Why this function, and why before change 242
 
@@ -184,30 +192,154 @@ Three things the exploration pass got wrong or could not see, all now measured:
 Plus the root predicate: **0 differences over 8,587 strings** between the internal helper and the
 exported `PathCchIsRoot`.
 
-## What implementing this now requires
+## The implemented domain is `dwFlags == 0`, and why it stops there
 
-The rule is settled, so what is left is codegen and a scope decision about `dwFlags`.
+`PathCchCanonicalize` is documented as `PathCchCanonicalizeEx` with `PATHCCH_NONE`, so every caller of
+the simple form lands on flags 0, and every caller in this project's corpus passes it. The domain stops
+there for a measured reason, not a convenient one:
 
-**The flag domain.** Everything is pure and implementable except one case: **`0x01` alone with a result
-of 260 or more characters**, where the answer depends on whether long paths are enabled for the process
-— the disassembly shows a lazily-resolved `RtlAreLongPathsEnabled` behind a cached global at `0x110AB`,
-and `0x02`/`0x04` exist precisely to override that query. `dwFlags == 0` is the only value the
-benchmark, the live driver and every caller in this project's corpus use.
+**Flag `0x01` is not a post-step — it changes the pop itself.**
 
-**Where the speed is.** The shipped implementation makes an **indirect call per component** to find the
-component end and copies **one `wchar_t` at a time** with a bounds check per character. Two things
-vectorise cleanly:
+```
+                               flags 0      flags 0x01
+C:a\..                         \            C:a\
+\\srv\..                       \            \\srv\
+\\srv\shr\a\..\..\..           \            \\srv\
+```
 
-* *Finding component boundaries.* One AVX2 pass gives the separator mask and the dot mask; a dot
-  component starts where `dot & ((sep << 1) | first)` is set. If that is empty the input has **no dot
-  component at all**, and the answer is a verbatim copy plus the trailing-dot strip and rule 3 — the
-  common case for real paths, since a dot inside a component (`a.txt`) never triggers it.
-* *Copying.* 16 `wchar_t` per instruction instead of one per iteration.
+`ALLOW_LONG_PATHS` selects a different backward walk with a different floor, which is a second contract
+rather than a modifier of this one — and the disassembly agrees: `and eax, 5 / cmp al, 5` at `0x11203`
+and `0x11441` branch into separate code. On top of that, `0x01` alone with a long result depends on
+whether long paths are enabled for the **process**: the code lazily resolves `RtlAreLongPathsEnabled`
+behind a cached global at `0x110AB`, and `0x02`/`0x04` exist precisely to override that query. That is
+the one environment-dependent bit in the whole function.
 
-The logic itself stays sequential — `..` must pop what came before — so the ceiling is set by the copy
-and the boundary scan, not by the rules. At 0.317 ns/byte the starting point is roughly change 240's,
-and 240 landed at 4.87×; change 241 is the standing reminder that a modest starting point plus a high
-fixed cost is how a size class ends up at 0.90×.
+So **any nonzero `dwFlags` tail-jumps to the original implementation** and behaves identically by
+construction rather than by reimplementation. The fallback is the export's own body: the export is a
+five-byte `jmp` thunk, so hot-patching the thunk leaves the body intact, and the live driver resolves
+the target **before** patching and then passes 48 nonzero-flag cases *through* the patched thunk to
+prove the tail jump reaches it. `probes/flags.c` pins the rest of the flag space for the record — the
+validity rules (`0x02`/`0x04` require `0x01`, never both, and `0x01` excludes `0x10`), the `\\?\UNC\`
+form `0x10` produces, and that `0x20` appends its separator *before* the trailing-dot strip, which is
+why `C:\z..` with `0x20` comes back as `C:\z..\`.
+
+## The implementation
+
+The shipped code makes an **indirect call per component** to find the component end and copies **one
+`wchar_t` at a time** with a bounds test per character. This one:
+
+* **Pre-scans with AVX2 for the only thing that can complicate the walk** — a `.` at a component start,
+  found as the two-character pattern `\.` plus the first-character case. **Blocks overlap by one
+  character**, so the pattern can never straddle a block boundary and no carry between iterations is
+  needed. `bzhi` masks the pattern bits that lie past the terminator.
+* **When there is none, and the input is at most 256 characters, the answer is a verbatim copy.** One
+  test covers two caps there: 256 is the per-component limit, and an input longer than that cannot pass
+  the MAX_PATH result cap anyway. A dot *inside* a component (`a.txt`) never leaves this path, which is
+  why it is the common case for real paths.
+* **Otherwise walks component by component, dispatching on the first character before measuring
+  anything.** Only an ordinary component needs its end found and only an ordinary component gets
+  copied; a separator is its own zero-length component and every second component in a path is one.
+* **`PathCchIsRoot` is reproduced inline and length-first.** The length is already known, so an output
+  that does not begin with a separator can only be the three-character `X:\`, which one length test
+  rejects. It matters because the predicate is consulted on *every* `..` and every trailing `.`.
+
+Page safety is the usual rule: every 32-byte load is guarded by `(cursor & 4095) <= 4064`, and the
+scalar fallbacks re-check per character, so a string ending one character before an unmapped page is
+read exactly as far as its terminator. `correctness.c` sweeps that boundary at nine offsets.
+
+### Three optimisations, each measured
+
+| change | geomean |
+|---|---|
+| first working version | 10.836× |
+| an overlapping-move ladder instead of a per-character copy tail | 11.539× |
+| a scalar probe ahead of `find_sep`'s vector path | 11.916× |
+| dispatch on the first character + a length-first `PathCchIsRoot` | **13.119×** |
+
+The copy tail mattered because components in a real path are a handful of characters: a 7-character
+component was seven iterations of a four-instruction loop and is now two 8-byte moves. The scalar probe
+mattered for a subtler reason — **the component scans are serially dependent through the read pointer**,
+so the vector path's load → compare → compare → or → movmsk → tzcnt chain is ~20 cycles of *latency*
+that the next component cannot start until it resolves. Eight characters of predicted-not-taken
+branches cost about the same, so a short component no longer pays for the vector machinery while long
+components still get it.
+
+### Two bugs the gates caught
+
+* **The UNC shape test scanned one character too far.** `PathCchIsRoot`'s third-component search starts
+  at the character immediately after the share separator, not after the one beyond it, so `\\\\` — an
+  empty server followed by an immediate second separator — looked like a root and a trailing dot removed
+  nothing from it. Found by the exhaustive `{ \ . a }` sweep at length 5, on `.\\\.`.
+* **The skip distance was carried in r10 across the `isroot` call** — a register `isroot`'s own header
+  documents as clobbered, because it hands it to `IS_LETTER_JMP` as scratch. The walk spun forever;
+  the symptom was a correctness process sitting at 160 seconds of CPU inside section 1. The distance now
+  travels in `rdx`, which `isroot` provably preserves.
+
+## The results
+
+```
+size               ours ns     system ns     ratio   ours GB/s
+plain 16              4.12         58.72    14.25x        7.76
+plain 32              5.26        100.19    19.05x       12.17
+plain 64              7.33        172.81    23.57x       17.46
+plain 128            12.76        336.31    26.35x       20.06
+plain 250            23.39        642.40    27.46x       21.37
+dotdot 64            42.24        202.37     4.79x        3.03
+dotdot 250          150.15        763.16     5.08x        3.33
+dot 250             104.52        643.45     6.16x        4.78
+unc 128              13.24        334.46    25.26x       19.34
+\\?\ prefix 128      13.81        333.26    24.13x       18.54
+doubled seps 128     12.75        360.07    28.23x       20.07
+trailing dots 128    15.27        334.66    21.92x       16.77
+over the cap (300)  116.90        614.67     5.26x        5.13
+cch too small        10.07         32.74     3.25x       12.71
+                                  geomean   13.119x   => LANDS
+```
+
+The size classes stop at 250 characters because **the contract stops there**: with `dwFlags == 0` a
+result of 260 characters or more is `ERROR_FILENAME_EXCED_RANGE` however large `cch` is. A
+1000-character path is not a long input for this function, it is an error row — which is what the
+`over the cap (300)` row measures, and it means the discovery pass that timed 0.317 ns/byte on a
+1000-character path was timing a walk that stops at the cap.
+
+The dot-component rows are the honest floor at 4.8× to 6.2×: they take the per-component walk, because
+`..` must pop what came before and that is inherently sequential. No restore appears anywhere in the
+benchmark, and that is a property rather than an omission — this function reads its input and writes a
+*separate* output buffer, so no row modifies anything it reads again. Change 238's lesson (a restore
+heavier than the function *replaces* the measurement) is the reason to say so explicitly.
+
+## What the correctness gate actually checks
+
+| section | cases |
+|---|---|
+| the shape corpus at a generous `cch` | 135 |
+| the shape corpus × every `cch` from 0 to 24, and around the extremes | 4,455 |
+| the shape corpus × all 128 flag values | 17,280 |
+| flag bits above the documented seven | 945 |
+| every string to length 10 over `{ \ . a }` | 88,573 |
+| every string to length 8 over `{ \ ? U C a . : }` | 6,725,601 |
+| every string to length 7 over `{ \ . a * / : }` | 335,923 |
+| the length caps, swept across every boundary | 1,254 |
+| page-edge inputs one character before a `PAGE_NOACCESS` page | 216 |
+| random paths × random `cch` × random flags | 300,000 |
+| NULL in both arguments, and the fault **unwindable** | 2 |
+| **total** | **7,474,384 cases, 0 mismatches** |
+
+Three things it deliberately does *not* compare, each for a stated reason:
+
+* **The buffer beyond the terminator.** The shipped implementation canonicalises directly in the
+  caller's buffer and truncates as it pops, so it leaves its own scratch behind the answer — `C:\a\..`
+  comes back as `C:\` followed by the leftover `\` of the `C:\a\` it built. Demanding those bytes would
+  forbid *any* vectorised store, since a 32-byte store necessarily writes cells a per-character loop
+  does not. What is demanded instead is the HRESULT, the string, its terminator, and — across `cch` 0
+  against `cch` 1 — whether anything was written at all. **A canary after the buffer proves our
+  implementation never writes outside the `cch` it was given**, which is the property that matters.
+* **Nonzero flags against the oracle.** Those delegate, so the test is that ours equals live *exactly*,
+  debris included, which also proves the dispatch.
+* **Nothing about NULL except that both fault.** The last section exists mostly to prove the fault is
+  **unwindable**: a fault inside a `PROC` with no unwind information cannot be unwound, so the caller's
+  `__except` never runs — which is exactly what cost change 241 an afternoon of a harness exiting with
+  code 5 and no output.
 
 ## Files
 
@@ -222,6 +354,19 @@ fixed cost is how a size class ends up at 0.90×.
   `PathCchIsRoot`, 8,587 strings, 0 differences
 - `probes/model.c` — the model and the 11.77 M-case sweep, plus the length limits and the flag `0x08`
   and `*`-guard measurements
+- `probes/letter.c` — the drive-letter predicate over all 65536 code units, against ASCII,
+  `IsCharAlphaW` and `C1_ALPHA`: exactly 114 accepted, the ISO-8859-1 letters
+- `probes/flags.c` — all 128 `dwFlags` values against six shapes, the two length caps per flag, and the
+  `\\?\UNC\` form `0x10` produces
+- `probes/refcheck.c` — the ORACLE validated against live before any assembly existed: 5,837,405
+  compared cases, 0 mismatches, including the `cch` sweep across the exact boundary and the Unicode
+  drive-letter cases that corrected its one untested assumption
+- `reference.c` — the independent oracle, `dwFlags == 0`
+- `impl.asm` — the AVX2 implementation: the pre-scan with overlapping blocks, the verbatim fast path,
+  the per-component walk, `PathCchIsRoot` reproduced length-first, and the tail jump for nonzero flags
+- `correctness.c` — the three-way gate, 7,474,384 cases
+- `bench.c` — gate 2, 14 size classes, no restore needed anywhere
+- `build.bat` — assemble, gate, then benchmark
 
 (`IN` is a Windows macro — an empty SAL annotation in `windef.h` — so a local of that name silently
 vanishes and the file will not compile. The subject variables in these probes are named `SUBJ` for that
