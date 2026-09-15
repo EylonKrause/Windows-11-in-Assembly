@@ -575,6 +575,52 @@ static void thunk(void){
     wia_pathremoveargsa(0);                  /* NULL */
 }
 
+#elif defined(T_227)
+#define NAME "227-lstrcpya"
+extern char* wia_lstrcpya(char*, const char*);
+static void thunk(void){
+    /* As with 225, the interesting case is not the ordinary call but the ones that FAULT: the
+       fault path unwinds through compiled C, and an unwind that restored the wrong registers or
+       left the upper YMM halves dirty is invisible to correctness, because the return is NULL
+       either way. Both fault shapes are driven here -- a bad SOURCE and a short DESTINATION. */
+    static char d[8300];
+    static char s[4200];
+    int i;
+    for (i = 0; i < 4000; ++i) s[i] = 'a';
+    s[4000] = 0;
+    sink += (long long)(size_t)wia_lstrcpya(d, s);          /* long: the 64-byte loop */
+    sink += d[0];
+    s[7] = 0;
+    sink += (long long)(size_t)wia_lstrcpya(d, s);          /* short: the tail ladder only */
+    sink += (long long)(size_t)wia_lstrcpya(d + 1, s + 1);  /* both unaligned */
+    sink += (long long)(size_t)wia_lstrcpya(d, "");         /* empty */
+    sink += (long long)(size_t)wia_lstrcpya(d, 0);          /* NULL source */
+    sink += (long long)(size_t)wia_lstrcpya(0, "abc");      /* NULL destination */
+    {
+        SYSTEM_INFO si; SIZE_T pg; char* base; DWORD old; int tail;
+        GetSystemInfo(&si);
+        pg = si.dwPageSize;
+        base = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+        if (base) {
+            VirtualProtect(base+pg, pg, PAGE_NOACCESS, &old);
+            /* a faulting SOURCE */
+            for (tail = 1; tail <= 40; ++tail) {
+                char* q = (base+pg) - tail;
+                for (i = 0; i < tail; ++i) q[i] = 'a';      /* NO terminator */
+                sink += (long long)(size_t)wia_lstrcpya(d, q);
+            }
+            /* a faulting DESTINATION */
+            for (i = 0; i < 400; ++i) s[i] = 'b';
+            s[400] = 0;
+            for (tail = 1; tail <= 40; ++tail) {
+                char* q = (base+pg) - tail;
+                sink += (long long)(size_t)wia_lstrcpya(q, s);
+            }
+            VirtualFree(base, 0, MEM_RELEASE);
+        }
+    }
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

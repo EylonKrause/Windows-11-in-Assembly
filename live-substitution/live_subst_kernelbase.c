@@ -46,14 +46,18 @@ extern wchar_t* wia_lstrcpynw(wchar_t*, const wchar_t*, int);
 extern char*    wia_lstrcpyna(char*, const char*, int);
 extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
 extern int      wia_lstrlena(const char*);
+extern char*    wia_lstrcpya(char*, const char*);
 extern void     wia_upcase_init(void);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
 typedef int      (WINAPI *FNL)(const char*);
+typedef char*    (WINAPI *FNPA)(char*, const char*);
 
 static volatile LONG c_cpn, c_cso, c_cpna, c_lena;
 static int WINAPI w_lena(const char* p){ _InterlockedIncrement(&c_lena); return wia_lstrlena(p); }
+static volatile LONG c_cpa;
+static char* WINAPI w_cpa(char* d, const char* q){ _InterlockedIncrement(&c_cpa); return wia_lstrcpya(d, q); }
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
 }
@@ -452,10 +456,144 @@ int main(void){
         }
     }
 
+    // ===================== 227 lstrcpyA =====================
+    // BOTH GUARD PAGES, and that pairing is the whole proof.
+    //
+    // lstrcpyA has NO bound, so it always runs off the end of a destination too small for the
+    // source. probes/cpya.c measured what that does: it returns NULL rather than faulting, and the
+    // destination is filled EXACTLY to its last writable byte -- 80 of 80 rooms. The same holds on
+    // the source side. So an implementation that page-clamps only the SOURCE passes every ordinary
+    // corpus, returns the right NULL, and still leaves a DIFFERENT number of bytes in the caller's
+    // buffer. Nothing crashes and no return value differs; only the bytes do.
+    //
+    // Hence three sweeps: an unterminated source at every distance, a short destination at every
+    // room, and both guarded at once so the clamp has to take the smaller of the two remainders.
+    printf("[227 lstrcpyA]  kernelbase (both guard pages; byte-for-byte partial copies)\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrcpyA");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrcpyA") : NULL; }
+        OK(q != NULL, "resolve lstrcpyA");
+        if (q) {
+            FNPA syscp = (FNPA)q;
+            SYSTEM_INFO si; GetSystemInfo(&si);
+            SIZE_T pg = si.dwPageSize;
+            char* gsrc = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gda  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gdc  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            static char pool[8192], da[8192], dc[8192], src[4200];
+            DWORD old;
+            OK(gsrc && gda && gdc, "VirtualAlloc guard pairs");
+            if (gsrc) VirtualProtect(gsrc+pg, pg, PAGE_NOACCESS, &old);
+            if (gda)  VirtualProtect(gda+pg,  pg, PAGE_NOACCESS, &old);
+            if (gdc)  VirtualProtect(gdc+pg,  pg, PAGE_NOACCESS, &old);
+            patch_t ptc;
+            long cases = 0, srcfault = 0, dstfault = 0, both = 0, longc = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2 && gsrc && gda && gdc; ++pass) {
+                int mism = 0;
+                cases = srcfault = dstfault = both = longc = 0;
+                /* ordinary: every source alignment x destination alignment x many lengths */
+                for (int so = 0; so < 16; ++so) {
+                    for (int dof = 0; dof < 16; ++dof) {
+                        for (int n = 0; n <= 80; ++n) {
+                            char* sp = pool + so;
+                            for (int i = 0; i < n; ++i) sp[i] = (char)('a' + i % 23);
+                            sp[n] = 0;
+                            memset(da, '#', sizeof da); memset(dc, '#', sizeof dc);
+                            char* ra = wia_lstrcpya(da + dof, sp);
+                            char* rc = syscp(dc + dof, sp);
+                            if ((ra == da + dof) != (rc == dc + dof)) ++mism;
+                            if (memcmp(da, dc, sizeof da) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+                /* long subjects, which drive the hoisted 64-byte loop across page boundaries */
+                for (int n = 200; n <= 4000; n += 53) {
+                    for (int i = 0; i < n; ++i) src[i] = (char)('a' + i % 23);
+                    src[n] = 0;
+                    for (int dof = 0; dof < 3; ++dof) {
+                        memset(da, '#', sizeof da); memset(dc, '#', sizeof dc);
+                        wia_lstrcpya(da + dof, src);
+                        syscp(dc + dof, src);
+                        if (memcmp(da, dc, sizeof da) != 0) ++mism;
+                        ++cases; ++longc;
+                    }
+                }
+                /* a faulting SOURCE at every distance: the partial copy must match byte for byte */
+                for (int tail = 1; tail <= 200; ++tail) {
+                    char* sp = (gsrc+pg) - tail;
+                    for (int i = 0; i < tail; ++i) sp[i] = (char)('a' + i % 23);  /* no terminator */
+                    memset(da, '#', sizeof da); memset(dc, '#', sizeof dc);
+                    char* ra = wia_lstrcpya(da, sp);
+                    char* rc = syscp(dc, sp);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(da, dc, sizeof da) != 0) ++mism;
+                    ++cases; ++srcfault;
+                }
+                /* a SHORT DESTINATION at every room: filled to the same byte, or the clamp is wrong */
+                for (int i = 0; i < 400; ++i) src[i] = (char)('a' + i % 23);
+                src[400] = 0;
+                for (int room = 1; room <= 200; ++room) {
+                    char* wa = (gda+pg) - room;
+                    char* wc = (gdc+pg) - room;
+                    memset(wa, '#', room); memset(wc, '#', room);
+                    char* ra = wia_lstrcpya(wa, src);
+                    char* rc = syscp(wc, src);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, room) != 0) ++mism;
+                    ++cases; ++dstfault;
+                }
+                /* BOTH guarded: the clamp has to take the smaller remainder */
+                for (int stail = 1; stail <= 70; ++stail) {
+                    char* sp = (gsrc+pg) - stail;
+                    for (int i = 0; i < stail-1; ++i) sp[i] = (char)('a' + i % 23);
+                    sp[stail-1] = 0;
+                    for (int room = 1; room <= 70; ++room) {
+                        char* wa = (gda+pg) - room;
+                        char* wc = (gdc+pg) - room;
+                        memset(wa, '#', room); memset(wc, '#', room);
+                        char* ra = wia_lstrcpya(wa, sp);
+                        char* rc = syscp(wc, sp);
+                        if ((ra == 0) != (rc == 0)) ++mism;
+                        if (memcmp(wa, wc, room) != 0) ++mism;
+                        ++cases; ++both;
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (both guard pages)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&ptc, q, (void*)w_cpa), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_cpa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_cpa);
+                    printf("  of %ld cases: %ld with a FAULTING SOURCE, %ld with a DESTINATION too\n"
+                           "  small (the sweep that catches a source-only clamp), %ld with BOTH\n"
+                           "  guarded at once, %ld long enough to drive the hoisted 64-byte loop\n",
+                           cases, srcfault, dstfault, both, longc);
+                    OK(srcfault >= 200, "the faulting-source sweep ran in full");
+                    OK(dstfault >= 200, "the short-destination sweep ran in full");
+                    OK(both     >= 4000, "the both-guarded sweep ran in full");
+                    OK(patch_off(&ptc), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+            if (gsrc) VirtualFree(gsrc, 0, MEM_RELEASE);
+            if (gda)  VirtualFree(gda, 0, MEM_RELEASE);
+            if (gdc)  VirtualFree(gdc, 0, MEM_RELEASE);
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
-               "AND kernelbase!lstrlenA.\n"
+               "kernelbase!lstrlenA AND kernelbase!lstrcpyA.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -470,7 +608,14 @@ int main(void){
                "and it does not crash when it finally does over-read -- the export swallows the\n"
                "fault and returns 0, so the bug shows up as a correct length silently becoming 0.\n"
                "So every tail distance 1..300 before a NOACCESS page is swept TWICE, terminated and\n"
-               "unterminated, against the live export under the patch. All four\n"
+               "unterminated, against the live export under the patch. For 227 the proof is BOTH\n"
+               "guard pages at once: lstrcpyA has no bound, so it always runs off the end of a\n"
+               "destination too small for the source, and the export fills that destination to its\n"
+               "LAST WRITABLE BYTE and returns NULL. An implementation that page-clamps only the\n"
+               "SOURCE passes every ordinary corpus and returns the right NULL while leaving a\n"
+               "DIFFERENT number of bytes in the caller buffer -- nothing crashes, only the bytes\n"
+               "differ -- so the source is swept at every distance, the destination at every room,\n"
+               "and both at once so the clamp must take the smaller remainder. All five\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
