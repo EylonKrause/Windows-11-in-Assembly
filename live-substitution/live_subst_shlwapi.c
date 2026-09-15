@@ -51,6 +51,7 @@ extern BOOL           wia_pathrenameexta(char*, const char*);
 extern void           wia_pathremoveargsa(char*);
 extern char*          wia_strcatbuffa(char*, const char*, int);
 extern char*          wia_pathremovebackslasha(char*);
+extern int            wia_pathquotespacesa(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -97,6 +98,8 @@ static volatile LONG c_scba;
 static char* WINAPI w_scba(PSTR d, PCSTR q, int n){ _InterlockedIncrement(&c_scba); return wia_strcatbuffa(d, q, n); }
 static volatile LONG c_prbsa;
 static char* WINAPI w_prbsa(PSTR p){ _InterlockedIncrement(&c_prbsa); return wia_pathremovebackslasha(p); }
+static volatile LONG c_pqsa;
+static BOOL WINAPI w_pqsa(PSTR p){ _InterlockedIncrement(&c_pqsa); return wia_pathquotespacesa(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1956,9 +1959,95 @@ int main(void){
         }
     }
 
+    // ===================== 233 PathQuoteSpacesA =====================
+    // Whole buffer against a POISON fill, because "returns FALSE" and "returns FALSE having written
+    // nothing" are different contracts and only poison separates them -- the measured rule is that
+    // a failure leaves the buffer completely untouched.
+    //
+    // The corpus straddles THE 257-CHARACTER CAP in both directions, with the space at the front,
+    // the middle and the end, because the length and the has-a-space answer come out of the same
+    // pass and an off-by-one in either is a different bug.
+    printf("[233 PathQuoteSpacesA]  shlwapi (exhaustive + the 257 cap; whole buffer vs poison)\n");
+    {
+        typedef BOOL (WINAPI *fqs)(PSTR);
+        void* p_pqsa = (void*)GetProcAddress(hs, "PathQuoteSpacesA");
+        OK(p_pqsa != NULL, "resolve PathQuoteSpacesA");
+        if (p_pqsa) {
+            fqs sys = (fqs)p_pqsa;
+            patch_t pqsa_patch;
+            static const char AL4[4] = { 'a', ' ', '"', '\t' };
+            enum { XQ = 700 };
+            char t[14], ba[XQ], bb[XQ];
+            long cases = 0, quoted = 0, refused = 0, atcap = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = quoted = refused = atcap = 0;
+                for (int len = 0; len <= 9; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL4[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        memset(ba, '#', XQ); memset(bb, '#', XQ);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        int ra = wia_pathquotespacesa(ba);
+                        int rc = sys(bb);
+                        if ((!!ra) != (!!rc)) ++mism;
+                        if (memcmp(ba, bb, XQ) != 0) ++mism;
+                        if (ra) ++quoted; else ++refused;
+                        ++cases;
+                    }
+                }
+                /* the cap, straddled in both directions, with the space in three places */
+                {
+                    static char big[700];
+                    for (int n = 240; n <= 280; ++n) {
+                        for (int where = 0; where < 3; ++where) {
+                            for (int i = 0; i < n; ++i) big[i] = (char)('a' + i % 23);
+                            big[where == 0 ? 0 : (where == 1 ? n/2 : n-1)] = ' ';
+                            big[n] = 0;
+                            memset(ba, '#', XQ); memset(bb, '#', XQ);
+                            memcpy(ba, big, (size_t)n + 1);
+                            memcpy(bb, big, (size_t)n + 1);
+                            int ra = wia_pathquotespacesa(ba);
+                            int rc = sys(bb);
+                            if ((!!ra) != (!!rc)) ++mism;
+                            if (memcmp(ba, bb, XQ) != 0) ++mism;
+                            if (ra) ++quoted; else ++refused;
+                            ++cases; ++atcap;
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive + the cap)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pqsa_patch, p_pqsa, (void*)w_pqsa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pqsa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pqsa);
+                    printf("  corpus: %ld cases -- %ld quoted, %ld refused and left BYTE-FOR-BYTE\n"
+                           "          untouched (which only a poison fill can confirm), %ld straddling\n"
+                           "          the 257-character cap\n",
+                           cases, quoted, refused, atcap);
+                    OK(quoted  > 1000, "the quoting path ran in bulk");
+                    OK(refused > 1000, "the refusing path ran in bulk");
+                    OK(atcap  >= 120,  "the cap was straddled in full");
+                    OK(patch_off(&pqsa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 26 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, 231 and 232: 25 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 27 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-233: 26 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
