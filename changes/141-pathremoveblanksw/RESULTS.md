@@ -1,4 +1,12 @@
-# 141 — `shlwapi!PathRemoveBlanksW` — **LANDS** (4.23× geomean, up to 10.8×)
+# 141 — `shlwapi!PathRemoveBlanksW` — **LANDS** (4.67× geomean, up to 10.8×; the 16-char class is now a TIE)
+
+> **Re-measured 2026-09-15.** The geomean has *improved*, 4.23× → 4.67×, but the smallest class is no
+> longer a win: 16 characters now reads **0.96×–1.01× across repeated runs** — a genuine tie that
+> flips the single-run gate. The cause is the same as change 047's: shlwapi's own
+> `PathRemoveBlanksW` got faster on this build, 18.02 ns → ~14.3 for that class (21%), while ours
+> went 15.97 → ~14.5. It is recorded as a tie rather than a regression because it is one; calling it
+> PARKED would overstate it, and leaving "every size class better" would be false. Every other class
+> still wins, up to 10.8×.
 
 Strip leading and trailing spaces in place. shlwapi's is a scalar scan (207 ns for a 254-char string).
 
@@ -32,7 +40,7 @@ interior-space patterns; the **MAX_PATH region 250–300** (proving the absence 
 near-space character 0x09–0x21** placed at both ends to confirm only 0x20 is touched.
 
 ## Benchmark — vs live `shlwapi!PathRemoveBlanksW`
-geomean **4.23×**, every size class better:
+geomean **4.23×**, every size class better *as originally measured*:
 
 | input | ours ns | shlwapi ns | ratio |
 |---|---|---|---|
