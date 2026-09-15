@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (25)
+# shlwapi.dll — reimplemented exports (27)
 
 | export | speedup | source |
 |---|---|---|
@@ -21,9 +21,11 @@
 | `StrChrNW` | 3.48x | [changes/169-strchrnw](../../../../../changes/169-strchrnw/) |
 | `StrChrW` | 3.67x | [changes/131-strchrw](../../../../../changes/131-strchrw/) |
 | `StrCpyNW` | 5.01x | [changes/168-strcpynw](../../../../../changes/168-strcpynw/) |
+| `StrPBrkA` | 167.54x | [changes/215-strpbrka](../../../../../changes/215-strpbrka/) |
 | `StrPBrkW` | 8.83x | [changes/137-strpbrkw](../../../../../changes/137-strpbrkw/) |
 | `StrRChrA` | 149.12x | [changes/213-strrchra](../../../../../changes/213-strrchra/) |
 | `StrRChrW` | 4.75x | [changes/134-strrchrw](../../../../../changes/134-strrchrw/) |
+| `StrSpnA` | 227.43x | [changes/216-strspna](../../../../../changes/216-strspna/) |
 | `StrSpnW` | 5.87x | [changes/135-strspnw](../../../../../changes/135-strspnw/) |
 | `StrStrW` | 5.77x | [changes/133-strstrw](../../../../../changes/133-strstrw/) |
 | `StrTrimW` | 17.24x | [changes/139-strtrimw](../../../../../changes/139-strtrimw/) |

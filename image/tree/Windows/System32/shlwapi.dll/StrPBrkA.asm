@@ -1,29 +1,37 @@
-; changes/214-strcspna/impl.asm
-; int wia_strcspna(PCSTR pszStr, PCSTR pszSet)   [Win64: rcx, rdx -> eax]
+; shlwapi.dll!StrPBrkA  --  hand-written x86-64 reimplementation (167.54x vs shipped)
+; source of truth: changes/215-strpbrka/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
+; changes/215-strpbrka/impl.asm
+; PSTR wia_strpbrka(PCSTR pszStr, PCSTR pszSet)   [Win64: rcx, rdx -> rax]
 ;
-; Reimplements shlwapi!StrCSpnA: the number of leading characters of pszStr that are NOT in pszSet.
-; The live export costs 42868.10 ns on 4000 characters against 3166.56 ns for StrCSpnW over the same
-; character count -- 13.54x the wide cost for HALF the bytes, the MBCS-walk signature this project
-; has now seen across the whole narrow shlwapi family.
+; Reimplements shlwapi!StrPBrkA: a pointer to the first character of pszStr that IS in pszSet, or
+; NULL if none is. The live export costs 23808.12 ns on 4000 characters against 2374.10 ns for
+; StrPBrkW over the same character count -- 10.03x the wide cost for HALF the bytes, the MBCS-walk
+; signature this project has now seen across the whole narrow shlwapi family.
+;
+; This is change 214's core with one different ending, and the two were written together: the set
+; bitmap, the two-table vpshufb membership test and the page-safe aligned scan are identical, and
+; only the answer differs. 214 returns the INDEX of the first stop; this returns a POINTER to it,
+; or NULL when the stop was the terminator rather than a member.
 ;
 ; ---- what the probe settled (probes/span.c) ---------------------------------------------------------
 ;   * BYTE-WISE, and so are its two siblings. Every byte value 0x01..0xFF was placed where a lead byte
 ;     would swallow the character after it: 0 of 254 misbehave for StrCSpnA, StrPBrkA and StrSpnA
 ;     alike. The SET string is byte-wise too -- 0 of 252 values cannot be a member -- so any byte can
 ;     belong to the set and a 256-bit membership test reproduces all of it exactly.
-;   * A NULL SET IS NOT THE EMPTY SET. StrCSpnA("abc", NULL) is 0, while StrCSpnA("abc", "") is 3.
-;     A reimplementation that treated NULL as "no members" would return 3 and be wrong.
-;   * NULL subject -> 0. Empty subject -> 0. Duplicates in the set are harmless. No length cap.
+;   * For THIS export both degenerate sets happen to agree -- StrPBrkA("abc", NULL) and
+;     StrPBrkA("abc", "") are both NULL -- unlike its sibling StrCSpnA, where a NULL set returns 0
+;     and an EMPTY set returns strlen. The distinction is still measured rather than assumed,
+;     because the two functions share a core and it would be easy to carry the wrong rule across.
+;   * NULL subject -> NULL. Empty subject -> NULL. Duplicates in the set are harmless. No length cap.
 ;
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
-; terminator is never a member. StrCSpnA is therefore exactly:
-;
-;     the index of the first position that is EITHER a set member OR the terminator
-;
-; -- one scan, one mask, no separate length pass and no second stopping rule. (Its sibling StrSpnA
-; gets the same gift from the other side: the terminator is never a member, so "first non-member"
-; already stops there.)
+; terminator is never a member. One mask of "set member OR terminator" therefore finds the stop for
+; the whole family in a single scan -- and because a NUL can never be a member, ONE TEST OF THE BYTE
+; AT THE STOP separates the two outcomes: a NUL means no member exists and the answer is NULL,
+; anything else is the member itself.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
 ; The set becomes a 256-BIT BITMAP in THE CALLER'S SHADOW SPACE -- which is 32 bytes, exactly the
@@ -77,11 +85,11 @@ CLASSIFY MACRO
         vpmovmskb eax, ymm4
 ENDM
 
-wia_strcspna PROC
+wia_strpbrka PROC
         test      rcx, rcx
-        jz        cs_zero
+        jz        pb_zero
         test      rdx, rdx
-        jz        cs_zero                    ; measured: a NULL set returns 0, NOT strlen
+        jz        pb_zero                    ; measured: either NULL argument returns NULL
 
         ; ---- the set becomes a 256-bit bitmap in the caller's shadow space ----
         vpxor     xmm0, xmm0, xmm0
@@ -90,7 +98,7 @@ wia_strcspna PROC
         lea       r11, [rsp + 8]
         lea       r9, c_pow2                 ; indexing a .const symbol directly is LNK2017
         xor       r8d, r8d
-cs_bld:
+pb_bld:
         ; `bts dword ptr [r11], eax` expresses this in ONE instruction and was the first cut, but a
         ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded -- it is a
         ; read-modify-write whose address depends on the offset -- and the set-13 class paid for it.
@@ -98,15 +106,15 @@ cs_bld:
         ; simple ops.
         movzx     eax, byte ptr [rdx + r8]
         test      al, al
-        jz        cs_built
+        jz        pb_built
         mov       r10d, eax                  ; NOT ecx: rcx still holds the subject pointer, and
         shr       r10d, 3                    ;   clobbering it here cost one silent crash
         and       eax, 7
         movzx     eax, byte ptr [r9 + rax]   ; 1 << (b & 7)
         or        byte ptr [r11 + r10], al
         inc       r8d
-        jmp       cs_bld
-cs_built:
+        jmp       pb_bld
+pb_built:
         ; Two 16-byte broadcasts, deliberately, even though both forward from the narrower byte-wide writes
         ; just made. Reading all 32 bytes once and splitting the halves with vperm2i128 pays that
         ; forwarding stall only once, and was tried: it measured WORSE (geomean 125.54 -> 120.19),
@@ -125,28 +133,37 @@ cs_built:
         shrx      eax, eax, ecx              ; bit b now means byte b of the subject
         xor       r10d, r10d                 ; byte offset of bit 0 of the mask
         test      eax, eax
-        jnz       cs_hit
+        jnz       pb_hit
         mov       r10d, 32
         sub       r10d, ecx                  ; bytes the first block covered
 
 ALIGN 16
-cs_loop:
+pb_loop:
         add       r9, 32
         vmovdqa   ymm0, ymmword ptr [r9]
         CLASSIFY
         test      eax, eax
-        jnz       cs_hit
+        jnz       pb_hit
         add       r10d, 32
-        jmp       cs_loop
+        jmp       pb_loop
 
-cs_hit:
+pb_hit:
         tzcnt     eax, eax
-        add       eax, r10d                  ; a member or the terminator: either way, the answer
+        add       eax, r10d                  ; byte offset of the stop
+        ; The stop is a set member or the terminator, and a NUL can never be a member, so the byte
+        ; itself decides which.
+        cmp       byte ptr [r11 + rax], 0
+        je        pb_none
+        add       rax, r11
+        vzeroupper
+        ret
+pb_none:
+        xor       eax, eax
         vzeroupper
         ret
 
-cs_zero:
+pb_zero:
         xor       eax, eax
         ret
-wia_strcspna ENDP
+wia_strpbrka ENDP
 END

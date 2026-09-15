@@ -254,3 +254,23 @@ every case is run a second time with a NULL set.
 
 Of 8 000 cases: **6 499** carried a high-byte set member, **6 167** found a member, **1 833** scanned
 to the terminator, **738** had an empty set -- 16 000 calls into our code in total.
+
+### 215 and 216 - one core, two opposite corpora
+
+`StrPBrkA` shares 214's core exactly, so it gets 214's corpus discipline: the FULL byte range,
+because the membership bitmap resolves `0x00..0x7F` and `0x80..0xFF` through different `vpshufb`
+tables and an ASCII-only corpus cannot tell a swapped blend from a correct one. Of 8 000 cases,
+**6 442** carried a high-byte set member, **6 169** found one and **1 831** ran to the terminator.
+
+`StrSpnA` needs **the opposite corpus**, and this is the part that is easy to get wrong. Random sets
+over the full byte range almost never contain the subject's *first* character, so a span corpus built
+like 214's would return **0** nearly every time -- passing cleanly while proving nothing about the
+scan at all. So 216's sets are drawn from the subject's own alphabet, and two thirds of cases use a
+set that covers the subject ENTIRELY: that is the case which runs to the terminator, and therefore
+the one that tests the inverted mask's ability to stop there with no NUL compare of its own. Of
+8 000 cases, **6 101** spanned the whole string, **1 899** stopped early and **7 306** had a
+high-byte alphabet.
+
+Every case of both, like 214's, is also run a second time with a NULL set -- the degenerate rule that
+differs across the three functions sharing this core (NULL/EMPTY give 0/strlen for `StrCSpnA`,
+NULL/NULL for `StrPBrkA`, 0/0 for `StrSpnA`).
