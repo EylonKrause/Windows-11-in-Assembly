@@ -199,6 +199,18 @@ static void thunk(void){
     sink += wia_StringFromGUID2(&g, bw, 38);    /* and the refusal    */
 }
 
+#elif defined(T_207)
+#define NAME "207-iidfromstring"
+extern long wia_iidfromstring(const wchar_t*, GUID*);
+static void thunk(void){
+    static GUID g;
+    /* a valid parse, a content rejection, and a structural one */
+    sink += wia_iidfromstring(L"{DEADBEEF-1234-5678-9ABC-DEF011223344}", &g);
+    sink += wia_iidfromstring(L"{ZEADBEEF-1234-5678-9ABC-DEF011223344}", &g);
+    sink += wia_iidfromstring(L"{DEADBEEF-1234-5678-9ABC-DEF01122334}",  &g);
+    sink += ((unsigned char*)&g)[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

@@ -96,7 +96,7 @@ live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-
 live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA)
-live-substitution\build_combase_live.bat    (206 StringFromGUID2)
+live-substitution\build_combase_live.bat    (206 StringFromGUID2 + 207 IIDFromString)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -148,3 +148,14 @@ renderer, that is the one place the two could silently diverge, so every case he
 buffer from a poisoned baseline -- refusals included -- and the corpus straddles the boundary and runs
 negative lengths, which must refuse rather than be read as enormous. Under the live patch, of 200 000
 cases **106 693** rendered, **93 307** refused, and **20 121** of those refusals were negative.
+
+### 207 - proving a PARTIAL write, in bulk
+
+`IIDFromString` writes into the caller's GUID as it parses, so a malformed string leaves a partially
+filled GUID that must match byte for byte -- and its HRESULT is two-valued, `E_INVALIDARG` for a
+structural rejection and `CO_E_IIDSTRING` for a content one, so returning "an error" is not good
+enough. The corpus corrupts one character at a time across all 38 positions, which stops the parser at
+each different field boundary, and every case compares all sixteen bytes from a poison fill. Under the
+live patch, of 200 000 cases **70 429** parsed, **48 093** returned `CO_E_IIDSTRING` *with partial
+writes*, and **81 478** returned `E_INVALIDARG` -- so the partial-write path ran in bulk against the
+real export, not only in the unit test.

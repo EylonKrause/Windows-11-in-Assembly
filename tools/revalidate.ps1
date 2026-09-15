@@ -67,7 +67,7 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 # the DLLs any change actually validates against -- a DLL missing here is a DLL whose
 # servicing would not trigger a sweep.
 $WatchedDlls = 'ntdll.dll','ucrtbase.dll','shlwapi.dll','kernelbase.dll','crypt32.dll',
-               'msvcrt.dll','iphlpapi.dll'
+               'msvcrt.dll','iphlpapi.dll','rpcrt4.dll','combase.dll'
 $baselineFile = Join-Path $OutDir 'dll-baseline.json'
 
 function Get-DllState {
