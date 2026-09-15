@@ -46,6 +46,7 @@ extern void           wia_pathstrippatha(char*);
 extern const char*    wia_strchra(const char*, WORD);
 extern void           wia_pathremoveblanksa(char*);
 extern void           wia_pathremoveexta(char*);
+extern void           wia_pathundecoratea(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -82,6 +83,8 @@ static volatile LONG c_prba;
 static void WINAPI w_prba(PSTR p){ _InterlockedIncrement(&c_prba); wia_pathremoveblanksa(p); }
 static volatile LONG c_prxa;
 static void WINAPI w_prxa(PSTR p){ _InterlockedIncrement(&c_prxa); wia_pathremoveexta(p); }
+static volatile LONG c_puda;
+static void WINAPI w_puda(PSTR p){ _InterlockedIncrement(&c_puda); wia_pathundecoratea(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1417,9 +1420,106 @@ int main(void){
         }
     }
 
+    // ===================== 223 PathUndecorateA =====================
+    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    //
+    // This block is shaped by what went wrong with the WIDE sibling. Change 174's live block drove
+    // 4000 randomly built decorated paths with no space anywhere in them, and it passed every
+    // session while the change was wrong: the ']' has to hug the EXTENSION, and the extension search
+    // stops at a space as well as a backslash. The narrow export disagreed with 174's shipped rule
+    // on 2724 of 335923 enumerated strings, and so did the wide one.
+    //
+    // NOTE THE ASYMMETRY the corpus has to reach: the space bounds the EXTENSION search but does
+    // NOT start a new component, so a test needs BOTH delimiters present at once to tell the two
+    // jobs apart. Hence two exhaustive alphabets, one carrying the space and one carrying both.
+    //
+    // Whole-buffer, because the export moves a tail down and deliberately leaves the stale bytes
+    // past the new terminator -- "file[123].txt" becomes "file.txt" with ".txt" still behind it.
+    printf("[223 PathUndecorateA]  shlwapi (exhaustive x2 + space; whole buffer, stale tail incl.)\n");
+    {
+        typedef void (WINAPI *fpu)(PSTR);
+        void* p_puda = (void*)GetProcAddress(hs, "PathUndecorateA");
+        OK(p_puda != NULL, "resolve PathUndecorateA");
+        if (p_puda) {
+            fpu sys = (fpu)p_puda;
+            patch_t puda_patch;
+            static const char A1[6] = { '[', ']', '.', '1', ' ', 'z' };
+            static const char A2[6] = { '[', ']', '.', '\\', ' ', 'a' };
+            enum { XU = 512 };
+            char t[12], ba[XU], bb[XU];
+            long cases = 0, withspace = 0, undec = 0, longcases = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = withspace = undec = longcases = 0;
+                for (int which = 0; which < 2; ++which) {
+                    const char* AL = which ? A2 : A1;
+                    for (int len = 0; len <= 7; ++len) {
+                        long combos = 1;
+                        for (int i = 0; i < len; ++i) combos *= 6;
+                        for (long c = 0; c < combos; ++c) {
+                            long v = c; int sp = 0;
+                            for (int i = 0; i < len; ++i) { t[i] = AL[v % 6]; if (t[i]==' ') sp = 1; v /= 6; }
+                            t[len] = 0;
+                            if (sp) ++withspace;
+                            memset(ba, '#', XU); memset(bb, '#', XU);
+                            memcpy(ba, t, (size_t)len + 1);
+                            memcpy(bb, t, (size_t)len + 1);
+                            wia_pathundecoratea(ba);
+                            sys(bb);
+                            if ((int)strlen(ba) != len) ++undec;
+                            if (memcmp(ba, bb, XU) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+                /* long paths, so the scan carries both tracked positions across block boundaries */
+                {
+                    static char big[400];
+                    for (int len = 40; len <= 300; len += 7) {
+                        for (int sp = 1; sp < len - 10; sp += 23) {
+                            for (int i = 0; i < len; ++i) big[i] = (char)('a' + i % 23);
+                            big[sp] = ' ';
+                            if (sp > 5) big[sp/2] = '\\';
+                            big[len-8]='['; big[len-7]='1'; big[len-6]=']'; big[len-5]='.';
+                            big[len] = 0;
+                            memset(ba, '#', XU); memset(bb, '#', XU);
+                            memcpy(ba, big, (size_t)len + 1);
+                            memcpy(bb, big, (size_t)len + 1);
+                            wia_pathundecoratea(ba);
+                            sys(bb);
+                            if (memcmp(ba, bb, XU) != 0) ++mism;
+                            ++cases; ++longcases;
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&puda_patch, p_puda, (void*)w_puda), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_puda > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_puda);
+                    printf("  corpus: %ld cases over TWO exhaustive alphabets -- %ld containing a\n"
+                           "          SPACE (the stopper eight landed changes were missing), %ld that\n"
+                           "          actually removed a decoration, %ld long paths carrying a space\n"
+                           "          AND a backslash across 32-byte block boundaries\n",
+                           cases, withspace, undec, longcases);
+                    OK(withspace > 20000, "the space shapes ran in bulk");
+                    OK(undec     > 5000,  "cases that actually undecorate ran in bulk");
+                    OK(patch_off(&puda_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 21 functions\n"
-               "(changes 132, 168-176 and 212-222: 20 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 22 functions\n"
+               "(changes 132, 168-176 and 212-223: 21 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1439,7 +1539,12 @@ int main(void){
                "two writes is observable -- an implementation that moved first and terminated once\n"
                "would return the same BOOL and leave the same STRING on every input. 219 is both at\n"
                "once -- exhaustive AND whole-buffer -- and its alphabet carries a space, because that\n"
-               "is the character four landed changes were wrong about this session. Zero system\n"
+               "is the character four landed changes were wrong about this session. 223 gets TWO\n"
+               "exhaustive alphabets rather than one, because its rule uses the backslash for two\n"
+               "different jobs -- it bounds the extension search, where a SPACE bounds it too, and\n"
+               "it delimits the component, where a space does NOT -- and only a corpus carrying\n"
+               "both delimiters at once can tell those two jobs apart. That is the distinction the\n"
+               "wide sibling got wrong, undetected here, for as long as it was landed. Zero system\n"
                "processes touched.\n");
         return 0;
     }

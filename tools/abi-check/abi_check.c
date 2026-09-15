@@ -458,6 +458,32 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_223)
+#define NAME "223-pathundecoratea"
+extern void wia_pathundecoratea(char*);
+static void thunk(void){
+    /* this change PUSHES RBX to carry the second tracked position (the last backslash-or-space,
+       which conjunct (b) needs and conjunct (d) must not have), so the gate matters here */
+    static char p[512];
+    memcpy(p, "C:\\dir\\file[1].txt", 20);
+    wia_pathundecoratea(p);                /* an ordinary removal */
+    sink += p[0];
+    memcpy(p, "file[1]x.txt", 13);
+    wia_pathundecoratea(p);                /* nothing hugs the dot: unchanged */
+    sink += p[0];
+    memcpy(p, ". []", 5);
+    wia_pathundecoratea(p);                /* the space case the whole rule turns on */
+    sink += p[0];
+    memcpy(p, "a b[1].txt", 11);
+    wia_pathundecoratea(p);                /* the asymmetry: a space does NOT start a component */
+    sink += p[0];
+    { int i; for (i = 0; i < 400; ++i) p[i] = 'a'; p[392]='['; p[393]='1'; p[394]=']';
+      p[395]='.'; p[400] = 0; }
+    wia_pathundecoratea(p);                /* a long run through the vector scan and block move */
+    sink += p[0];
+    wia_pathundecoratea(0);                /* NULL: must still balance the stack */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
