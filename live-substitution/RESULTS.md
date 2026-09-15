@@ -346,3 +346,20 @@ high-byte target.
 has to stop at the terminator rather than reading past it. Left to chance, a target planted at
 1-in-10 per character means a long string almost always contains it. The split came out **5 188**
 hits to **2 812** full scans.
+
+### 221 - the same job as 218, in the opposite order
+
+`PathRemoveBlanksA` and `StrTrimA` (change 218) strip characters from both ends of a string in
+place. They do it in **opposite orders**, and nothing but a whole-buffer comparison can tell:
+
+    StrTrimA          cuts the TRAILING end, then MOVES the leading end down
+    PathRemoveBlanksA MOVES the leading end down, then cuts the TRAILING end
+
+Stripping `"  abc  "` therefore leaves `a b c NUL space NUL space NUL` here, where cutting first
+would have left a stale `'c'` at index 4. Both orders produce the same STRING on every input, and
+`PathRemoveBlanksA` returns nothing at all, so the buffer is the only observable there is.
+
+Of 8 000 cases: **4 227** stripped both ends (the move *and* the cut), **783** leading only, **790**
+trailing only, **1 874** stripped **nothing** -- a fifth of the corpus forces that, since it is the
+case which must write nothing at all -- and **326** were entirely blanks. Blanks are planted in the
+middle too, where they must survive.
