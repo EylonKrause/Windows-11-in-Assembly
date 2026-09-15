@@ -749,6 +749,22 @@ static void thunk(void){
     sink += wia_pathquotespacesa(0);            /* NULL */
 }
 
+#elif defined(T_234)
+#define NAME "234-pathfindnextcomponenta"
+extern char* wia_pathfindnextcomponenta(const char*);
+static void thunk(void){
+    static char p[4200];
+    int i;
+    sink += (long long)(size_t)wia_pathfindnextcomponenta("C:\\dir\\file");
+    sink += (long long)(size_t)wia_pathfindnextcomponenta("nosep");
+    sink += (long long)(size_t)wia_pathfindnextcomponenta("\\\\server");  /* the doubled rule */
+    sink += (long long)(size_t)wia_pathfindnextcomponenta("");             /* NULL */
+    sink += (long long)(size_t)wia_pathfindnextcomponenta(0);              /* NULL */
+    for (i = 0; i < 4000; ++i) p[i] = 'a';
+    p[4000] = 0;
+    sink += (long long)(size_t)wia_pathfindnextcomponenta(p);              /* the long scan */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

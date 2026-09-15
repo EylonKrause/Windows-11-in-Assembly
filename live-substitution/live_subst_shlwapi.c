@@ -52,6 +52,7 @@ extern void           wia_pathremoveargsa(char*);
 extern char*          wia_strcatbuffa(char*, const char*, int);
 extern char*          wia_pathremovebackslasha(char*);
 extern int            wia_pathquotespacesa(char*);
+extern char*          wia_pathfindnextcomponenta(const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -100,6 +101,8 @@ static volatile LONG c_prbsa;
 static char* WINAPI w_prbsa(PSTR p){ _InterlockedIncrement(&c_prbsa); return wia_pathremovebackslasha(p); }
 static volatile LONG c_pqsa;
 static BOOL WINAPI w_pqsa(PSTR p){ _InterlockedIncrement(&c_pqsa); return wia_pathquotespacesa(p); }
+static volatile LONG c_pfnca;
+static LPCSTR WINAPI w_pfnca(LPCSTR p){ _InterlockedIncrement(&c_pfnca); return wia_pathfindnextcomponenta(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -2045,9 +2048,90 @@ int main(void){
         }
     }
 
+    // ===================== 234 PathFindNextComponentA =====================
+    // The whole contract is the RETURNED POINTER, and NULL is kept distinct from a pointer to the
+    // terminator because the export uses both: an empty string gives NULL, a string with no
+    // separator gives the terminator.
+    //
+    // THE CORPUS IS SEPARATOR-HEAVY ON PURPOSE. The doubled-separator rule advances exactly ONE
+    // more, never the whole run, so "skip the separators" -- the obvious implementation -- is
+    // correct on one and two backslashes and wrong from three onward. A realistic path corpus, with
+    // single separators between components, could never see that.
+    printf("[234 PathFindNextComponentA]  shlwapi (exhaustive; separator RUNS to length 10)\n");
+    {
+        typedef LPCSTR (WINAPI *ffc)(LPCSTR);
+        void* p_pfnca = (void*)GetProcAddress(hs, "PathFindNextComponentA");
+        OK(p_pfnca != NULL, "resolve PathFindNextComponentA");
+        if (p_pfnca) {
+            ffc sys = (ffc)p_pfnca;
+            patch_t pfnca_patch;
+            static const char AL4[4] = { 'a', 0x5C, '/', (char)0x80 };
+            /* 32, not 16: the run sweep below builds lead(6) + run(10) + 'x' + NUL = 18 bytes,
+               and a 16-byte buffer overflowed the stack and took the driver down with exit 9. */
+            char t[32];
+            long cases = 0, nulls = 0, terminators = 0, doubled = 0, runs = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = nulls = terminators = doubled = runs = 0;
+                for (int len = 0; len <= 9; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL4[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        const char* ra = wia_pathfindnextcomponenta(t);
+                        const char* rc = sys(t);
+                        if (ra != rc) ++mism;
+                        if (!ra) ++nulls;
+                        else if (ra == t + len) ++terminators;
+                        if (len >= 2 && t[0] == 0x5C && t[1] == 0x5C) ++doubled;
+                        ++cases;
+                    }
+                }
+                /* separator RUNS of every length, at several lead positions */
+                for (int lead = 0; lead <= 6; ++lead) {
+                    for (int run = 1; run <= 10; ++run) {
+                        int k = 0;
+                        for (int i = 0; i < lead; ++i) t[k++] = 'a';
+                        for (int i = 0; i < run; ++i) t[k++] = 0x5C;
+                        t[k++] = 'x'; t[k] = 0;
+                        const char* ra = wia_pathfindnextcomponenta(t);
+                        const char* rc = sys(t);
+                        if (ra != rc) ++mism;
+                        ++cases; ++runs;
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive + runs)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pfnca_patch, p_pfnca, (void*)w_pfnca), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pfnca > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pfnca);
+                    printf("  corpus: %ld cases -- %ld returned NULL, %ld returned a pointer to the\n"
+                           "          TERMINATOR (a different answer that is easy to conflate), %ld\n"
+                           "          beginning with a DOUBLED separator, %ld separator runs of\n"
+                           "          length 1..10 where 'skip the run' goes wrong from three onward\n",
+                           cases, nulls, terminators, doubled, runs);
+                    OK(nulls       > 0,   "the NULL answer occurred");
+                    OK(terminators > 100, "the terminator answer ran in bulk");
+                    OK(doubled     > 100, "the doubled-separator shape ran in bulk");
+                    OK(runs       >= 70,  "the run sweep ran in full");
+                    OK(patch_off(&pfnca_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 27 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-233: 26 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 28 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-234: 27 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
