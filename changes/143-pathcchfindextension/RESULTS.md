@@ -1,5 +1,29 @@
 # 143 — `kernelbase!PathCchFindExtension` — **LANDS** (4.42× geomean, up to 6.35×)
 
+> ## CORRECTED 2026-09-15 — this change had shipped WRONG
+>
+> It reused change 132's extension rule, and that rule was **incomplete**: a **SPACE** stops the
+> backward scan exactly as a backslash does, so `"a.b "` has no extension at all. 132 shipped without
+> it because its fuzz alphabet contained no space, and this change inherited the gap — its own oracle
+> says so in as many words ("exactly the pointer `PathFindExtensionW` returns").
+>
+> `discovery/extension_space_audit.c` measured the damage over every string of
+> `{a, '.', \, space}` of length 0..9:
+>
+> | | mismatches |
+> |---|---|
+> | live export vs the OLD rule (backslash only) | **57 746** of 349 525 |
+> | live export vs the corrected rule | **0** |
+>
+> The fix is one extra compare per block against a 32-byte memory operand, so it costs no register.
+> It is `0x20` specifically and not whitespace in general: `"a.b\t"` still has an extension.
+>
+> **The corpus was the real defect.** `correctness.c` now **enumerates** all 87 381 strings over
+> `{a, '.', \, space}` of length 0..8 instead of sampling them, and its fuzz alphabet contains a
+> space and a tab. Verified protective: reverting the implementation makes it fail immediately on
+> `". "`. The change was also added to the ABI gate, since the amendment introduced a second vector
+> temp and a callee-saved one would have been invisible to correctness.
+
 First target in a **third DLL: `kernelbase.dll`**. `PathCchFindExtension` is the modern, "safe"
 replacement Microsoft recommends over shlwapi's `PathFindExtensionW` — and it is **slower than the
 function it replaces**: 154 ns for a 254-char path versus shlwapi's 147 ns ([change 132](../132-pathfindextensionw/)),
