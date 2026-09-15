@@ -511,6 +511,41 @@ static void thunk(void){
     sink += wia_pathrenameexta(0, ".obj");     /* NULL path */
 }
 
+#elif defined(T_225)
+#define NAME "225-lstrlena"
+extern int wia_lstrlena(const char*);
+static void thunk(void){
+    /* The core uses no callee-saved register, but the SEH WRAPPER is compiled C and the fault path
+       unwinds THROUGH it -- so the interesting case here is not the ordinary call, it is the one
+       that faults. An unwind that restored the wrong registers, or left the upper YMM halves
+       dirty, would be invisible to correctness: the return value is 0 either way. */
+    static char p[4200];
+    int i;
+    for (i = 0; i < 4000; ++i) p[i] = 'a';
+    p[4000] = 0;
+    sink += wia_lstrlena(p);               /* long: the paired loop */
+    p[7] = 0;
+    sink += wia_lstrlena(p);               /* short: the masked first block only */
+    sink += wia_lstrlena(p + 1);           /* unaligned start */
+    sink += wia_lstrlena("");              /* empty */
+    sink += wia_lstrlena(0);               /* NULL */
+    {
+        SYSTEM_INFO si; SIZE_T pg; char* base; DWORD old; int tail;
+        GetSystemInfo(&si);
+        pg = si.dwPageSize;
+        base = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+        if (base) {
+            VirtualProtect(base+pg, pg, PAGE_NOACCESS, &old);
+            for (tail = 1; tail <= 40; ++tail) {
+                char* q = (base+pg) - tail;
+                for (i = 0; i < tail; ++i) q[i] = 'a';   /* NO terminator: this one FAULTS */
+                sink += wia_lstrlena(q);
+            }
+            VirtualFree(base, 0, MEM_RELEASE);
+        }
+    }
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

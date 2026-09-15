@@ -45,12 +45,15 @@
 extern wchar_t* wia_lstrcpynw(wchar_t*, const wchar_t*, int);
 extern char*    wia_lstrcpyna(char*, const char*, int);
 extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
+extern int      wia_lstrlena(const char*);
 extern void     wia_upcase_init(void);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
+typedef int      (WINAPI *FNL)(const char*);
 
-static volatile LONG c_cpn, c_cso, c_cpna;
+static volatile LONG c_cpn, c_cso, c_cpna, c_lena;
+static int WINAPI w_lena(const char* p){ _InterlockedIncrement(&c_lena); return wia_lstrlena(p); }
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
 }
@@ -347,9 +350,112 @@ int main(void){
         }
     }
 
+    // ===================== 225 lstrlenA =====================
+    // THE GUARD PAGE IS THE PROOF HERE, not a footnote.
+    //
+    // A length function is the easiest thing in this repository to validate wrongly. Every string
+    // in a heap buffer has slack behind it, so an implementation that reads one 32-byte block too
+    // far lands on readable bytes and returns the right answer -- on every ordinary corpus, every
+    // time. It only diverges when the terminator sits within a block of an unmapped page, and there
+    // it does NOT crash: probes/lena.c measured the shipped export returning 0 rather than faulting,
+    // at every tail from 1 to 80. So the over-read would turn a correct 3 into a 0, silently.
+    //
+    // This block therefore sweeps EVERY tail distance 1..300 before a PAGE_NOACCESS page, twice:
+    // terminated, where the answer must be the length and an over-reader returns 0; and
+    // unterminated, where the answer must be 0 and a non-swallowing implementation takes the
+    // process down. Both are run against the live export under the patch, so the comparison is with
+    // what Windows actually does rather than with what the oracle believes.
+    printf("[225 lstrlenA]  kernelbase (guard-page sweep both ways + every start alignment)\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrlenA");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrlenA") : NULL; }
+        OK(q != NULL, "resolve lstrlenA");
+        if (q) {
+            FNL sysl = (FNL)q;
+            SYSTEM_INFO si; GetSystemInfo(&si);
+            SIZE_T pg = si.dwPageSize;
+            char* gbase = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            static char pool[8192];
+            DWORD old;
+            OK(gbase != NULL, "VirtualAlloc guard pair");
+            if (gbase) VirtualProtect(gbase+pg, pg, PAGE_NOACCESS, &old);
+            patch_t ptl;
+            long cases = 0, guarded = 0, unterm = 0, longc = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2 && gbase; ++pass) {
+                int mism = 0;
+                cases = guarded = unterm = longc = 0;
+                /* ordinary strings: every start alignment in a 64-byte window x many lengths */
+                for (int offs = 0; offs < 64; ++offs) {
+                    for (int n = 0; n <= 128; ++n) {
+                        char* z = pool + offs;
+                        for (int i = 0; i < n; ++i) z[i] = (char)('a' + i % 23);
+                        z[n] = 0;
+                        if (wia_lstrlena(z) != sysl(z)) ++mism;
+                        ++cases;
+                    }
+                }
+                /* long subjects, which drive the paired loop */
+                for (int n = 200; n <= 4000; n += 37) {
+                    for (int offs = 0; offs < 4; ++offs) {
+                        char* z = pool + offs;
+                        for (int i = 0; i < n; ++i) z[i] = (char)('a' + i % 23);
+                        z[n] = 0;
+                        if (wia_lstrlena(z) != sysl(z)) ++mism;
+                        ++cases; ++longc;
+                    }
+                }
+                /* the guard page, TERMINATED: an over-reader comes back 0 instead of the length */
+                for (int tail = 1; tail <= 300; ++tail) {
+                    char* z = (gbase+pg) - tail;
+                    for (int i = 0; i < tail-1; ++i) z[i] = (char)('a' + i % 23);
+                    z[tail-1] = 0;
+                    if (wia_lstrlena(z) != sysl(z)) ++mism;
+                    ++cases; ++guarded;
+                }
+                /* the guard page, UNTERMINATED: both must swallow the fault and return 0 */
+                for (int tail = 1; tail <= 300; ++tail) {
+                    char* z = (gbase+pg) - tail;
+                    for (int i = 0; i < tail; ++i) z[i] = (char)('a' + i % 23);
+                    if (wia_lstrlena(z) != sysl(z)) ++mism;
+                    ++cases; ++unterm;
+                }
+                /* NULL */
+                if (wia_lstrlena(0) != sysl(0)) ++mism;
+                ++cases;
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&ptl, q, (void*)w_lena), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_lena > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_lena);
+                    printf("  of %ld cases: %ld at the guard page TERMINATED (an over-read returns 0\n"
+                           "  instead of the length), %ld at the guard page UNTERMINATED (both must\n"
+                           "  swallow the fault and return 0), %ld long enough for the paired loop\n",
+                           cases, guarded, unterm, longc);
+                    OK(guarded >= 300, "the terminated guard sweep ran in full");
+                    OK(unterm  >= 300, "the unterminated guard sweep ran in full");
+                    OK(longc   > 100,  "the paired loop ran in bulk");
+                    OK(patch_off(&ptl), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+            if (gbase) VirtualFree(gbase, 0, MEM_RELEASE);
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
-               "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal AND kernelbase!lstrcpynA.\n"
+               "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
+               "AND kernelbase!lstrlenA.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -358,7 +464,13 @@ int main(void){
                "-1 lengths, so all three ignore-case tiers ran against the real export. For 211:\n"
                "the same proof against the NARROW export, whose contract was MEASURED rather than\n"
                "inherited -- including its own guard-page sweep, and with the paired 64-byte loop\n"
-               "and the clamped short path both exercised in bulk. All three\n"
+               "and the clamped short path both exercised in bulk. For 225 the proof is the GUARD\n"
+               "PAGE and nothing else: a length function that reads one block too far returns the\n"
+               "right answer on every ordinary corpus, because heap strings have slack behind them,\n"
+               "and it does not crash when it finally does over-read -- the export swallows the\n"
+               "fault and returns 0, so the bug shows up as a correct length silently becoming 0.\n"
+               "So every tail distance 1..300 before a NOACCESS page is swept TWICE, terminated and\n"
+               "unterminated, against the live export under the patch. All four\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
