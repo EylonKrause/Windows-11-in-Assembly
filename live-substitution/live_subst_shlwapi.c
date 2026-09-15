@@ -1,7 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 132, 168-176 and 212-220 -- the shlwapi functions converted on the
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-221 -- the shlwapi functions converted on the
 // second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
-// halves of PathFindExtension, StrTrimA, PathStripPathA and StrChrA.
+// halves of PathFindExtension, StrTrimA, PathStripPathA, StrChrA and PathRemoveBlanksA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -44,6 +44,7 @@ extern const wchar_t* wia_pathfindextw(const wchar_t*);
 extern int            wia_strtrima(char*, const char*);
 extern void           wia_pathstrippatha(char*);
 extern const char*    wia_strchra(const char*, WORD);
+extern void           wia_pathremoveblanksa(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -76,6 +77,8 @@ static volatile LONG c_spa;
 static void WINAPI w_spa(PSTR p){ _InterlockedIncrement(&c_spa); wia_pathstrippatha(p); }
 static volatile LONG c_scha;
 static PSTR WINAPI w_scha(PCSTR s, WORD m){ _InterlockedIncrement(&c_scha); return (PSTR)wia_strchra(s,m); }
+static volatile LONG c_prba;
+static void WINAPI w_prba(PSTR p){ _InterlockedIncrement(&c_prba); wia_pathremoveblanksa(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1189,9 +1192,93 @@ int main(void){
         }
     }
 
+    // ===================== 221 PathRemoveBlanksA =====================
+    // WHOLE-BUFFER, because this function returns NOTHING -- the buffer is the only observable it
+    // has. It writes only what it must, and the ORDER of its writes is visible: it MOVES the leading
+    // end down first and CUTS the trailing end second, which is the OPPOSITE of StrTrimA (change
+    // 218). Stripping "  abc  " leaves 'a','b','c',NUL,space,NUL,space,NUL; cutting first would have
+    // left a stale 'c' at index 4. An implementation with the order swapped produces the same STRING
+    // on every input and nothing else to compare.
+    printf("[221 PathRemoveBlanksA]  shlwapi (whole-buffer; the write ORDER is visible)\n");
+    {
+        typedef void (WINAPI *fpb)(PSTR);
+        void* p_prba = (void*)GetProcAddress(hs, "PathRemoveBlanksA");
+        OK(p_prba != NULL, "resolve PathRemoveBlanksA");
+        if (p_prba) {
+            fpb sys = (fpb)p_prba;
+            patch_t prba_patch;
+            enum { PB = 700 };
+            static char ba[PB], bb[PB], seed2[PB];
+            long n_both = 0, n_lead = 0, n_trail = 0, n_none = 0, n_all = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                n_both = n_lead = n_trail = n_none = n_all = 0;
+                reseed(221);
+                for (int k = 0; k < 8000; ++k) {
+                    int len = (int)(rnd() % 400);
+                    /* a fifth strips NOTHING, deliberately: that is the case which must write
+                       nothing at all, and drawing the two runs independently makes it rare */
+                    int noop  = ((rnd() % 5) == 0);
+                    int lead  = noop ? 0 : (int)(rnd() % 6);
+                    int trail = noop ? 0 : (int)(rnd() % 6);
+                    if (lead + trail > len) { lead = 0; trail = 0; }
+                    for (int i = 0; i < len; ++i) {
+                        char c = (char)(1 + rnd() % 255);
+                        if (c == ' ') c = 'Q';
+                        seed2[i] = c;
+                    }
+                    for (int i = 0; i < lead; ++i)  seed2[i] = ' ';
+                    for (int i = 0; i < trail; ++i) seed2[len - 1 - i] = ' ';
+                    int all = (!noop) && (len > 0) && ((rnd() % 20) == 0);
+                    if (all) for (int i = 0; i < len; ++i) seed2[i] = ' ';
+                    /* blanks in the MIDDLE, which must survive */
+                    if (!all && len > 8) { seed2[len/2] = ' '; }
+                    seed2[len] = 0;
+
+                    if (all) ++n_all;
+                    else if (lead && trail) ++n_both;
+                    else if (lead) ++n_lead;
+                    else if (trail) ++n_trail;
+                    else ++n_none;
+
+                    int off = 32 + (int)(rnd() % 32);
+                    memset(ba, '#', PB); memset(bb, '#', PB);
+                    memcpy(ba + off, seed2, (size_t)len + 1);
+                    memcpy(bb + off, seed2, (size_t)len + 1);
+                    wia_pathremoveblanksa(ba + off);
+                    sys(bb + off);                          /* routes to OUR code in pass 1 */
+                    if (memcmp(ba, bb, PB) != 0) ++mism;     /* THE WHOLE BUFFER */
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (8000, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&prba_patch, p_prba, (void*)w_prba), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_prba > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_prba);
+                    printf("  of 8000 cases: %ld stripped BOTH ends (the move AND the cut), %ld\n"
+                           "                 leading only, %ld trailing only, %ld NOTHING, %ld were\n"
+                           "                 entirely blanks\n",
+                           n_both, n_lead, n_trail, n_none, n_all);
+                    OK(n_both  > 300,  "both-ends strips -- move then cut -- ran in bulk");
+                    OK(n_lead  > 300,  "leading-only strips (the move alone) ran in bulk");
+                    OK(n_trail > 300,  "trailing-only strips (the cut alone) ran in bulk");
+                    OK(n_none  > 1000, "no-op strips -- which must write NOTHING -- ran in bulk");
+                    OK(n_all   > 50,   "all-blank strings ran in bulk");
+                    OK(patch_off(&prba_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 19 functions\n"
-               "(changes 132, 168-176 and 212-220: 18 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 20 functions\n"
+               "(changes 132, 168-176 and 212-221: 19 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"

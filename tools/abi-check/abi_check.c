@@ -429,6 +429,23 @@ static void thunk(void){
     sink += (long long)(size_t)wia_strchra(0, (WORD)'Z');
 }
 
+#elif defined(T_221)
+#define NAME "221-pathremoveblanksa"
+extern void wia_pathremoveblanksa(char*);
+static void thunk(void){
+    static char p[128];
+    memcpy(p, "   C:\\some\\long\\path\\to\\a\\file.txt   ", 39);
+    wia_pathremoveblanksa(p);          /* both ends: the move AND the trailing cut */
+    sink += p[0];
+    memcpy(p, "nothing-to-strip", 17);
+    wia_pathremoveblanksa(p);          /* writes nothing at all */
+    sink += p[0];
+    memcpy(p, "      ", 7);
+    wia_pathremoveblanksa(p);          /* entirely blanks */
+    sink += p[0];
+    wia_pathremoveblanksa(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
