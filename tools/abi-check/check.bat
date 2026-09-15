@@ -29,7 +29,7 @@ set LIST=%LIST% 051-rtlfindcharinunicodestring
 set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-base64any
 set LIST=%LIST% 125-rtlfindclearbits 161-pathfindfilenamew 162-pathstrippathw
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
-set LIST=%LIST% 205-uuidfromstringa
+set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2
 
 set FAILED=0
 set RAN=0

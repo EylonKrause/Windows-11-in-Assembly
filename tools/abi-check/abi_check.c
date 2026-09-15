@@ -190,6 +190,15 @@ static void thunk(void){
     sink += ((unsigned char*)&g)[0];
 }
 
+#elif defined(T_206)
+#define NAME "206-stringfromguid2"
+extern int wia_StringFromGUID2(const GUID*, wchar_t*, int);
+static void thunk(void){
+    static const GUID g = {0xDEADBEEF,0x1234,0x5678,{0x9A,0xBC,0xDE,0xF0,0x11,0x22,0x33,0x44}};
+    sink += wia_StringFromGUID2(&g, bw, 64);    /* the rendering path */
+    sink += wia_StringFromGUID2(&g, bw, 38);    /* and the refusal    */
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
