@@ -765,6 +765,25 @@ static void thunk(void){
     sink += (long long)(size_t)wia_pathfindnextcomponenta(p);              /* the long scan */
 }
 
+#elif defined(T_235)
+#define NAME "235-pathisfilespeca"
+extern int wia_pathisfilespeca(const char*);
+static void thunk(void){
+    /* a clean name (the scan runs to the terminator), both separators, the EMPTY STRING -- which is
+       TRUE, the one case a natural model gets wrong -- NULL, and a 4000-byte scan so the vector loop
+       runs many iterations before answering. */
+    static char p[4200];
+    int i;
+    sink += wia_pathisfilespeca("file.txt");
+    sink += wia_pathisfilespeca("a\\b");         /* backslash */
+    sink += wia_pathisfilespeca("a:b");           /* colon -- the other separator */
+    sink += wia_pathisfilespeca("");              /* TRUE */
+    sink += wia_pathisfilespeca(0);               /* NULL -> 0 */
+    for (i = 0; i < 4000; ++i) p[i] = 'a';
+    p[4000] = 0;
+    sink += wia_pathisfilespeca(p);               /* the long scan */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
