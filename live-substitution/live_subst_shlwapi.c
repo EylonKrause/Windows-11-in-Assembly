@@ -1,7 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 132, 168-176 and 212-219 -- the shlwapi functions converted on the
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-220 -- the shlwapi functions converted on the
 // second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
-// halves of PathFindExtension, StrTrimA and PathStripPathA.
+// halves of PathFindExtension, StrTrimA, PathStripPathA and StrChrA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -43,6 +43,7 @@ extern const char*    wia_pathfindexta(const char*);
 extern const wchar_t* wia_pathfindextw(const wchar_t*);
 extern int            wia_strtrima(char*, const char*);
 extern void           wia_pathstrippatha(char*);
+extern const char*    wia_strchra(const char*, WORD);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -73,6 +74,8 @@ static volatile LONG c_trma;
 static BOOL WINAPI w_trma(PSTR p, PCSTR set){ _InterlockedIncrement(&c_trma); return (BOOL)wia_strtrima(p,set); }
 static volatile LONG c_spa;
 static void WINAPI w_spa(PSTR p){ _InterlockedIncrement(&c_spa); wia_pathstrippatha(p); }
+static volatile LONG c_scha;
+static PSTR WINAPI w_scha(PCSTR s, WORD m){ _InterlockedIncrement(&c_scha); return (PSTR)wia_strchra(s,m); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1125,9 +1128,70 @@ int main(void){
         }
     }
 
+    // ===================== 220 StrChrA =====================
+    // The corpus draws targets and content from the FULL byte range, because 0x80..0xFF are ordinary
+    // characters on code page 1252 and a signed compare would get exactly those wrong while passing
+    // every ASCII test. A third of the cases are forced to MISS, since the miss is the full scan --
+    // the case that runs the whole loop and has to stop at the terminator.
+    printf("[220 StrChrA]  shlwapi (full byte range; a third forced to miss)\n");
+    {
+        typedef PSTR (WINAPI *fsc)(PCSTR, WORD);
+        void* p_scha = (void*)GetProcAddress(hs, "StrChrA");
+        OK(p_scha != NULL, "resolve StrChrA");
+        if (p_scha) {
+            fsc sys = (fsc)p_scha;
+            patch_t scha_patch;
+            static char t[600];
+            long n_hit = 0, n_miss = 0, n_hi = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                n_hit = n_miss = n_hi = 0;
+                reseed(220);
+                for (int k = 0; k < 8000; ++k) {
+                    int len = (int)(rnd() % 500);
+                    unsigned target = 1 + rnd() % 255;
+                    int forcemiss = ((rnd() % 3) == 0);
+                    char rep = (char)(target == 1 ? 2 : 1);
+                    for (int i = 0; i < len; ++i) {
+                        unsigned q = rnd() % 10;
+                        t[i] = (q == 0) ? (char)target : (char)(1 + rnd() % 255);
+                    }
+                    t[len] = 0;
+                    if (forcemiss) for (int i = 0; i < len; ++i) if (t[i] == (char)target) t[i] = rep;
+                    if (target >= 0x80) ++n_hi;
+                    const char* ra = wia_strchra(t, (WORD)target);
+                    const char* rb = (const char*)sys(t, (WORD)target);
+                    if (ra) ++n_hit; else ++n_miss;
+                    long long x = ra ? (ra - t) : -1, y = rb ? (rb - t) : -1;
+                    if (x != y) ++mism;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (8000)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&scha_patch, p_scha, (void*)w_scha), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_scha > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_scha);
+                    printf("  of 8000 cases: %ld found the target, %ld ran the FULL SCAN to the\n"
+                           "                 terminator, %ld used a HIGH-BYTE target\n",
+                           n_hit, n_miss, n_hi);
+                    OK(n_hit  > 1000, "hits ran in bulk");
+                    OK(n_miss > 2000, "full scans to the terminator ran in bulk");
+                    OK(n_hi   > 2000, "high-byte targets ran in bulk");
+                    OK(patch_off(&scha_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 18 functions\n"
-               "(changes 132, 168-176 and 212-219: 17 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 19 functions\n"
+               "(changes 132, 168-176 and 212-220: 18 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"

@@ -419,6 +419,16 @@ static void thunk(void){
     wia_pathstrippatha(0);
 }
 
+#elif defined(T_220)
+#define NAME "220-strchra"
+extern const char* wia_strchra(const char*, WORD);
+static void thunk(void){
+    sink += (long long)(size_t)wia_strchra(a8, (WORD)'Z');      /* a hit */
+    sink += (long long)(size_t)wia_strchra(a8, (WORD)'#');      /* a full-scan miss */
+    sink += (long long)(size_t)wia_strchra(a8, (WORD)0x5A00);   /* low byte NUL -> NULL */
+    sink += (long long)(size_t)wia_strchra(0, (WORD)'Z');
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

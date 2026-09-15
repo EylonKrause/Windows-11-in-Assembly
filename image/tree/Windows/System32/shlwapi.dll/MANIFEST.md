@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (30)
+# shlwapi.dll — reimplemented exports (31)
 
 | export | speedup | source |
 |---|---|---|
@@ -20,6 +20,7 @@
 | `StrCSpnA` | 137.08x | [changes/214-strcspna](../../../../../changes/214-strcspna/) |
 | `StrCSpnW` | 11.26x | [changes/136-strcspnw](../../../../../changes/136-strcspnw/) |
 | `StrCatBuffW` | 3.59x | [changes/170-strcatbuffw](../../../../../changes/170-strcatbuffw/) |
+| `StrChrA` | 11.42x | [changes/220-strchra](../../../../../changes/220-strchra/) |
 | `StrChrNW` | 3.48x | [changes/169-strchrnw](../../../../../changes/169-strchrnw/) |
 | `StrChrW` | 3.67x | [changes/131-strchrw](../../../../../changes/131-strchrw/) |
 | `StrCpyNW` | 5.01x | [changes/168-strcpynw](../../../../../changes/168-strcpynw/) |

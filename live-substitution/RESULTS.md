@@ -333,3 +333,16 @@ of PathStripPath over 488 281 space-bearing strings; this keeps them cleared aga
 
 **97 656** exhaustive strings over {a, backslash, slash, colon, space} of length 0..7, each compared
 across the whole buffer.
+
+### 220 - the full byte range, and a third forced to miss
+
+Two corpus choices, both for stated reasons.
+
+**The full byte range**, because `0x80..0xFF` are ordinary characters on code page 1252 and a signed
+compare would get exactly those wrong while passing every ASCII test. Of 8 000 cases, **4 022** used a
+high-byte target.
+
+**A third forced to MISS**, because the miss is the full scan -- the case that runs the whole loop and
+has to stop at the terminator rather than reading past it. Left to chance, a target planted at
+1-in-10 per character means a long string almost always contains it. The split came out **5 188**
+hits to **2 812** full scans.
