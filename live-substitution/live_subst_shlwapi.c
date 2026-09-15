@@ -1,6 +1,6 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 168-176 and 212 -- the shlwapi functions converted on the second PC,
-// plus the NARROW PathFindFileNameA.
+// LIVE-RUN PROOF for changes 168-176, 212 and 213 -- the shlwapi functions converted on the second
+// PC, plus the NARROW PathFindFileNameA and StrRChrA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -34,6 +34,7 @@ extern void     wia_pathundecoratew(wchar_t*);
 extern void     wia_pathremoveargsw(wchar_t*);
 extern long     wia_pathcchremovebackslash(wchar_t*, size_t);
 extern const char* wia_pathfindfilenamea(const char*);
+extern const char* wia_strrchra(const char*, const char*, WORD);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -49,6 +50,8 @@ static volatile LONG c_pcrb;
 static HRESULT WINAPI w_pcrb(PWSTR p, size_t n){ _InterlockedIncrement(&c_pcrb); return (HRESULT)wia_pathcchremovebackslash(p,n); }
 static volatile LONG c_pffa;
 static PSTR WINAPI w_pffa(PCSTR p){ _InterlockedIncrement(&c_pffa); return (PSTR)wia_pathfindfilenamea(p); }
+static volatile LONG c_srca;
+static PSTR WINAPI w_srca(PCSTR s, PCSTR e, WORD m){ _InterlockedIncrement(&c_srca); return (PSTR)wia_strrchra(s,e,m); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -539,13 +542,107 @@ int main(void){
         }
     }
 
+    // ===================== 213 StrRChrA =====================
+    // THE CORPUS STAYS INSIDE THE CONTRACT DOMAIN ON PURPOSE. probes/srca.c established that the
+    // shipped export walks FORWARD with CharNextA, which does not advance past a terminator, so an
+    // pszEnd placed BEYOND the string's NUL makes it spin forever -- measured twice, once at the
+    // cost of a 300-second timeout. Every bounded case below therefore keeps pszEnd within
+    // [pszStart, pszStart+strlen]. That is not leniency: outside that range the shipped function
+    // produces no result at all, so there is nothing for ours to be identical TO, and a live-patch
+    // harness that wandered outside it would simply hang instead of reporting anything.
+    printf("[213 StrRChrA]  shlwapi (corpus held inside the contract domain -- see the source)\n");
+    {
+        typedef PSTR (WINAPI *fnr)(PCSTR, PCSTR, WORD);
+        void* p_srca = (void*)GetProcAddress(hs, "StrRChrA");
+        OK(p_srca != NULL, "resolve StrRChrA");
+        if (p_srca) {
+            fnr sys = (fnr)p_srca;
+            static char t[600];
+            long n_unb = 0, n_bnd = 0, n_hit = 0, n_miss = 0;
+            int vpre = 0;
+            reseed(213);
+            for (int k = 0; k < 8000; ++k) {
+                int len = (int)(rnd() % 500);
+                unsigned target = 1 + rnd() % 255;
+                /* A third of the corpus is forced to MISS. Planting the target at 1-in-8 per
+                   character means a long string almost always contains it, and the first run of
+                   this block duly produced only 406 misses in 8000 -- while the miss is the case
+                   that scans the WHOLE string and so exercises page safety and the terminator
+                   search. The replacement byte cannot be the target and cannot be NUL. */
+                int forcemiss = ((rnd() % 3) == 0);
+                char rep = (char)(target == 1 ? 2 : 1);
+                for (int i = 0; i < len; ++i) {
+                    unsigned q = rnd() % 8;
+                    t[i] = (q == 0) ? (char)target : (char)(1 + rnd() % 255);
+                    if (t[i] == 0) t[i] = 'x';
+                }
+                t[len] = 0;
+                if (forcemiss) { for (int i = 0; i < len; ++i) if (t[i] == (char)target) t[i] = rep; }
+                int bounded = (int)(rnd() & 1);
+                const char* e = bounded ? (t + (int)(rnd() % (len + 1))) : NULL;
+                if (bounded) ++n_bnd; else ++n_unb;
+                const char* ra = wia_strrchra(t, e, (WORD)target);
+                const char* rb = (const char*)sys(t, e, (WORD)target);
+                if (ra) ++n_hit; else ++n_miss;
+                long long x = ra ? (ra - t) : -1, y = rb ? (rb - t) : -1;
+                if (x != y) ++vpre;
+            }
+            OK(vpre == 0, "validate-first vs the LIVE export (8000)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t p; OK(patch_on(&p, p_srca, (void*)w_srca), "install patch");
+                LONG before = c_srca; int mism = 0;
+                reseed(213);
+                for (int k = 0; k < 8000; ++k) {
+                    int len = (int)(rnd() % 500);
+                    unsigned target = 1 + rnd() % 255;
+                    /* A third of the corpus is forced to MISS. Planting the target at 1-in-8 per
+                       character means a long string almost always contains it, and the first run of
+                       this block duly produced only 406 misses in 8000 -- while the miss is the case
+                       that scans the WHOLE string and so exercises page safety and the terminator
+                       search. The replacement byte cannot be the target and cannot be NUL. */
+                    int forcemiss = ((rnd() % 3) == 0);
+                    char rep = (char)(target == 1 ? 2 : 1);
+                    for (int i = 0; i < len; ++i) {
+                        unsigned q = rnd() % 8;
+                        t[i] = (q == 0) ? (char)target : (char)(1 + rnd() % 255);
+                        if (t[i] == 0) t[i] = 'x';
+                    }
+                    t[len] = 0;
+                    if (forcemiss) { for (int i = 0; i < len; ++i) if (t[i] == (char)target) t[i] = rep; }
+                    int bounded = (int)(rnd() & 1);
+                    const char* e = bounded ? (t + (int)(rnd() % (len + 1))) : NULL;
+                    const char* ra = wia_strrchra(t, e, (WORD)target);
+                    const char* rb = (const char*)sys(t, e, (WORD)target);   /* routes to OUR code */
+                    long long x = ra ? (ra - t) : -1, y = rb ? (rb - t) : -1;
+                    if (x != y) ++mism;
+                }
+                OK(mism == 0, "identical under live patch");
+                OK(c_srca - before >= 8000, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism ? "MISMATCH" : "all match", (long)(c_srca - before));
+                printf("  of 8000 cases: %ld unbounded (forward path), %ld bounded (backward path),\n"
+                       "                 %ld found a match, %ld did not\n",
+                       n_unb, n_bnd, n_hit, n_miss);
+                OK(n_unb  > 2000, "the unbounded forward path ran in bulk");
+                OK(n_bnd  > 2000, "the bounded backward path ran in bulk");
+                OK(n_hit  > 1000, "matches were found in bulk");
+                OK(n_miss > 2000, "misses -- the full-scan case -- ran in bulk");
+                OK(patch_off(&p), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 10 functions\n"
-               "(changes 168-176 and 212: 9 shlwapi + 1 kernelbase), results identical to the live\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 11 functions\n"
+               "(changes 168-176, 212 and 213: 10 shlwapi + 1 kernelbase), results identical to the live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
-               "random path corpus would validate a wrong implementation. Zero system processes\n"
-               "touched.\n");
+               "random path corpus would validate a wrong implementation. For 213 the corpus is held\n"
+               "INSIDE the contract domain, because an pszEnd past the terminator makes the shipped\n"
+               "export spin forever and there is nothing there to be identical to. Zero system\n"
+               "processes touched.\n");
         return 0;
     }
     printf("SHLWAPI LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);

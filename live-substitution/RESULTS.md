@@ -221,3 +221,21 @@ on every ordinary path and differs on **76 672 of the 349 525** strings over
 So the live run enumerates that alphabet as well: **21 845** strings of length 0..7, of which
 **11 457 hold two or more colons** -- the shapes that separate the real rule from the plausible one --
 plus 4 000 long real-shaped paths through the block-skipping path.
+
+### 213 - a corpus held INSIDE the contract domain, and made to miss on purpose
+
+Two deliberate choices here, both forced by measurement.
+
+**The bounds stay in the domain.** `probes/srca.c` established that the shipped `StrRChrA` walks
+FORWARD with `CharNextA`, which does not advance past a terminator, so an `pszEnd` placed beyond the
+string's NUL makes it spin forever -- measured twice, once at the cost of a 300-second timeout. Every
+bounded case keeps `pszEnd` within `[pszStart, pszStart+strlen]`. That is not the harness being
+lenient: outside that range the shipped function produces no result at all, so there is nothing for
+ours to be identical to, and a live-patch harness that wandered outside it would hang rather than
+report anything.
+
+**A third of the corpus is forced to MISS.** Planting the target at 1-in-8 per character means a long
+string almost always contains it, and the first run of this block produced only **406** misses in
+8 000 -- while the miss is the case that scans the WHOLE string, and so the one that exercises page
+safety and the terminator search. With a third forced, the split is **5 030** hits to **2 970**
+misses, across **3 893** unbounded (forward path) and **4 107** bounded (backward path) cases.
