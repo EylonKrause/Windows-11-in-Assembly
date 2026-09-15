@@ -1,4 +1,4 @@
-# kernelbase.dll — reimplemented exports (10)
+# kernelbase.dll — reimplemented exports (11)
 
 | export | speedup | source |
 |---|---|---|
@@ -9,6 +9,7 @@
 | `PathCchRemoveBackslash` | 1.93x | [changes/176-pathcchremovebackslash](../../../../../changes/176-pathcchremovebackslash/) |
 | `PathCchRemoveExtension` | 2.59x | [changes/144-pathcchremoveextension](../../../../../changes/144-pathcchremoveextension/) |
 | `PathCchRenameExtension` | 3.37x | [changes/159-pathcchrenameextension](../../../../../changes/159-pathcchrenameextension/) |
+| `lstrcpyA` | 11.48x | [changes/227-lstrcpya](../../../../../changes/227-lstrcpya/) |
 | `lstrcpynA` | 7.31x | [changes/211-lstrcpyna](../../../../../changes/211-lstrcpyna/) |
 | `lstrcpynW` | 3.94x | [changes/209-lstrcpynw](../../../../../changes/209-lstrcpynw/) |
 | `lstrlenA` | 3.01x | [changes/225-lstrlena](../../../../../changes/225-lstrlena/) |
