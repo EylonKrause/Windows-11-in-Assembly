@@ -838,6 +838,36 @@ static void thunk(void){
     sink += wia_pathisprefixa(p, q);                       /* a long FALSE */
 }
 
+#elif defined(T_238)
+#define NAME "238-pathmakeprettya"
+extern int wia_pathmakeprettya(char*);
+static void thunk(void){
+    /* a rewrite, a refusal, the CP1252 branch the ASCII veto ignores, index 0 being UPPERCASED,
+       the empty string, NULL, and a 300-character path that crosses the 259 truncation bound. */
+    static char p[600];
+    int i;
+    memcpy(p, "C:\\\\DIR\\\\FILE.TXT", 16);
+    sink += wia_pathmakeprettya(p);            /* rewritten */
+    sink += p[0];
+    memcpy(p, "C:\\\\Dir\\\\FILE.TXT", 16);
+    sink += wia_pathmakeprettya(p);            /* refused: writes nothing */
+    sink += p[0];
+    p[0] = (char)0xE0; p[1] = 0x42; p[2] = 0x43; p[3] = 0;
+    sink += wia_pathmakeprettya(p);            /* index 0 UPPERCASED, 0xE0 -> 0xC0 */
+    sink += p[0];
+    p[0] = 0;
+    sink += wia_pathmakeprettya(p);            /* the empty string */
+    sink += wia_pathmakeprettya(0);            /* NULL -> 0 */
+    for (i = 0; i < 300; ++i) p[i] = (i % 8 == 7) ? 0x5C : (char)(0x41 + i % 23);
+    p[300] = 0;
+    sink += wia_pathmakeprettya(p);            /* crosses the 259 truncation bound */
+    sink += p[0];
+    for (i = 0; i < 300; ++i) p[i] = (char)(0x41 + i % 23);
+    p[290] = 0x71; p[300] = 0;
+    sink += wia_pathmakeprettya(p);            /* vetoed by a letter PAST the rewrite bound */
+    sink += p[0];
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
