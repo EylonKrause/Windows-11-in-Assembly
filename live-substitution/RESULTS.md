@@ -93,7 +93,7 @@ live-substitution\build_wparse_live.bat     (the wide parsers: 186-191)
 live-substitution\build_ntdll2_live.bat     (192-193)
 live-substitution\build_fmt_s_live.bat      (the bounded 64-bit formatters: 194-197)
 live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-201, SIX exports)
-live-substitution\build_iphlpapi_live.bat   (202 ConvertGuidToStringW)
+live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -106,9 +106,14 @@ letting four stand in for six. 40 000 cases each, ~19 800 of them on an EINVAL o
 comparing return value, `errno`, handler hit count and the whole buffer - the ERANGE path's reversed
 partial leftovers included.
 
-### 202 - the first iphlpapi target
+### 202 and 203 - the iphlpapi pair, driven separately
 
-200 000 cases against the live `ConvertGuidToStringW`, weighted across all four length regimes:
-102 156 truncating (1..38), 15 425 zero-length (where the buffer must be left **untouched**), and
-20 081 absurd (>= 0x80000000, which returns 122 with `String[0] = 0` rather than 87). Return value
-and the whole 160-cell buffer identical; prologue restored byte-for-byte.
+200 000 cases against each live export, weighted across all four length regimes - for the wide
+form 102 156 truncating (1..38), 15 425 zero-length (where the buffer must be left **untouched**)
+and 20 081 absurd (>= 0x80000000, which returns 122 with `String[0] = 0` rather than 87); for the
+narrow form 102 828 / 15 085 / 20 005. Return value and the whole 160-cell buffer identical; both
+prologues restored byte-for-byte.
+
+A and W are patched and driven **separately**. `changes/203-convertguidtostringa/probes/cgsa.c`
+measured them character-identical over 200 000 pairs, which is a reason to check both rather than a
+licence to check one.
