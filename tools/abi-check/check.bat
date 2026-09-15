@@ -30,7 +30,7 @@ set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-b
 set LIST=%LIST% 125-rtlfindclearbits 161-pathfindfilenamew 162-pathstrippathw
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 209-lstrcpynw
+set LIST=%LIST% 209-lstrcpynw 210-comparestringordinal
 
 set FAILED=0
 set RAN=0
@@ -66,6 +66,7 @@ set EXTRA=
 if exist upcase.c set EXTRA=!EXTRA! "%P%\upcase.c"
 if exist revtab.c set EXTRA=!EXTRA! "%P%\revtab.c"
 if exist seh.c    set EXTRA=!EXTRA! "%P%\seh.c"
+if exist wrapper.c set EXTRA=!EXTRA! "%P%\wrapper.c"
 popd
 
 cl /nologo /O2 /DT_%ID% abi_check.c abi_probe.obj "%P%\impl.obj" %EXTRA% /Fe:abi_%ID%.exe >nul 2>&1

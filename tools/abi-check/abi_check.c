@@ -232,6 +232,20 @@ static void thunk(void){
     sink += (long long)(size_t)wia_lstrcpynw(bw, aw, 0);
 }
 
+#elif defined(T_210)
+#define NAME "210-comparestringordinal"
+extern int  wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
+extern void wia_upcase_init(void);
+#define SETUP() wia_upcase_init()
+static void thunk(void){
+    /* all three ignore-case tiers plus the case-sensitive path and a -1 length */
+    sink += wia_comparestringordinal(aw, 200, bw, 200, FALSE);
+    sink += wia_comparestringordinal(aw, 200, aw, 200, TRUE);      /* tier 1: equal raw   */
+    sink += wia_comparestringordinal(aw, 200, bw, 200, TRUE);      /* tier 2: ASCII fold  */
+    sink += wia_comparestringordinal(L"3031", 2, L"1011", 2, TRUE);  /* tier 3 */
+    sink += wia_comparestringordinal(aw, -1, bw, -1, FALSE);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

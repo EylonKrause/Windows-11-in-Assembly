@@ -1,7 +1,8 @@
-# kernelbase.dll — reimplemented exports (7)
+# kernelbase.dll — reimplemented exports (8)
 
 | export | speedup | source |
 |---|---|---|
+| `CompareStringOrdinal` | 2.84x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
 | `PathCchAddBackslash` | 2.17x | [changes/164-pathcchaddbackslash](../../../../../changes/164-pathcchaddbackslash/) |
 | `PathCchAddExtension` | 3.80x | [changes/160-pathcchaddextension](../../../../../changes/160-pathcchaddextension/) |
 | `PathCchFindExtension` | 4.42x | [changes/143-pathcchfindextension](../../../../../changes/143-pathcchfindextension/) |
