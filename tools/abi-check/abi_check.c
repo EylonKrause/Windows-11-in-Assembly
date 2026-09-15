@@ -157,6 +157,14 @@ static void thunk(void){
     sink += wia_ConvertGuidToStringW(&g, bw, 64);
 }
 
+#elif defined(T_203)
+#define NAME "203-convertguidtostringa"
+extern DWORD wia_ConvertGuidToStringA(const GUID*, PSTR, DWORD);
+static void thunk(void){
+    static const GUID g = {0xDEADBEEF,0x1234,0x5678,{0x9A,0xBC,0xDE,0xF0,0x11,0x22,0x33,0x44}};
+    sink += wia_ConvertGuidToStringA(&g, a8, 64);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

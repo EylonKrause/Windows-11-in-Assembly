@@ -28,7 +28,7 @@ set LIST=%LIST% 047-strlwr 048-strupr 049-wcslwr 050-wcsupr
 set LIST=%LIST% 051-rtlfindcharinunicodestring
 set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-base64any
 set LIST=%LIST% 125-rtlfindclearbits 161-pathfindfilenamew 162-pathstrippathw
-set LIST=%LIST% 202-convertguidtostringw
+set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa
 
 set FAILED=0
 set RAN=0
