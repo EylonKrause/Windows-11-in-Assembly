@@ -666,6 +666,42 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_231)
+#define NAME "231-strcatbuffa"
+extern char* wia_strcatbuffa(char*, const char*, int);
+static void thunk(void){
+    /* No SEH wrapper on this one -- the shipped export FAULTS rather than swallowing, so there is
+       no fault path to unwind through. Every exit is driven instead: NULL destination, NULL source,
+       cch <= 0, the scan failing (nothing written), an exact fit, a truncating append, and the
+       long path through the 32-byte chunks. */
+    static char p[2048];
+    static char s[1024];
+    int i;
+    for (i = 0; i < 900; ++i) s[i] = 'Z';
+    s[900] = 0;
+    memcpy(p, "abc", 4);
+    sink += (long long)(size_t)wia_strcatbuffa(p, "de", 40);      /* an ordinary append */
+    sink += p[0];
+    memcpy(p, "abc", 4);
+    sink += (long long)(size_t)wia_strcatbuffa(p, "defghij", 6);  /* truncating */
+    sink += p[0];
+    memcpy(p, "abc", 4);
+    sink += (long long)(size_t)wia_strcatbuffa(p, "de", 4);       /* exactly full: no room */
+    sink += p[0];
+    for (i = 0; i < 100; ++i) p[i] = 'a';
+    p[100] = 0;
+    sink += (long long)(size_t)wia_strcatbuffa(p, "x", 50);       /* scan fails: writes NOTHING */
+    sink += p[0];
+    for (i = 0; i < 1000; ++i) p[i] = 'a';
+    p[1000] = 0;
+    sink += (long long)(size_t)wia_strcatbuffa(p, s, 1900);       /* long: the 32-byte chunks */
+    sink += p[0];
+    sink += (long long)(size_t)wia_strcatbuffa(p, "x", 0);        /* cch 0 */
+    sink += (long long)(size_t)wia_strcatbuffa(p, "x", -5);       /* negative cch */
+    sink += (long long)(size_t)wia_strcatbuffa(p, 0, 40);         /* NULL source */
+    sink += (long long)(size_t)wia_strcatbuffa(0, "x", 40);       /* NULL destination */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
