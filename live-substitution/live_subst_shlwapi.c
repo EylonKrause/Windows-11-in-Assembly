@@ -56,6 +56,7 @@ extern char*          wia_pathfindnextcomponenta(const char*);
 extern int            wia_pathisfilespeca(const char*);
 extern int            wia_pathcommonprefixa(const char*, const char*, char*);
 extern int            wia_pathisprefixa(const char*, const char*);
+extern int            wia_pathmakeprettya(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -112,6 +113,8 @@ static volatile LONG c_pcpa;
 static int WINAPI w_pcpa(LPCSTR x, LPCSTR y, LPSTR o){ _InterlockedIncrement(&c_pcpa); return wia_pathcommonprefixa(x, y, o); }
 static volatile LONG c_pipa;
 static BOOL WINAPI w_pipa(LPCSTR x, LPCSTR y){ _InterlockedIncrement(&c_pipa); return (BOOL)wia_pathisprefixa(x, y); }
+static volatile LONG c_pmpa;
+static BOOL WINAPI w_pmpa(LPSTR x){ _InterlockedIncrement(&c_pmpa); return (BOOL)wia_pathmakeprettya(x); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -2497,9 +2500,124 @@ int main(void){
         }
     }
 
+
+    // ===================== 238 PathMakePrettyA =====================
+    // EVERY case compares the WHOLE BUFFER against a poison fill, because three separate measured
+    // facts make the return and the string insufficient on their own:
+    //
+    //   * the RETURN means "no ASCII lowercase letter was present", NOT "something changed":
+    //     "123456", "" and "\\\\" all return 1 while changing nothing;
+    //   * a REFUSAL writes NOTHING, which a string comparison cannot tell from writing the same
+    //     bytes back;
+    //   * the rewrite TRUNCATES at 259 characters by writing a NUL there, so a comparison that
+    //     stopped at the new terminator would never see the bytes beyond it.
+    //
+    // The corpus is built around the one asymmetry that makes this function easy to get wrong: THE
+    // REFUSAL SET IS ASCII-ONLY -- exactly 26 values -- while BOTH case maps cover the CP1252 range.
+    // So 0xE0 is a lowercase letter that does NOT veto and IS rewritten, and an implementation using
+    // the code page's notion of lowercase would refuse on 30 values too many. Every byte value is
+    // swept, and index 0 is swept separately because it is UPPERCASED rather than lowercased and is
+    // observable only through the bytes the veto ignores.
+    printf("[238 PathMakePrettyA]  shlwapi (every byte value, both maps, across the 259 truncation)\n");
+    {
+        typedef BOOL (WINAPI *fmp)(LPSTR);
+        void* p_pmpa = (void*)GetProcAddress(hs, "PathMakePrettyA");
+        OK(p_pmpa != NULL, "resolve PathMakePrettyA");
+        if (p_pmpa) {
+            fmp sys = (fmp)p_pmpa;
+            patch_t pmpa_patch;
+            static char src[900], mine[1200], theirs[1200];
+            long cases = 0, rewritten = 0, refused = 0, upper0 = 0, truncated = 0, cp1252 = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = rewritten = refused = upper0 = truncated = cp1252 = 0;
+
+                /* every byte value, at index 0, at index 1, alone, and deep inside a 70-byte path */
+                for (int v = 1; v < 256; ++v) {
+                    static const int SHAPES = 4;
+                    for (int sh = 0; sh < SHAPES; ++sh) {
+                        int n;
+                        if (sh == 0) { src[0]=(char)v; src[1]='B'; src[2]='C'; src[3]='D'; n=4; }
+                        else if (sh == 1) { src[0]='A'; src[1]=(char)v; src[2]='C'; src[3]='D'; n=4; }
+                        else if (sh == 2) { src[0]=(char)v; n=1; }
+                        else {
+                            n = 70;
+                            for (int i = 0; i < n; ++i)
+                                src[i] = (i % 8 == 7) ? 0x5C : (char)(0x41 + i % 23);
+                            src[45] = (char)v;
+                        }
+                        src[n] = 0;
+                        memset(mine, 0xCD, 1200); memset(theirs, 0xCD, 1200);
+                        memcpy(mine, src, n + 1); memcpy(theirs, src, n + 1);
+                        int r1 = !!wia_pathmakeprettya(mine);
+                        int r2 = !!sys(theirs);
+                        if (r1 != r2 || memcmp(mine, theirs, 1200) != 0) ++mism;
+                        if (r1) ++rewritten; else ++refused;
+                        if (sh == 0 && r1 && (unsigned char)mine[0] != (unsigned char)v) ++upper0;
+                        if (v >= 0xE0 && v <= 0xFE && r1) ++cp1252;
+                        ++cases;
+                    }
+                }
+
+                /* across the 259 truncation bound, in both branches */
+                for (int n = 250; n <= 400; ++n) {
+                    for (int i = 0; i < n; ++i)
+                        src[i] = (i % 8 == 7) ? 0x5C : (char)(0x41 + i % 23);
+                    src[n] = 0;
+                    memset(mine, 0xCD, 1200); memset(theirs, 0xCD, 1200);
+                    memcpy(mine, src, n + 1); memcpy(theirs, src, n + 1);
+                    int r1 = !!wia_pathmakeprettya(mine);
+                    int r2 = !!sys(theirs);
+                    if (r1 != r2 || memcmp(mine, theirs, 1200) != 0) ++mism;
+                    if (n > 259 && mine[259] == 0) ++truncated;
+                    ++cases;
+                    /* the same length, vetoed by a letter PAST the rewrite bound: the veto scan is
+                       unbounded even though the rewrite is not */
+                    src[n - 3] = 0x71;
+                    memset(mine, 0xCD, 1200); memset(theirs, 0xCD, 1200);
+                    memcpy(mine, src, n + 1); memcpy(theirs, src, n + 1);
+                    r1 = !!wia_pathmakeprettya(mine);
+                    r2 = !!sys(theirs);
+                    if (r1 != r2 || memcmp(mine, theirs, 1200) != 0) ++mism;
+                    if (!r1) ++refused;
+                    ++cases;
+                }
+
+                /* NULL */
+                if (!!wia_pathmakeprettya(0) != !!sys(0)) ++mism;
+                ++cases;
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (return AND whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pmpa_patch, p_pmpa, (void*)w_pmpa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pmpa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pmpa);
+                    printf("  corpus: %ld cases -- %ld rewritten, %ld refused, %ld where INDEX 0 was\n"
+                           "          UPPERCASED (visible only through bytes the ASCII veto ignores),\n"
+                           "          %ld CP1252 lowercase letters that did NOT veto and WERE\n"
+                           "          rewritten, and %ld paths TRUNCATED at index 259\n",
+                           cases, rewritten, refused, upper0, cp1252, truncated);
+                    OK(rewritten > 100, "the rewrite branch ran in bulk");
+                    OK(refused   > 100, "the refusal branch ran in bulk");
+                    OK(upper0    == 34, "exactly the 34 uppercase-map values moved at index 0");
+                    OK(cp1252    > 20,  "CP1252 lowercase letters were rewritten, not refused");
+                    OK(truncated > 100, "the 259 truncation was exercised");
+                    OK(patch_off(&pmpa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 31 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-237: 30 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 32 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-238: 31 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
