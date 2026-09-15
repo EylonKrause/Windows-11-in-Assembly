@@ -27,10 +27,10 @@ set LIST=042-wcsicmp 043-stricmp 044-wcsnicmp 045-strnicmp 046-memicmp
 set LIST=%LIST% 047-strlwr 048-strupr 049-wcslwr 050-wcsupr
 set LIST=%LIST% 051-rtlfindcharinunicodestring
 set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-base64any
-set LIST=%LIST% 125-rtlfindclearbits 161-pathfindfilenamew 162-pathstrippathw
+set LIST=%LIST% 125-rtlfindclearbits 132-pathfindextensionw 161-pathfindfilenamew 162-pathstrippathw
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna
+set LIST=%LIST% 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona
 
 set FAILED=0
 set RAN=0

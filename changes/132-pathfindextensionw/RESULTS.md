@@ -1,23 +1,54 @@
-# 132 — `shlwapi!PathFindExtensionW` — **LANDS** (5.73× geomean, up to 8.8×)
+# 132 — `shlwapi!PathFindExtensionW` — **LANDS** (6.26× geomean, up to 8.9×)
+
+> ## CORRECTED 2026-09-15 — this change had shipped WRONG
+>
+> The rule below originally had only the backslash in it, and this change was described as
+> "reverse-engineered and validated bit-exact vs the live export over 600k fuzz". **It was not.** It
+> disagreed with the live `PathFindExtensionW` on **295 513 of 2 015 539** enumerated strings.
+>
+> **A SPACE stops the backward scan exactly as a backslash does.** `"a.b "` returns the terminator,
+> not the dot. The oracle, the implementation and the correctness test were all wrong *together*,
+> because the fuzz alphabet was `{a, b, '.', '\', '/', ':', '.', 'c'}` — **no space** — so the corpus
+> could not produce the failing shape. A test that shares its blind spot with the thing it tests
+> proves nothing.
+>
+> It was caught while probing the narrow sibling for change 217, whose probe enumerated
+> `{a, '.', '\', '/', ':'}` exhaustively (0 mismatches against the old rule), then widened the
+> alphabet by two characters and got 118 587. The smallest failing case is `". "`.
+>
+> The amendment was verified rather than guessed, over two alphabets and 2 015 539 strings each:
+>
+> | | mismatches |
+> |---|---|
+> | live `PathFindExtensionW` vs the OLD rule | **295 513** |
+> | live `PathFindExtensionW` vs the corrected rule | **0** |
+> | live `PathFindExtensionA` vs the corrected rule | **0** |
+>
+> `correctness.c` no longer samples this alphabet, it **enumerates** it: all 335 923 strings over
+> `{a, '.', '\', '/', ':', space}` of length 0..7, which would have failed loudly on day one. The
+> change is now also driven live (it never had been) — see below.
 
 Return a pointer to the `.` introducing a path's extension, or to the terminating NUL when there is
 none. shlwapi's is a scalar scan (~0.58 ns/char — 151 ns for a 254-char path).
 
-## Contract (reverse-engineered, matched bit-exact vs live)
-The extension is the last `.` that occurs after the last **backslash** — and the surprise is what does
-*not* stop the search:
+## Contract (corrected; verified against the live export by enumeration)
+The extension is the last `.` that occurs after the last **stopper**, where a stopper is a
+**backslash or a space** — and the surprise is what does *not* stop the search:
 
-- **Only `\` terminates it. `/` and `:` do NOT** — even though `PathFindFileNameW` treats both as
-  separators. So `"a.b/c"` returns the `.` at index 1, while `"a.b\c"` returns the terminator. Verified
-  against the live export; this asymmetry between two functions in the same DLL is easy to assume away
-  and was found only by fuzzing.
+- **`\` and a SPACE terminate it. `/` and `:` do NOT** — even though `PathFindFileNameW` treats both
+  as separators. So `"a.b/c"` returns the `.` at index 1, while `"a.b\c"` and `"a.b "` both return
+  the terminator.
+- It is **0x20 specifically, not whitespace in general**: `"a.b\t"` still returns the dot. Of 255 byte
+  values placed after a dot, exactly three stop it counting — `0x20`, `0x2E` and `0x5C` — and the
+  latter two are already explained by the last-dot and backslash rules.
 - A leading dot counts: `".hidden"` → index 0. A trailing dot counts: `"a.b."` → the final `.`.
-- No dot (or a dot before the last `\`) → pointer to the terminating NUL.
+- No dot (or a dot before the last stopper) → pointer to the terminating NUL.
 
 ## Method
-One forward AVX2 pass. Per 32-byte block the masks for `.`, `\` and NUL are extracted, and the running
-candidate is updated by the rule *"a backslash clears the candidate, a later dot sets it"* — which per
-block reduces to comparing the **highest dot bit against the highest backslash bit**, with no
+One forward AVX2 pass. Per 32-byte block the masks for `.`, the **stoppers** and NUL are extracted,
+and the running candidate is updated by the rule *"a stopper clears the candidate, a later dot sets
+it"* — which per block reduces to comparing the **highest dot bit against the highest stopper bit**,
+with no
 per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes shifted
 out of the masks, and every later load is 32-aligned.
 
@@ -50,3 +81,11 @@ geomean **5.73×**, every size class better:
 ```
 changes\132-pathfindextensionw\build.bat
 ```
+
+## Live substitution — PASS (added with the correction)
+
+This change had never been driven live. It is now, **together with its narrow sibling 217 and against
+an exhaustive corpus**, because it is precisely the change that shipped wrong on shapes a random
+corpus could not reach: 55 987 strings over `{a, '.', '\', '/', ':', space}` of length 0..6, of which
+**36 456 contain a space**. Both exports patched, identical results, both prologues restored
+byte-for-byte.

@@ -1,13 +1,25 @@
-; shlwapi.dll!PathFindExtensionW  --  hand-written x86-64 reimplementation (6.26x vs shipped)
-; source of truth: changes/132-pathfindextensionw/  (reference.c + correctness.c + bench.c)
+; shlwapi.dll!PathFindExtensionA  --  hand-written x86-64 reimplementation (45.48x vs shipped)
+; source of truth: changes/217-pathfindextensiona/  (reference.c + correctness.c + bench.c)
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
-; changes/132-pathfindextensionw/impl.asm
-; PWSTR wia_pathfindextw(PCWSTR pszPath)   [Win64: rcx -> rax]
+; changes/217-pathfindextensiona/impl.asm
+; PSTR wia_pathfindexta(PCSTR pszPath)   [Win64: rcx -> rax]
 ;
-; Reimplements shlwapi!PathFindExtensionW: return a pointer to the '.' introducing the extension, or to
-; the terminating NUL when there is none. shlwapi's is a scalar scan (~0.58 ns/char; 147 ns for a
-; 254-char path).
+; Reimplements shlwapi!PathFindExtensionA: return a pointer to the '.' introducing the extension, or
+; to the terminating NUL when there is none. The live export costs 183.00 ns for a 55-character path
+; against 37.64 ns for PathFindExtensionW on the SAME path -- 4.86x the wide cost for HALF the bytes,
+; the MBCS-walk signature the whole narrow shlwapi family has shown.
+;
+; ---- THIS TARGET FOUND A BUG IN LANDED CODE ---------------------------------------------------------
+; Probing this function is what caught the missing SPACE rule in change 132, which had shipped and
+; been passing its own tests for weeks while disagreeing with the live PathFindExtensionW on 295513
+; of 2015539 enumerated strings. The account is in 132's impl.asm; the short version is that its
+; "600k fuzz" alphabet contained no space, so its oracle, its implementation and its corpus were all
+; wrong together.
+;
+; The two exports agree with each other on every one of those 2015539 strings, so the narrow form
+; inherits the CORRECTED rule -- but it was measured, not assumed: 0 mismatches for A and 0 for W,
+; over {a, '.', backslash, '/', ':', space} and again over {a, '.', backslash, space, tab, 0xE9}.
 ;
 ; Contract:
 ;   the extension is the LAST '.' that occurs after the last STOPPER, where a stopper is a
@@ -16,27 +28,8 @@
 ;   the terminator. A leading dot counts (".hidden" -> index 0) and a trailing dot counts ("a.b." ->
 ;   the final '.').
 ;
-; ---- THE SPACE WAS MISSING, AND THIS CHANGE SHIPPED WRONG -------------------------------------------
-; The original rule here had only the backslash, and was "validated bit-exact over 600k fuzz". It was
-; not. That fuzz alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'} -- NO SPACE -- so the corpus
-; could not produce the failing shape, and the oracle, the implementation and the test were all wrong
-; together. A test that shares its blind spot with the thing it tests proves nothing.
-;
-; It was caught while probing the NARROW sibling for change 217. That probe enumerated
-; {a, '.', backslash, '/', ':'} exhaustively and got 0 mismatches against this rule -- and then
-; widened the alphabet by two characters and got 118587. The smallest failing case is ". ".
-;
-; The amendment is one character, and it was verified rather than guessed: over 2015539 strings
-; spanning {a, '.', backslash, '/', ':', space} of length 0..8, and again over
-; {a, '.', backslash, space, tab, 0xE9},
-;
-;     live PathFindExtensionW vs the OLD rule : 295513 mismatches
-;     live PathFindExtensionW vs THIS rule    :      0 mismatches
-;     live PathFindExtensionA vs THIS rule    :      0 mismatches
-;
-; It is 0x20 specifically and not whitespace in general: "a.b<TAB>" still yields the dot. Of 255 byte
-; values placed after a dot, exactly THREE stop it counting -- 0x20, 0x2E and 0x5C -- and the latter
-; two are already explained by the last-dot and backslash rules.
+; And it is BYTE-WISE here: every byte value 0x01..0xFF was placed where a lead byte would swallow
+; the character after it, and 0 of 254 misbehave (GetACP() is 1252, which has no lead bytes).
 ;
 ; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', the STOPPERS and NUL are
 ; extracted; the running candidate is updated by the rule "a stopper clears the candidate, a later
@@ -45,21 +38,26 @@
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
+; A narrow block carries 32 positions to the wide form's 16, and vpcmpeqb sets ONE mask bit per
+; match rather than a pair, so the `and ecx, -2` that 132 needs after every bsr disappears here.
+;
+; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen 4.
 
 .const
 ALIGN 16
-c_dot   dw 002Eh
-c_bsl   dw 005Ch
+c_dot   db 02Eh
+c_bsl   db 05Ch
 ; 32-byte form for use as a memory operand, so the second stopper costs no register. VEX operands
 ; need no alignment, so no ALIGN 32 (which .const rejects with A2189).
-c_spcm  dw 16 dup(0020h)
+c_spcm  db 32 dup(020h)
 
 .code
-wia_pathfindextw PROC
+wia_pathfindexta PROC
         push      rbx
-        vpbroadcastw ymm1, word ptr c_dot          ; '.'
-        vpbroadcastw ymm2, word ptr c_bsl          ; '\'
+        test      rcx, rcx
+        jz        pe_null                           ; measured: NULL in, NULL out
+        vpbroadcastb ymm1, byte ptr c_dot          ; '.'
+        vpbroadcastb ymm2, byte ptr c_bsl          ; '\'
         vpxor     ymm3, ymm3, ymm3                 ; 0
         xor       eax, eax                          ; candidate = none
         xor       ebx, ebx                          ; end = none (set when the NUL is seen)
@@ -70,13 +68,13 @@ wia_pathfindextw PROC
         and       ecx, 31                           ; byte offset of the string within that block
 
         vmovdqa   ymm0, ymmword ptr [r9]
-        vpcmpeqw  ymm4, ymm0, ymm3                  ; ymm4 is the ONLY temp: xmm6-xmm15 are
+        vpcmpeqb  ymm4, ymm0, ymm3                  ; only ymm4/ymm5 are temps: xmm6-xmm15 are
         vpmovmskb r8d, ymm4                         ; non-volatile in the Win64 ABI
-        vpcmpeqw  ymm4, ymm0, ymm1                  ; NUL / '.' / '\'
+        vpcmpeqb  ymm4, ymm0, ymm1                  ; NUL / '.' / the stoppers
         vpmovmskb edx, ymm4
-        vpcmpeqw  ymm4, ymm0, ymm2
-        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan exactly as a backslash
-        vpor      ymm4, ymm4, ymm5                  ;   does -- the half this change shipped without
+        vpcmpeqb  ymm4, ymm0, ymm2
+        vpcmpeqb  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan exactly as a backslash
+        vpor      ymm4, ymm4, ymm5                  ;   does -- see the note above
         vpmovmskb r10d, ymm4
         shr       r8d, cl                           ; drop bytes before the string start
         shr       edx, cl
@@ -87,12 +85,12 @@ pe_next:
         add       r9, 32
         mov       r11, r9
         vmovdqa   ymm0, ymmword ptr [r9]
-        vpcmpeqw  ymm4, ymm0, ymm3
+        vpcmpeqb  ymm4, ymm0, ymm3
         vpmovmskb r8d, ymm4
-        vpcmpeqw  ymm4, ymm0, ymm1
+        vpcmpeqb  ymm4, ymm0, ymm1
         vpmovmskb edx, ymm4
-        vpcmpeqw  ymm4, ymm0, ymm2
-        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]
+        vpcmpeqb  ymm4, ymm0, ymm2
+        vpcmpeqb  ymm5, ymm0, ymmword ptr [c_spcm]
         vpor      ymm4, ymm4, ymm5
         vpmovmskb r10d, ymm4
 pe_block:
@@ -117,14 +115,12 @@ pe_upd:
         bsr       r8d, r10d
         cmp       ecx, r8d
         jbe       pe_done
-        and       ecx, -2                           ; vpcmpeqw sets BOTH bytes of a matching word;
-        lea       rax, [r11 + rcx]                  ; bsr lands on the high byte, so round down
+        lea       rax, [r11 + rcx]                  ; one mask bit per byte: no rounding needed
         jmp       pe_done
 pe_nostop:
         test      edx, edx
         jz        pe_done                           ; nothing here: keep the running candidate
         bsr       ecx, edx
-        and       ecx, -2
         lea       rax, [r11 + rcx]
 pe_done:
         test      rbx, rbx
@@ -136,5 +132,9 @@ pe_ret:
         vzeroupper
         pop       rbx
         ret
-wia_pathfindextw ENDP
+pe_null:
+        xor       eax, eax
+        pop       rbx
+        ret
+wia_pathfindexta ENDP
 END
