@@ -49,6 +49,7 @@ extern int      wia_lstrlena(const char*);
 extern char*    wia_lstrcpya(char*, const char*);
 extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
+extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
@@ -62,6 +63,8 @@ static volatile LONG c_cpa;
 static char* WINAPI w_cpa(char* d, const char* q){ _InterlockedIncrement(&c_cpa); return wia_lstrcpya(d, q); }
 static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
+static volatile LONG c_prfs;
+static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs); return wia_pathcchremovefilespec(p, cch); }
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
 }
@@ -711,10 +714,145 @@ int main(void){
         }
     }
 
+
+    // ===================== 240 PathCchRemoveFileSpec =====================
+    // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
+    // separately measured facts make anything less insufficient here:
+    //
+    //   * it CLEARS A SLOT PER REMOVED SEPARATOR rather than writing one terminator at the cut, so a
+    //     wrong implementation produces the SAME STRING and a different BUFFER;
+    //   * S_FALSE writes NOTHING AT ALL, which a string comparison cannot tell from writing the same
+    //     terminator back;
+    //   * cch bounds the HIGHEST INDEX WRITTEN, including writes that land on the existing terminator
+    //     and are therefore invisible in the buffer -- 567 UNC shapes differ from "result+1" for
+    //     exactly that reason.
+    //
+    // THE CORPUS IS ENUMERATED, NOT SAMPLED, because the protected root is NOT PathCchSkipRoot's
+    // root. They differ by one on every UNC path with anything after the share, and SkipRoot declines
+    // outright on 15355 of 21845 enumerated strings -- so a corpus of realistic paths would agree
+    // with the wrong rule everywhere it was looked at.
+    printf("[240 PathCchRemoveFileSpec]  kernelbase (exhaustive; HRESULT and whole buffer vs poison)\n");
+    {
+        typedef long (WINAPI *fprfs)(wchar_t*, size_t);
+        void* p_prfs = (void*)GetProcAddress(hk, "PathCchRemoveFileSpec");
+        OK(p_prfs != NULL, "resolve PathCchRemoveFileSpec");
+        if (p_prfs) {
+            fprfs sys = (fprfs)p_prfs;
+            patch_t prfs_patch;
+            static const wchar_t AL[4] = { L'a', L'\\', L':', L'?' };
+            static wchar_t t[32], mine[600], theirs[600];
+            long cases = 0, sok = 0, sfalse = 0, einval = 0, unc = 0, ext = 0, longsweep = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = sok = sfalse = einval = unc = ext = longsweep = 0;
+
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        /* a generous cch, one sitting exactly on the boundary, and one that is
+                           DELIBERATELY TOO SMALL. The third is there because the first version of
+                           this driver used only the first two and the "rejection path ran in bulk"
+                           assertion failed with 0 E_INVALIDARG -- cch = len+1 is always sufficient,
+                           since the highest index written never exceeds len. The assertion caught a
+                           gap in the corpus rather than a bug in the code. */
+                        for (int k = 0; k < 3; ++k) {
+                            size_t cch = (k == 0) ? 0x8000 : (k == 1) ? (size_t)len + 1 : 1;
+                            for (int i = 0; i < 600; ++i) { mine[i] = 0xCDCD; theirs[i] = 0xCDCD; }
+                            memcpy(mine, t, (size_t)(len + 1) * 2);
+                            memcpy(theirs, t, (size_t)(len + 1) * 2);
+                            long r1 = wia_pathcchremovefilespec(mine, cch);
+                            long r2 = sys(theirs, cch);
+                            if (r1 != r2 || memcmp(mine, theirs, 1200) != 0) ++mism;
+                            if (r1 == 0) ++sok; else if (r1 == 1) ++sfalse; else ++einval;
+                            ++cases;
+                        }
+                        if (len >= 2 && t[0] == L'\\' && t[1] == L'\\') ++unc;
+                        if (len >= 3 && t[0] == L'\\' && t[1] == L'\\' && t[2] == L'?') ++ext;
+                    }
+                }
+
+                /* LENGTH AS A DIMENSION, in three root shapes */
+                for (int shape = 0; shape < 3; ++shape) {
+                    for (int n = 20; n <= 2000; n += 37) {
+                        static wchar_t s[2100];
+                        int k = 0;
+                        if (shape == 0) { s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        else if (shape == 1) { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L's'; s[k++]=L'\\';
+                                               s[k++]=L'h'; s[k++]=L'\\'; }
+                        else { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L'?'; s[k++]=L'\\';
+                               s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        while (k < n) {
+                            for (int i = 0; i < 7 && k < n; ++i) s[k++] = (wchar_t)(L'a' + i);
+                            if (k < n) s[k++] = L'\\';
+                        }
+                        s[k] = 0;
+                        for (int i = 0; i < 600; ++i) { mine[i] = 0xCDCD; theirs[i] = 0xCDCD; }
+                        static wchar_t m2[2200], t2[2200];
+                        for (int i = 0; i < 2200; ++i) { m2[i] = 0xCDCD; t2[i] = 0xCDCD; }
+                        memcpy(m2, s, (size_t)(k + 1) * 2);
+                        memcpy(t2, s, (size_t)(k + 1) * 2);
+                        long r1 = wia_pathcchremovefilespec(m2, 0x8000);
+                        long r2 = sys(t2, 0x8000);
+                        if (r1 != r2 || memcmp(m2, t2, 4400) != 0) ++mism;
+                        ++cases; ++longsweep;
+                    }
+                }
+
+                /* the argument checks */
+                {
+                    static const size_t CCH[4] = { 0, 1, 0x8000, 0x8001 };
+                    for (int i = 0; i < 4; ++i) {
+                        for (int q = 0; q < 600; ++q) { mine[q] = 0xCDCD; theirs[q] = 0xCDCD; }
+                        wcscpy(mine, L"C:\\dir\\file.txt");
+                        wcscpy(theirs, L"C:\\dir\\file.txt");
+                        long r1 = wia_pathcchremovefilespec(mine, CCH[i]);
+                        long r2 = sys(theirs, CCH[i]);
+                        if (r1 != r2 || memcmp(mine, theirs, 1200) != 0) ++mism;
+                        ++cases;
+                    }
+                    if (wia_pathcchremovefilespec(0, 0x8000) != sys(0, 0x8000)) ++mism;
+                    ++cases;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (HRESULT AND whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&prfs_patch, p_prfs, (void*)w_prfs), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_prfs > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_prfs);
+                    printf("  corpus: %ld cases -- %ld S_OK, %ld S_FALSE (which write NOTHING), %ld\n"
+                           "          E_INVALIDARG; %ld server/share shapes and %ld extended-prefix\n"
+                           "          shapes, enumerated rather than sampled because the protected\n"
+                           "          root is NOT PathCchSkipRoot's root; and %ld cases at lengths\n"
+                           "          20..2000 in three root shapes\n",
+                           cases, sok, sfalse, einval, unc, ext, longsweep);
+                    OK(sok       > 1000, "the cutting path ran in bulk");
+                    OK(sfalse    > 100,  "the no-op path ran in bulk");
+                    OK(einval    > 100,  "the rejection path ran in bulk");
+                    OK(unc       > 100,  "server/share roots ran in bulk");
+                    OK(ext       > 10,   "extended-prefix roots were exercised");
+                    OK(longsweep > 100,  "the length sweep ran in full");
+                    OK(patch_off(&prfs_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
-               "kernelbase!lstrlenA, kernelbase!lstrcpyA AND kernelbase!lstrcpyW.\n"
+               "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW AND\n"
+               "kernelbase!PathCchRemoveFileSpec.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
