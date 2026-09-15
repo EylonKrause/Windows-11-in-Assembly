@@ -211,6 +211,17 @@ static void thunk(void){
     sink += ((unsigned char*)&g)[0];
 }
 
+#elif defined(T_208)
+#define NAME "208-uuidfromstringw"
+extern long wia_uuidfromstringw(wchar_t*, GUID*);
+static void thunk(void){
+    static GUID g;
+    sink += wia_uuidfromstringw(L"deadbeef-1234-5678-9abc-def011223344", &g);
+    sink += wia_uuidfromstringw(L"{deadbeef-1234-5678-9abc-def011223344}", &g);
+    sink += wia_uuidfromstringw(NULL, &g);
+    sink += ((unsigned char*)&g)[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
