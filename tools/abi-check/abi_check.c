@@ -446,6 +446,23 @@ static void thunk(void){
     wia_pathremoveblanksa(0);
 }
 
+#elif defined(T_222)
+#define NAME "222-pathremoveextensiona"
+extern void wia_pathremoveexta(char*);
+static void thunk(void){
+    static char p[512];
+    memcpy(p, "C:\\some\\path\\to\\a\\file.txt", 27);
+    wia_pathremoveexta(p);                 /* an ordinary removal */
+    sink += p[0];
+    memcpy(p, "no-extension-here", 18);
+    wia_pathremoveexta(p);                 /* writes nothing */
+    sink += p[0];
+    { int i; for (i = 0; i < 300; ++i) p[i] = 'a'; p[280] = '.'; p[300] = 0; }
+    wia_pathremoveexta(p);                 /* past the MAX_PATH guard: writes nothing */
+    sink += p[0];
+    wia_pathremoveexta(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
