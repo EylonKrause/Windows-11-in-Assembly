@@ -20,6 +20,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 extern unsigned long long wia_abi_probe(void (*thunk)(void));
 
@@ -865,6 +866,39 @@ static void thunk(void){
     for (i = 0; i < 300; ++i) p[i] = (char)(0x41 + i % 23);
     p[290] = 0x71; p[300] = 0;
     sink += wia_pathmakeprettya(p);            /* vetoed by a letter PAST the rewrite bound */
+    sink += p[0];
+}
+
+#elif defined(T_240)
+#define NAME "240-pathcchremovefilespec"
+extern long wia_pathcchremovefilespec(wchar_t*, size_t);
+static void thunk(void){
+    /* every branch: a plain cut, a UNC root, the extended prefix, a no-op that writes nothing, a
+       too-small cch rejected before any scanning, NULL, and a 1000-character path so the wcslen
+       and the backward scan both run their vector loops. */
+    static wchar_t p[1200];
+    int i;
+    wcscpy(p, L"C:\\\\dir\\\\file.txt");
+    sink += wia_pathcchremovefilespec(p, 0x8000);
+    sink += p[0];
+    wcscpy(p, L"\\\\\\\\srv\\\\shr\\\\a");
+    sink += wia_pathcchremovefilespec(p, 0x8000);   /* a UNC root */
+    sink += p[0];
+    wcscpy(p, L"\\\\\\\\?\\\\C:\\\\dir\\\\f");
+    sink += wia_pathcchremovefilespec(p, 0x8000);   /* the extended prefix */
+    sink += p[0];
+    wcscpy(p, L"\\\\\\\\srv\\\\shr");
+    sink += wia_pathcchremovefilespec(p, 0x8000);   /* its own root: writes nothing */
+    sink += p[0];
+    wcscpy(p, L"C:\\\\dir\\\\file.txt");
+    sink += wia_pathcchremovefilespec(p, 2);        /* rejected before any scan */
+    sink += wia_pathcchremovefilespec(0, 0x8000);   /* NULL */
+    sink += wia_pathcchremovefilespec(p, 0);        /* cch 0 */
+    sink += wia_pathcchremovefilespec(p, 0x8001);   /* past PATHCCH_MAX_CCH */
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C;
+    for (i = 3; i < 1000; ++i) p[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[1000] = 0;
+    sink += wia_pathcchremovefilespec(p, 0x8000);   /* the long scan */
     sink += p[0];
 }
 
