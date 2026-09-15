@@ -282,6 +282,21 @@ static void thunk(void){
     sink += (long long)(size_t)wia_strrchra(0,  0, (WORD)0x42);
 }
 
+#elif defined(T_214)
+#define NAME "214-strcspna"
+extern int wia_strcspna(const char*, const char*);
+static void thunk(void){
+    /* a full scan, an early hit, a set spanning BOTH halves of the bitmap, and both NULL exits.
+       The set-building loop writes into the CALLER'S SHADOW SPACE, so this thunk also proves that
+       doing so leaves the caller's frame intact. */
+    sink += wia_strcspna(a8, "#");
+    sink += wia_strcspna(a8, "CD");
+    sink += wia_strcspna(a8, "AÃ");
+    sink += wia_strcspna(a8, "");
+    sink += wia_strcspna(a8, 0);
+    sink += wia_strcspna(0, "#");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

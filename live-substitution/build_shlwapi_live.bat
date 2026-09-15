@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 168-176 (shlwapi), 212 (PathFindFileNameA), 213 (StrRChrA).
+REM  LIVE-RUN PROOF for changes 168-176 (shlwapi), 212 (PathFindFileNameA), 213 (StrRChrA), 214 (StrCSpnA).
 REM  Hot-patches the real shlwapi exports in THIS process's own copy-on-write
 REM  copy, proving Windows executes our assembly, then reverts and VERIFIES the
 REM  restore byte-for-byte. Sacrificial single-threaded child; no system process
@@ -22,7 +22,8 @@ ml64 /nologo /c /Fosw_pud.obj  "%C%\174-pathundecoratew\impl.asm"   >nul || goto
 ml64 /nologo /c /Fosw_pra.obj  "%C%\175-pathremoveargsw\impl.asm"   >nul || goto :err
 ml64 /nologo /c /Fosw_pffa.obj "%C%\212-pathfindfilenamea\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fosw_srca.obj "%C%\213-strrchra\impl.asm" >nul || goto :err
-cl /nologo /O2 live_subst_shlwapi.c sw_pcrb.obj sw_pud.obj sw_pra.obj sw_cpyn.obj sw_chrn.obj sw_catb.obj sw_prb.obj sw_pqs.obj sw_pfnc.obj sw_pffa.obj sw_srca.obj /Fe:live_subst_shlwapi.exe >nul || goto :err
+ml64 /nologo /c /Fosw_cspa.obj "%C%\214-strcspna\impl.asm" >nul || goto :err
+cl /nologo /O2 live_subst_shlwapi.c sw_pcrb.obj sw_pud.obj sw_pra.obj sw_cpyn.obj sw_chrn.obj sw_catb.obj sw_prb.obj sw_pqs.obj sw_pfnc.obj sw_pffa.obj sw_srca.obj sw_cspa.obj /Fe:live_subst_shlwapi.exe >nul || goto :err
 "%H%live_subst_shlwapi.exe"
 endlocal & exit /b %errorlevel%
 :err

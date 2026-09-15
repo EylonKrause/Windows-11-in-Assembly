@@ -239,3 +239,18 @@ string almost always contains it, and the first run of this block produced only 
 8 000 -- while the miss is the case that scans the WHOLE string, and so the one that exercises page
 safety and the terminator search. With a third forced, the split is **5 030** hits to **2 970**
 misses, across **3 893** unbounded (forward path) and **4 107** bounded (backward path) cases.
+
+### 214 - a corpus that can tell the two halves of the bitmap apart
+
+`StrCSpnA`'s set is a 256-bit bitmap, and the vector membership test resolves `0x00..0x7F` through
+one `vpshufb` table and `0x80..0xFF` through the other, selected by the character's bit 7. **A
+swapped blend passes every ASCII-only test.** So this corpus draws both the subject and the set
+members from the FULL byte range, and the run reports how many cases actually carried a high-byte
+member rather than assuming they did.
+
+The second thing it has to reach is the distinction a reimplementation is most likely to get wrong:
+**a NULL set is not the empty set.** `StrCSpnA(s, NULL)` is 0 while `StrCSpnA(s, "")` is strlen, so
+every case is run a second time with a NULL set.
+
+Of 8 000 cases: **6 499** carried a high-byte set member, **6 167** found a member, **1 833** scanned
+to the terminator, **738** had an empty set -- 16 000 calls into our code in total.
