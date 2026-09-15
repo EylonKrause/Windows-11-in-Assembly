@@ -484,6 +484,33 @@ static void thunk(void){
     wia_pathundecoratea(0);                /* NULL: must still balance the stack */
 }
 
+#elif defined(T_224)
+#define NAME "224-pathrenameextensiona"
+extern int wia_pathrenameexta(char*, const char*);
+static void thunk(void){
+    /* this change PUSHES RBX to carry the last backslash-or-space, and it has THREE exits --
+       the two NULL rejections, the MAX_PATH rejection and the success path -- every one of
+       which has to pop it */
+    static char p[640];
+    memcpy(p, "C:\\dir\\file.txt", 17);
+    sink += wia_pathrenameexta(p, ".obj");     /* an ordinary replacement */
+    sink += p[0];
+    memcpy(p, "file", 5);
+    sink += wia_pathrenameexta(p, ".obj");     /* no extension: appended */
+    sink += p[0];
+    memcpy(p, "a.b c", 6);
+    sink += wia_pathrenameexta(p, ".obj");     /* the SPACE case: the dot is suppressed */
+    sink += p[0];
+    { int i; for (i = 0; i < 300; ++i) p[i] = 'a'; p[296] = '.'; p[300] = 0; }
+    sink += wia_pathrenameexta(p, ".obj");     /* past the MAX_PATH limit: FALSE, untouched */
+    sink += p[0];
+    { int i; for (i = 0; i < 200; ++i) p[i] = 'a'; p[100] = ' '; p[196] = '.'; p[200] = 0; }
+    sink += wia_pathrenameexta(p, ".obj");     /* a long run through the vector scan */
+    sink += p[0];
+    sink += wia_pathrenameexta(p, 0);          /* NULL extension */
+    sink += wia_pathrenameexta(0, ".obj");     /* NULL path */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

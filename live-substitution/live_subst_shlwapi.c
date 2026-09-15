@@ -47,6 +47,7 @@ extern const char*    wia_strchra(const char*, WORD);
 extern void           wia_pathremoveblanksa(char*);
 extern void           wia_pathremoveexta(char*);
 extern void           wia_pathundecoratea(char*);
+extern BOOL           wia_pathrenameexta(char*, const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -85,6 +86,8 @@ static volatile LONG c_prxa;
 static void WINAPI w_prxa(PSTR p){ _InterlockedIncrement(&c_prxa); wia_pathremoveexta(p); }
 static volatile LONG c_puda;
 static void WINAPI w_puda(PSTR p){ _InterlockedIncrement(&c_puda); wia_pathundecoratea(p); }
+static volatile LONG c_prea;
+static BOOL WINAPI w_prea(PSTR p, PCSTR e){ _InterlockedIncrement(&c_prea); return wia_pathrenameexta(p, e); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1517,9 +1520,129 @@ int main(void){
         }
     }
 
+    // ===================== 224 PathRenameExtensionA =====================
+    // EXHAUSTIVE with a SPACE, the RESULT-length MAX_PATH boundary swept exactly, and the BOOL
+    // checked alongside the WHOLE BUFFER.
+    //
+    // All three of those are here because of what the wide sibling got wrong. Change 158 is
+    // PathRenameExtensionW and it shipped with change 132's extension rule, which was missing the
+    // SPACE stopper -- wrong on 46158 of 335923 enumerated strings. A corpus without a space cannot
+    // see it, and neither can a test that only looks at the string: this function returns FALSE and
+    // leaves the buffer COMPLETELY untouched when the result would not fit, so the BOOL and the
+    // bytes past the new terminator are both observable.
+    //
+    // And the limit is on the RESULT length, not the input -- measured in probes/ren.c across
+    // extension lengths 1..6, where the last successful result length is 259 every time. An
+    // input-length sweep would validate an implementation that bounded the wrong quantity, so the
+    // corpus walks input length AND extension length across the boundary together.
+    printf("[224 PathRenameExtensionA]  shlwapi (exhaustive + space + the RESULT-length boundary)\n");
+    {
+        typedef BOOL (WINAPI *fpr)(PSTR, PCSTR);
+        void* p_prea = (void*)GetProcAddress(hs, "PathRenameExtensionA");
+        OK(p_prea != NULL, "resolve PathRenameExtensionA");
+        if (p_prea) {
+            fpr sys = (fpr)p_prea;
+            patch_t prea_patch;
+            static const char AL6[6] = { 'a', '.', '\\', '/', ':', ' ' };
+            enum { XR = 640 };
+            char t[12], ba[XR], bb[XR];
+            long cases = 0, withspace = 0, renamed = 0, refused = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = withspace = renamed = refused = 0;
+                /* the exhaustive short corpus */
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 6;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int sp = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6]; if (t[i]==' ') sp = 1; v /= 6; }
+                        t[len] = 0;
+                        if (sp) ++withspace;
+                        memset(ba, '#', XR); memset(bb, '#', XR);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        BOOL ra = wia_pathrenameexta(ba, ".zz");
+                        BOOL rb = sys(bb, ".zz");
+                        if (ra) ++renamed; else ++refused;
+                        if (!!ra != !!rb || memcmp(ba, bb, XR) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+                /* the RESULT-length boundary: input length AND extension length together */
+                {
+                    static char big[640];
+                    for (int elen = 0; elen <= 6; ++elen) {
+                        char e[16];
+                        e[0] = '.';
+                        for (int i = 1; i <= elen; ++i) e[i] = 'o';
+                        e[elen+1] = 0;
+                        for (int len = 240; len <= 275; ++len) {
+                            for (int i = 0; i < len; ++i) big[i] = (char)('a' + i % 23);
+                            big[len-4] = '.';
+                            big[len] = 0;
+                            memset(ba, '#', XR); memset(bb, '#', XR);
+                            memcpy(ba, big, (size_t)len + 1);
+                            memcpy(bb, big, (size_t)len + 1);
+                            BOOL ra = wia_pathrenameexta(ba, e);
+                            BOOL rb = sys(bb, e);
+                            if (ra) ++renamed; else ++refused;
+                            if (!!ra != !!rb || memcmp(ba, bb, XR) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+                /* long paths with a space on either side of the dot, so the vector scan has to
+                   carry the stopper across 32-byte block boundaries */
+                {
+                    static char big[640];
+                    for (int len = 40; len <= 250; len += 9) {
+                        for (int sp = 1; sp < len - 8; sp += 17) {
+                            for (int which = 0; which < 2; ++which) {
+                                for (int i = 0; i < len; ++i) big[i] = (char)('a' + i % 23);
+                                if (which) { big[sp] = '.'; if (sp+3 < len) big[sp+3] = ' '; }
+                                else       { big[sp] = ' '; big[len-4] = '.'; }
+                                big[len] = 0;
+                                memset(ba, '#', XR); memset(bb, '#', XR);
+                                memcpy(ba, big, (size_t)len + 1);
+                                memcpy(bb, big, (size_t)len + 1);
+                                BOOL ra = wia_pathrenameexta(ba, ".obj");
+                                BOOL rb = sys(bb, ".obj");
+                                if (ra) ++renamed; else ++refused;
+                                if (!!ra != !!rb || memcmp(ba, bb, XR) != 0) ++mism;
+                                ++cases;
+                            }
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, BOOL + whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&prea_patch, p_prea, (void*)w_prea), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_prea > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_prea);
+                    printf("  corpus: %ld cases -- %ld containing a SPACE (the stopper eight landed\n"
+                           "          changes were missing), %ld renamed, %ld REFUSED because the\n"
+                           "          RESULT would not fit, each of which must leave the buffer\n"
+                           "          byte-for-byte untouched\n",
+                           cases, withspace, renamed, refused);
+                    OK(withspace > 20000, "the space shapes ran in bulk");
+                    OK(refused   > 50,    "the refusal path ran in bulk");
+                    OK(patch_off(&prea_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 22 functions\n"
-               "(changes 132, 168-176 and 212-223: 21 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 23 functions\n"
+               "(changes 132, 168-176 and 212-224: 22 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1544,7 +1667,12 @@ int main(void){
                "different jobs -- it bounds the extension search, where a SPACE bounds it too, and\n"
                "it delimits the component, where a space does NOT -- and only a corpus carrying\n"
                "both delimiters at once can tell those two jobs apart. That is the distinction the\n"
-               "wide sibling got wrong, undetected here, for as long as it was landed. Zero system\n"
+               "wide sibling got wrong, undetected here, for as long as it was landed. 224 checks the\n"
+               "BOOL alongside the buffer and walks the input length AND the extension length across\n"
+               "the MAX_PATH boundary together, because that limit bounds the RESULT rather than the\n"
+               "input -- an input-length sweep would validate an implementation that bounded the\n"
+               "wrong quantity, and a string comparison would miss that a refusal has to leave the\n"
+               "buffer byte-for-byte untouched. Zero system\n"
                "processes touched.\n");
         return 0;
     }
