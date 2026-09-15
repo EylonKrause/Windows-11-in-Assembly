@@ -784,6 +784,35 @@ static void thunk(void){
     sink += wia_pathisfilespeca(p);               /* the long scan */
 }
 
+#elif defined(T_236)
+#define NAME "236-pathcommonprefixa"
+extern int wia_pathcommonprefixa(const char*, const char*, char*);
+static void thunk(void){
+    /* the fold path (differing case forces the 44-instruction vector fold), the cut, the
+       length-2 fixup, the MAX_PATH refusal, a NULL buffer, and NULL paths. The 300-character
+       pair drives both the vector loop and the copy. */
+    static char p[600], q[600], o[600];
+    int i;
+    sink += wia_pathcommonprefixa("C:\\dir\\a", "C:\\dir\\b", o);
+    sink += o[0];
+    sink += wia_pathcommonprefixa("C:\\DIR\\a", "c:\\dir\\b", o);  /* folds */
+    sink += o[0];
+    sink += wia_pathcommonprefixa("aa", "aa", o);          /* reports 3, writes 2 */
+    sink += o[0];
+    sink += wia_pathcommonprefixa("abc", "xyz", o);        /* writes a bare terminator */
+    sink += o[0];
+    sink += wia_pathcommonprefixa("C:\\a", 0, o);       /* NULL writes nothing */
+    sink += wia_pathcommonprefixa(0, 0, 0);
+    for (i = 0; i < 300; ++i) { p[i] = (i % 8 == 7) ? 0x5C : (char)(0x61 + i % 23); q[i] = p[i]; }
+    p[300] = 0; q[300] = 0;
+    sink += wia_pathcommonprefixa(p, q, o);                /* past MAX_PATH: refuses the copy */
+    sink += o[0];
+    q[100] = 0x5A;
+    sink += wia_pathcommonprefixa(p, q, o);                /* a long scan, then a real copy */
+    sink += o[0];
+    sink += wia_pathcommonprefixa(p, q, 0);                /* no buffer at all */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
