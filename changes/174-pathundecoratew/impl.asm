@@ -36,18 +36,43 @@
 ; stays inside the cursor's own page -- necessarily mapped, since the characters already
 ; scanned came from it. Within 32 bytes of a page end it steps one character and retries.
 ;
+;
+; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; Conjunct (b) below -- the group's ']' must sit immediately before the LAST '.' of the component --
+; is an extension position by another name, and it carried the same gap that change 132 shipped with:
+; A SPACE STOPS THE EXTENSION SCAN EXACTLY AS A BACKSLASH DOES.
+;
+; This change never cited 132, which is why the first audit of that bug (changes 140, 143 and 144)
+; did not reach it. A second, STRUCTURAL sweep -- every landed oracle that computes an extension
+; position, whether or not it names its source -- found it. The smallest failing case is ". []":
+; the live export undecorates it to ". ", this implementation left it alone.
+;
+;     live PathUndecorateW vs the rule as landed : 1634 of 335923 mismatches
+;     live PathUndecorateW vs the corrected rule :    0
+;     and the narrow sibling agrees with the wide one on every one of them
+;
+; THE TWO USES OF THE BACKSLASH HAD TO BE SEPARATED. It was doing double duty here: delimiting the
+; COMPONENT for conjunct (d) -- the '[' may not be the component's first character -- and bounding
+; the extension search for conjunct (b). Only the second takes the space, so the scan now tracks two
+; positions: `comp` past the last backslash, and `stop` past the last backslash OR space.
+
 ; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16
 c_bs32  dw 16 dup(005Ch)                 ; backslash, broadcast
 c_dot32 dw 16 dup(002Eh)                 ; dot, broadcast
+c_sp32  dw 16 dup(0020h)                 ; space, broadcast -- the stopper this change shipped without
 
 .code
-wia_pathundecoratew PROC
+wia_pathundecoratew PROC FRAME
+        push      rbx
+        .pushreg  rbx
+        .endprolog
         mov       r8, rcx                        ; psz
         vpxor     ymm1, ymm1, ymm1               ; the terminator
         xor       r10, r10                       ; comp: byte offset just past the last '\'
+        xor       rbx, rbx                       ; stop: byte offset just past the last '\' OR ' '
         mov       r11, -1                        ; dot: byte offset of the last '.', -1 = none
         mov       r9, rcx                        ; cursor
 
@@ -60,9 +85,20 @@ scan:
         vpcmpeqw  ymm3, ymm0, ymm1               ; == terminator
         vpcmpeqw  ymm4, ymm0, ymmword ptr [c_bs32]
         vpcmpeqw  ymm5, ymm0, ymmword ptr [c_dot32]
+        vpcmpeqw  ymm2, ymm0, ymmword ptr [c_sp32]
+        vpor      ymm2, ymm2, ymm4               ; stopper = backslash OR space
         vpmovmskb eax, ymm3
         test      eax, eax
         jnz       scan_last                      ; terminator in this block
+        ; The overwhelmingly common block contains NONE of the three characters this scan cares
+        ; about. One OR and one extraction answer that for all of them at once -- which is fewer
+        ; uops than the three separate mask/test/branch triples this loop ran before the space
+        ; stopper was added, so paying for the correction actually made the loop cheaper.
+        ; ymm3's terminator mask is already in eax, so ymm3 is free to be overwritten here.
+        vpor      ymm3, ymm2, ymm5
+        vpmovmskb ecx, ymm3
+        test      ecx, ecx
+        jz        blk_next
         vpmovmskb ecx, ymm4
         test      ecx, ecx
         jz        no_bs
@@ -72,6 +108,15 @@ scan:
         sub       r10, r8
         add       r10, 2                         ; comp = just past that backslash
 no_bs:
+        vpmovmskb ecx, ymm2
+        test      ecx, ecx
+        jz        no_stop
+        bsr       ecx, ecx
+        and       ecx, -2
+        lea       rbx, [r9 + rcx]
+        sub       rbx, r8
+        add       rbx, 2                         ; stop = just past that backslash-or-space
+no_stop:
         vpmovmskb ecx, ymm5
         test      ecx, ecx
         jz        no_dot
@@ -80,6 +125,7 @@ no_bs:
         lea       r11, [r9 + rcx]
         sub       r11, r8                        ; dot = byte offset of the last '.'
 no_dot:
+blk_next:
         add       r9, 32
         jmp       scan
 
@@ -88,9 +134,17 @@ scan1:                                           ; one character, then retry the
         test      cx, cx
         jz        scan_done_at_cursor
         cmp       cx, 5Ch
-        jne       s1_dot
+        jne       s1_spc
         lea       r10, [r9 + 2]
         sub       r10, r8
+        lea       rbx, [r9 + 2]                  ; a backslash is a stopper as well as a component
+        sub       rbx, r8                        ;   boundary
+        jmp       s1_next
+s1_spc:
+        cmp       cx, 20h
+        jne       s1_dot
+        lea       rbx, [r9 + 2]                  ; a space stops the extension search but does NOT
+        sub       rbx, r8                        ;   start a new component
         jmp       s1_next
 s1_dot:
         cmp       cx, 2Eh
@@ -117,6 +171,15 @@ scan_last:                                       ; the terminator is inside this
         sub       r10, r8
         add       r10, 2
 sl_nobs:
+        vpmovmskb ecx, ymm2
+        and       ecx, edx
+        jz        sl_nostop
+        bsr       ecx, ecx
+        and       ecx, -2
+        lea       rbx, [r9 + rcx]
+        sub       rbx, r8
+        add       rbx, 2
+sl_nostop:
         vpmovmskb ecx, ymm5
         and       ecx, edx
         jz        sl_len
@@ -135,8 +198,10 @@ scan_done_at_cursor:
         cmp       r11, 0
         jl        have_ext                       ; no '.' anywhere (r11 is the -1 sentinel, so
                                                  ; this test MUST be signed)
-        cmp       r11, r10
-        jb        have_ext                       ; the '.' is before the last component
+        cmp       r11, rbx
+        jb        have_ext                       ; the '.' is before the last STOPPER -- backslash
+                                                 ;   OR space. Using `comp` here, which is
+                                                 ;   backslash-only, is what shipped wrong.
         mov       rdx, r11
 have_ext:
         ; the group's ']' must be the character immediately before ext
@@ -195,6 +260,7 @@ mv_w:
 mv_done:
         vzeroupper
 done:
+        pop       rbx
         ret
 wia_pathundecoratew ENDP
 END

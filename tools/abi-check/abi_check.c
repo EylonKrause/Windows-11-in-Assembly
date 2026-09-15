@@ -384,6 +384,80 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_158)
+#define NAME "158-pathrenameextensionw"
+extern int wia_pathrenameextw(wchar_t*, const wchar_t*);
+static void thunk(void){
+    /* added when this change was CORRECTED for the missing space rule -- the amendment introduced
+       a second vector temp per block, and a callee-saved one would be invisible to correctness */
+    static wchar_t p[512];
+    memcpy(p, L"C:\\some\\long\\path\\to\\a\\file.txt", 33 * sizeof(wchar_t));
+    sink += wia_pathrenameextw(p, L".obj");
+    sink += p[0];
+    memcpy(p, L"a name with spaces.txt ", 24 * sizeof(wchar_t));
+    sink += wia_pathrenameextw(p, L".obj");     /* the space case the correction is about */
+    sink += p[0];
+    { int i; for (i = 0; i < 300; ++i) p[i] = L'a'; p[300] = 0; }
+    sink += wia_pathrenameextw(p, L".obj");     /* past MAX_PATH: the failure exit */
+    sink += p[0];
+}
+
+#elif defined(T_159)
+#define NAME "159-pathcchrenameextension"
+extern long wia_pathcchrenameext(wchar_t*, unsigned long long, const wchar_t*);
+static void thunk(void){
+    static wchar_t p[512];
+    memcpy(p, L"C:\\dir\\file.txt", 17 * sizeof(wchar_t));
+    sink += wia_pathcchrenameext(p, 64, L".obj");
+    sink += p[0];
+    memcpy(p, L"a name with spaces.txt ", 24 * sizeof(wchar_t));
+    sink += wia_pathcchrenameext(p, 64, L".obj");
+    sink += p[0];
+    memcpy(p, L"C:\\dir\\file.txt", 17 * sizeof(wchar_t));
+    sink += wia_pathcchrenameext(p, 4, L".obj");   /* the insufficient-buffer partial write */
+    sink += p[0];
+    sink += wia_pathcchrenameext(0, 64, L".obj");  /* E_INVALIDARG */
+}
+
+#elif defined(T_160)
+#define NAME "160-pathcchaddextension"
+extern long wia_pathcchaddext(wchar_t*, unsigned long long, const wchar_t*);
+static void thunk(void){
+    static wchar_t p[512];
+    memcpy(p, L"C:\\dir\\file", 13 * sizeof(wchar_t));
+    sink += wia_pathcchaddext(p, 64, L".obj");     /* appends */
+    sink += p[0];
+    memcpy(p, L"C:\\dir\\file.txt", 17 * sizeof(wchar_t));
+    sink += wia_pathcchaddext(p, 64, L".obj");     /* S_FALSE, nothing written */
+    sink += p[0];
+    memcpy(p, L"a name with spaces.txt ", 24 * sizeof(wchar_t));
+    sink += wia_pathcchaddext(p, 64, L".obj");     /* the space case the correction is about */
+    sink += p[0];
+    sink += wia_pathcchaddext(0, 64, L".obj");     /* E_INVALIDARG */
+}
+
+#elif defined(T_174)
+#define NAME "174-pathundecoratew"
+extern void wia_pathundecoratew(wchar_t*);
+static void thunk(void){
+    /* added when this change was CORRECTED for the missing space rule. The correction PUSHES RBX
+       to carry the second tracked position, so this change went from using no callee-saved
+       register at all to using one -- exactly the edit this gate exists to police. */
+    static wchar_t p[512];
+    memcpy(p, L"C:\\dir\\file[1].txt", 20 * sizeof(wchar_t));
+    wia_pathundecoratew(p);                        /* an ordinary removal */
+    sink += p[0];
+    memcpy(p, L"file[1]x.txt", 13 * sizeof(wchar_t));
+    wia_pathundecoratew(p);                        /* nothing hugs the dot: unchanged */
+    sink += p[0];
+    memcpy(p, L". []", 5 * sizeof(wchar_t));
+    wia_pathundecoratew(p);                        /* the space case the correction is about */
+    sink += p[0];
+    { int i; for (i = 0; i < 400; ++i) p[i] = L'a'; p[400] = 0; }
+    wia_pathundecoratew(p);                        /* a long run through the vector scan */
+    sink += p[0];
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

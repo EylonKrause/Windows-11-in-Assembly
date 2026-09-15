@@ -1,4 +1,30 @@
-# 160 — `kernelbase!PathCchAddExtension` — **LANDS** (3.80× geomean, up to 5.4×)
+# 160 — `kernelbase!PathCchAddExtension` — **LANDS** (3.37× geomean, up to 5.1×)
+
+> ## CORRECTED 2026-09-15 — this change had shipped WRONG
+>
+> Its extension position is the one change [132 `PathFindExtensionW`](../132-pathfindextensionw/)
+> derived, and **that rule was incomplete**: a **SPACE** stops the backward scan exactly as a
+> backslash does, so `"a.b "` has no extension at all. 132 shipped without it because its fuzz
+> alphabet contained no space; 140, 143 and 144 inherited it and were corrected in the same session.
+>
+> **This change was not caught by that first audit**, because that audit looked at the oracles that
+> *say* they reuse 132's rule and this one does not — it open-codes its own `ref_findext`. A second,
+> **structural** sweep asked the question the right way: *every* landed oracle that computes an
+> extension position, whether or not it names its source. `discovery/extension_space_audit2.c`
+> measured the live export against both rules over every string of `{a, '.', \, '[', ']', SPACE}`
+> of length 0..7:
+>
+> | | mismatches |
+> |---|---|
+> | live export vs the rule as landed | **46 158** of 335 923 |
+> | live export vs the corrected rule | **0** |
+>
+> The fix is one more `vpcmpeqw` against `ymm4`, which already held a space broadcast for the extension-validity check, OR-ed into the backslash mask — so it costs neither a register nor a constant. It is `0x20` specifically and not
+> whitespace in general — a TAB does not stop the scan.
+>
+> **The corpus was the real defect.** `correctness.c` now enumerates every string over
+> `{a, '.', \, '/', ':', SPACE}` of length 0..7 — the previous corpora had no space in them at
+> all, which is precisely why none of them could see this.
 
 Append an extension, but only if the path does not already have one. 84 ns for a real 90-character
 path, 173 ns for 254 characters. It shares [159](../159-pathcchrenameextension/)'s validation
@@ -62,16 +88,23 @@ length) at three `cch` shapes each; and NOACCESS page-guard sweeps on both the p
 extension.
 
 ## Benchmark — vs live `kernelbase!PathCchAddExtension`
-geomean **3.80×**, every size class better:
+geomean **3.37×**, every size class better:
 
 | case | ours ns | kernelbase ns | ratio |
 |---|---|---|---|
-| 16 chars | 15.04 | 29.13 | 1.94x |
-| 64 chars | 18.09 | 62.68 | 3.47x |
-| 130 chars | 27.82 | 101.82 | 3.66x |
-| 254 chars | 35.62 | 173.13 | 4.86x |
-| 90-char real path | 17.80 | 83.57 | 4.69x |
-| 200 chars, already has one | 31.39 | 170.87 | **5.44x** |
+| 16 chars | 12.43 | 21.81 | 1.75x |
+| 64 chars | 15.91 | 44.76 | 2.81x |
+| 130 chars | 23.37 | 79.37 | 3.40x |
+| 254 chars | 31.85 | 143.85 | 4.52x |
+| 90-char real path | 16.58 | 63.22 | 3.81x |
+| 200 chars, already has one | 26.75 | 135.81 | **5.08x** |
+
+Re-measured in full after the correction. **Both** columns came out faster than the numbers this
+change originally shipped — ours *and* the system's — so the ratios moved by more than the added
+compare can account for; that compare costs a fraction of a cycle per 32-byte block. The geomean is
+-11% against the original measurement, which is cross-run variation of the kind this repository has
+measured before (same-binary repeatability is +/-0.5%, but a rebuild relaying the code is not the
+same binary). Every size class is still better, so the gate verdict is unchanged.
 
 The last row is the `S_FALSE` early-out, which still has to scan the whole path to decide.
 

@@ -1,6 +1,11 @@
 // changes/158-pathrenameextensionw/reference.c
-// Oracle for shlwapi!PathRenameExtensionW. The extension rule is the one validated in change 132:
-// the LAST '.' after the last BACKSLASH, with only '\' terminating the search.
+// Oracle for shlwapi!PathRenameExtensionW.
+//
+// CORRECTED 2026-09-15. The extension rule is change 132's, and that rule was INCOMPLETE: a
+// SPACE stops the backward scan exactly as a backslash does. This oracle and the
+// implementation were wrong together on 46158 of 335923 enumerated strings; see
+// discovery/extension_space_audit2.c. The rule is: the LAST '.' after the last BACKSLASH
+// **OR SPACE**, with '/' and ':' NOT terminating the search.
 #include <windows.h>
 #include <wchar.h>
 
@@ -8,7 +13,7 @@ static const wchar_t* ref_findext(const wchar_t* p)
 {
     const wchar_t* cand = 0;
     for (; *p; ++p) {
-        if (*p == L'\\') cand = 0;
+        if (*p == L'\\' || *p == L' ') cand = 0;   /* CORRECTED: a SPACE stops it too */
         else if (*p == L'.') cand = p;
     }
     return cand ? cand : p;             /* no extension -> the terminator */

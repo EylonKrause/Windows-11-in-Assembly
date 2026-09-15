@@ -186,6 +186,31 @@ int main(void)
         VirtualFree(mem, 0, MEM_RELEASE);
     }
 
+
+    // ---- EXHAUSTIVE WITH A SPACE IN THE ALPHABET ---------------------------------------------
+    // Added 2026-09-15. Eight landed changes in this repository turned out to share one missing
+    // rule: a SPACE stops the extension scan exactly as a backslash does. Change 132 shipped
+    // without it, 140/143/144 inherited it, and 158/159/160/174 were found by a structural sweep
+    // of every oracle that computes an extension position. Every one of those corpora had no
+    // space in it, which is precisely why none of them could see the bug.
+    {
+        static const wchar_t AL[6] = { L'a', L'.', L'\\', L'/', L':', L' ' };
+        wchar_t es[12];
+        long en = 0;
+        for (int len = 0; len <= 7 && fails < 15; ++len) {
+            long lim = 1;
+            for (int i = 0; i < len; ++i) lim *= 6;
+            for (long k = 0; k < lim && fails < 15; ++k) {
+                long v = k;
+                for (int i = 0; i < len; ++i) { es[i] = AL[v % 6]; v /= 6; }
+                es[len] = 0;
+                chk(es, 64, L".zz", "exhaustive-with-space");
+                ++en;
+            }
+        }
+        printf("  exhaustive {a,.,backslash,/,:,space} 0..7: %ld strings\n", en);
+    }
+
     if (!fails)
         printf("CORRECTNESS: PASS (PathCchAddExtension vs live + oracle, comparing the HRESULT and every buffer\n"
                "  byte, which is what pins the TRUNCATING WRITE that the two size failures perform.\n"

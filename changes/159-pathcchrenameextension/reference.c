@@ -1,4 +1,7 @@
 // changes/159-pathcchrenameextension/reference.c
+// CORRECTED 2026-09-15: the extension rule inherited from change 132 was INCOMPLETE -- a SPACE
+// stops the backward scan exactly as a backslash does. This oracle and the implementation were
+// wrong together on 46158 of 335923 enumerated strings; see discovery/extension_space_audit2.c.
 // Oracle for kernelbase!PathCchRenameExtension, built entirely from probe evidence: the rejected
 // extension characters came from a full 65536-character sweep, the 259 limit and the two distinct
 // failure modes from length sweeps.
@@ -11,7 +14,7 @@ static const wchar_t* ref_findext(const wchar_t* p)
 {
     const wchar_t* cand = 0;
     for (; *p; ++p) {
-        if (*p == L'\\') cand = 0;
+        if (*p == L'\\' || *p == L' ') cand = 0;   /* CORRECTED: a SPACE stops it too */
         else if (*p == L'.') cand = p;
     }
     return cand ? cand : p;

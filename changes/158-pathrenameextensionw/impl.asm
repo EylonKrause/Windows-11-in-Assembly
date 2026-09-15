@@ -27,12 +27,32 @@
 ; "a backslash clears it, a later dot sets it", which per block reduces to comparing the highest dot
 ; bit against the highest backslash bit -- no per-character loop.
 ;
+;
+; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
+; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
+; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
+; session; and a second, STRUCTURAL sweep -- every landed oracle that computes an extension position,
+; whether or not it cites 132 -- found this change carrying it too.
+;
+; discovery/extension_space_audit2.c measured the live export against both rules over every string in
+; {a, '.', backslash, '[', ']', space} of length 0..7:
+;
+;     live export vs the rule as landed : 46158 of 335923 mismatches
+;     live export vs the corrected rule :     0
+;
+; The fix is one extra compare per block, OR-ed into the backslash mask, and it is 0x20 specifically:
+; a TAB does not stop the scan.
+
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
 .const
 ALIGN 16
 c_dot   dw 002Eh
 c_bsl   dw 005Ch
+; 32-byte form for use as a memory operand, so the second stopper costs no register. VEX operands
+; need no alignment, so no ALIGN 32 (which .const rejects with A2189).
+c_spcm  dw 16 dup(0020h)
 
 .code
 wia_pathrenameextw PROC FRAME
@@ -67,6 +87,8 @@ wia_pathrenameextw PROC FRAME
         vpcmpeqw  ymm4, ymm0, ymm1
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan exactly as a backslash
+        vpor      ymm4, ymm4, ymm5                  ;   does -- the half this change shipped without
         vpmovmskb r10d, ymm4
         shr       r8d, cl
         shr       edx, cl
@@ -82,6 +104,8 @@ pr_next:
         vpcmpeqw  ymm4, ymm0, ymm1
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan exactly as a backslash
+        vpor      ymm4, ymm4, ymm5                  ;   does -- the half this change shipped without
         vpmovmskb r10d, ymm4
 pr_block:
         test      r8d, r8d
@@ -95,7 +119,7 @@ pr_block:
         and       r10d, r8d
 pr_upd:
         test      r10d, r10d
-        jz        pr_nobsl
+        jz        pr_nostop
         xor       eax, eax
         test      edx, edx
         jz        pr_done
@@ -106,7 +130,7 @@ pr_upd:
         and       ecx, -2                           ; vpcmpeqw sets both bytes; bsr lands high
         lea       rax, [r11 + rcx]
         jmp       pr_done
-pr_nobsl:
+pr_nostop:
         test      edx, edx
         jz        pr_done
         bsr       ecx, edx

@@ -71,6 +71,27 @@ int main(void){
         }
     }
 
+
+    // ---- EXHAUSTIVE WITH A SPACE IN THE ALPHABET ---------------------------------------------
+    // Added 2026-09-15. Eight landed changes in this repository turned out to share one missing
+    // rule: a SPACE stops the extension scan exactly as a backslash does. Change 132 shipped
+    // without it, 140/143/144 inherited it, and 158/159/160/174 were found by a structural sweep
+    // of every oracle that computes an extension position. Every one of those corpora had no
+    // space in it, which is precisely why none of them could see the bug.
+    {
+        static const wchar_t AL6[6] = { L'[', L']', L'.', L'1', L' ', L'z' };
+        for (int n = 0; n <= 7; ++n) {
+            long lim = 1;
+            for (int i = 0; i < n; i++) lim *= 6;
+            for (long k = 0; k < lim; k++) {
+                long v = k;
+                for (int i = 0; i < n; i++) { s[i] = AL6[v % 6]; v /= 6; }
+                s[n] = 0;
+                CHECK(one(s), "exhaustive with a SPACE in the alphabet");
+            }
+        }
+    }
+
     // EVERY code unit inside the brackets -- pins "digits only, possibly none"
     for(int c=1;c<65536;c++){
         s[0]=L'f'; s[1]=L'['; s[2]=(wchar_t)c; s[3]=L']'; s[4]=L'.'; s[5]=L't'; s[6]=0;
@@ -149,7 +170,8 @@ int main(void){
 
     if(fails){ printf("CORRECTNESS: FAILED (%d)\n", fails); return 1; }
     printf("CORRECTNESS: PASS (PathUndecorateW vs live shlwapi + oracle, whole-buffer compare "
-           "incl. the stale tail: exhaustive {a,[,],1,.,backslash} to len 8, ALL 65535 code "
+           "incl. the stale tail: exhaustive {a,[,],1,.,backslash} to len 8, exhaustive "
+           "{[,],.,1,SPACE,z} to len 7, ALL 65535 code "
            "units both inside the brackets and immediately after them, decoration at many "
            "positions x 16 unaligned starts, 400k fuzz, NOACCESS page-guard)\n");
     return 0;
