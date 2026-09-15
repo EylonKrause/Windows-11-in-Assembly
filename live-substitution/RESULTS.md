@@ -83,7 +83,32 @@ validated standalone first, results identical under live patch, cleanly reverted
 
 ## Reproduce
 ```
-live-substitution\build.bat        (the original 14)
-live-substitution\build_new.bat    (the hardened 6: 070-075)
+live-substitution\build.bat                 (the original 14)
+live-substitution\build_new.bat             (the hardened 6: 070-075)
+live-substitution\build_2ndpc_live.bat      (the second-PC variants)
+live-substitution\build_shlwapi_live.bat    (the shlwapi path functions)
+live-substitution\build_crt_s_live.bat      (the bounded _s CRT functions)
+live-substitution\build_crt_fill_live.bat   (the bounded _s fill family: 182-185)
+live-substitution\build_wparse_live.bat     (the wide parsers: 186-191)
+live-substitution\build_ntdll2_live.bat     (192-193)
+live-substitution\build_fmt_s_live.bat      (the bounded 64-bit formatters: 194-197)
+live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-201, SIX exports)
+live-substitution\build_iphlpapi_live.bat   (202 ConvertGuidToStringW)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
+`tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
+
+### 198-201 - the alias assumption is TESTED, not trusted
+
+`_ltoa_s` and `_ltow_s` are separate ucrtbase exports that the disassembly says are the same code as
+`_itoa_s` / `_itow_s`. The harness patches and drives all **six** exports independently rather than
+letting four stand in for six. 40 000 cases each, ~19 800 of them on an EINVAL or ERANGE path,
+comparing return value, `errno`, handler hit count and the whole buffer - the ERANGE path's reversed
+partial leftovers included.
+
+### 202 - the first iphlpapi target
+
+200 000 cases against the live `ConvertGuidToStringW`, weighted across all four length regimes:
+102 156 truncating (1..38), 15 425 zero-length (where the buffer must be left **untouched**), and
+20 081 absurd (>= 0x80000000, which returns 122 with `String[0] = 0` rather than 87). Return value
+and the whole 160-cell buffer identical; prologue restored byte-for-byte.
