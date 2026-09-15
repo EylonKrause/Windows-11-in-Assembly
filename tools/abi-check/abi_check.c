@@ -297,6 +297,35 @@ static void thunk(void){
     sink += wia_strcspna(0, "#");
 }
 
+#elif defined(T_215)
+#define NAME "215-strpbrka"
+extern const char* wia_strpbrka(const char*, const char*);
+static void thunk(void){
+    /* a hit, a full scan to the terminator, a set spanning BOTH halves of the bitmap, the empty
+       set and both NULL exits. The set-building loop writes into the CALLER'S SHADOW SPACE, so
+       this also proves that leaves the caller's frame intact. */
+    sink += (long long)(size_t)wia_strpbrka(a8, "CD");
+    sink += (long long)(size_t)wia_strpbrka(a8, "#");
+    sink += (long long)(size_t)wia_strpbrka(a8, "\x41\xC3");
+    sink += (long long)(size_t)wia_strpbrka(a8, "");
+    sink += (long long)(size_t)wia_strpbrka(a8, 0);
+    sink += (long long)(size_t)wia_strpbrka(0, "#");
+}
+
+#elif defined(T_216)
+#define NAME "216-strspna"
+extern int wia_strspna(const char*, const char*);
+static void thunk(void){
+    /* a span that stops early, one that runs to the terminator (the inverted mask's own stop),
+       a set spanning BOTH halves of the bitmap, the empty set and both NULL exits */
+    sink += wia_strspna(a8, "ABCD");
+    sink += wia_strspna(a8, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    sink += wia_strspna(a8, "\x41\xC3");
+    sink += wia_strspna(a8, "");
+    sink += wia_strspna(a8, 0);
+    sink += wia_strspna(0, "A");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

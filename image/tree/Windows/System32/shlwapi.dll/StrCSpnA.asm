@@ -30,10 +30,9 @@
 ; already stops there.)
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT BITMAP built with one BTS per set character, in THE CALLER'S SHADOW SPACE
-; -- which is 32 bytes, exactly the size of the bitmap, and is ours to use, so nothing is pushed and
-; no frame is set up. `bts dword ptr [r11], eax` with eax the whole byte value addresses bit eax of
-; that region directly: byte eax>>3, bit eax&7.
+; The set becomes a 256-BIT BITMAP in THE CALLER'S SHADOW SPACE -- which is 32 bytes, exactly the
+; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
+; character sets bit b of that region: byte b>>3, bit b&7.
 ;
 ; Membership for 32 characters at once is then the standard two-table vpshufb test, and the bitmap's
 ; natural layout is exactly what it wants:
@@ -42,9 +41,9 @@
 ;             i.e. bitmap byte >= 16) using vpblendvb, which keys on exactly that bit
 ;     bits  = vpshufb(POW2, v & 7)
 ;     member = (rows & bits) == bits
-; That is why the bitmap is built bit-per-byte-value rather than in the nibble-indexed layout the
-; same trick usually uses: this way the BUILD is one instruction per set character instead of nine,
-; and the test costs the same.
+; That is why the bitmap is indexed bit-per-byte-value rather than in the nibble-indexed layout the
+; same trick usually uses: this way the BUILD is a handful of simple ops per set character instead
+; of nine, and the test costs the same.
 ;
 ; Page-safe: the first load is aligned DOWN to 32 bytes with the leading bytes shifted out of the
 ; mask, and every later load is 32-aligned, so no load touches a page the byte-at-a-time export
@@ -112,7 +111,7 @@ cs_bld:
         inc       r8d
         jmp       cs_bld
 cs_built:
-        ; Two 16-byte broadcasts, deliberately, even though both forward from the narrower bts writes
+        ; Two 16-byte broadcasts, deliberately, even though both forward from the narrower byte-wide writes
         ; just made. Reading all 32 bytes once and splitting the halves with vperm2i128 pays that
         ; forwarding stall only once, and was tried: it measured WORSE (geomean 125.54 -> 120.19),
         ; because vperm2i128 crosses lanes and two of them cost more than the stall they remove.

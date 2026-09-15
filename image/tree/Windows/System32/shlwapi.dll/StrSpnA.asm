@@ -1,10 +1,20 @@
-; changes/214-strcspna/impl.asm
-; int wia_strcspna(PCSTR pszStr, PCSTR pszSet)   [Win64: rcx, rdx -> eax]
+; shlwapi.dll!StrSpnA  --  hand-written x86-64 reimplementation (227.43x vs shipped)
+; source of truth: changes/216-strspna/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
+; changes/216-strspna/impl.asm
+; int wia_strspna(PCSTR pszStr, PCSTR pszSet)   [Win64: rcx, rdx -> eax]
 ;
-; Reimplements shlwapi!StrCSpnA: the number of leading characters of pszStr that are NOT in pszSet.
-; The live export costs 42868.10 ns on 4000 characters against 3166.56 ns for StrCSpnW over the same
-; character count -- 13.54x the wide cost for HALF the bytes, the MBCS-walk signature this project
-; has now seen across the whole narrow shlwapi family.
+; Reimplements shlwapi!StrSpnA: the number of leading characters of pszStr that ARE in pszSet.
+;
+; This is the slowest single routine the narrow survey measured anywhere: 166503.08 ns to span 4000
+; characters -- 166 MICROSECONDS -- against 22141.23 ns for StrSpnW over the same character count.
+; That is 7.52x the wide cost for HALF the bytes, and the wide form was itself slow enough to be
+; worth converting (change 135). An MBCS walk with a per-character search of the set is quadratic in
+; the set size on top of everything else.
+;
+; This is change 214's core with the membership test INVERTED, and the three were written together:
+; the set bitmap, the two-table vpshufb test and the page-safe aligned scan are identical.
 ;
 ; ---- what the probe settled (probes/span.c) ---------------------------------------------------------
 ;   * BYTE-WISE, and so are its two siblings. Every byte value 0x01..0xFF was placed where a lead byte
@@ -17,13 +27,19 @@
 ;
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
-; terminator is never a member. StrCSpnA is therefore exactly:
+; terminator is never a member -- which means it is a NON-member, which means the inverted mask
+; STOPS THERE ON ITS OWN. StrSpnA is therefore exactly:
 ;
-;     the index of the first position that is EITHER a set member OR the terminator
+;     the index of the first NON-member
 ;
-; -- one scan, one mask, no separate length pass and no second stopping rule. (Its sibling StrSpnA
-; gets the same gift from the other side: the terminator is never a member, so "first non-member"
-; already stops there.)
+; with no terminator test anywhere in the loop at all. Its sibling StrCSpnA needs an explicit NUL
+; compare ORed into the mask; this one gets the same stop for free, so its inner loop is two
+; instructions SHORTER than 214's despite computing the same thing.
+;
+; The `not` that inverts the mask is also what makes the aligned first load safe in this direction.
+; Bits shifted in at the top of the mask are 0, which after inversion reads as "member" -- i.e. "no
+; stop here" -- so the scan simply moves on to the next block and re-examines those bytes properly,
+; exactly as it does for 214 where 0 means "no stop" directly.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
 ; The set becomes a 256-BIT BITMAP in THE CALLER'S SHADOW SPACE -- which is 32 bytes, exactly the
@@ -54,13 +70,13 @@
 ALIGN 16
 c_0F    db 32 dup(0Fh)
 c_07    db 32 dup(007h)
-c_zero  db 32 dup(000h)
 ; 1 << i for i = 0..7; indices 8..15 are never used, because (v & 7) <= 7
 c_pow2  db 001h,002h,004h,008h,010h,020h,040h,080h, 0,0,0,0,0,0,0,0
 
 .code
 
-; Build, in eax, the mask of positions in ymm0 that are a set member OR the terminator.
+; Build, in eax, the mask of positions in ymm0 that are NOT a set member. The terminator is never a
+; member, so it is included automatically and needs no compare of its own.
 ; Clobbers ymm4, ymm5. Reads ymm1 = tabL, ymm2 = tabH, ymm3 = POW2.
 CLASSIFY MACRO
         vpsrlw    ymm4, ymm0, 3
@@ -72,16 +88,15 @@ CLASSIFY MACRO
         vpshufb   ymm5, ymm3, ymm5                     ; 1 << (v & 7)
         vpand     ymm4, ymm4, ymm5
         vpcmpeqb  ymm4, ymm4, ymm5                     ; set member
-        vpcmpeqb  ymm5, ymm0, ymmword ptr [c_zero]     ; the terminator
-        vpor      ymm4, ymm4, ymm5
         vpmovmskb eax, ymm4
+        not       eax                                  ; NON-member; the NUL is one of these
 ENDM
 
-wia_strcspna PROC
+wia_strspna PROC
         test      rcx, rcx
-        jz        cs_zero
+        jz        sp_zero
         test      rdx, rdx
-        jz        cs_zero                    ; measured: a NULL set returns 0, NOT strlen
+        jz        sp_zero                    ; measured: either NULL argument returns 0
 
         ; ---- the set becomes a 256-bit bitmap in the caller's shadow space ----
         vpxor     xmm0, xmm0, xmm0
@@ -90,7 +105,7 @@ wia_strcspna PROC
         lea       r11, [rsp + 8]
         lea       r9, c_pow2                 ; indexing a .const symbol directly is LNK2017
         xor       r8d, r8d
-cs_bld:
+sp_bld:
         ; `bts dword ptr [r11], eax` expresses this in ONE instruction and was the first cut, but a
         ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded -- it is a
         ; read-modify-write whose address depends on the offset -- and the set-13 class paid for it.
@@ -98,15 +113,15 @@ cs_bld:
         ; simple ops.
         movzx     eax, byte ptr [rdx + r8]
         test      al, al
-        jz        cs_built
+        jz        sp_built
         mov       r10d, eax                  ; NOT ecx: rcx still holds the subject pointer, and
         shr       r10d, 3                    ;   clobbering it here cost one silent crash
         and       eax, 7
         movzx     eax, byte ptr [r9 + rax]   ; 1 << (b & 7)
         or        byte ptr [r11 + r10], al
         inc       r8d
-        jmp       cs_bld
-cs_built:
+        jmp       sp_bld
+sp_built:
         ; Two 16-byte broadcasts, deliberately, even though both forward from the narrower byte-wide writes
         ; just made. Reading all 32 bytes once and splitting the halves with vperm2i128 pays that
         ; forwarding stall only once, and was tried: it measured WORSE (geomean 125.54 -> 120.19),
@@ -125,28 +140,28 @@ cs_built:
         shrx      eax, eax, ecx              ; bit b now means byte b of the subject
         xor       r10d, r10d                 ; byte offset of bit 0 of the mask
         test      eax, eax
-        jnz       cs_hit
+        jnz       sp_hit
         mov       r10d, 32
         sub       r10d, ecx                  ; bytes the first block covered
 
 ALIGN 16
-cs_loop:
+sp_loop:
         add       r9, 32
         vmovdqa   ymm0, ymmword ptr [r9]
         CLASSIFY
         test      eax, eax
-        jnz       cs_hit
+        jnz       sp_hit
         add       r10d, 32
-        jmp       cs_loop
+        jmp       sp_loop
 
-cs_hit:
+sp_hit:
         tzcnt     eax, eax
-        add       eax, r10d                  ; a member or the terminator: either way, the answer
+        add       eax, r10d                  ; the first non-member: the span length
         vzeroupper
         ret
 
-cs_zero:
+sp_zero:
         xor       eax, eax
         ret
-wia_strcspna ENDP
+wia_strspna ENDP
 END
