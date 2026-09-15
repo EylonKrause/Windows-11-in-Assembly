@@ -1,5 +1,6 @@
 // live-substitution/live_subst_combase.c
-// LIVE-RUN PROOF for change 206 -- combase!StringFromGUID2.
+// LIVE-RUN PROOF for changes 206 and 207 -- combase!StringFromGUID2 and combase!IIDFromString,
+// the format and parse halves of the same COM GUID path.
 //
 // The most widely used GUID formatter in COM, at 11.32 ns per call. Ours is one vpshufb and a
 // template store.
@@ -21,19 +22,32 @@
 // combase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere. The
 // harness uses no COM itself, so nothing else in the process calls through the patched export.
 //
+// FOR 207 the hard part is the FAILURE path. IIDFromString writes into the caller's GUID as it
+// parses, so a malformed string leaves a PARTIALLY filled GUID that must match byte for byte, and
+// its HRESULT is two-valued -- E_INVALIDARG for a structural rejection (length != 38), CO_E_IIDSTRING
+// for a content one. Returning "an error" is not good enough. So its corpus corrupts one character
+// at a time across all 38 positions, which is what stops the parser at each different field
+// boundary, and every case compares all sixteen bytes from a poison fill.
+//
 // Build: build_combase_live.bat
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <intrin.h>
 
-extern int wia_StringFromGUID2(const GUID*, wchar_t*, int);
-typedef int (WINAPI *FN)(const GUID*, wchar_t*, int);
+extern int  wia_StringFromGUID2(const GUID*, wchar_t*, int);
+extern long wia_iidfromstring(const wchar_t*, GUID*);
+typedef int     (WINAPI *FN)(const GUID*, wchar_t*, int);
+typedef HRESULT (WINAPI *FNP)(const wchar_t*, GUID*);
 
-static volatile LONG c_sfg;
+static volatile LONG c_sfg, c_iid;
 static int WINAPI w_sfg(const GUID* g, wchar_t* s, int n){
     _InterlockedIncrement(&c_sfg); return wia_StringFromGUID2(g, s, n);
+}
+static HRESULT WINAPI w_iid(const wchar_t* s, GUID* g){
+    _InterlockedIncrement(&c_iid); return (HRESULT)wia_iidfromstring(s, g);
 }
 
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -103,6 +117,40 @@ static int pass(FN sys){
     return bad;
 }
 
+/* ---------------- change 207: IIDFromString ---------------- */
+#define POISON 0x5A
+static const wchar_t IIDGOOD[] = L"{DEADBEEF-1234-5678-9ABC-DEF011223344}";
+static long parse_ok, parse_content, parse_struct;
+
+static int pass_iid(FNP sys){
+    static const wchar_t HEX[] = L"0123456789abcdefABCDEF";
+    int bad = 0;
+    sd = 0x207207u;
+    parse_ok = parse_content = parse_struct = 0;
+
+    for (int t = 0; t < ROUNDS; ++t) {
+        wchar_t s[64];
+        s[0] = L'{';
+        for (int i = 0; i < 36; ++i) s[1+i] = HEX[rnd() % 22];
+        s[9] = s[14] = s[19] = s[24] = L'-';
+        s[37] = L'}'; s[38] = 0;
+
+        unsigned k = rnd() % 4;
+        if (k == 0) s[rnd() % 38] = (wchar_t)(1 + (rnd() & 0xFF));   /* content rejection, any depth */
+        else if (k == 1) s[20 + (int)(rnd() % 18)] = 0;              /* structural: too short        */
+
+        GUID a, b2;
+        memset(&a, POISON, sizeof a); memset(&b2, POISON, sizeof b2);
+        HRESULT ra = (HRESULT)wia_iidfromstring(s, &a);
+        HRESULT rb = sys(s, &b2);
+        if (ra == 0) ++parse_ok;
+        else if (ra == (HRESULT)0x800401F4L) ++parse_content;
+        else ++parse_struct;
+        if (ra != rb || memcmp(&a, &b2, 16) != 0) ++bad;
+    }
+    return bad;
+}
+
 int main(void){
     setvbuf(stdout,NULL,_IONBF,0);
     HMODULE hc = LoadLibraryW(L"combase.dll");
@@ -143,12 +191,46 @@ int main(void){
         }
     }
 
+    printf("[207 IIDFromString]  combase\n");
+    {
+        void* q = (void*)GetProcAddress(hc, "IIDFromString");
+        if (!q) { HMODULE ho = LoadLibraryW(L"ole32.dll");
+                  q = ho ? (void*)GetProcAddress(ho, "IIDFromString") : NULL; }
+        OK(q != NULL, "resolve IIDFromString");
+        if (q) {
+            FNP sysp = (FNP)q;
+            int vpre = pass_iid(sysp);
+            OK(vpre == 0, "validate-first vs the LIVE export (200000 cases)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t pt2; OK(patch_on(&pt2, q, (void*)w_iid), "install patch");
+                printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                       ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                LONG before2 = c_iid;
+                int mism2 = pass_iid(sysp);
+                OK(mism2 == 0, "identical under live patch (HRESULT AND all 16 bytes)");
+                OK(c_iid - before2 >= ROUNDS, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism2 ? "MISMATCH" : "all match", (long)(c_iid - before2));
+                printf("  of %d cases: %ld parsed, %ld CO_E_IIDSTRING (partial writes), "
+                       "%ld E_INVALIDARG\n", ROUNDS, parse_ok, parse_content, parse_struct);
+                OK(parse_ok      > ROUNDS/8,  "the accepting path ran in bulk");
+                OK(parse_content > ROUNDS/16, "the PARTIAL-WRITE path ran in bulk");
+                OK(parse_struct  > ROUNDS/16, "the structural-rejection path ran in bulk");
+                OK(patch_off(&pt2), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if (failures == 0){
         printf("COMBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
-               "combase!StringFromGUID2; return value and the whole buffer identical to the live\n"
-               "export across the rendering, refusing and negative-length paths, with refusals proven\n"
-               "to write nothing; prologue restored byte-for-byte. Zero system processes touched,\n"
-               "nothing on disk modified.\n");
+               "combase!StringFromGUID2 AND combase!IIDFromString -- the format and parse halves of\n"
+               "the same COM GUID path. For 206: return value and the whole buffer identical across\n"
+               "the rendering, refusing and negative-length paths, refusals proven to write nothing.\n"
+               "For 207: the two-valued HRESULT and all sixteen output bytes identical, including the\n"
+               "PARTIALLY filled GUID a malformed string leaves behind. Both prologues restored\n"
+               "byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
         return 0;
     }
     printf("COMBASE LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);

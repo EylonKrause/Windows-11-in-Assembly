@@ -5,8 +5,8 @@
 #   1. Compare the watched System32 DLLs against the recorded baseline (hash, not just version).
 #   2. If none of them changed, write one line to the history and stop. This is the normal case:
 #      most updates replace dozens of DLLs without touching ntdll / ucrtbase / shlwapi /
-#      kernelbase / crypt32 / msvcrt / iphlpapi, and re-running a multi-hour sweep for those
-#      would be waste. (The list itself lives in revalidate.ps1 -- $WatchedDlls.)
+#      kernelbase / crypt32 / msvcrt / iphlpapi / rpcrt4 / combase, and re-running a multi-hour
+#      sweep for those would be waste. (The list lives in revalidate.ps1 -- $WatchedDlls.)
 #   3. If any DID change, re-prove every change against the new binaries and write a report. The
 #      correctness harnesses compare against the LIVE export, so this is a real answer, not a
 #      heuristic.
