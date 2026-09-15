@@ -405,6 +405,20 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_219)
+#define NAME "219-pathstrippatha"
+extern void wia_pathstrippatha(char*);
+static void thunk(void){
+    static char p[128];
+    memcpy(p, "C:\\some\\reasonably\\long\\path\\to\\a\\file.txt", 42);
+    wia_pathstrippatha(p);                 /* a long move */
+    sink += p[0];
+    memcpy(p, "already-stripped.txt", 21);
+    wia_pathstrippatha(p);                 /* no move at all */
+    sink += p[0];
+    wia_pathstrippatha(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
