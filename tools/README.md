@@ -71,7 +71,8 @@ Where the two disagree, `abi-check` is authoritative: it runs the code.
 
 ## Re-validation after Windows servicing
 
-`revalidate.ps1` records a SHA-256 baseline of the six DLLs this repo reimplements from, then rebuilds
+`revalidate.ps1` records a SHA-256 baseline of the nine DLLs this repo reimplements from — ntdll,
+ucrtbase, shlwapi, kernelbase, crypt32, msvcrt, iphlpapi, rpcrt4 and combase — then rebuilds
 and re-runs every `changes/*/build.bat` and every live-substitution harness against whatever System32
 currently holds.
 
