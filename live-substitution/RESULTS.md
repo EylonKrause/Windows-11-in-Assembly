@@ -97,7 +97,7 @@ live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA + 208 UuidFromStringW)
 live-substitution\build_combase_live.bat    (206 StringFromGUID2 + 207 IIDFromString)
-live-substitution\build_kernelbase_live.bat (209 lstrcpynW + 210 CompareStringOrdinal)
+live-substitution\build_kernelbase_live.bat (209 lstrcpynW + 210 CompareStringOrdinal + 211 lstrcpynA)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -179,6 +179,21 @@ implies equal-folded), chunks that differ and are all-ASCII take a vector fold, 
 0x7F drops to the 64K ordinal upcase table. So this harness mixes equal and differing pairs, ASCII and
 Cyrillic, case-flipped pairs, and explicit against -1 lengths. Of 120 000 cases: **59 188** equal,
 **60 812** unequal, **59 767** ignore-case and **31 896** non-ASCII.
+
+### 211 - proving the NARROW export's own fault contract, and its own write paths
+
+`lstrcpynA` is `lstrcpynW`'s sibling, and the temptation is to let 209's proof stand for both. It does
+not. The contract was re-measured against the narrow export (`changes/211-lstrcpyna/probes/lcpa.c`)
+because the A/W pairs in this project have gone both ways, and the live corpus repeats the proof
+rather than citing it: a fifth of the 120 000 cases is an **unterminated source ending at a
+PAGE_NOACCESS page**, with the bound swept across the character the shipped loop reads one PAST the
+last one it copies.
+
+The narrow implementation also has two write paths the wide one does not -- a **paired 64-byte loop**
+and a **clamped short path** that vectorises copies the bound cuts to fewer than 32 characters -- so
+the run reports how many cases reached each. Of 120 000: **71 811** ordinary, **12 120** truncating,
+**12 069** with `n == 0`, **24 000** against the guard page, **64 261** through the paired loop and
+**21 737** through the clamped short path.
 
 ### 207 - proving a PARTIAL write, in bulk
 

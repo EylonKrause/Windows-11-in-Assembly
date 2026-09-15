@@ -246,6 +246,18 @@ static void thunk(void){
     sink += wia_comparestringordinal(aw, -1, bw, -1, FALSE);
 }
 
+#elif defined(T_211)
+#define NAME "211-lstrcpyna"
+extern char* wia_lstrcpyna(char*, const char*, int);
+static void thunk(void){
+    /* long enough to run the PAIRED 64-byte path, a length that lands in the single-chunk loop,
+       one that reaches the clamped short path, plus a truncating and a no-op call */
+    sink += (long long)(size_t)wia_lstrcpyna(b8, a8, 200);
+    sink += (long long)(size_t)wia_lstrcpyna(b8, a8, 40);
+    sink += (long long)(size_t)wia_lstrcpyna(b8, a8, 8);
+    sink += (long long)(size_t)wia_lstrcpyna(b8, a8, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
