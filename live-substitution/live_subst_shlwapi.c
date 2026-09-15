@@ -1,7 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 132, 168-176 and 212-221 -- the shlwapi functions converted on the
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-222 -- the shlwapi functions converted on the
 // second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
-// halves of PathFindExtension, StrTrimA, PathStripPathA, StrChrA and PathRemoveBlanksA.
+// halves of PathFindExtension, StrTrimA, PathStripPathA, StrChrA, PathRemoveBlanksA and PathRemoveExtensionA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -45,6 +45,7 @@ extern int            wia_strtrima(char*, const char*);
 extern void           wia_pathstrippatha(char*);
 extern const char*    wia_strchra(const char*, WORD);
 extern void           wia_pathremoveblanksa(char*);
+extern void           wia_pathremoveexta(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -79,6 +80,8 @@ static volatile LONG c_scha;
 static PSTR WINAPI w_scha(PCSTR s, WORD m){ _InterlockedIncrement(&c_scha); return (PSTR)wia_strchra(s,m); }
 static volatile LONG c_prba;
 static void WINAPI w_prba(PSTR p){ _InterlockedIncrement(&c_prba); wia_pathremoveblanksa(p); }
+static volatile LONG c_prxa;
+static void WINAPI w_prxa(PSTR p){ _InterlockedIncrement(&c_prxa); wia_pathremoveexta(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1276,9 +1279,101 @@ int main(void){
         }
     }
 
+    // ===================== 222 PathRemoveExtensionA =====================
+    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    //
+    // The space is the reason this block exists in this shape. This function's rule was wrong in
+    // THREE landed siblings until earlier in this same session: change 132 shipped a
+    // PathFindExtension rule with only the backslash stopping the backward scan, a SPACE stops it
+    // too, and changes 140, 143 and 144 inherited the omission. The narrow REMOVE disagrees with
+    // that old rule on 46158 of 335923 enumerated strings.
+    //
+    // The whole-buffer comparison is because the export writes exactly ONE byte and clears nothing
+    // past it -- "file.txt" becomes "file" with "txt" still sitting there.
+    //
+    // And the corpus straddles the MAX_PATH boundary, which is the one rule this function has that
+    // its find-only sibling does not: 259 characters truncate, 260 are left completely untouched.
+    printf("[222 PathRemoveExtensionA]  shlwapi (exhaustive + space + the MAX_PATH guard)\n");
+    {
+        typedef void (WINAPI *fpx)(PSTR);
+        void* p_prxa = (void*)GetProcAddress(hs, "PathRemoveExtensionA");
+        OK(p_prxa != NULL, "resolve PathRemoveExtensionA");
+        if (p_prxa) {
+            fpx sys = (fpx)p_prxa;
+            patch_t prxa_patch;
+            static const char AL6[6] = { 'a', '.', '\\', '/', ':', ' ' };
+            enum { XB = 512 };
+            char t[12], ba[XB], bb[XB];
+            long cases = 0, withspace = 0, cut = 0, guarded = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = withspace = cut = guarded = 0;
+                /* the exhaustive short corpus */
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 6;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int sp = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6]; if (t[i]==' ') sp = 1; v /= 6; }
+                        t[len] = 0;
+                        if (sp) ++withspace;
+                        memset(ba, '#', XB); memset(bb, '#', XB);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        wia_pathremoveexta(ba);
+                        sys(bb);
+                        if ((int)strlen(ba) != len) ++cut;
+                        if (memcmp(ba, bb, XB) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+                /* and lengths straddling the MAX_PATH guard */
+                {
+                    static char big[400];
+                    for (int len = 250; len <= 270; ++len) {
+                        for (int dot = 1; dot < len; dot += 37) {
+                            for (int i = 0; i < len; ++i) big[i] = (char)('a' + i % 23);
+                            big[dot] = '.';
+                            big[len] = 0;
+                            memset(ba, '#', XB); memset(bb, '#', XB);
+                            memcpy(ba, big, (size_t)len + 1);
+                            memcpy(bb, big, (size_t)len + 1);
+                            wia_pathremoveexta(ba);
+                            sys(bb);
+                            if (len >= 260) ++guarded;
+                            if (memcmp(ba, bb, XB) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&prxa_patch, p_prxa, (void*)w_prxa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_prxa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_prxa);
+                    printf("  corpus: %ld cases -- %ld containing a SPACE (the character three landed\n"
+                           "          siblings were wrong about), %ld that actually cut an extension,\n"
+                           "          %ld at 260+ characters where the MAX_PATH guard must do NOTHING\n",
+                           cases, withspace, cut, guarded);
+                    OK(withspace > 20000, "the space shapes ran in bulk");
+                    OK(cut       > 5000,  "cases that actually cut ran in bulk");
+                    OK(guarded   > 20,    "cases past the MAX_PATH guard ran in bulk");
+                    OK(patch_off(&prxa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 20 functions\n"
-               "(changes 132, 168-176 and 212-221: 19 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 21 functions\n"
+               "(changes 132, 168-176 and 212-222: 20 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"

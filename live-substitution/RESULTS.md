@@ -363,3 +363,18 @@ Of 8 000 cases: **4 227** stripped both ends (the move *and* the cut), **783** l
 trailing only, **1 874** stripped **nothing** -- a fifth of the corpus forces that, since it is the
 case which must write nothing at all -- and **326** were entirely blanks. Blanks are planted in the
 middle too, where they must survive.
+
+### 222 - the corpus shaped by a bug that was fixed hours earlier
+
+This block's alphabet contains a SPACE for a specific reason. `PathRemoveExtensionA` shares its rule
+with `PathFindExtension`, and that rule was wrong in THREE landed changes until earlier in this same
+session: change 132 shipped it with only the backslash stopping the backward scan, and changes 140,
+143 and 144 inherited the omission. The narrow REMOVE disagrees with that old rule on **46 158** of
+335 923 enumerated strings.
+
+It also straddles the MAX_PATH boundary, which is the one rule this function has that its find-only
+sibling does not: 259 characters truncate, 260 are left completely untouched.
+
+**336 080** cases, each comparing the WHOLE BUFFER (the export writes exactly one byte and clears
+nothing past it): **238 267** containing a space, **110 881** actually cutting an extension, and
+**87** at 260+ characters where the guard must do nothing.
