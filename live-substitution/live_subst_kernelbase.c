@@ -1,5 +1,5 @@
 // live-substitution/live_subst_kernelbase.c
-// LIVE-RUN PROOF for change 209 -- kernelbase!lstrcpynW.
+// LIVE-RUN PROOF for changes 209 and 210 -- kernelbase!lstrcpynW and CompareStringOrdinal.
 //
 // The shipped routine copies at 3.37 GB/s. Ours is a page-safe AVX2 copy at 42.65 GB/s.
 //
@@ -18,6 +18,12 @@
 // FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
 // kernelbase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
+// FOR 210 the corpus has to reach all three ignore-case tiers. The implementation skips folding
+// entirely when a chunk matches RAW (upcase is a function, so equal implies equal-folded), folds
+// ASCII in the vector path when a chunk differs, and drops to the 64K ordinal upcase table when a
+// chunk holds anything above 0x7F. A corpus of equal ASCII strings would exercise exactly one of
+// those, so this one mixes equal and differing pairs, ASCII and Cyrillic, and both modes.
+//
 // Build: build_kernelbase_live.bat
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -27,11 +33,17 @@
 #include <intrin.h>
 
 extern wchar_t* wia_lstrcpynw(wchar_t*, const wchar_t*, int);
+extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
+extern void     wia_upcase_init(void);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
+typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
 
-static volatile LONG c_cpn;
+static volatile LONG c_cpn, c_cso;
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
+}
+static int WINAPI w_cso(LPCWCH a, int ca, LPCWCH b, int cb, BOOL ic){
+    _InterlockedIncrement(&c_cso); return wia_comparestringordinal(a, ca, b, cb, ic);
 }
 
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -114,6 +126,48 @@ static int pass(FN sys){
     return bad;
 }
 
+/* ---------------- change 210: CompareStringOrdinal ---------------- */
+static long cso_eq, cso_ne, cso_ci, cso_nonascii;
+
+static int pass_cso(FNC sys){
+    static wchar_t a[300], b2[300];
+    int bad = 0;
+    sd = 0x210210u;
+    cso_eq = cso_ne = cso_ci = cso_nonascii = 0;
+
+    for (int t = 0; t < ROUNDS; ++t) {
+        int la = (int)(rnd() % 90);
+        int cyr = ((rnd() % 4) == 0);
+        for (int i = 0; i < la; ++i)
+            a[i] = cyr ? (wchar_t)(0x0430 + rnd() % 32)
+                       : (wchar_t)(L'A' + rnd() % 58);
+        a[la] = 0;
+        int lb = la;
+        for (int i = 0; i <= la; ++i) b2[i] = a[i];
+
+        unsigned k = rnd() % 4;
+        if (k == 0 && la) b2[rnd() % la] = (wchar_t)(1 + rnd() % 0xFFFE);   /* differ */
+        else if (k == 1 && la) lb = (int)(rnd() % (la + 1));                /* shorter */
+        else if (k == 2 && la) {                                           /* case flip */
+            int p = (int)(rnd() % la);
+            if (b2[p] >= L'a' && b2[p] <= L'z') b2[p] = (wchar_t)(b2[p] - 32);
+            else if (b2[p] >= L'A' && b2[p] <= L'Z') b2[p] = (wchar_t)(b2[p] + 32);
+        }
+        if (cyr) ++cso_nonascii;
+
+        BOOL ic = (rnd() % 2) ? TRUE : FALSE;
+        if (ic) ++cso_ci;
+        int ca = (rnd() % 4) ? la : -1;
+        int cb = (rnd() % 4) ? lb : -1;
+
+        int ra = wia_comparestringordinal(a, ca, b2, cb, ic);
+        int rb = sys(a, ca, b2, cb, ic);
+        if (ra == 2) ++cso_eq; else ++cso_ne;
+        if (ra != rb) ++bad;
+    }
+    return bad;
+}
+
 int main(void){
     setvbuf(stdout,NULL,_IONBF,0);
     HMODULE hk = LoadLibraryW(L"kernelbase.dll");
@@ -163,13 +217,48 @@ int main(void){
         }
     }
 
+    printf("[210 CompareStringOrdinal]  kernelbase\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "CompareStringOrdinal");
+        OK(q != NULL, "resolve CompareStringOrdinal");
+        if (q) {
+            FNC sysc = (FNC)q;
+            wia_upcase_init();
+            int vpre = pass_cso(sysc);
+            OK(vpre == 0, "validate-first vs the LIVE export (120000 cases)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t pt2; OK(patch_on(&pt2, q, (void*)w_cso), "install patch");
+                printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                       ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                LONG before2 = c_cso;
+                int mism2 = pass_cso(sysc);
+                OK(mism2 == 0, "identical under live patch");
+                OK(c_cso - before2 >= ROUNDS, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism2 ? "MISMATCH" : "all match", (long)(c_cso - before2));
+                printf("  of %d cases: %ld equal, %ld unequal, %ld ignore-case, %ld non-ASCII\n",
+                       ROUNDS, cso_eq, cso_ne, cso_ci, cso_nonascii);
+                OK(cso_eq       > ROUNDS/8,  "the equal path ran in bulk");
+                OK(cso_ne       > ROUNDS/8,  "the unequal path ran in bulk");
+                OK(cso_ci       > ROUNDS/4,  "ignore-case ran in bulk");
+                OK(cso_nonascii > ROUNDS/8,  "the non-ASCII table tier ran in bulk");
+                OK(patch_off(&pt2), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
-               "kernelbase!lstrcpynW; return value and the WHOLE destination identical to the live\n"
-               "export across the ordinary, truncating and n==0 paths AND against an unterminated\n"
-               "source at a NOACCESS page, where both swallow the fault, return NULL, and leave\n"
-               "exactly the same partial copy behind; prologue restored byte-for-byte. Zero system\n"
-               "processes touched, nothing on disk modified.\n");
+               "kernelbase!lstrcpynW AND kernelbase!CompareStringOrdinal. For 209: return value and\n"
+               "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
+               "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
+               "return NULL and leave exactly the same partial copy behind. For 210: identical\n"
+               "results in both modes over equal and unequal pairs, ASCII and Cyrillic, explicit and\n"
+               "-1 lengths, so all three ignore-case tiers ran against the real export. Both\n"
+               "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
+               "modified.\n");
         return 0;
     }
     printf("KERNELBASE LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);

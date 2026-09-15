@@ -97,7 +97,7 @@ live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA + 208 UuidFromStringW)
 live-substitution\build_combase_live.bat    (206 StringFromGUID2 + 207 IIDFromString)
-live-substitution\build_kernelbase_live.bat (209 lstrcpynW)
+live-substitution\build_kernelbase_live.bat (209 lstrcpynW + 210 CompareStringOrdinal)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -170,6 +170,15 @@ equal to the source length the shipped loop reads one PAST the last character it
 there. A fifth of this harness's corpus is an unterminated source ending at a `PAGE_NOACCESS` page
 with the bound swept across that character: of 120 000 cases, **24 000** ran against the guard page,
 alongside 72 045 ordinary, 12 059 truncating and 11 896 with `n == 0`.
+
+### 210 - reaching all three ignore-case tiers
+
+`CompareStringOrdinal`'s ignore-case path has three tiers, and a corpus of equal ASCII strings would
+exercise exactly one of them: chunks equal RAW skip folding entirely (upcase is a function, so equal
+implies equal-folded), chunks that differ and are all-ASCII take a vector fold, and anything above
+0x7F drops to the 64K ordinal upcase table. So this harness mixes equal and differing pairs, ASCII and
+Cyrillic, case-flipped pairs, and explicit against -1 lengths. Of 120 000 cases: **59 188** equal,
+**60 812** unequal, **59 767** ignore-case and **31 896** non-ASCII.
 
 ### 207 - proving a PARTIAL write, in bulk
 
