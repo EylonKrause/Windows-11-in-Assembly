@@ -269,6 +269,19 @@ static void thunk(void){
     sink += (long long)(size_t)wia_pathfindfilenamea(0);
 }
 
+#elif defined(T_213)
+#define NAME "213-strrchra"
+extern const char* wia_strrchra(const char*, const char*, WORD);
+static void thunk(void){
+    /* the unbounded forward path, the bounded backward path, a hit, a miss, and both NULL exits */
+    sink += (long long)(size_t)wia_strrchra(a8, 0, (WORD)0x5A);
+    sink += (long long)(size_t)wia_strrchra(a8, 0, (WORD)0x42);
+    sink += (long long)(size_t)wia_strrchra(a8, a8 + 200, (WORD)0x42);
+    sink += (long long)(size_t)wia_strrchra(a8, a8 + 7,   (WORD)0x42);
+    sink += (long long)(size_t)wia_strrchra(a8, 0, (WORD)0x5A00);
+    sink += (long long)(size_t)wia_strrchra(0,  0, (WORD)0x42);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
