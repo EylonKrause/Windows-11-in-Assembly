@@ -384,6 +384,27 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_218)
+#define NAME "218-strtrima"
+extern int wia_strtrima(char*, const char*);
+static void thunk(void){
+    /* a trim at both ends (the move), one that trims nothing, an all-trim string, a set spanning
+       BOTH halves of the bitmap, and both NULL exits. The set-building loop writes into the
+       CALLER'S SHADOW SPACE, so this also proves that leaves the caller's frame intact. */
+    static char p[64];
+    memcpy(p, "AAhello worldAA", 18);
+    sink += wia_strtrima(p, "A");
+    memcpy(p, "hello world", 12);
+    sink += wia_strtrima(p, "A");
+    memcpy(p, "AAAA", 5);
+    sink += wia_strtrima(p, "A");
+    memcpy(p, "ÃzzÃ", 5);
+    sink += wia_strtrima(p, "AÃ");
+    sink += wia_strtrima(p, 0);
+    sink += wia_strtrima(0, "A");
+    sink += p[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

@@ -292,3 +292,25 @@ Both halves are now proved here, together, against a corpus that is **exhaustive
 sampled**: all 55 987 strings over `{a, '.', backslash, '/', ':', space}` of length 0..6, of which
 **36 456 contain a space** -- precisely the shapes a random corpus could not reach. 55 987 calls into
 our code for each export, identical results, both prologues restored byte-for-byte.
+
+### 218 - the entry where comparing the whole buffer is the only thing that works
+
+Most blocks here compare a return value and a resulting string. For `StrTrimA` that would prove
+nothing, because the function writes ONLY what it must and **the order of its two writes is
+observable**: trimming both ends of `"xxabcxx"` leaves TWO terminators behind --
+
+    a b c \0 c \0 x \0        and NOT        a b c \0 c  x  x \0
+
+-- since the export cuts the trailing end in place FIRST and only then moves the leading end down. An
+implementation that moved first and terminated once returns the same BOOL and leaves the same STRING
+on every single input. So every case poisons the buffer, runs both, and compares all 700 bytes.
+
+The corpus also has to make the MOVE happen at every alignment, because the source and destination
+overlap -- which is what made a short-copy idiom borrowed from change 211 wrong here. Leading and
+trailing runs are planted deliberately, and **a fifth of the corpus is forced to trim NOTHING**:
+drawing the two runs independently makes a genuine no-op one case in 36, and the first run produced
+only about 160 of them, while the no-op is precisely the case that must write nothing at all.
+
+Of 6 000 cases: **3 130** trimmed both ends (the overlapping move), **611** leading only, **635**
+trailing only, **1 367** nothing, **257** were entirely trim characters, and **4 855** carried a
+high-byte set member.

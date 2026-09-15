@@ -214,16 +214,13 @@ int main(void){
         W_DUP du = (W_DUP)GetProcAddress(hs, "StrDupW");
         if (du) { TIME(50000, { wchar_t* q = du(W260); sink ^= (uint64_t)(size_t)q; LocalFree(q); });
                   bar("StrDupW 260", _ns, 0); }
-        typedef HRESULT (WINAPI *W_CAT)(wchar_t*, size_t, const wchar_t*);
-        W_CAT ccat = (W_CAT)GetProcAddress(hk, "PathCchAppend");
-        if (ccat) { static wchar_t t[512];
-                    TIME(100000, (memcpy(t,P,sizeof(P)), sink ^= (uint64_t)ccat(t, 512, L"x")));
-                    bar("PathCchAppend", _ns, 0); }
-        typedef HRESULT (WINAPI *W_CAN)(wchar_t*, size_t, const wchar_t*, unsigned long);
-        W_CAN can = (W_CAN)GetProcAddress(hk, "PathCchCanonicalizeEx");
-        if (can) { static wchar_t t[512];
-                   TIME(50000, sink ^= (uint64_t)can(t, 512, L"C:\\a\\..\\b\\.\\c\\d\\..\\e", 0));
-                   bar("PathCchCanonicalizeEx", _ns, 0); }
+        /* PathCchAppend and PathCchCanonicalizeEx are NOT timed here. The first run of this survey
+           died inside one of them -- they validate and re-terminate in ways a tight timing loop over
+           one fixed buffer does not satisfy, and chasing that is not what this file is for. They
+           need their own probe with a correctly-prepared buffer per call. Recorded so the omission
+           is deliberate rather than silent. */
+        printf("  %-40s (not timed: see the comment in this file)\n", "PathCchAppend");
+        printf("  %-40s (not timed: see the comment in this file)\n", "PathCchCanonicalizeEx");
     }
 
     printf("\n=== kernelbase: the rest of the narrow lstr family ===\n");

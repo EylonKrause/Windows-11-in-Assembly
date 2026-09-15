@@ -1,7 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 132, 168-176 and 212-217 -- the shlwapi functions converted on the
-// second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, and BOTH
-// halves of PathFindExtension.
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-218 -- the shlwapi functions converted on the
+// second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
+// halves of PathFindExtension, and StrTrimA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -41,6 +41,7 @@ extern const char* wia_strpbrka(const char*, const char*);
 extern int         wia_strspna(const char*, const char*);
 extern const char*    wia_pathfindexta(const char*);
 extern const wchar_t* wia_pathfindextw(const wchar_t*);
+extern int            wia_strtrima(char*, const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -67,6 +68,8 @@ static int WINAPI w_spna(PCSTR s, PCSTR set){ _InterlockedIncrement(&c_spna); re
 static volatile LONG c_pxa, c_pxw;
 static PSTR  WINAPI w_pxa(PCSTR p){ _InterlockedIncrement(&c_pxa); return (PSTR)wia_pathfindexta(p); }
 static PWSTR WINAPI w_pxw(PCWSTR p){ _InterlockedIncrement(&c_pxw); return (PWSTR)wia_pathfindextw(p); }
+static volatile LONG c_trma;
+static BOOL WINAPI w_trma(PSTR p, PCSTR set){ _InterlockedIncrement(&c_trma); return (BOOL)wia_strtrima(p,set); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -946,9 +949,115 @@ int main(void){
         }
     }
 
+    // ===================== 218 StrTrimA =====================
+    // THIS ONE COMPARES THE WHOLE BUFFER, and that is not belt-and-braces -- it is the only thing
+    // that can see what this function does. StrTrimA writes ONLY what it must, and the ORDER of its
+    // writes is observable: trimming both ends of "xxabcxx" leaves TWO terminators behind, because
+    // the export cuts the trailing end in place FIRST and only then moves the leading end down. An
+    // implementation that moved first and terminated once returns the same BOOL and leaves the same
+    // STRING on every single input. So every case below poisons the buffer, runs both, and compares
+    // all of it.
+    //
+    // The corpus also has to make the MOVE happen, and happen at every alignment: the source and the
+    // destination overlap, which is what made a borrowed short-copy idiom from change 211 wrong
+    // here. Leading and trailing runs are therefore planted deliberately rather than hoped for.
+    printf("[218 StrTrimA]  shlwapi (whole-buffer compare -- the write ORDER is observable)\n");
+    {
+        typedef BOOL (WINAPI *fnt)(PSTR, PCSTR);
+        void* p_trma = (void*)GetProcAddress(hs, "StrTrimA");
+        OK(p_trma != NULL, "resolve StrTrimA");
+        if (p_trma) {
+            fnt sys = (fnt)p_trma;
+            patch_t trma_patch;
+            enum { TB = 700 };
+            static char ba[TB], bb[TB], seed_[TB], set[20];
+            long n_both = 0, n_lead = 0, n_trail = 0, n_none = 0, n_all = 0, n_hi = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                reseed(218);
+                n_both = n_lead = n_trail = n_none = n_all = n_hi = 0;
+                for (int k = 0; k < 6000; ++k) {
+                    int len  = (int)(rnd() % 400);
+                    int sl   = 1 + (int)(rnd() % 5);
+                    int hi   = 0;
+                    for (int i = 0; i < sl; ++i) { set[i] = (char)(1 + rnd() % 255);
+                                                   if ((unsigned char)set[i] >= 0x80) hi = 1; }
+                    set[sl] = 0;
+                    for (int i = 0; i < len; ++i) {
+                        char c = (char)(1 + rnd() % 255);
+                        /* keep the body clear of set members most of the time */
+                        for (int q = 0; q < sl; ++q) if (c == set[q]) { c = 'Q'; break; }
+                        seed_[i] = c;
+                    }
+                    /* A fifth of the corpus is forced to trim NOTHING, deliberately. Drawing
+                       lead and trail independently from 0..5 makes a genuine no-op only 1 case in
+                       36, and the first run of this block produced ~160 of them -- while the no-op
+                       is the case that must write NOTHING AT ALL, which is exactly what a
+                       whole-buffer comparison exists to check. */
+                    int noop  = ((rnd() % 5) == 0);
+                    int lead  = noop ? 0 : (int)(rnd() % 6);
+                    int trail = noop ? 0 : (int)(rnd() % 6);
+                    if (lead + trail > len) { lead = 0; trail = 0; }
+                    if (noop && len > 0) {
+                        /* make sure neither end happens to be a set member by accident */
+                        seed_[0] = 'Q';
+                        seed_[len - 1] = 'Q';
+                    }
+                    for (int i = 0; i < lead; ++i)  seed_[i] = set[rnd() % sl];
+                    for (int i = 0; i < trail; ++i) seed_[len - 1 - i] = set[rnd() % sl];
+                    int all = (!noop) && (len > 0) && ((rnd() % 20) == 0);
+                    if (all) { for (int i = 0; i < len; ++i) seed_[i] = set[rnd() % sl]; }
+                    seed_[len] = 0;
+
+                    if (hi) ++n_hi;
+                    if (all) ++n_all;
+                    else if (lead && trail) ++n_both;
+                    else if (lead) ++n_lead;
+                    else if (trail) ++n_trail;
+                    else ++n_none;
+
+                    /* an offset inside the buffer so every alignment is exercised */
+                    int off = 32 + (int)(rnd() % 32);
+                    memset(ba, '#', TB); memset(bb, '#', TB);
+                    memcpy(ba + off, seed_, (size_t)len + 1);
+                    memcpy(bb + off, seed_, (size_t)len + 1);
+
+                    int ra = wia_strtrima(ba + off, set) ? 1 : 0;
+                    int rb = sys(bb + off, set) ? 1 : 0;      /* routes to OUR code in pass 1 */
+                    if (ra != rb) { ++mism; continue; }
+                    if (memcmp(ba, bb, TB) != 0) ++mism;      /* THE WHOLE BUFFER */
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (6000, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&trma_patch, p_trma, (void*)w_trma), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_trma > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_trma);
+                    printf("  of 6000 cases: %ld trimmed BOTH ends (the overlapping move), %ld leading\n"
+                           "                 only, %ld trailing only, %ld nothing, %ld entirely trim\n"
+                           "                 characters, %ld with a HIGH-BYTE set member\n",
+                           n_both, n_lead, n_trail, n_none, n_all, n_hi);
+                    OK(n_both  > 300, "both-ends trims -- the overlapping move -- ran in bulk");
+                    OK(n_lead  > 300, "leading-only trims ran in bulk");
+                    OK(n_trail > 300, "trailing-only trims ran in bulk");
+                    OK(n_none  > 300, "no-op trims -- which must write NOTHING -- ran in bulk");
+                    OK(n_all   > 50,  "all-trim strings ran in bulk");
+                    OK(n_hi    > 1000, "high-byte set members ran in bulk");
+                    OK(patch_off(&trma_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 16 functions\n"
-               "(changes 132, 168-176 and 212-217: 15 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 17 functions\n"
+               "(changes 132, 168-176 and 212-218: 16 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -963,8 +1072,11 @@ int main(void){
                "span corpus built like 214's would return 0 nearly every time and prove nothing --\n"
                "so its sets are drawn from the subject's own alphabet. 217 and 132 are proved\n"
                "TOGETHER against an exhaustive corpus, because 132 is the change that shipped wrong\n"
-               "on exactly the shapes a random corpus could not reach. Zero system processes\n"
-               "touched.\n");
+               "on exactly the shapes a random corpus could not reach. For 218 every case compares\n"
+               "the WHOLE BUFFER, because that function writes only what it must and the ORDER of its\n"
+               "two writes is observable -- an implementation that moved first and terminated once\n"
+               "would return the same BOOL and leave the same STRING on every input. Zero system\n"
+               "processes touched.\n");
         return 0;
     }
     printf("SHLWAPI LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);
