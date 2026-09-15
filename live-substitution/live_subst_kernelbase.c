@@ -1,5 +1,6 @@
 // live-substitution/live_subst_kernelbase.c
-// LIVE-RUN PROOF for changes 209 and 210 -- kernelbase!lstrcpynW and CompareStringOrdinal.
+// LIVE-RUN PROOF for changes 209, 210 and 211 -- kernelbase!lstrcpynW, CompareStringOrdinal and
+// lstrcpynA.
 //
 // The shipped routine copies at 3.37 GB/s. Ours is a page-safe AVX2 copy at 42.65 GB/s.
 //
@@ -24,6 +25,15 @@
 // chunk holds anything above 0x7F. A corpus of equal ASCII strings would exercise exactly one of
 // those, so this one mixes equal and differing pairs, ASCII and Cyrillic, and both modes.
 //
+// FOR 211 the same faulting-source proof is required again, against the NARROW export, because the
+// contract was measured there rather than inherited: probes/lcpa.c walked the bound across an
+// 8-character unterminated source at a guard page and found the live export returning the
+// destination at n = 8 and NULL at n = 9, i.e. reading one PAST the last character it copies,
+// exactly as the wide one does. The corpus below reproduces that sweep in bytes. It also has to
+// reach the three write paths the narrow implementation has and the wide one does not: the PAIRED
+// 64-byte loop, the single-chunk loop, and the clamped short path that vectorises a copy the bound
+// cuts to fewer than 32 characters.
+//
 // Build: build_kernelbase_live.bat
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -33,14 +43,19 @@
 #include <intrin.h>
 
 extern wchar_t* wia_lstrcpynw(wchar_t*, const wchar_t*, int);
+extern char*    wia_lstrcpyna(char*, const char*, int);
 extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
 extern void     wia_upcase_init(void);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
+typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
 
-static volatile LONG c_cpn, c_cso;
+static volatile LONG c_cpn, c_cso, c_cpna;
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
+}
+static char* WINAPI w_cpna(char* d, const char* s, int n){
+    _InterlockedIncrement(&c_cpna); return wia_lstrcpyna(d, s, n);
 }
 static int WINAPI w_cso(LPCWCH a, int ca, LPCWCH b, int cb, BOOL ic){
     _InterlockedIncrement(&c_cso); return wia_comparestringordinal(a, ca, b, cb, ic);
@@ -168,6 +183,53 @@ static int pass_cso(FNC sys){
     return bad;
 }
 
+/* ---------------- change 211: the NARROW lstrcpynA ---------------- */
+static long na_ord, na_trunc, na_zero, na_fault, na_pair, na_short;
+
+static int pass_cpna(FNA sys){
+    static char src[320], a[DSZ], b2[DSZ];
+    int bad = 0;
+    sd = 0x211211u;
+    na_ord = na_trunc = na_zero = na_fault = na_pair = na_short = 0;
+
+    for (int t = 0; t < ROUNDS; ++t) {
+        const char* s;
+        int n;
+
+        if (t % 5 == 4) {
+            /* an UNTERMINATED source ending at the guard page, with the bound swept across the
+               character the shipped loop reads one past -- measured on the NARROW export, not
+               assumed from the wide one */
+            int sl = 1 + (int)(rnd() % 96);
+            char* g = (gbase + gpg) - (SIZE_T)sl;
+            for (int i = 0; i < sl; ++i) g[i] = (char)('a' + (i % 26));
+            s = g;
+            n = sl - 1 + (int)(rnd() % 4);          /* straddles sl and sl+1 */
+            if (n < 0) n = 0;
+            ++na_fault;
+        } else {
+            int sl = (int)(rnd() % 300);
+            for (int i = 0; i < sl; ++i) src[i] = (char)(1 + rnd() % 255);
+            src[sl] = 0;
+            s = src;
+            unsigned k = rnd() % 8;
+            if (k == 0) { n = 0; ++na_zero; }
+            else if (k == 1) { n = 1 + (int)(rnd() % (sl ? sl : 1)); ++na_trunc; }
+            else { n = sl + 1 + (int)(rnd() % 20); ++na_ord; }
+            /* which of the narrow implementation's write paths this case reaches */
+            if (n >= 65) ++na_pair;
+            if (n <= 32) ++na_short;
+        }
+
+        for (int i = 0; i < DSZ; ++i) { a[i] = (char)0x2A; b2[i] = (char)0x2A; }
+        char* ra = wia_lstrcpyna(a, s, n);
+        char* rb = sys(b2, s, n);
+        if ((ra == a) != (rb == b2)) { ++bad; continue; }
+        for (int i = 0; i < DSZ; ++i) if (a[i] != b2[i]) { ++bad; break; }
+    }
+    return bad;
+}
+
 int main(void){
     setvbuf(stdout,NULL,_IONBF,0);
     HMODULE hk = LoadLibraryW(L"kernelbase.dll");
@@ -249,14 +311,54 @@ int main(void){
         }
     }
 
+    printf("[211 lstrcpynA]  kernelbase\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrcpynA");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrcpynA") : NULL; }
+        OK(q != NULL, "resolve lstrcpynA");
+        if (q) {
+            FNA sysa = (FNA)q;
+            int vpre = pass_cpna(sysa);
+            OK(vpre == 0, "validate-first vs the LIVE export (120000 cases)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t pt3; OK(patch_on(&pt3, q, (void*)w_cpna), "install patch");
+                printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                       ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                LONG before3 = c_cpna;
+                int mism3 = pass_cpna(sysa);
+                OK(mism3 == 0, "identical under live patch");
+                OK(c_cpna - before3 >= ROUNDS, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism3 ? "MISMATCH" : "all match", (long)(c_cpna - before3));
+                printf("  of %d cases: %ld ordinary, %ld truncating, %ld n==0, %ld against the guard page\n",
+                       ROUNDS, na_ord, na_trunc, na_zero, na_fault);
+                printf("  write paths reached: %ld through the PAIRED 64-byte loop, %ld through the "
+                       "clamped short path\n", na_pair, na_short);
+                OK(na_ord   > ROUNDS/8,  "the ordinary path ran in bulk");
+                OK(na_trunc > ROUNDS/40, "the truncating path ran in bulk");
+                OK(na_fault > ROUNDS/8,  "the faulting-source path ran in bulk");
+                OK(na_pair  > ROUNDS/8,  "the paired 64-byte loop ran in bulk");
+                OK(na_short > ROUNDS/40, "the clamped short path ran in bulk");
+                OK(patch_off(&pt3), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
-               "kernelbase!lstrcpynW AND kernelbase!CompareStringOrdinal. For 209: return value and\n"
+               "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal AND kernelbase!lstrcpynA.\n"
+               "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
                "return NULL and leave exactly the same partial copy behind. For 210: identical\n"
                "results in both modes over equal and unequal pairs, ASCII and Cyrillic, explicit and\n"
-               "-1 lengths, so all three ignore-case tiers ran against the real export. Both\n"
+               "-1 lengths, so all three ignore-case tiers ran against the real export. For 211:\n"
+               "the same proof against the NARROW export, whose contract was MEASURED rather than\n"
+               "inherited -- including its own guard-page sweep, and with the paired 64-byte loop\n"
+               "and the clamped short path both exercised in bulk. All three\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
