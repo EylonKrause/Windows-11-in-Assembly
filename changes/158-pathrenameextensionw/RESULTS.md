@@ -1,4 +1,30 @@
-# 158 — `shlwapi!PathRenameExtensionW` — **LANDS** (4.21× geomean, up to 6.5×)
+# 158 — `shlwapi!PathRenameExtensionW` — **LANDS** (3.99× geomean, up to 7.2×)
+
+> ## CORRECTED 2026-09-15 — this change had shipped WRONG
+>
+> Its extension position is the one change [132 `PathFindExtensionW`](../132-pathfindextensionw/)
+> derived, and **that rule was incomplete**: a **SPACE** stops the backward scan exactly as a
+> backslash does, so `"a.b "` has no extension at all. 132 shipped without it because its fuzz
+> alphabet contained no space; 140, 143 and 144 inherited it and were corrected in the same session.
+>
+> **This change was not caught by that first audit**, because that audit looked at the oracles that
+> *say* they reuse 132's rule and this one does not — it open-codes its own `ref_findext`. A second,
+> **structural** sweep asked the question the right way: *every* landed oracle that computes an
+> extension position, whether or not it names its source. `discovery/extension_space_audit2.c`
+> measured the live export against both rules over every string of `{a, '.', \, '[', ']', SPACE}`
+> of length 0..7:
+>
+> | | mismatches |
+> |---|---|
+> | live export vs the rule as landed | **46 158** of 335 923 |
+> | live export vs the corrected rule | **0** |
+>
+> The fix is one more `vpcmpeqw` against a 32-byte memory operand, OR-ed into the backslash mask — so the second stopper costs no register. It is `0x20` specifically and not
+> whitespace in general — a TAB does not stop the scan.
+>
+> **The corpus was the real defect.** `correctness.c` now enumerates every string over
+> `{a, '.', \, '/', ':', SPACE}` of length 0..7 — the previous corpora had no space in them at
+> all, which is precisely why none of them could see this.
 
 Replace a path's extension, or fail if the result would not fit in `MAX_PATH`. shlwapi's is a scalar
 scan for the extension followed by a scalar copy — 76 ns for a real 90-character path, 200 ns for
@@ -48,16 +74,23 @@ size. The first build of this harness crashed for exactly that reason, in the te
 code.
 
 ## Benchmark — vs live `shlwapi!PathRenameExtensionW`
-geomean **4.21×**, every size class better:
+geomean **3.99×**, every size class better:
 
 | case | ours ns | shlwapi ns | ratio |
 |---|---|---|---|
-| 16 chars | 15.21 | 24.68 | 1.62x |
-| 64 chars | 17.60 | 64.22 | 3.65x |
-| 130 chars | 22.80 | 112.23 | 4.92x |
-| 254 chars | 30.92 | 200.20 | **6.47x** |
-| 90-char real path | 17.14 | 76.03 | 4.44x |
-| 200 chars, no extension | 24.30 | 161.32 | 6.64x |
+| 16 chars | 12.12 | 18.27 | 1.51x |
+| 64 chars | 13.63 | 48.60 | 3.57x |
+| 130 chars | 20.81 | 86.90 | 4.18x |
+| 254 chars | 23.66 | 171.14 | **7.23x** |
+| 90-char real path | 14.52 | 61.85 | 4.26x |
+| 200 chars, no extension | 19.50 | 113.88 | 5.84x |
+
+Re-measured in full after the correction. **Both** columns came out faster than the numbers this
+change originally shipped — ours *and* the system's — so the ratios moved by more than the added
+compare can account for; that compare costs a fraction of a cycle per 32-byte block. The geomean is
+-5% against the original measurement, which is cross-run variation of the kind this repository has
+measured before (same-binary repeatability is +/-0.5%, but a rebuild relaying the code is not the
+same binary). Every size class is still better, so the gate verdict is unchanged.
 
 Each case includes restoring the path from a seed copy, paid identically by both sides, so the true
 ratios for the routines alone are higher than these.

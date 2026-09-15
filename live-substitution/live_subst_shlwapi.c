@@ -359,43 +359,89 @@ int main(void){
     }
 
     // ===================== 174 PathUndecorateW =====================
-    printf("[174 PathUndecorateW]  (in-place, moves the tail down)\n");
+    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    //
+    // THIS BLOCK USED TO BE THE PROBLEM. It drove 4000 randomly built decorated paths over
+    // {a..w, '[', '1', ']', '.', backslash} -- no space anywhere in it -- and it passed, every
+    // session, while change 174 was WRONG. The rule it implements contains an extension position
+    // (the ']' must hug the last '.' of the component) and that position stops at a SPACE exactly
+    // as it stops at a backslash, which change 132 shipped without and 140, 143, 144, 158, 159 and
+    // 160 inherited. The smallest case this corpus could never build is ". []": the live export
+    // undecorates it to ". ", the implementation left it alone. 1634 of 335923 enumerated strings
+    // disagreed.
+    //
+    // So the corpus is now exhaustive over {'[', ']', '.', '1', SPACE, 'z'} to length 7, the long
+    // randomized paths are kept on top of it, and the comparison is over the whole buffer -- this
+    // function moves a tail down and deliberately leaves the stale bytes past the new terminator,
+    // so a shorter compare would not see an implementation that cleared them.
+    printf("[174 PathUndecorateW]  (exhaustive + space; whole buffer, stale tail included)\n");
     {
         typedef void (WINAPI *fn)(PWSTR);
-        fn sys = (fn)GetProcAddress(hs,"PathUndecorateW");
-        int vpre=0; reseed(77);
-        for(int t=0;t<4000;++t){
-            int sl=8+(t%180);
-            for(int i=0;i<sl;i++) src[i]=(wchar_t)(L'a'+(i%23));
-            if(rnd()&1){ src[sl-8]=L'['; src[sl-7]=L'1'; src[sl-6]=L']'; src[sl-5]=L'.'; }
-            if(rnd()&3) src[sl/3]=L'\\';
-            src[sl]=0;
-            for(int i=0;i<600;i++){ a[i]=0x2A2A; b[i]=0x2A2A; }
-            for(int i=0;i<=sl;i++){ a[i]=src[i]; b[i]=src[i]; }
-            wia_pathundecoratew(a); sys(b);
-            for(int i=0;i<400;i++) if(a[i]!=b[i]){ ++vpre; break; }
-        }
-        OK(vpre==0,"validate-first vs the LIVE export (4000)");
-        if(vpre) printf("  UNPROVEN -> NOT patching\n\n");
-        else {
-            patch_t p; OK(patch_on(&p,(void*)sys,(void*)w_pud),"install patch");
-            LONG before=c_pud; int mism=0; reseed(77);
-            for(int t=0;t<4000;++t){
-                int sl=8+(t%180);
-                for(int i=0;i<sl;i++) src[i]=(wchar_t)(L'a'+(i%23));
-                if(rnd()&1){ src[sl-8]=L'['; src[sl-7]=L'1'; src[sl-6]=L']'; src[sl-5]=L'.'; }
-                if(rnd()&3) src[sl/3]=L'\\';
-                src[sl]=0;
-                for(int i=0;i<600;i++){ a[i]=0x2A2A; b[i]=0x2A2A; }
-                for(int i=0;i<=sl;i++){ a[i]=src[i]; b[i]=src[i]; }
-                wia_pathundecoratew(a); sys(b);
-                for(int i=0;i<400;i++) if(a[i]!=b[i]){ ++mism; break; }
+        void* p_pud = (void*)GetProcAddress(hs, "PathUndecorateW");
+        OK(p_pud != NULL, "resolve PathUndecorateW");
+        if (p_pud) {
+            fn sys = (fn)p_pud;
+            patch_t pud_patch;
+            static const wchar_t AL6[6] = { L'[', L']', L'.', L'1', L' ', L'z' };
+            enum { UB = 600 };
+            wchar_t t[12];
+            long cases = 0, withspace = 0, undec = 0, longcases = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = withspace = undec = longcases = 0;
+                /* the exhaustive short corpus -- 335923 strings */
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 6;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int sp = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6]; if (t[i]==L' ') sp = 1; v /= 6; }
+                        t[len] = 0;
+                        if (sp) ++withspace;
+                        for (int i = 0; i < UB; ++i) { a[i] = 0x2A2A; b[i] = 0x2A2A; }
+                        for (int i = 0; i <= len; ++i) { a[i] = t[i]; b[i] = t[i]; }
+                        wia_pathundecoratew(a);
+                        sys(b);
+                        { int n = 0; while (a[n]) ++n; if (n != len) ++undec; }
+                        if (memcmp(a, b, UB * sizeof(wchar_t)) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+                /* and the long randomized decorated paths this block always drove */
+                reseed(77);
+                for (int t2 = 0; t2 < 4000; ++t2) {
+                    int sl = 8 + (t2 % 180);
+                    for (int i = 0; i < sl; i++) src[i] = (wchar_t)(L'a' + (i % 23));
+                    if (rnd() & 1) { src[sl-8]=L'['; src[sl-7]=L'1'; src[sl-6]=L']'; src[sl-5]=L'.'; }
+                    if (rnd() & 3) src[sl/3] = L'\\';
+                    if (rnd() & 1) src[sl/2] = L' ';          /* the character the old corpus lacked */
+                    src[sl] = 0;
+                    for (int i = 0; i < UB; ++i) { a[i] = 0x2A2A; b[i] = 0x2A2A; }
+                    for (int i = 0; i <= sl; ++i) { a[i] = src[i]; b[i] = src[i]; }
+                    wia_pathundecoratew(a);
+                    sys(b);
+                    if (memcmp(a, b, UB * sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++longcases;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pud_patch, p_pud, (void*)w_pud), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pud > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pud);
+                    printf("  corpus: %ld cases -- %ld containing a SPACE (the character this change\n"
+                           "          was wrong about until it was corrected), %ld that actually removed\n"
+                           "          a decoration, %ld long randomized paths up to 187 characters\n",
+                           cases, withspace, undec, longcases);
+                    OK(patch_off(&pud_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
             }
-            OK(mism==0,"identical under live patch");
-            OK(c_pud-before>=4000,"counter proves OUR code executed");
-            printf("  under live patch: %s;  our-code calls = %ld\n", mism?"MISMATCH":"all match",(long)(c_pud-before));
-            OK(patch_off(&p),"unpatch verified byte-identical");
-            printf("  unpatched cleanly.\n\n");
         }
     }
 

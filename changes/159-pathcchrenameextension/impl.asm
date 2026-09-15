@@ -36,6 +36,23 @@
 ; '.', '\' and ' ' masks are OR-ed together and then masked down to the bytes BEFORE the terminator,
 ; so one pass answers both "how long is it" and "is it legal".
 ;
+;
+; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
+; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
+; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
+; session; and a second, STRUCTURAL sweep -- every landed oracle that computes an extension position,
+; whether or not it cites 132 -- found this change carrying it too.
+;
+; discovery/extension_space_audit2.c measured the live export against both rules over every string in
+; {a, '.', backslash, '[', ']', space} of length 0..7:
+;
+;     live export vs the rule as landed : 46158 of 335923 mismatches
+;     live export vs the corrected rule :     0
+;
+; The fix is one extra compare per block, OR-ed into the backslash mask, and it is 0x20 specifically:
+; a TAB does not stop the scan.
+
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
 .const
@@ -189,6 +206,9 @@ pc_efound:
         vpmovmskb edx, ymm5
         vpcmpeqw  ymm5, ymm0, ymm2
         vpmovmskb r12d, ymm5
+        vpcmpeqw  ymm5, ymm0, ymm4                  ; ymm4 already holds the space broadcast: a SPACE
+        vpmovmskb ecx, ymm5                         ;   stops the scan exactly as a backslash does
+        or        r12d, ecx
         mov       ecx, ebx
         and       ecx, 31
         shr       r8d, cl
@@ -205,6 +225,9 @@ pc_xnext:
         vpmovmskb edx, ymm5
         vpcmpeqw  ymm5, ymm0, ymm2
         vpmovmskb r12d, ymm5
+        vpcmpeqw  ymm5, ymm0, ymm4                  ; ymm4 already holds the space broadcast: a SPACE
+        vpmovmskb ecx, ymm5                         ;   stops the scan exactly as a backslash does
+        or        r12d, ecx
 pc_xblock:
         test      r8d, r8d
         jz        pc_xupd
@@ -217,7 +240,7 @@ pc_xblock:
         and       r12d, r8d
 pc_xupd:
         test      r12d, r12d
-        jz        pc_xnobsl
+        jz        pc_xnostop
         xor       eax, eax
         test      edx, edx
         jz        pc_xdone
@@ -228,7 +251,7 @@ pc_xupd:
         and       ecx, -2
         lea       rax, [r11 + rcx]
         jmp       pc_xdone
-pc_xnobsl:
+pc_xnostop:
         test      edx, edx
         jz        pc_xdone
         bsr       ecx, edx

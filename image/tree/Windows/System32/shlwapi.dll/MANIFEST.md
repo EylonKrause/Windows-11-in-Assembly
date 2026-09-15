@@ -15,10 +15,10 @@
 | `PathRemoveBlanksW` | 4.23x | [changes/141-pathremoveblanksw](../../../../../changes/141-pathremoveblanksw/) |
 | `PathRemoveExtensionA` | 16.94x | [changes/222-pathremoveextensiona](../../../../../changes/222-pathremoveextensiona/) |
 | `PathRemoveExtensionW` | 2.98x | [changes/140-pathremoveextensionw](../../../../../changes/140-pathremoveextensionw/) |
-| `PathRenameExtensionW` | 4.21x | [changes/158-pathrenameextensionw](../../../../../changes/158-pathrenameextensionw/) |
+| `PathRenameExtensionW` | 3.99x | [changes/158-pathrenameextensionw](../../../../../changes/158-pathrenameextensionw/) |
 | `PathStripPathA` | 14.85x | [changes/219-pathstrippatha](../../../../../changes/219-pathstrippatha/) |
 | `PathStripPathW` | 3.28x | [changes/162-pathstrippathw](../../../../../changes/162-pathstrippathw/) |
-| `PathUndecorateW` | 3.72x | [changes/174-pathundecoratew](../../../../../changes/174-pathundecoratew/) |
+| `PathUndecorateW` | 3.90x | [changes/174-pathundecoratew](../../../../../changes/174-pathundecoratew/) |
 | `StrCSpnA` | 137.08x | [changes/214-strcspna](../../../../../changes/214-strcspna/) |
 | `StrCSpnW` | 11.26x | [changes/136-strcspnw](../../../../../changes/136-strcspnw/) |
 | `StrCatBuffW` | 3.59x | [changes/170-strcatbuffw](../../../../../changes/170-strcatbuffw/) |

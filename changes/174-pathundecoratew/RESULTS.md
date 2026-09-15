@@ -1,4 +1,43 @@
-# 174 `shlwapi!PathUndecorateW` — **LANDS** (3.72× geomean, up to 6.61×)
+# 174 `shlwapi!PathUndecorateW` — **LANDS** (3.90× geomean, up to 8.02×)
+
+> ## CORRECTED 2026-09-15 — this change had shipped WRONG
+>
+> Conjunct **(b)** of the contract below — the group's `]` must sit immediately before the **last
+> `.` of the component** — is an extension position by another name, and it carried the same gap
+> that change [132 `PathFindExtensionW`](../132-pathfindextensionw/) shipped with: **a SPACE stops
+> the extension scan exactly as a backslash does.**
+>
+> This change never cited 132. It derived its own four-conjunct rule from scratch and fuzz-confirmed
+> it over 2 000 000 cases — over an alphabet with **no space in it**, which is exactly why neither
+> its own corpus nor the first audit of the 132 bug (which looked at the changes that *mention* 132,
+> and corrected 140, 143 and 144) could see it. A second, **structural** sweep —
+> `discovery/extension_space_audit2.c`, every landed oracle that computes an extension position
+> whether or not it says where the rule came from — found this one, along with 158, 159 and 160.
+>
+> The smallest failing case is `". []"`: the live export undecorates it to `". "`, this
+> implementation left it alone.
+>
+> | over every string of `{a, '.', \, '[', ']', SPACE}` of length 0..7 | mismatches |
+> |---|---|
+> | live `PathUndecorateW` vs the rule as landed | **1 634** of 335 923 |
+> | live `PathUndecorateW` vs the corrected rule | **0** |
+>
+> **The two uses of the backslash had to be separated.** It was doing double duty here: delimiting
+> the COMPONENT for conjunct (d) — the `[` may not be the component's first character — and
+> bounding the extension search for conjunct (b). **Only the second takes the space.** The forward
+> scan therefore tracks two positions now, in `r10` and a pushed `rbx`: `comp`, just past the last
+> backslash, and `stop`, just past the last backslash **or space**. The final test changed from
+> `cmp r11, r10` to `cmp r11, rbx`. Verified protective: reverting just that one compare makes the
+> new corpus fail immediately.
+>
+> **And the correction made it faster.** The fourth compare per block cost real throughput
+> (1024-char: 81.0 → 98.9 ns) until the loop was restructured around it: the overwhelmingly common
+> block contains *none* of `\`, `.`, ` ` or NUL, and one `vpor` + one `vpmovmskb` now answers that
+> for all three at once instead of three separate mask/test/branch triples. That is **fewer** uops
+> per block than the loop ran before the space stopper existed — 1024-char is now **65.1 ns**,
+> better than the 81.0 ns this change originally shipped, and the peak went 6.61× → **8.02×**.
+>
+> `correctness.c` now also enumerates every string over `{[, ], ., 1, SPACE, z}` to length 7.
 
 **Bench:** AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445, `shlwapi.dll` 10.0.26100.8117.
 
@@ -73,14 +112,15 @@ stale tail*:
 
 | case | ours ns | system ns | ratio |
 |---|---|---|---|
-| 16 / decorated | 9.95 | 17.86 | 1.80× |
-| 64 / decorated | 18.44 | 46.42 | 2.52× |
-| 254 / decorated | 30.45 | 147.88 | 4.86× |
-| 1024 / decorated | 81.00 | 535.48 | **6.61×** |
-| 254 / no decoration | 22.02 | 143.14 | **6.50×** |
-| realpath | 12.36 | 34.52 | 2.79× |
+| 16 / decorated | 9.94 | 17.64 | 1.78× |
+| 64 / decorated | 17.99 | 45.52 | 2.53× |
+| 254 / decorated | 24.67 | 144.31 | 5.85× |
+| 1024 / decorated | 65.11 | 522.37 | **8.02×** |
+| 254 / no decoration | 21.12 | 138.54 | 6.56× |
+| realpath | 13.20 | 33.69 | 2.55× |
 
-**geomean 3.716×**
+**geomean 3.902×** — re-measured after the correction. Faster than the numbers this change
+originally shipped at every size from 254 up, for the reason given in the correction note.
 
 ## ISA and portability
 
