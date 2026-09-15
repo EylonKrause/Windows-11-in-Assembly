@@ -49,6 +49,7 @@ extern void           wia_pathremoveexta(char*);
 extern void           wia_pathundecoratea(char*);
 extern BOOL           wia_pathrenameexta(char*, const char*);
 extern void           wia_pathremoveargsa(char*);
+extern char*          wia_strcatbuffa(char*, const char*, int);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -91,6 +92,8 @@ static volatile LONG c_prea;
 static BOOL WINAPI w_prea(PSTR p, PCSTR e){ _InterlockedIncrement(&c_prea); return wia_pathrenameexta(p, e); }
 static volatile LONG c_praa;
 static void WINAPI w_praa(PSTR p){ _InterlockedIncrement(&c_praa); wia_pathremoveargsa(p); }
+static volatile LONG c_scba;
+static char* WINAPI w_scba(PSTR d, PCSTR q, int n){ _InterlockedIncrement(&c_scba); return wia_strcatbuffa(d, q, n); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1749,9 +1752,105 @@ int main(void){
         }
     }
 
+    // ===================== 231 StrCatBuffA =====================
+    // EXHAUSTIVE over the three dimensions that interact -- destination length, source length and
+    // the BOUND -- with a poison fill, because this function's most distinctive rule is invisible
+    // otherwise: when no terminator is found within the first cch bytes it writes NOTHING AT ALL.
+    // It does not truncate the destination and it does not append. Only poison separates "wrote
+    // nothing" from "wrote a terminator where one already was".
+    //
+    // That one rule also covers the case that looks like a separate one: a destination LONGER than
+    // the bound is left alone, because its terminator lies outside the first cch bytes and the
+    // bounded scan never reaches it.
+    printf("[231 StrCatBuffA]  shlwapi (exhaustive dst x src x BOUND; whole buffer vs poison)\n");
+    {
+        typedef char* (WINAPI *fcb)(PSTR, PCSTR, int);
+        void* p_scba = (void*)GetProcAddress(hs, "StrCatBuffA");
+        OK(p_scba != NULL, "resolve StrCatBuffA");
+        if (p_scba) {
+            fcb sys = (fcb)p_scba;
+            patch_t scba_patch;
+            enum { XB = 640 };
+            char ba[XB], bb[XB], sbuf[128];
+            long cases = 0, appended = 0, truncated = 0, untouched = 0, longc = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = appended = truncated = untouched = longc = 0;
+                for (int dn = 0; dn <= 24; ++dn) {
+                    for (int sn = 0; sn <= 24; ++sn) {
+                        for (int cch = 0; cch <= 56; ++cch) {
+                            for (int i = 0; i < sn; ++i) sbuf[i] = (char)('A' + i % 26);
+                            sbuf[sn] = 0;
+                            memset(ba, '#', XB); memset(bb, '#', XB);
+                            for (int i = 0; i < dn; ++i) { ba[i] = (char)('a' + i % 23); bb[i] = ba[i]; }
+                            ba[dn] = 0; bb[dn] = 0;
+                            char* ra = wia_strcatbuffa(ba, sbuf, cch);
+                            char* rc = sys(bb, sbuf, cch);
+                            if ((ra == ba) != (rc == bb)) ++mism;
+                            if (memcmp(ba, bb, XB) != 0) ++mism;
+                            {
+                                int len = 0; while (len < XB && ba[len]) ++len;
+                                if (len == dn && cch <= dn) ++untouched;
+                                else if (len == dn + sn) ++appended;
+                                else ++truncated;
+                            }
+                            ++cases;
+                        }
+                    }
+                }
+                /* long strings, which drive the 32-byte chunks in both halves */
+                {
+                    static char bigd[640], bigs[640];
+                    for (int dn = 100; dn <= 400; dn += 23) {
+                        for (int i = 0; i < dn; ++i) bigd[i] = (char)('a' + i % 23);
+                        bigd[dn] = 0;
+                        for (int sn = 0; sn <= 120; sn += 13) {
+                            for (int i = 0; i < sn; ++i) bigs[i] = (char)('A' + i % 26);
+                            bigs[sn] = 0;
+                            static const int OFF[4] = { 1, 0, -5, -200 };
+                            for (int k = 0; k < 4; ++k) {
+                                int cch = dn + sn + OFF[k];
+                                memset(ba, '#', XB); memset(bb, '#', XB);
+                                memcpy(ba, bigd, (size_t)dn + 1);
+                                memcpy(bb, bigd, (size_t)dn + 1);
+                                char* ra = wia_strcatbuffa(ba, bigs, cch);
+                                char* rc = sys(bb, bigs, cch);
+                                if ((ra == ba) != (rc == bb)) ++mism;
+                                if (memcmp(ba, bb, XB) != 0) ++mism;
+                                ++cases; ++longc;
+                            }
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&scba_patch, p_scba, (void*)w_scba), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_scba > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_scba);
+                    printf("  corpus: %ld cases -- %ld appended in full, %ld truncated by the bound,\n"
+                           "          %ld left BYTE-FOR-BYTE untouched because the bounded scan found\n"
+                           "          no terminator (which only a poison fill can confirm), %ld long\n"
+                           "          enough to drive the 32-byte chunks in both halves\n",
+                           cases, appended, truncated, untouched, longc);
+                    OK(truncated > 500, "the truncating path ran in bulk");
+                    OK(untouched > 500, "the write-nothing path ran in bulk");
+                    OK(longc     > 200, "the long path ran in bulk");
+                    OK(patch_off(&scba_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 24 functions\n"
-               "(changes 132, 168-176 and 212-226 less 225: 23 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 25 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231: 24 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1785,7 +1884,11 @@ int main(void){
                "as a string, because it writes a SECOND terminator past the first one and because\n"
                "a no-op case writes NOTHING AT ALL -- not even a redundant terminator over the\n"
                "existing one -- and a string comparison passes an implementation that gets both\n"
-               "wrong. Zero system\n"
+               "wrong. 231 is exhaustive over THREE dimensions -- destination length, source length\n"
+               "and the BOUND -- because its distinctive rule lives entirely at their boundaries: a\n"
+               "destination whose terminator is not inside the first cch bytes is neither truncated\n"
+               "nor appended to, it is left completely alone, and only a poison fill tells that\n"
+               "apart from writing a terminator where one already was. Zero system\n"
                "processes touched.\n");
         return 0;
     }
