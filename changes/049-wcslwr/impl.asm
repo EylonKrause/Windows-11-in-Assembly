@@ -12,10 +12,27 @@
 ; from the page end AND the block holds no terminator). In-register fold (A-Z via two signed
 ; vpcmpgtw, +0x20), constants from memory. ISA: AVX2. Validated on Zen3.
 
+; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
+; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
+; happens to keep its accumulators there. See tools/abi-check.
+;
+; Fitting in six registers costs nothing here. The range test was
+;       (c > LO) AND (HI+1 > c)
+; whose second compare wants the constant as the FIRST operand, so it had to live in a register.
+; Rewritten as
+;       (c > LO) AND NOT (c > HI)
+; both compares take c first, so the bound becomes an ordinary register compare and the two ANDs
+; collapse into one vpandn; the fold delta and the zero vector become memory operands. Identical
+; instruction count, three fewer live registers.
 .const
 c40w dw 0040h
-c5Bw dw 005Bh
-c20w dw 0020h
+c5Aw dw 005Ah
+; 32-byte forms of the constants now used as memory operands. VEX operands carry no
+; alignment requirement, so no ALIGN 32 (which .const rejects with A2189).
+c20m dw 16 dup(0020h)
+zerom dw 16 dup(0)
 .code
 wia_wcslwr PROC
         mov       rax, rcx                            ; return s
@@ -52,10 +69,8 @@ skip:
 
         ; ---- 16 wchars folded, no terminator yet: long string -> AVX2 from rcx+32 ----
         lea       r8, [rcx + 32]
-        vpbroadcastw ymm5, word ptr [c40w]
-        vpbroadcastw ymm6, word ptr [c5Bw]
-        vpbroadcastw ymm7, word ptr [c20w]
-        vpxor     ymm1, ymm1, ymm1
+        vpbroadcastw ymm1, word ptr [c40w]          ; low bound
+        vpbroadcastw ymm2, word ptr [c5Aw]          ; high bound, now inclusive
 
 loop0:
         mov       r9, r8
@@ -63,15 +78,15 @@ loop0:
         cmp       r9, 4064                          ; 32 bytes from page end?
         ja        near_page
         vmovdqu   ymm0, ymmword ptr [r8]
-        vpcmpeqw  ymm2, ymm0, ymm1
-        vpmovmskb r9d, ymm2
+        vpcmpeqw  ymm3, ymm0, ymmword ptr [zerom]   ; terminator
+        vpmovmskb r9d, ymm3
         test      r9d, r9d
         jnz       have_null
-        vpcmpgtw  ymm2, ymm0, ymm5
-        vpcmpgtw  ymm3, ymm6, ymm0
-        vpand     ymm2, ymm2, ymm3
-        vpand     ymm2, ymm2, ymm7
-        vpaddw    ymm0, ymm0, ymm2
+        vpcmpgtw  ymm3, ymm0, ymm1                  ; c > LO
+        vpcmpgtw  ymm4, ymm0, ymm2                  ; c > HI
+        vpandn    ymm3, ymm4, ymm3                  ; (c > LO) AND NOT (c > HI)
+        vpand     ymm3, ymm3, ymmword ptr [c20m]
+        vpaddw    ymm0, ymm0, ymm3
         vmovdqu   ymmword ptr [r8], ymm0
         add       r8, 32
         jmp       loop0
@@ -82,11 +97,11 @@ have_null:
         tzcnt     r9d, r9d                          ; byte offset of first terminator
         cmp       r9d, 16
         jb        step1                             ; terminator within low 8 wchars -> scalar
-        vpcmpgtw  xmm2, xmm0, xmm5
-        vpcmpgtw  xmm3, xmm6, xmm0
-        vpand     xmm2, xmm2, xmm3
-        vpand     xmm2, xmm2, xmm7
-        vpaddw    xmm0, xmm0, xmm2
+        vpcmpgtw  xmm3, xmm0, xmm1                  ; c > LO
+        vpcmpgtw  xmm4, xmm0, xmm2                  ; c > HI
+        vpandn    xmm3, xmm4, xmm3                  ; (c > LO) AND NOT (c > HI)
+        vpand     xmm3, xmm3, xmmword ptr [c20m]
+        vpaddw    xmm0, xmm0, xmm3
         vmovdqu   xmmword ptr [r8], xmm0
         add       r8, 16
         jmp       loop0
@@ -97,16 +112,16 @@ near_page:
         cmp       r9, 4080                          ; 16 bytes from page end?
         ja        step1
         vmovdqu   xmm0, xmmword ptr [r8]
-        vpcmpeqw  xmm2, xmm0, xmm1
-        vpmovmskb r9d, xmm2
+        vpcmpeqw  xmm3, xmm0, xmmword ptr [zerom]   ; terminator
+        vpmovmskb r9d, xmm3
         and       r9d, 0FFFFh
         test      r9d, r9d
         jnz       step1
-        vpcmpgtw  xmm2, xmm0, xmm5
-        vpcmpgtw  xmm3, xmm6, xmm0
-        vpand     xmm2, xmm2, xmm3
-        vpand     xmm2, xmm2, xmm7
-        vpaddw    xmm0, xmm0, xmm2
+        vpcmpgtw  xmm3, xmm0, xmm1                  ; c > LO
+        vpcmpgtw  xmm4, xmm0, xmm2                  ; c > HI
+        vpandn    xmm3, xmm4, xmm3                  ; (c > LO) AND NOT (c > HI)
+        vpand     xmm3, xmm3, xmmword ptr [c20m]
+        vpaddw    xmm0, xmm0, xmm3
         vmovdqu   xmmword ptr [r8], xmm0
         add       r8, 16
         jmp       loop0

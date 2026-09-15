@@ -15,18 +15,33 @@
 ; terminator. In-register fold (A-Z via two signed vpcmpgtb, +0x20), constants from memory.
 ; ISA: AVX2. Validated on Zen3.
 
+; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
+; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
+; happens to keep its accumulators there. See tools/abi-check.
+;
+; Fitting in six registers costs nothing here. The range test was
+;       (c > LO) AND (HI+1 > c)
+; whose second compare wants the constant as the FIRST operand, so it had to live in a register.
+; Rewritten as
+;       (c > LO) AND NOT (c > HI)
+; both compares take c first, so the bound becomes an ordinary register compare and the two ANDs
+; collapse into one vpandn; the fold delta and the zero vector become memory operands. Identical
+; instruction count, three fewer live registers.
 .const
 c60b db 60h
-c7Bb db 7Bh
-c20b db 20h
+c7Ab db 7Ah
+; 32-byte forms of the constants now used as memory operands. VEX operands carry no
+; alignment requirement, so no ALIGN 32 (which .const rejects with A2189).
+c20m db 32 dup(20h)
+zerom db 32 dup(0)
 .code
 wia_strupr PROC
         mov       rax, rcx                          ; return value = s
         mov       r8, rcx                           ; cursor
-        vpbroadcastb ymm5, byte ptr [c60b]
-        vpbroadcastb ymm6, byte ptr [c7Bb]
-        vpbroadcastb ymm7, byte ptr [c20b]
-        vpxor     ymm1, ymm1, ymm1
+        vpbroadcastb ymm1, byte ptr [c60b]          ; low bound
+        vpbroadcastb ymm2, byte ptr [c7Ab]          ; high bound, now inclusive
 
 loop0:
         mov       r9, r8
@@ -34,15 +49,15 @@ loop0:
         cmp       r9, 4064                          ; within 32 bytes of page end?
         ja        try8
         vmovdqu   ymm0, ymmword ptr [r8]
-        vpcmpeqb  ymm2, ymm0, ymm1
-        vpmovmskb r9d, ymm2
+        vpcmpeqb  ymm3, ymm0, ymmword ptr [zerom]   ; terminator
+        vpmovmskb r9d, ymm3
         test      r9d, r9d
         jnz       try8                              ; terminator in this 32 -> try smaller
-        vpcmpgtb  ymm2, ymm0, ymm5
-        vpcmpgtb  ymm3, ymm6, ymm0
-        vpand     ymm2, ymm2, ymm3
-        vpand     ymm2, ymm2, ymm7
-        vpsubb    ymm0, ymm0, ymm2
+        vpcmpgtb  ymm3, ymm0, ymm1                  ; c > LO
+        vpcmpgtb  ymm4, ymm0, ymm2                  ; c > HI
+        vpandn    ymm3, ymm4, ymm3                  ; (c > LO) AND NOT (c > HI)
+        vpand     ymm3, ymm3, ymmword ptr [c20m]
+        vpsubb    ymm0, ymm0, ymm3
         vmovdqu   ymmword ptr [r8], ymm0
         add       r8, 32
         jmp       loop0
@@ -53,16 +68,16 @@ try8:
         cmp       r9, 4088                          ; within 8 bytes of page end?
         ja        step1
         vmovq     xmm0, qword ptr [r8]
-        vpcmpeqb  xmm2, xmm0, xmm1
-        vpmovmskb r9d, xmm2
+        vpcmpeqb  xmm3, xmm0, xmmword ptr [zerom]   ; terminator
+        vpmovmskb r9d, xmm3
         and       r9d, 0FFh
         test      r9d, r9d
         jnz       step1                             ; terminator in this 8 -> scalar
-        vpcmpgtb  xmm2, xmm0, xmm5
-        vpcmpgtb  xmm3, xmm6, xmm0
-        vpand     xmm2, xmm2, xmm3
-        vpand     xmm2, xmm2, xmm7
-        vpsubb    xmm0, xmm0, xmm2
+        vpcmpgtb  xmm3, xmm0, xmm1                  ; c > LO
+        vpcmpgtb  xmm4, xmm0, xmm2                  ; c > HI
+        vpandn    xmm3, xmm4, xmm3                  ; (c > LO) AND NOT (c > HI)
+        vpand     xmm3, xmm3, xmmword ptr [c20m]
+        vpsubb    xmm0, xmm0, xmm3
         vmovq     qword ptr [r8], xmm0
         add       r8, 8
         jmp       loop0

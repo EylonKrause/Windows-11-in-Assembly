@@ -1,4 +1,4 @@
-# ucrtbase.dll — reimplemented exports (72)
+# ucrtbase.dll — reimplemented exports (76)
 
 | export | speedup | source |
 |---|---|---|
@@ -8,7 +8,9 @@
 | `_i64tow` | 1.59x | [changes/075-i64tow](../../../../../changes/075-i64tow/) |
 | `_i64tow_s` | 2.29x | [changes/196-i64tow-s](../../../../../changes/196-i64tow-s/) |
 | `_itoa` | 1.44x | [changes/056-itoa](../../../../../changes/056-itoa/) |
+| `_itoa_s` | 1.73x | [changes/198-itoa-s](../../../../../changes/198-itoa-s/) |
 | `_itow` | 1.42x | [changes/074-itow](../../../../../changes/074-itow/) |
+| `_itow_s` | 1.65x | [changes/200-itow-s](../../../../../changes/200-itow-s/) |
 | `_memccpy` | 8.69x | [changes/146-memccpy](../../../../../changes/146-memccpy/) |
 | `_memicmp` | 10.70x | [changes/046-memicmp](../../../../../changes/046-memicmp/) |
 | `_stricmp` | 8.73x | [changes/043-stricmp](../../../../../changes/043-stricmp/) |
@@ -30,7 +32,9 @@
 | `_ui64tow` | 1.60x | [changes/073-ui64tow](../../../../../changes/073-ui64tow/) |
 | `_ui64tow_s` | 2.06x | [changes/197-ui64tow-s](../../../../../changes/197-ui64tow-s/) |
 | `_ultoa` | 1.50x | [changes/054-ultoa](../../../../../changes/054-ultoa/) |
+| `_ultoa_s` | 1.77x | [changes/199-ultoa-s](../../../../../changes/199-ultoa-s/) |
 | `_ultow` | 1.55x | [changes/072-ultow](../../../../../changes/072-ultow/) |
+| `_ultow_s` | 1.55x | [changes/201-ultow-s](../../../../../changes/201-ultow-s/) |
 | `_wcsicmp` | 7.66x | [changes/042-wcsicmp](../../../../../changes/042-wcsicmp/) |
 | `_wcslwr_s` | 4.10x | [changes/180-wcslwr-s](../../../../../changes/180-wcslwr-s/) |
 | `_wcsnicmp` | 7.44x | [changes/044-wcsnicmp](../../../../../changes/044-wcsnicmp/) |

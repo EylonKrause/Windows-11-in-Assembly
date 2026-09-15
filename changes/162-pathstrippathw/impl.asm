@@ -26,11 +26,19 @@
 ;
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
+; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their low 128 bits are --
+; so parking the ':' constant in ymm6, as an earlier cut did, silently destroyed any double the
+; caller had live. Invisible to a correctness test, which compares pointers and characters.
+; See tools/abi-check. ':' is the rarest of the four separators and is only compared against, so it
+; becomes a memory operand and the register disappears; the other three stay in registers.
 .const
 ALIGN 16
 c_bsl   dw 005Ch
 c_sla   dw 002Fh
 c_col   dw 003Ah
+; 32-byte form, for use as a memory operand. VEX operands need no alignment, so no ALIGN 32
+; (which .const rejects with A2189).
+c_colm  dw 16 dup(003Ah)
 
 .code
 wia_pathstrippathw PROC FRAME
@@ -51,7 +59,6 @@ wia_pathstrippathw PROC FRAME
 
         vpbroadcastw ymm1, word ptr c_bsl
         vpbroadcastw ymm2, word ptr c_sla
-        vpbroadcastw ymm6, word ptr c_col
         vpxor     ymm3, ymm3, ymm3
 
         mov       r9, rcx
@@ -62,7 +69,7 @@ wia_pathstrippathw PROC FRAME
         vpcmpeqw  ymm4, ymm0, ymm1
         vpcmpeqw  ymm5, ymm0, ymm2
         vpor      ymm4, ymm4, ymm5
-        vpcmpeqw  ymm5, ymm0, ymm6
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_colm]
         vpor      ymm4, ymm4, ymm5
         vpcmpeqw  ymm5, ymm0, ymm3
         vpor      ymm4, ymm4, ymm5
@@ -82,7 +89,7 @@ sp_next:
         vpcmpeqw  ymm4, ymm0, ymm1
         vpcmpeqw  ymm5, ymm0, ymm2
         vpor      ymm4, ymm4, ymm5
-        vpcmpeqw  ymm5, ymm0, ymm6
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_colm]
         vpor      ymm4, ymm4, ymm5
         vpcmpeqw  ymm5, ymm0, ymm3
         vpor      ymm4, ymm4, ymm5
