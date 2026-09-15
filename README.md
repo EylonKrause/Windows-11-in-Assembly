@@ -27,7 +27,7 @@ changes/<NNN>-<name>/
   build.bat        # assemble + link + run, reproducible
 ```
 
-A change is **synced to this repo only after** it passes both gates on this PC:
+A change is **synced to this repo only after** it passes all three gates on this PC:
 
 1. **Correctness** — bit-exact against the reference across a fuzzed input corpus, and behavior-identical
    to the real Windows function it replaces (same return, same output bytes, same edge cases: empty,
@@ -35,8 +35,33 @@ A change is **synced to this repo only after** it passes both gates on this PC:
 2. **Speed** — a real, repeatable win over the shipped system implementation on this hardware. No win,
    or a regression on any measured size class, means it does **not** land. (Same rule the author's NCCL /
    BLIS contributions ran under: never ship a non-win, never regress.)
+3. **ABI** — the implementation preserves every Win64 non-volatile register. Run by
+   [`tools/abi-check`](tools/abi-check/) (dynamic: sentinels in all of them across a real call) and
+   [`tools/abi-audit.py`](tools/abi-audit.py) (static: every `.asm` in the repo).
 
 If a routine can't be beaten, that is recorded honestly in its `RESULTS.md` and the change is not merged.
+
+### Why gate 3 exists
+
+Gates 1 and 2 are structurally blind to one whole class of bug, and it cost this project sixteen
+changes. Win64 makes `xmm6`–`xmm15` **callee-saved** — only their low 128 bits; the upper halves of
+`ymm6`–`ymm15` are volatile — and sixteen implementations here used them as scratch anyway. Every one
+passed both gates: a function that clobbers `xmm6` still returns exactly the right bytes at exactly the
+right speed. It corrupts only a *caller* that happened to be holding a `double` there, which no
+correctness test comparing integers and strings can observe.
+
+It surfaced by luck. Change 202's benchmark keeps its timing accumulators in `xmm6`/`xmm7`, so a
+perfectly correct function reported `0.00 ns`. That was the only symptom, in the only change whose
+harness happened to sit on the damage. Gate 3 removes the luck: it fills every non-volatile register
+with a sentinel, makes a real call, and reports what did not survive.
+
+All sixteen are fixed, and none of the fixes cost speed — the register pressure was relieved
+algebraically rather than by spilling. The recurring trick: a range test written
+`(c > LO) AND (HI+1 > c)` needs its second constant as the *first* compare operand, so it has to live
+in a register; rewritten `(c > LO) AND NOT (c > HI)` both compares take `c` first, the constants become
+memory operands, and the two `AND`s collapse into one `vpandn`. Same instruction count, three fewer
+live registers. Several of the rewritten functions came out measurably *faster* than before, because
+the constant broadcasts left the prologue (042 `_wcsicmp`: 7.66× → 8.36×).
 
 ---
 
@@ -332,3 +357,8 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [195](changes/195-ui64toa-s/) | `_ui64toa_s` (bounded unsigned 64-bit format) | `ucrtbase.dll!_ui64toa_s` | **LANDED** — **2.38x** (up to 5.68x; change 194 with `negative` permanently 0, which is not an assumption: the signed entry at RVA 0x00079D60 computes (Radix==10 && Value<0) and calls 0x00079DAC, and the unsigned entry at 0x00079D90 passes a hard zero into the SAME address — the two are four instructions apart in the disassembly. With negative fixed at 0 the early ERANGE test reduces to SizeInChars <= 1) |
 | [196](changes/196-i64tow-s/) | `_i64tow_s` (bounded wide 64-bit format) | `ucrtbase.dll!_i64tow_s` | **LANDED** — **2.29x** (up to 5.49x; the wide form. Byte and wide are separate functions at separate addresses, so identical behaviour was MEASURED, not inherited: 200000 random (value,size,radix) triples compared CHARACTER FOR CHARACTER including the untouched cells past the terminator, plus return and errno — 0 differences. SizeInChars counts CHARACTERS; the 2-digit decimal table holds a DWORD per entry so radix 10 still writes two digits per store and divides once per two digits; the copy still moves 8 bytes — four characters — at a time. Within 2 % of the byte form at every class, because the work is dominated by the division chain rather than the stores) |
 | [197](changes/197-ui64tow-s/) | `_ui64tow_s` (bounded unsigned wide 64-bit format) | `ucrtbase.dll!_ui64tow_s` | **LANDED** — **2.06x** (up to 3.63x; closes the bounded 64-bit formatter family — 194 byte signed, 195 byte unsigned, 196 wide signed, 197 wide unsigned, all four live-proven together. The narrowest of the four for two visible reasons: `42` base 10 is 1.07x because ucrtbase's own unsigned wide entry is already its fastest small case at 3.61 ns, and 64 bits base 2 is 46.66 ns against 31.34 for the signed wide form — 64 wide digits is 128 bytes of scratch to copy, the one place the wide forms genuinely pay for the extra byte per character) |
+| [198](changes/198-itoa-s/) | `_itoa_s` / `_ltoa_s` (bounded 32-bit integer format) | `ucrtbase.dll!_itoa_s` | **LANDED** — **1.73x** (up to 2.82x; the bounded form of change 056 and the 32-bit sibling of 194. ONE implementation, TWO exports: `_ltoa_s` is a separate export the compiler laid out with the branch inverted, and the harness drives BOTH rather than assuming it. The 32-bit width is the whole contract difference — at any radix but 10 the value formats as UNSIGNED 32-bit, so `_itoa_s(-1,b,n,16)` is "ffffffff", eight f's, not 194's sixteen. THREE THINGS WERE MEASURED, NOT ASSUMED: (1) the buffer-fit check is HOISTED via a `maxdig[radix]` table — per-digit bound checks cost ~1.5 cycles each and took base 36 to 0.88x and base 2 from 3.98x to 2.51x; (2) a reciprocal multiply is NOT faster than Zen 4's divider here — the 2^38 magic needing `shrd` measured 0.77x and even the 2^64 magic, whose quotient lands in rdx with no shift at all, only reached 0.95x, so the `div` stayed; (3) the ERANGE path used to generate digits into a scratch and then walk them back out to reproduce ucrtbase's reversed leftover — but the emit loop already runs least-significant-first, which IS that order, so it now writes straight into the caller's buffer and the second pass is gone (0.93x -> 1.07x). ERANGE is a structural tie at best: ~21 ns against ~6 ns for the success classes, because the contract obliges us to CALL ucrtbase's exported `_errno` and `_invalid_parameter_noinfo` where the shipped code reaches the same state internally) |
+| [199](changes/199-ultoa-s/) | `_ultoa_s` (bounded unsigned 32-bit format) | `ucrtbase.dll!_ultoa_s` | **LANDED** — **1.77x** (up to 2.84x; change 198 with `negative` permanently 0, kept one diff apart the way 190/191 were. Its base-36 class is what exposed the last real inefficiency in the family: a 32-bit value is at most 7 digits in base 36, so the final copy ALWAYS fell into a counted byte loop, and that loop — not the divides — was the entire deficit against ucrtbase, which reverses in place and never copies. Width-dispatching it (two overlapping 4-byte moves for 4..7 digits, and a branch-free first/last/middle for 1..3) took the class from 10.06 ns to 8.33 ns, 0.93x -> 1.14x) |
+| [200](changes/200-itow-s/) | `_itow_s` / `_ltow_s` (bounded wide 32-bit format) | `ucrtbase.dll!_itow_s` | **LANDED** — **1.65x** (up to **3.57x**; the wide form, again ONE implementation for TWO exports with `_ltow_s` patched and driven separately rather than assumed. Base 2 is the widest win in the family: a 32-bit value is 32 digits and every power-of-two radix shifts instead of dividing, against ucrtbase's divide-per-digit. The wide ERANGE class is an honest TIE — repeated runs of the same binary read between 0.94x and 1.05x — and that is recorded in RESULTS.md rather than papered over) |
+| [201](changes/201-ultow-s/) | `_ultow_s` (bounded unsigned wide 32-bit format) | `ucrtbase.dll!_ultow_s` | **LANDED** — **1.55x** (up to 2.72x; closes the 32-bit formatter family — FOUR implementations now cover SIX exported names. The tightest of the four: with no sign test and an unsigned magnitude ucrtbase's own two-digit case is already near its floor at 3.62 ns, so the smallest class is a genuine tie rather than a win, and the branch-free 1..3-cell copy is what brought it back over the line) |
+| [202](changes/202-convertguidtostringw/) | `ConvertGuidToStringW` (GUID -> `{XXXXXXXX-...}`) | `iphlpapi.dll!ConvertGuidToStringW` | **LANDED** — **37.30x** (up to **110.89x** — the largest win in the project, and the first target from `iphlpapi.dll`. The shipped routine DOES NOT FORMAT THE GUID: it spills the eleven fields as varargs, loads the literal "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}" and calls a StringCchPrintfW clone that re-parses that format on EVERY call and dispatches each conversion through a per-character helper — ~305 ns to write 38 characters. The trick is that Data1/2/3 are little-endian integers printed most-significant-nibble first while Data4 prints in memory order, so the sixteen bytes appear in print order 3,2,1,0, 5,4, 7,6, 8..15 — a SINGLE vpshufb — after which the whole conversion is branch-free (nibble split, vpunpck interleave, vpshufb through a hex table, vpmovzxbw to UTF-16) over a pre-stored 39-cell template. AVX2 only. THREE distinct failure lengths had to be reproduced exactly: cch 0 leaves the buffer UNTOUCHED, 1..38 writes a truncated prefix plus a terminator, and cch >= 0x80000000 returns 122 with String[0]=0 rather than 87. THIS IS THE CHANGE THAT FOUND THE ABI BUG — its first cut used xmm6/xmm7 and reported 0.00 ns while being bit-exact, which exposed 16 implementations violating the Win64 register contract; see tools/abi-check) |
