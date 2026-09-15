@@ -1,8 +1,9 @@
-# shlwapi.dll — reimplemented exports (27)
+# shlwapi.dll — reimplemented exports (28)
 
 | export | speedup | source |
 |---|---|---|
-| `PathFindExtensionW` | 5.73x | [changes/132-pathfindextensionw](../../../../../changes/132-pathfindextensionw/) |
+| `PathFindExtensionA` | 45.48x | [changes/217-pathfindextensiona](../../../../../changes/217-pathfindextensiona/) |
+| `PathFindExtensionW` | 6.26x | [changes/132-pathfindextensionw](../../../../../changes/132-pathfindextensionw/) |
 | `PathFindFileNameA` | 26.82x | [changes/212-pathfindfilenamea](../../../../../changes/212-pathfindfilenamea/) |
 | `PathFindFileNameW` | 3.41x | [changes/161-pathfindfilenamew](../../../../../changes/161-pathfindfilenamew/) |
 | `PathFindNextComponentW` | 3.98x | [changes/173-pathfindnextcomponentw](../../../../../changes/173-pathfindnextcomponentw/) |

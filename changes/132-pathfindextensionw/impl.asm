@@ -5,14 +5,38 @@
 ; the terminating NUL when there is none. shlwapi's is a scalar scan (~0.58 ns/char; 147 ns for a
 ; 254-char path).
 ;
-; Contract (reverse-engineered and validated bit-exact vs the live export over 600k fuzz):
-;   the extension is the LAST '.' that occurs after the last **backslash**. Only '\' terminates the
-;   search -- '/' and ':' do NOT, even though PathFindFileNameW treats both as separators. So
-;   "a.b/c" -> the '.' at index 1, while "a.b\c" -> the terminator. A leading dot counts (".hidden"
-;   -> index 0) and a trailing dot counts ("a.b." -> the final '.').
+; Contract:
+;   the extension is the LAST '.' that occurs after the last STOPPER, where a stopper is a
+;   **backslash OR A SPACE**. '/' and ':' do NOT stop the search, even though PathFindFileNameW
+;   treats both as separators. So "a.b/c" -> the '.' at index 1, while "a.b\c" and "a.b " both ->
+;   the terminator. A leading dot counts (".hidden" -> index 0) and a trailing dot counts ("a.b." ->
+;   the final '.').
 ;
-; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', '\' and NUL are extracted; the
-; running candidate is updated by the rule "a backslash clears the candidate, a later dot sets it",
+; ---- THE SPACE WAS MISSING, AND THIS CHANGE SHIPPED WRONG -------------------------------------------
+; The original rule here had only the backslash, and was "validated bit-exact over 600k fuzz". It was
+; not. That fuzz alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'} -- NO SPACE -- so the corpus
+; could not produce the failing shape, and the oracle, the implementation and the test were all wrong
+; together. A test that shares its blind spot with the thing it tests proves nothing.
+;
+; It was caught while probing the NARROW sibling for change 217. That probe enumerated
+; {a, '.', backslash, '/', ':'} exhaustively and got 0 mismatches against this rule -- and then
+; widened the alphabet by two characters and got 118587. The smallest failing case is ". ".
+;
+; The amendment is one character, and it was verified rather than guessed: over 2015539 strings
+; spanning {a, '.', backslash, '/', ':', space} of length 0..8, and again over
+; {a, '.', backslash, space, tab, 0xE9},
+;
+;     live PathFindExtensionW vs the OLD rule : 295513 mismatches
+;     live PathFindExtensionW vs THIS rule    :      0 mismatches
+;     live PathFindExtensionA vs THIS rule    :      0 mismatches
+;
+; It is 0x20 specifically and not whitespace in general: "a.b<TAB>" still yields the dot. Of 255 byte
+; values placed after a dot, exactly THREE stop it counting -- 0x20, 0x2E and 0x5C -- and the latter
+; two are already explained by the last-dot and backslash rules.
+;
+; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', the STOPPERS and NUL are
+; extracted; the running candidate is updated by the rule "a stopper clears the candidate, a later
+; dot sets it",
 ; which per block reduces to comparing the highest dot bit against the highest backslash bit -- no
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
@@ -23,6 +47,9 @@
 ALIGN 16
 c_dot   dw 002Eh
 c_bsl   dw 005Ch
+; 32-byte form for use as a memory operand, so the second stopper costs no register. VEX operands
+; need no alignment, so no ALIGN 32 (which .const rejects with A2189).
+c_spcm  dw 16 dup(0020h)
 
 .code
 wia_pathfindextw PROC
@@ -44,6 +71,8 @@ wia_pathfindextw PROC
         vpcmpeqw  ymm4, ymm0, ymm1                  ; NUL / '.' / '\'
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan exactly as a backslash
+        vpor      ymm4, ymm4, ymm5                  ;   does -- the half this change shipped without
         vpmovmskb r10d, ymm4
         shr       r8d, cl                           ; drop bytes before the string start
         shr       edx, cl
@@ -59,6 +88,8 @@ pe_next:
         vpcmpeqw  ymm4, ymm0, ymm1
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]
+        vpor      ymm4, ymm4, ymm5
         vpmovmskb r10d, ymm4
 pe_block:
         test      r8d, r8d
@@ -72,9 +103,9 @@ pe_block:
         and       r10d, r8d
 pe_upd:
         test      r10d, r10d
-        jz        pe_nobsl
-        ; a backslash in this block clears the candidate; only a dot ABOVE the last
-        ; backslash can re-set it, i.e. highest-dot-bit > highest-backslash-bit
+        jz        pe_nostop
+        ; a stopper in this block clears the candidate; only a dot ABOVE the last
+        ; stopper can re-set it, i.e. highest-dot-bit > highest-stopper-bit
         xor       eax, eax
         test      edx, edx
         jz        pe_done
@@ -85,7 +116,7 @@ pe_upd:
         and       ecx, -2                           ; vpcmpeqw sets BOTH bytes of a matching word;
         lea       rax, [r11 + rcx]                  ; bsr lands on the high byte, so round down
         jmp       pe_done
-pe_nobsl:
+pe_nostop:
         test      edx, edx
         jz        pe_done                           ; nothing here: keep the running candidate
         bsr       ecx, edx

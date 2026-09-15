@@ -1,6 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 168-176 and 212-216 -- the shlwapi functions converted on the second
-// PC, plus the NARROW PathFindFileNameA, StrRChrA and the whole narrow SPAN family.
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-217 -- the shlwapi functions converted on the
+// second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, and BOTH
+// halves of PathFindExtension.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -38,6 +39,8 @@ extern const char* wia_strrchra(const char*, const char*, WORD);
 extern int         wia_strcspna(const char*, const char*);
 extern const char* wia_strpbrka(const char*, const char*);
 extern int         wia_strspna(const char*, const char*);
+extern const char*    wia_pathfindexta(const char*);
+extern const wchar_t* wia_pathfindextw(const wchar_t*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -61,6 +64,9 @@ static volatile LONG c_pbka;
 static PSTR WINAPI w_pbka(PCSTR s, PCSTR set){ _InterlockedIncrement(&c_pbka); return (PSTR)wia_strpbrka(s,set); }
 static volatile LONG c_spna;
 static int WINAPI w_spna(PCSTR s, PCSTR set){ _InterlockedIncrement(&c_spna); return wia_strspna(s,set); }
+static volatile LONG c_pxa, c_pxw;
+static PSTR  WINAPI w_pxa(PCSTR p){ _InterlockedIncrement(&c_pxa); return (PSTR)wia_pathfindexta(p); }
+static PWSTR WINAPI w_pxw(PCWSTR p){ _InterlockedIncrement(&c_pxw); return (PWSTR)wia_pathfindextw(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -867,9 +873,83 @@ int main(void){
         }
     }
 
+    // ============ 217 PathFindExtensionA and 132 PathFindExtensionW ============
+    // BOTH HALVES, TOGETHER, AND THE CORPUS IS EXHAUSTIVE -- because change 132 is the reason this
+    // block exists. It had been landed and passing its own "600k path fuzz" for weeks while
+    // disagreeing with the live PathFindExtensionW on 295513 of 2015539 enumerated strings: its
+    // fuzz alphabet contained no SPACE, and a space terminates the backward scan exactly as a
+    // backslash does. Its oracle, its implementation and its corpus were all wrong together.
+    //
+    // A random corpus is what failed. So this one enumerates every string over
+    // {a, '.', backslash, '/', ':', space} of length 0..6 -- 55987 of them -- against BOTH live
+    // exports, and reports how many actually contain a space, rather than assuming any do.
+    printf("[217 PathFindExtensionA + 132 PathFindExtensionW]  shlwapi (exhaustive -- see the source)\n");
+    {
+        typedef PSTR  (WINAPI *fpa)(PCSTR);
+        typedef PWSTR (WINAPI *fpw)(PCWSTR);
+        void* p_pxa = (void*)GetProcAddress(hs, "PathFindExtensionA");
+        void* p_pxw = (void*)GetProcAddress(hs, "PathFindExtensionW");
+        OK(p_pxa != NULL && p_pxw != NULL, "resolve both PathFindExtension exports");
+        if (p_pxa && p_pxw) {
+            fpa sysa = (fpa)p_pxa;
+            fpw sysw = (fpw)p_pxw;
+            static const char AL6[6] = { 'a', '.', '\\', '/', ':', ' ' };
+            char t[10]; wchar_t tw[10];
+            long cases = 0, withspace = 0;
+            int vpre = 0;
+            for (int len = 0; len <= 6; ++len) {
+                long combos = 1;
+                for (int i = 0; i < len; ++i) combos *= 6;
+                for (long c = 0; c < combos; ++c) {
+                    long v = c; int sp = 0;
+                    for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6]; if (t[i]==' ') sp = 1;
+                                                    tw[i] = (wchar_t)t[i]; v /= 6; }
+                    t[len] = 0; tw[len] = 0;
+                    if (sp) ++withspace;
+                    if ((wia_pathfindexta(t)  - t)  != ((const char*)sysa(t)  - t))  ++vpre;
+                    if ((wia_pathfindextw(tw) - tw) != ((const wchar_t*)sysw(tw) - tw)) ++vpre;
+                    ++cases;
+                }
+            }
+            OK(vpre == 0, "validate-first vs BOTH live exports (exhaustive)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t pa, pw;
+                OK(patch_on(&pa, p_pxa, (void*)w_pxa), "install patch (A)");
+                OK(patch_on(&pw, p_pxw, (void*)w_pxw), "install patch (W)");
+                LONG ba = c_pxa, bw = c_pxw; int mism = 0;
+                for (int len = 0; len <= 6; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 6;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6]; tw[i] = (wchar_t)t[i]; v /= 6; }
+                        t[len] = 0; tw[len] = 0;
+                        if ((wia_pathfindexta(t)  - t)  != ((const char*)sysa(t)  - t))  ++mism;
+                        if ((wia_pathfindextw(tw) - tw) != ((const wchar_t*)sysw(tw) - tw)) ++mism;
+                    }
+                }
+                OK(mism == 0, "identical under live patch");
+                OK(c_pxa - ba >= cases, "counter proves OUR code executed (A)");
+                OK(c_pxw - bw >= cases, "counter proves OUR code executed (W)");
+                printf("  under live patch: %s;  our-code calls = %ld (A) + %ld (W)\n",
+                       mism ? "MISMATCH" : "all match", (long)(c_pxa - ba), (long)(c_pxw - bw));
+                printf("  corpus: %ld exhaustive strings over {a,'.',backslash,'/',':',space} of\n"
+                       "          length 0..6, of which %ld CONTAIN A SPACE -- the shapes on which\n"
+                       "          change 132 shipped wrong and its own fuzz could not reach\n",
+                       cases, withspace);
+                OK(withspace > 20000, "the space shapes ran in bulk");
+                OK(patch_off(&pw), "unpatch verified byte-identical (W)");
+                OK(patch_off(&pa), "unpatch verified byte-identical (A)");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 14 functions\n"
-               "(changes 168-176 and 212-216: 13 shlwapi + 1 kernelbase), results identical to the live\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 16 functions\n"
+               "(changes 132, 168-176 and 212-217: 15 shlwapi + 1 kernelbase), results identical to the\n"
+               "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
                "random path corpus would validate a wrong implementation. For 213 the corpus is held\n"
@@ -881,7 +961,9 @@ int main(void){
                "than strlen. 215 shares that core and gets the same corpus; 216 needs the OPPOSITE\n"
                "one, because random sets almost never contain the subject's first character and a\n"
                "span corpus built like 214's would return 0 nearly every time and prove nothing --\n"
-               "so its sets are drawn from the subject's own alphabet. Zero system processes\n"
+               "so its sets are drawn from the subject's own alphabet. 217 and 132 are proved\n"
+               "TOGETHER against an exhaustive corpus, because 132 is the change that shipped wrong\n"
+               "on exactly the shapes a random corpus could not reach. Zero system processes\n"
                "touched.\n");
         return 0;
     }

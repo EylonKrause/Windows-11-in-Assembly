@@ -274,3 +274,21 @@ high-byte alphabet.
 Every case of both, like 214's, is also run a second time with a NULL set -- the degenerate rule that
 differs across the three functions sharing this core (NULL/EMPTY give 0/strlen for `StrCSpnA`,
 NULL/NULL for `StrPBrkA`, 0/0 for `StrSpnA`).
+
+### 217 and 132 - the entry that exists because a landed change was wrong
+
+Every other block here proves a NEW implementation against the live export. This one also re-proves
+an OLD one, and that is the point.
+
+Change 132 (`PathFindExtensionW`) had been landed for weeks, passing a correctness test that
+advertised "600k path fuzz". While probing its narrow sibling for change 217, the rule turned out to
+be incomplete: **a space stops the backward scan exactly as a backslash does**, so `"a.b "` yields the
+terminator rather than the dot. 132 disagreed with the live export on **295 513 of 2 015 539**
+enumerated strings. Its fuzz alphabet was `{a, b, '.', backslash, '/', ':', '.', 'c'}` -- no space --
+so its oracle, its implementation and its corpus were all wrong together, and 132 had never been
+driven live at all.
+
+Both halves are now proved here, together, against a corpus that is **exhaustive rather than
+sampled**: all 55 987 strings over `{a, '.', backslash, '/', ':', space}` of length 0..6, of which
+**36 456 contain a space** -- precisely the shapes a random corpus could not reach. 55 987 calls into
+our code for each export, identical results, both prologues restored byte-for-byte.

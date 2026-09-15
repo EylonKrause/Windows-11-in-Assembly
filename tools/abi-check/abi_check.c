@@ -326,6 +326,27 @@ static void thunk(void){
     sink += wia_strspna(0, "A");
 }
 
+#elif defined(T_132)
+#define NAME "132-pathfindextensionw"
+extern const wchar_t* wia_pathfindextw(const wchar_t*);
+static void thunk(void){
+    /* added when this change was CORRECTED for the missing space rule: the amendment introduced a
+       second vector temp, and a callee-saved one would have been invisible to correctness */
+    sink += (long long)(size_t)wia_pathfindextw(L"C:\\some\\long\\path\\to\\a\\file.txt");
+    sink += (long long)(size_t)wia_pathfindextw(L"a name with spaces.txt ");
+    sink += (long long)(size_t)wia_pathfindextw(aw);
+}
+
+#elif defined(T_217)
+#define NAME "217-pathfindextensiona"
+extern const char* wia_pathfindexta(const char*);
+static void thunk(void){
+    sink += (long long)(size_t)wia_pathfindexta("C:\\some\\long\\path\\to\\a\\file.txt");
+    sink += (long long)(size_t)wia_pathfindexta("a name with spaces.txt ");
+    sink += (long long)(size_t)wia_pathfindexta(a8);
+    sink += (long long)(size_t)wia_pathfindexta(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
