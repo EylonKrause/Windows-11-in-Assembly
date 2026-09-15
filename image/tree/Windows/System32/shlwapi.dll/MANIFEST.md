@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (24)
+# shlwapi.dll — reimplemented exports (25)
 
 | export | speedup | source |
 |---|---|---|
@@ -15,6 +15,7 @@
 | `PathRenameExtensionW` | 4.21x | [changes/158-pathrenameextensionw](../../../../../changes/158-pathrenameextensionw/) |
 | `PathStripPathW` | 3.28x | [changes/162-pathstrippathw](../../../../../changes/162-pathstrippathw/) |
 | `PathUndecorateW` | 3.72x | [changes/174-pathundecoratew](../../../../../changes/174-pathundecoratew/) |
+| `StrCSpnA` | 137.08x | [changes/214-strcspna](../../../../../changes/214-strcspna/) |
 | `StrCSpnW` | 11.26x | [changes/136-strcspnw](../../../../../changes/136-strcspnw/) |
 | `StrCatBuffW` | 3.59x | [changes/170-strcatbuffw](../../../../../changes/170-strcatbuffw/) |
 | `StrChrNW` | 3.48x | [changes/169-strchrnw](../../../../../changes/169-strchrnw/) |

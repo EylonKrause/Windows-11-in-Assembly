@@ -1,6 +1,6 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 168-176, 212 and 213 -- the shlwapi functions converted on the second
-// PC, plus the NARROW PathFindFileNameA and StrRChrA.
+// LIVE-RUN PROOF for changes 168-176, 212, 213 and 214 -- the shlwapi functions converted on the
+// second PC, plus the NARROW PathFindFileNameA, StrRChrA and StrCSpnA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -35,6 +35,7 @@ extern void     wia_pathremoveargsw(wchar_t*);
 extern long     wia_pathcchremovebackslash(wchar_t*, size_t);
 extern const char* wia_pathfindfilenamea(const char*);
 extern const char* wia_strrchra(const char*, const char*, WORD);
+extern int         wia_strcspna(const char*, const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -52,6 +53,8 @@ static volatile LONG c_pffa;
 static PSTR WINAPI w_pffa(PCSTR p){ _InterlockedIncrement(&c_pffa); return (PSTR)wia_pathfindfilenamea(p); }
 static volatile LONG c_srca;
 static PSTR WINAPI w_srca(PCSTR s, PCSTR e, WORD m){ _InterlockedIncrement(&c_srca); return (PSTR)wia_strrchra(s,e,m); }
+static volatile LONG c_cspa;
+static int WINAPI w_cspa(PCSTR s, PCSTR set){ _InterlockedIncrement(&c_cspa); return wia_strcspna(s,set); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -634,15 +637,96 @@ int main(void){
         }
     }
 
+    // ===================== 214 StrCSpnA =====================
+    // TWO THINGS THIS CORPUS HAS TO REACH, neither of which a plain ASCII fuzz would.
+    //
+    // (1) BOTH HALVES OF THE MEMBERSHIP BITMAP. The set is a 256-bit map and the vector test
+    //     resolves 0x00..0x7F through one vpshufb table and 0x80..0xFF through the other, selected
+    //     by the character's bit 7. A swapped blend passes every ASCII-only test, so the corpus
+    //     draws characters and set members from the FULL byte range and counts how many cases
+    //     actually carried a high-byte member.
+    // (2) THE NULL SET, WHICH IS NOT THE EMPTY SET. StrCSpnA(s, NULL) is 0 while StrCSpnA(s, "")
+    //     is strlen -- the single distinction a reimplementation is most likely to get wrong.
+    printf("[214 StrCSpnA]  shlwapi (both bitmap halves + the NULL-vs-empty set distinction)\n");
+    {
+        typedef int (WINAPI *fnc)(PCSTR, PCSTR);
+        void* p_cspa = (void*)GetProcAddress(hs, "StrCSpnA");
+        OK(p_cspa != NULL, "resolve StrCSpnA");
+        if (p_cspa) {
+            fnc sys = (fnc)p_cspa;
+            static char t[600], set[40];
+            long n_hi = 0, n_hit = 0, n_miss = 0, n_empty = 0;
+            int vpre = 0;
+            reseed(214);
+            for (int k = 0; k < 8000; ++k) {
+                int len = (int)(rnd() % 500);
+                int sl  = (int)(rnd() % 10);
+                int hi  = 0;
+                for (int i = 0; i < sl; ++i) {
+                    set[i] = (char)(1 + rnd() % 255);
+                    if ((unsigned char)set[i] >= 0x80) hi = 1;
+                }
+                set[sl] = 0;
+                for (int i = 0; i < len; ++i) t[i] = (char)(1 + rnd() % 255);
+                t[len] = 0;
+                if (hi) ++n_hi;
+                if (sl == 0) ++n_empty;
+                int ra = wia_strcspna(t, set);
+                int rb = sys(t, set);
+                if (ra < len) ++n_hit; else ++n_miss;
+                if (ra != rb) ++vpre;
+                /* the NULL set, on the same subject */
+                if (wia_strcspna(t, NULL) != sys(t, NULL)) ++vpre;
+            }
+            OK(vpre == 0, "validate-first vs the LIVE export (8000 x2)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t p; OK(patch_on(&p, p_cspa, (void*)w_cspa), "install patch");
+                LONG before = c_cspa; int mism = 0;
+                reseed(214);
+                for (int k = 0; k < 8000; ++k) {
+                    int len = (int)(rnd() % 500);
+                    int sl  = (int)(rnd() % 10);
+                    for (int i = 0; i < sl; ++i) set[i] = (char)(1 + rnd() % 255);
+                    set[sl] = 0;
+                    for (int i = 0; i < len; ++i) t[i] = (char)(1 + rnd() % 255);
+                    t[len] = 0;
+                    int ra = wia_strcspna(t, set);
+                    int rb = sys(t, set);                     /* routes to OUR code */
+                    if (ra != rb) ++mism;
+                    if (wia_strcspna(t, NULL) != sys(t, NULL)) ++mism;
+                }
+                OK(mism == 0, "identical under live patch");
+                OK(c_cspa - before >= 8000, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism ? "MISMATCH" : "all match", (long)(c_cspa - before));
+                printf("  of 8000 cases: %ld had a HIGH-BYTE set member (the second bitmap table),\n"
+                       "                 %ld found a member, %ld scanned to the terminator, %ld had an\n"
+                       "                 EMPTY set -- and every case was also run with a NULL set,\n"
+                       "                 which returns 0 rather than strlen\n",
+                       n_hi, n_hit, n_miss, n_empty);
+                OK(n_hi   > 2000, "high-byte set members -- the second bitmap table -- ran in bulk");
+                OK(n_hit  > 1000, "members were found in bulk");
+                OK(n_miss > 200,  "full scans to the terminator ran in bulk");
+                OK(n_empty > 400, "the empty set ran in bulk");
+                OK(patch_off(&p), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 11 functions\n"
-               "(changes 168-176, 212 and 213: 10 shlwapi + 1 kernelbase), results identical to the live\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 12 functions\n"
+               "(changes 168-176 and 212-214: 11 shlwapi + 1 kernelbase), results identical to the live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
                "random path corpus would validate a wrong implementation. For 213 the corpus is held\n"
                "INSIDE the contract domain, because an pszEnd past the terminator makes the shipped\n"
-               "export spin forever and there is nothing there to be identical to. Zero system\n"
-               "processes touched.\n");
+               "export spin forever and there is nothing there to be identical to. For 214 the corpus\n"
+               "draws from the FULL byte range, because the membership bitmap resolves 0x00..0x7F and\n"
+               "0x80..0xFF through different tables and an ASCII-only corpus would not tell them\n"
+               "apart, and every case is run a second time with a NULL set, which returns 0 rather\n"
+               "than strlen. Zero system processes touched.\n");
         return 0;
     }
     printf("SHLWAPI LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);
