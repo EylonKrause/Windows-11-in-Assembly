@@ -54,6 +54,7 @@ extern char*          wia_pathremovebackslasha(char*);
 extern int            wia_pathquotespacesa(char*);
 extern char*          wia_pathfindnextcomponenta(const char*);
 extern int            wia_pathisfilespeca(const char*);
+extern int            wia_pathcommonprefixa(const char*, const char*, char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -106,6 +107,8 @@ static volatile LONG c_pfnca;
 static LPCSTR WINAPI w_pfnca(LPCSTR p){ _InterlockedIncrement(&c_pfnca); return wia_pathfindnextcomponenta(p); }
 static volatile LONG c_pifsa;
 static BOOL WINAPI w_pifsa(LPCSTR p){ _InterlockedIncrement(&c_pifsa); return (BOOL)wia_pathisfilespeca(p); }
+static volatile LONG c_pcpa;
+static int WINAPI w_pcpa(LPCSTR x, LPCSTR y, LPSTR o){ _InterlockedIncrement(&c_pcpa); return wia_pathcommonprefixa(x, y, o); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -2226,9 +2229,138 @@ int main(void){
         }
     }
 
+
+    // ===================== 236 PathCommonPrefixA =====================
+    // EVERY COMPARISON HERE INCLUDES THE OUTPUT BUFFER AGAINST A POISON FILL, because for this
+    // function the return is not the contract and three separate measured facts say so:
+    //
+    //   * a common prefix of exactly 2 is REPORTED as 3 while only two characters are written;
+    //   * NULL writes NOTHING AT ALL while a valid pair with no common prefix writes a terminator;
+    //   * when the RESULT reaches MAX_PATH the copy is refused and only a bare terminator appears,
+    //     with the count returned unchanged.
+    //
+    // A driver that compared only the returned int would pass an implementation that got all three
+    // wrong. The corpus also carries 0x88 and 0x5E on purpose: the shipped comparison conflates
+    // them, which is the same defect that made StrStrA unconvertible, and an implementation that
+    // reached for a case-mapping API instead of the measured fold would differ on exactly those.
+    printf("[236 PathCommonPrefixA]  shlwapi (exhaustive, fold-heavy, buffer compared vs poison)\n");
+    {
+        typedef int (WINAPI *fcp)(LPCSTR, LPCSTR, LPSTR);
+        void* p_pcpa = (void*)GetProcAddress(hs, "PathCommonPrefixA");
+        OK(p_pcpa != NULL, "resolve PathCommonPrefixA");
+        if (p_pcpa) {
+            fcp sys = (fcp)p_pcpa;
+            patch_t pcpa_patch;
+            static const char AL6[6] = { 'a', 'A', 0x5C, 0x3A, 0x5E, (char)0x88 };
+            char t1[16], t2[16];
+            static char b1[1024], b2[1024];
+            static char lp[800], lq[800];
+            long cases = 0, folded = 0, cut = 0, uncut = 0, fixup = 0, overmax = 0, nulls = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = folded = cut = uncut = fixup = overmax = nulls = 0;
+                for (int la = 0; la <= 4; ++la) {
+                    long ca = 1;
+                    for (int i = 0; i < la; ++i) ca *= 6;
+                    for (long ka = 0; ka < ca; ++ka) {
+                        long v = ka;
+                        for (int i = 0; i < la; ++i) { t1[i] = AL6[v % 6]; v /= 6; }
+                        t1[la] = 0;
+                        for (int lb = 0; lb <= 4; ++lb) {
+                            long cb = 1;
+                            for (int i = 0; i < lb; ++i) cb *= 6;
+                            for (long kb = 0; kb < cb; ++kb) {
+                                long w = kb;
+                                for (int i = 0; i < lb; ++i) { t2[i] = AL6[w % 6]; w /= 6; }
+                                t2[lb] = 0;
+                                memset(b1, 0xCD, 400); memset(b2, 0xCD, 400);
+                                int r1 = wia_pathcommonprefixa(t1, t2, b1);
+                                int r2 = sys(t1, t2, b2);
+                                if (r1 != r2 || memcmp(b1, b2, 400) != 0) ++mism;
+                                if (r1 == 3 && la == 2 && lb == 2) ++fixup;
+                                if (r1 > 0 && r1 < (la < lb ? la : lb)) ++cut;
+                                else if (r1 > 0) ++uncut;
+                                for (int i = 0; i < la && i < lb; ++i)
+                                    if (t1[i] != t2[i]) { ++folded; break; }
+                                ++cases;
+                            }
+                        }
+                    }
+                }
+                /* long paths, ACROSS the MAX_PATH threshold where the copy is refused */
+                for (int n = 250; n <= 600; n += 7) {
+                    for (int i = 0; i < n; ++i) {
+                        lp[i] = (i % 8 == 7) ? 0x5C : (char)(0x61 + i % 23);
+                        lq[i] = lp[i];
+                    }
+                    lp[n] = 0; lq[n] = 0;
+                    memset(b1, 0xCD, 800); memset(b2, 0xCD, 800);
+                    int r1 = wia_pathcommonprefixa(lp, lq, b1);
+                    int r2 = sys(lp, lq, b2);
+                    if (r1 != r2 || memcmp(b1, b2, 800) != 0) ++mism;
+                    if (r1 >= 260) ++overmax;
+                    ++cases;
+                    /* and the same pair differing only in CASE, so the vector fold runs per block */
+                    for (int i = 0; i < n; ++i)
+                        if (lq[i] >= 0x61 && lq[i] <= 0x7A) lq[i] = (char)(lq[i] - 0x20);
+                    memset(b1, 0xCD, 800); memset(b2, 0xCD, 800);
+                    r1 = wia_pathcommonprefixa(lp, lq, b1);
+                    r2 = sys(lp, lq, b2);
+                    if (r1 != r2 || memcmp(b1, b2, 800) != 0) ++mism;
+                    ++cases; ++folded;
+                }
+                /* NULL in every position, buffer compared -- it must stay untouched */
+                {
+                    const char* NA[3] = { 0, "C:\\a", 0 };
+                    const char* NB[3] = { "C:\\a", 0, 0 };
+                    for (int i = 0; i < 3; ++i) {
+                        memset(b1, 0xCD, 64); memset(b2, 0xCD, 64);
+                        int r1 = wia_pathcommonprefixa(NA[i], NB[i], b1);
+                        int r2 = sys(NA[i], NB[i], b2);
+                        if (r1 != r2 || memcmp(b1, b2, 64) != 0) ++mism;
+                        ++cases; ++nulls;
+                    }
+                }
+                /* the optional buffer */
+                {
+                    int r1 = wia_pathcommonprefixa("C:\\dir\\a", "C:\\dir\\b", NULL);
+                    int r2 = sys("C:\\dir\\a", "C:\\dir\\b", NULL);
+                    if (r1 != r2) ++mism;
+                    ++cases;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (return AND buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pcpa_patch, p_pcpa, (void*)w_pcpa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pcpa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pcpa);
+                    printf("  corpus: %ld cases -- in %ld the RAW BYTES DIFFER inside the overlap,\n"
+                           "          so the fold path had to run at least once; %ld were CUT back\n"
+                           "          to a component boundary, %ld\n"
+                           "          were not, %ld hit the length-2 fixup that reports 3 while\n"
+                           "          writing 2, %ld exceeded MAX_PATH where the copy is refused\n"
+                           "          but the count is not, and %ld were NULL, which writes nothing\n",
+                           cases, folded, cut, uncut, fixup, overmax, nulls);
+                    OK(folded  > 1000, "the fold path ran in bulk");
+                    OK(cut     > 100,  "the component cut ran in bulk");
+                    OK(fixup   > 0,    "the length-2 fixup was exercised");
+                    OK(overmax > 10,   "the MAX_PATH refusal was exercised");
+                    OK(nulls   == 3,   "all three NULL shapes ran");
+                    OK(patch_off(&pcpa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 29 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-235: 28 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 30 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-236: 29 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
