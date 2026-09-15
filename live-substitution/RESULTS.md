@@ -97,6 +97,7 @@ live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA + 208 UuidFromStringW)
 live-substitution\build_combase_live.bat    (206 StringFromGUID2 + 207 IIDFromString)
+live-substitution\build_kernelbase_live.bat (209 lstrcpynW)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -158,6 +159,17 @@ renderer, that is the one place the two could silently diverge, so every case he
 buffer from a poisoned baseline -- refusals included -- and the corpus straddles the boundary and runs
 negative lengths, which must refuse rather than be read as enormous. Under the live patch, of 200 000
 cases **106 693** rendered, **93 307** refused, and **20 121** of those refusals were negative.
+
+### 209 - proving a SWALLOWED FAULT, in bulk
+
+`lstrcpynW` catches an access violation on its source and returns NULL with the readable prefix
+already copied. Reproducing that needs two things a plain wide copy gets wrong: the copy must be
+page-safe (a 32-byte load straddling a page end faults before storing, leaving less behind than the
+shipped loop), and the source must be read BEFORE the bound is tested, because with `n-1` exactly
+equal to the source length the shipped loop reads one PAST the last character it copies and faults
+there. A fifth of this harness's corpus is an unterminated source ending at a `PAGE_NOACCESS` page
+with the bound swept across that character: of 120 000 cases, **24 000** ran against the guard page,
+alongside 72 045 ordinary, 12 059 truncating and 11 896 with `n == 0`.
 
 ### 207 - proving a PARTIAL write, in bulk
 

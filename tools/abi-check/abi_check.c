@@ -222,6 +222,16 @@ static void thunk(void){
     sink += ((unsigned char*)&g)[0];
 }
 
+#elif defined(T_209)
+#define NAME "209-lstrcpynw"
+extern wchar_t* wia_lstrcpynw(wchar_t*, const wchar_t*, int);
+static void thunk(void){
+    /* long enough to run the 16-character chunked path, plus a truncating and a no-op call */
+    sink += (long long)(size_t)wia_lstrcpynw(bw, aw, 200);
+    sink += (long long)(size_t)wia_lstrcpynw(bw, aw, 8);
+    sink += (long long)(size_t)wia_lstrcpynw(bw, aw, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
