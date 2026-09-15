@@ -702,6 +702,30 @@ static void thunk(void){
     sink += (long long)(size_t)wia_strcatbuffa(0, "x", 40);       /* NULL destination */
 }
 
+#elif defined(T_232)
+#define NAME "232-pathremovebackslasha"
+extern char* wia_pathremovebackslasha(char*);
+static void thunk(void){
+    static char p[1200];
+    int i;
+    memcpy(p, "C:\\dir\\sub\\", 13);
+    sink += (long long)(size_t)wia_pathremovebackslasha(p);   /* an ordinary strip */
+    sink += p[0];
+    memcpy(p, "C:\\", 4);
+    sink += (long long)(size_t)wia_pathremovebackslasha(p);   /* a protected drive root */
+    sink += p[0];
+    memcpy(p, "\\\\", 3);
+    sink += (long long)(size_t)wia_pathremovebackslasha(p);   /* the protected UNC root */
+    sink += p[0];
+    memcpy(p, "", 1);
+    sink += (long long)(size_t)wia_pathremovebackslasha(p);   /* empty: returns psz itself */
+    for (i = 0; i < 1000; ++i) p[i] = 'a';
+    p[999] = '\\'; p[1000] = 0;
+    sink += (long long)(size_t)wia_pathremovebackslasha(p);   /* long: the paired scan */
+    sink += p[0];
+    sink += (long long)(size_t)wia_pathremovebackslasha(0);   /* NULL */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

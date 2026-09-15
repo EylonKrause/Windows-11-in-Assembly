@@ -50,6 +50,7 @@ extern void           wia_pathundecoratea(char*);
 extern BOOL           wia_pathrenameexta(char*, const char*);
 extern void           wia_pathremoveargsa(char*);
 extern char*          wia_strcatbuffa(char*, const char*, int);
+extern char*          wia_pathremovebackslasha(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -94,6 +95,8 @@ static volatile LONG c_praa;
 static void WINAPI w_praa(PSTR p){ _InterlockedIncrement(&c_praa); wia_pathremoveargsa(p); }
 static volatile LONG c_scba;
 static char* WINAPI w_scba(PSTR d, PCSTR q, int n){ _InterlockedIncrement(&c_scba); return wia_strcatbuffa(d, q, n); }
+static volatile LONG c_prbsa;
+static char* WINAPI w_prbsa(PSTR p){ _InterlockedIncrement(&c_prbsa); return wia_pathremovebackslasha(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1848,9 +1851,114 @@ int main(void){
         }
     }
 
+    // ===================== 232 PathRemoveBackslashA =====================
+    // The RETURNED OFFSET is compared as well as the buffer, because it is part of the contract and
+    // is not what a reader would guess: psz + max(n-1, 0), a pointer to the LAST CHARACTER, returned
+    // whether or not anything was stripped.
+    //
+    // And the corpus carries a LATIN-1 BYTE on purpose. The WIDE sibling (change 171) treats the
+    // Latin-1 letters as drive letters; this narrow one takes ASCII only -- 0x41..0x5A and
+    // 0x61..0x7A, 52 values in two runs, measured by sweeping all 255. An implementation that
+    // inherited the wide set would wrongly protect 78 byte values, and only a corpus containing one
+    // of them in the drive-letter position can see it.
+    printf("[232 PathRemoveBackslashA]  shlwapi (offset + buffer; ASCII-only drive letters)\n");
+    {
+        typedef char* (WINAPI *fpb)(PSTR);
+        void* p_prbsa = (void*)GetProcAddress(hs, "PathRemoveBackslashA");
+        OK(p_prbsa != NULL, "resolve PathRemoveBackslashA");
+        if (p_prbsa) {
+            fpb sys = (fpb)p_prbsa;
+            patch_t prbsa_patch;
+            static const char AL6[6] = { 'a', '\\', '/', ':', 'C', (char)0x80 };
+            enum { XP = 640 };
+            char t[12], ba[XP], bb[XP];
+            long cases = 0, stripped = 0, protectedroot = 0, latin1 = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = stripped = protectedroot = latin1 = 0;
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 6;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int hasl1 = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL6[v % 6];
+                                                        if (t[i] == (char)0x80) hasl1 = 1; v /= 6; }
+                        t[len] = 0;
+                        if (hasl1) ++latin1;
+                        memset(ba, '#', XP); memset(bb, '#', XP);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        char* ra = wia_pathremovebackslasha(ba);
+                        char* rc = sys(bb);
+                        if ((ra - ba) != (rc - bb)) ++mism;
+                        if (memcmp(ba, bb, XP) != 0) ++mism;
+                        if (len && t[len-1] == '\\') {
+                            if ((int)strlen(ba) == len) ++protectedroot; else ++stripped;
+                        }
+                        ++cases;
+                    }
+                }
+                /* every byte value in the DRIVE-LETTER position -- the narrow/wide divergence */
+                for (int v = 1; v < 256; ++v) {
+                    memset(ba, '#', XP); memset(bb, '#', XP);
+                    ba[0] = (char)v; ba[1] = ':'; ba[2] = '\\'; ba[3] = 0;
+                    memcpy(bb, ba, 4);
+                    char* ra = wia_pathremovebackslasha(ba);
+                    char* rc = sys(bb);
+                    if ((ra - ba) != (rc - bb)) ++mism;
+                    if (memcmp(ba, bb, XP) != 0) ++mism;
+                    if (ba[2] == '\\') ++protectedroot;  /* this byte IS a drive letter */
+                    else ++stripped;
+                    ++cases;
+                }
+                /* long subjects, which drive the paired scan */
+                {
+                    static char big[640];
+                    for (int n = 100; n <= 600; n += 23) {
+                        for (int i = 0; i < n; ++i) big[i] = (char)('a' + i % 23);
+                        big[n-1] = '\\'; big[n] = 0;
+                        memset(ba, '#', XP); memset(bb, '#', XP);
+                        memcpy(ba, big, (size_t)n + 1);
+                        memcpy(bb, big, (size_t)n + 1);
+                        char* ra = wia_pathremovebackslasha(ba);
+                        char* rc = sys(bb);
+                        if ((ra - ba) != (rc - bb)) ++mism;
+                        if (memcmp(ba, bb, XP) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (offset + whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&prbsa_patch, p_prbsa, (void*)w_prbsa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_prbsa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_prbsa);
+                    printf("  corpus: %ld cases -- %ld stripped a trailing backslash, %ld kept one\n"
+                           "          because the remainder would be a bare root, %ld containing a\n"
+                           "          LATIN-1 byte (which the WIDE sibling would treat as a drive\n"
+                           "          letter and this one must not)\n",
+                           cases, stripped, protectedroot, latin1);
+                    OK(stripped      > 1000, "the stripping path ran in bulk");
+                    /* 52 from the drive-letter sweep -- one per ASCII letter -- plus exactly four
+                       from the enumeration, which contains only the roots "\", "\\", "C:\" and
+                       "a:\". An earlier threshold of 10 counted the enumeration alone and failed. */
+                    OK(protectedroot >= 52,  "the protected-root path ran for every drive letter");
+                    OK(latin1        > 1000, "the Latin-1 shapes ran in bulk");
+                    OK(patch_off(&prbsa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 25 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231: 24 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 26 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, 231 and 232: 25 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1888,7 +1996,11 @@ int main(void){
                "and the BOUND -- because its distinctive rule lives entirely at their boundaries: a\n"
                "destination whose terminator is not inside the first cch bytes is neither truncated\n"
                "nor appended to, it is left completely alone, and only a poison fill tells that\n"
-               "apart from writing a terminator where one already was. Zero system\n"
+               "apart from writing a terminator where one already was. 232 compares the RETURNED\n"
+               "OFFSET as well as the buffer, and its corpus carries a LATIN-1 byte on purpose: the\n"
+               "WIDE sibling treats the Latin-1 letters as drive letters and this narrow one takes\n"
+               "ASCII only, so an implementation that inherited the wide set would wrongly protect\n"
+               "78 byte values and nothing without such a byte could see it. Zero system\n"
                "processes touched.\n");
         return 0;
     }
