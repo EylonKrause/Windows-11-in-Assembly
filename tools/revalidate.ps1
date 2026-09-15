@@ -148,6 +148,23 @@ if ($Only.Count) {
 
 $fails = @(); $regressions = @(); $done = 0
 
+# A change's own RESULTS.md records whether it LANDED or is PARKED, and a PARKED change is one we
+# ALREADY KNOW ties or loses on some size class -- that is precisely why it was never merged as a
+# win. Reporting those classes as "speed regressions" on every sweep is noise, and noise is what
+# buries a real one: before this split, every run listed eight regressions of which six were simply
+# the parked changes behaving exactly as documented. Classify first, and keep the two apart.
+function Get-ChangeVerdict {
+    param([string] $dir)
+    $r = Join-Path $dir 'RESULTS.md'
+    if (-not (Test-Path $r)) { return 'UNKNOWN' }
+    $head = (Get-Content $r -TotalCount 3 -EA SilentlyContinue) -join ' '
+    if ($head -match '\*\*PARKED\*\*')               { return 'PARKED' }
+    if ($head -match '\*\*LANDS\*\*|\*\*LANDED\*\*') { return 'LANDED' }
+    return 'UNKNOWN'
+}
+
+$parkedRegressions = @()
+
 foreach ($d in $dirs) {
     $name = $d.Name
     $bat  = Join-Path $d.FullName 'build.bat'
@@ -207,7 +224,10 @@ foreach ($d in $dirs) {
         else                                                             { 'LANDS' }
 
     if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT') { $fails += "$name ($status)" }
-    elseif ($status -eq 'REGRESSED') { $regressions += "$name $regStr" }
+    elseif ($status -eq 'REGRESSED') {
+        if ((Get-ChangeVerdict $d.FullName) -eq 'PARKED') { $parkedRegressions += "$name $regStr" }
+        else                                              { $regressions       += "$name $regStr" }
+    }
 
     "$name`t$status`t$corr`t$geo`t$worstStr`t$worstSize`t$regStr`t$([int]$sw.Elapsed.TotalSeconds)`t$exit" |
         Add-Content -Encoding utf8 $tsv
@@ -281,8 +301,12 @@ $lines += "## Result"
 $lines += ""
 $lines += "* changes run: **$done**"
 $lines += "* correctness / build failures: **$($fails.Count)**"
-$lines += "* speed regressions: **$($regressions.Count)** (informational -- see the header note; a run"
-$lines += "  triggered by servicing competes with Windows Update's own post-install work)"
+$lines += "* speed regressions in LANDED changes: **$($regressions.Count)** (informational -- see the"
+$lines += "  header note; a run triggered by servicing competes with Windows Update's own post-install"
+$lines += "  work)"
+$lines += "* size classes below 0.97x in changes already documented PARKED: **$($parkedRegressions.Count)**"
+$lines += "  (expected -- a parked change is one that ties or loses somewhere, which is why it never"
+$lines += "  landed; listed separately so a real regression is not buried in them)"
 if (-not $SkipLive) { $lines += "* live-substitution harness failures: **$($liveFails.Count)**" }
 $lines += "* ABI audit (callee-saved vector registers): **$(if ($abiFails.Count) { "$($abiFails.Count) file(s) FAIL" } else { 'clean' })**"
 $lines += ""
@@ -293,7 +317,7 @@ if ($fails.Count) {
     $lines += ""
 }
 if ($regressions.Count) {
-    $lines += "### Speed regressions (re-measure on an idle machine before believing these)"
+    $lines += "### Speed regressions in LANDED changes (re-measure on an idle machine first)"
     $lines += ""
     foreach ($r in $regressions) { $lines += "* $r" }
     $lines += ""
@@ -304,6 +328,15 @@ if ($abiFails.Count) {
     $lines += "Win64 preserves the LOW 128 BITS of xmm6-xmm15. See tools/README.md."
     $lines += ""
     foreach ($f in $abiFails) { $lines += "* $f" }
+    $lines += ""
+}
+if ($parkedRegressions.Count) {
+    $lines += "### Expected: classes below 0.97x in changes documented PARKED"
+    $lines += ""
+    $lines += "These are not findings. Each of these changes records in its own RESULTS.md that it"
+    $lines += "ties or loses on some size class, which is why it was never merged."
+    $lines += ""
+    foreach ($r in $parkedRegressions) { $lines += "* $r" }
     $lines += ""
 }
 if ($liveFails.Count) {
@@ -319,6 +352,7 @@ $lines -join "`r`n" | Set-Content -Encoding utf8 $report
 Write-Host ""
 Write-Host "report -> $report"
 Write-Host ("changes=$done  failures=$($fails.Count)  regressions=$($regressions.Count)" +
+            "  parkedClasses=$($parkedRegressions.Count)" +
             "  abiViolations=$($abiFails.Count)" +
             $(if (-not $SkipLive) { "  liveFailures=$($liveFails.Count)" }))
 

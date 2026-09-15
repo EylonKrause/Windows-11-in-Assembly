@@ -79,6 +79,12 @@ currently holds.
 * **Speed regressions do not fail the run**, deliberately: a sweep triggered by servicing is competing
   with Windows Update's own post-install work, and its numbers are not trustworthy. They are reported
   as informational and want re-measuring on an idle machine.
+* **Regressions are split by verdict.** A change's own RESULTS.md records whether it LANDED or is
+  PARKED, and a PARKED change is one already documented as tying or losing on some size class — that
+  is exactly why it was never merged. Reporting those every run is noise, and noise is what buries a
+  real finding: before the split, every sweep listed eight "regressions" of which **six** were simply
+  the parked changes behaving as documented. They now appear under a separate *expected* heading, so
+  the actionable list contains only LANDED changes that have actually drifted.
 
 `install-update-watch.ps1` registers a scheduled task with three deliberately overlapping triggers —
 WindowsUpdateClient Event ID 19, at logon, and daily — because none is reliable alone. The action is
