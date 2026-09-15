@@ -26,12 +26,28 @@
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;
+;
+; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; This change reused change 132's extension rule, and that rule was INCOMPLETE. A SPACE stops the
+; backward scan exactly as a backslash does, so "a.b " has no extension at all. 132 shipped without
+; it because its fuzz alphabet contained no space; this change inherited the gap, and
+; discovery/extension_space_audit.c measured the damage over every string of
+; {a, '.', backslash, space} of length 0..9:
+;
+;     live export vs the OLD rule (backslash only)  : 57746 of 349525 mismatches
+;     live export vs the CORRECTED rule             :     0
+;
+; The fix is one extra compare per block, against a 32-byte memory operand so it costs no register.
+; It is 0x20 specifically and not whitespace in general: "a.b<TAB>" still has an extension.
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
 .const
 ALIGN 16
 c_dot   dw 002Eh
 c_bsl   dw 005Ch
+; 32-byte form for use as a memory operand, so the second stopper costs no register. VEX operands
+; need no alignment, so no ALIGN 32 (which .const rejects with A2189).
+c_spcm  dw 16 dup(0020h)
 
 .code
 wia_pathremoveextw PROC
@@ -55,6 +71,8 @@ wia_pathremoveextw PROC
         vpcmpeqw  ymm4, ymm0, ymm1                  ; NUL / '.' / '\'
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan too
+        vpor      ymm4, ymm4, ymm5
         vpmovmskb r10d, ymm4
         shr       r8d, cl                           ; drop bytes before the string start
         shr       edx, cl
@@ -70,6 +88,8 @@ pe_next:
         vpcmpeqw  ymm4, ymm0, ymm1
         vpmovmskb edx, ymm4
         vpcmpeqw  ymm4, ymm0, ymm2
+        vpcmpeqw  ymm5, ymm0, ymmword ptr [c_spcm]  ; a SPACE stops the scan too
+        vpor      ymm4, ymm4, ymm5
         vpmovmskb r10d, ymm4
 pe_block:
         test      r8d, r8d

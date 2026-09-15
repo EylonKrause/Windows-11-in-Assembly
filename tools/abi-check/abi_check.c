@@ -347,6 +347,43 @@ static void thunk(void){
     sink += (long long)(size_t)wia_pathfindexta(0);
 }
 
+#elif defined(T_140)
+#define NAME "140-pathremoveextensionw"
+extern void wia_pathremoveextw(wchar_t*);
+static void thunk(void){
+    /* added when the space rule was corrected: the amendment introduced a second vector temp */
+    static wchar_t p[64];
+    memcpy(p, L"C:\\some\\long\\path\\to\\a\\file.txt", 33 * sizeof(wchar_t));
+    wia_pathremoveextw(p);
+    sink += p[0];
+    memcpy(p, L"a name with spaces.txt ", 24 * sizeof(wchar_t));
+    wia_pathremoveextw(p);
+    sink += p[0];
+}
+
+#elif defined(T_143)
+#define NAME "143-pathcchfindextension"
+extern long wia_pathcchfindext(const wchar_t*, unsigned long long, const wchar_t**);
+static void thunk(void){
+    const wchar_t* ext = 0;
+    sink += wia_pathcchfindext(L"C:\\dir\\file.txt", 17, &ext);
+    sink += (long long)(size_t)ext;
+    sink += wia_pathcchfindext(L"a name with spaces.txt ", 24, &ext);
+    sink += (long long)(size_t)ext;
+}
+
+#elif defined(T_144)
+#define NAME "144-pathcchremoveextension"
+extern long wia_pathcchremoveext(wchar_t*, unsigned long long);
+static void thunk(void){
+    static wchar_t p[64];
+    memcpy(p, L"C:\\dir\\file.txt", 17 * sizeof(wchar_t));
+    sink += wia_pathcchremoveext(p, 17);
+    memcpy(p, L"a name with spaces.txt ", 24 * sizeof(wchar_t));
+    sink += wia_pathcchremoveext(p, 24);
+    sink += p[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

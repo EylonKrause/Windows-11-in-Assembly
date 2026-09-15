@@ -1,4 +1,13 @@
 // changes/140-pathremoveextensionw/correctness.c
+//
+// CORPUS CORRECTED 2026-09-15. This test passed for weeks while the implementation was wrong: its
+// alphabet had NO SPACE in it, and a space stops the extension scan exactly as a backslash does, so
+// the corpus could not produce the failing shape and the oracle shared the same gap. 57746 of 349525
+// strings over {a, '.', backslash, space} were wrong. See discovery/extension_space_audit.c.
+//
+// The fix is not "add a space to the fuzz" -- a bigger random alphabet leaves the next gap just as
+// invisible. The section marked EXHAUSTIVE below enumerates the small alphabet instead of sampling
+// it, which is a proof rather than a sample and would have failed loudly on day one.
 // Bit-exact fuzz of wia_pathremoveextw vs live shlwapi!PathRemoveExtensionW + oracle. In-place, so the
 // WHOLE buffer is compared after the call.
 #define WIN32_LEAN_AND_MEAN
@@ -45,7 +54,28 @@ int main(void){
                         buf[1]=L'a'; buf[len-2]=L'a'; }
         }
     }
-    unsigned seed=0x9e37u; static const wchar_t AL[]={L'a',L'b',L'.',L'\\',L'/',L':',L'.',L'c'};
+    // ---- EXHAUSTIVE over {a, '.', backslash, space}, lengths 0..8: 87381 strings ----
+    {
+        static const wchar_t AL4[4] = { L'a', L'.', L'\\', L' ' };
+        wchar_t es[12];
+        long en = 0;
+        for (int len = 0; len <= 8 && fails < 20; ++len) {
+            long combos = 1;
+            for (int i = 0; i < len; ++i) combos *= 4;
+            for (long c = 0; c < combos && fails < 20; ++c) {
+                long v = c;
+                for (int i = 0; i < len; ++i) { es[i] = AL4[v & 3]; v >>= 2; }
+                es[len] = 0;
+                chk(es, len, "exhaustive-space");
+                ++en;
+            }
+        }
+        printf("  exhaustive {a,.,backslash,space} 0..8: %ld strings\n", en);
+    }
+
+    /* THE SPACE AND THE TAB ARE THE POINT: the absence of a space here is what let the space rule
+       ship missing, and the tab is in because the rule is 0x20 specifically, not whitespace. */
+    unsigned seed=0x9e37u; static const wchar_t AL[]={L'a',L'b',L'.',L'\\',L'/',L':',L' ',L'\t'};
     for(int t=0;t<400000 && fails<15;t++){
         seed=seed*1103515245u+12345u; int n=seed%300;
         for(int i=0;i<n;i++){ seed=seed*1103515245u+12345u; buf[i]=AL[(seed>>7)%8]; }
