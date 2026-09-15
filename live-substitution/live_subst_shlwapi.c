@@ -48,6 +48,7 @@ extern void           wia_pathremoveblanksa(char*);
 extern void           wia_pathremoveexta(char*);
 extern void           wia_pathundecoratea(char*);
 extern BOOL           wia_pathrenameexta(char*, const char*);
+extern void           wia_pathremoveargsa(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -88,6 +89,8 @@ static volatile LONG c_puda;
 static void WINAPI w_puda(PSTR p){ _InterlockedIncrement(&c_puda); wia_pathundecoratea(p); }
 static volatile LONG c_prea;
 static BOOL WINAPI w_prea(PSTR p, PCSTR e){ _InterlockedIncrement(&c_prea); return wia_pathrenameexta(p, e); }
+static volatile LONG c_praa;
+static void WINAPI w_praa(PSTR p){ _InterlockedIncrement(&c_praa); wia_pathremoveargsa(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1640,9 +1643,115 @@ int main(void){
         }
     }
 
+    // ===================== 226 PathRemoveArgsA =====================
+    // EXHAUSTIVE over {a, SPACE, QUOTE, TAB}, and comparing the WHOLE BUFFER against poison.
+    //
+    // The poison fill is not caution here, it is the only way to see two of this function's three
+    // behaviours. It writes a SECOND terminator PAST the first one -- "ab   c" gets terminators at
+    // 2 AND at 4, not at 2 and 3 -- so the bytes after the visible string are part of the contract.
+    // And when there is nothing to do it writes NOTHING AT ALL, not even a redundant terminator
+    // over the existing one. A string comparison passes an implementation that gets both wrong.
+    //
+    // The TAB is in the alphabet because "exactly 0x20 splits and whitespace in general does not"
+    // is a claim, and a corpus missing one character is precisely how eight landed changes in this
+    // repository shipped wrong earlier in this session.
+    printf("[226 PathRemoveArgsA]  shlwapi (exhaustive; whole buffer against poison)\n");
+    {
+        typedef void (WINAPI *fpa)(PSTR);
+        void* p_praa = (void*)GetProcAddress(hs, "PathRemoveArgsA");
+        OK(p_praa != NULL, "resolve PathRemoveArgsA");
+        if (p_praa) {
+            fpa sys = (fpa)p_praa;
+            patch_t praa_patch;
+            static const char AL4[4] = { 'a', ' ', '"', '\t' };
+            enum { XA = 640 };
+            char t[14], ba[XA], bb[XA];
+            long cases = 0, cut = 0, two = 0, untouched = 0, longc = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = cut = two = untouched = longc = 0;
+                for (int len = 0; len <= 9; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL4[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        memset(ba, '#', XA); memset(bb, '#', XA);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        wia_pathremoveargsa(ba);
+                        sys(bb);
+                        if (memcmp(ba, t, (size_t)len + 1) == 0) ++untouched;
+                        else {
+                            ++cut;
+                            /* a SECOND terminator somewhere past the first one */
+                            { int i = 0, z = 0;
+                              while (i < len && ba[i]) ++i;
+                              for (int j = i + 1; j < len; ++j) if (!ba[j]) { z = 1; break; }
+                              if (z) ++two; }
+                        }
+                        if (memcmp(ba, bb, XA) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+                /* long strings: the quote parity is carried between 32-byte blocks by a popcount,
+                   and an off-by-one there only shows when a quote and a space land in different
+                   blocks -- so the quote walks every offset while the space sits 40 bytes later */
+                {
+                    static char big[640];
+                    for (int len = 40; len <= 300; len += 11) {
+                        for (int pos = 0; pos < len; pos += 5) {
+                            for (int shape = 0; shape < 3; ++shape) {
+                                for (int i = 0; i < len; ++i) big[i] = (char)('a' + i % 23);
+                                if (shape == 0) big[pos] = ' ';
+                                else if (shape == 1) { big[pos] = '"';
+                                                       if (pos + 40 < len) big[pos+40] = ' '; }
+                                else { big[pos] = '"';
+                                       if (pos + 20 < len) big[pos+20] = ' ';
+                                       if (pos + 45 < len) big[pos+45] = '"';
+                                       if (pos + 50 < len) big[pos+50] = ' '; }
+                                big[len] = 0;
+                                memset(ba, '#', XA); memset(bb, '#', XA);
+                                memcpy(ba, big, (size_t)len + 1);
+                                memcpy(bb, big, (size_t)len + 1);
+                                wia_pathremoveargsa(ba);
+                                sys(bb);
+                                if (memcmp(ba, bb, XA) != 0) ++mism;
+                                ++cases; ++longc;
+                            }
+                        }
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&praa_patch, p_praa, (void*)w_praa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_praa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_praa);
+                    printf("  corpus: %ld cases -- %ld that cut something, %ld of those writing a\n"
+                           "          SECOND terminator past the first, %ld left BYTE-FOR-BYTE\n"
+                           "          untouched (which only a poison fill can confirm), %ld long\n"
+                           "          enough for the quote parity to cross 32-byte blocks\n",
+                           cases, cut, two, untouched, longc);
+                    OK(two       > 1000, "the two-terminator shape ran in bulk");
+                    OK(untouched > 1000, "the write-nothing shape ran in bulk");
+                    OK(longc     > 500,  "the cross-block quote parity ran in bulk");
+                    OK(patch_off(&praa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 23 functions\n"
-               "(changes 132, 168-176 and 212-224: 22 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 24 functions\n"
+               "(changes 132, 168-176 and 212-226 less 225: 23 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1672,7 +1781,11 @@ int main(void){
                "the MAX_PATH boundary together, because that limit bounds the RESULT rather than the\n"
                "input -- an input-length sweep would validate an implementation that bounded the\n"
                "wrong quantity, and a string comparison would miss that a refusal has to leave the\n"
-               "buffer byte-for-byte untouched. Zero system\n"
+               "buffer byte-for-byte untouched. 226 is compared against a POISON FILL rather than\n"
+               "as a string, because it writes a SECOND terminator past the first one and because\n"
+               "a no-op case writes NOTHING AT ALL -- not even a redundant terminator over the\n"
+               "existing one -- and a string comparison passes an implementation that gets both\n"
+               "wrong. Zero system\n"
                "processes touched.\n");
         return 0;
     }

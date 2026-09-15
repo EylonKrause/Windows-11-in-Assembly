@@ -546,6 +546,35 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_226)
+#define NAME "226-pathremoveargsa"
+extern void wia_pathremoveargsa(char*);
+static void thunk(void){
+    /* this change PUSHES RBX to carry the quote parity across 32-byte blocks, and it has four
+       exits -- NULL, nothing-to-do, the trailing trim and the two-terminator split */
+    static char p[640];
+    memcpy(p, "C:\\dir\\app.exe -x", 18);
+    wia_pathremoveargsa(p);                  /* an ordinary split */
+    sink += p[0];
+    memcpy(p, "ab   c", 7);
+    wia_pathremoveargsa(p);                  /* behaviour 2: TWO terminators written */
+    sink += p[0] + p[4];
+    memcpy(p, "abc   ", 7);
+    wia_pathremoveargsa(p);                  /* behaviour 3: the trailing trim */
+    sink += p[0];
+    memcpy(p, "abcdef", 7);
+    wia_pathremoveargsa(p);                  /* nothing to do: writes nothing at all */
+    sink += p[0];
+    memcpy(p, "\"a b\" c", 8);
+    wia_pathremoveargsa(p);                  /* the quoted space does not split */
+    sink += p[0];
+    { int i; for (i = 0; i < 300; ++i) p[i] = 'a';
+      p[1] = '"'; p[150] = ' '; p[250] = '"'; p[280] = ' '; p[300] = 0; }
+    wia_pathremoveargsa(p);                  /* a quote parity carried across many blocks */
+    sink += p[0];
+    wia_pathremoveargsa(0);                  /* NULL */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
