@@ -15,6 +15,11 @@ semantics rather than sloppiness.
 | [`shlwapi_kernelbase.c`](shlwapi_kernelbase.c) | shlwapi and kernelbase string/path exports not already covered |
 | [`strcmpn_is_linguistic.c`](strcmpn_is_linguistic.c) | **negative result** — why `StrCmpNW`/`StrCmpNIW` are not targets |
 | [`strchri_is_linguistic.c`](strchri_is_linguistic.c) | **negative result** — why `StrChrIW` is not a target |
+| [`narrow_and_path.c`](narrow_and_path.c) | the narrow `lstr` family and the remaining path helpers |
+| [`shlwapi_narrow.c`](shlwapi_narrow.c) | every narrow shlwapi export whose WIDE sibling was already converted |
+| [`lstrcmp_is_linguistic.c`](lstrcmp_is_linguistic.c) | **negative result** — why `lstrcmpA`/`lstrcmpiA` are not targets |
+| [`strstra_not_bytewise.c`](strstra_not_bytewise.c) | **negative result** — why `StrStrA` is not a target |
+| [`extension_space_audit.c`](extension_space_audit.c) | **audit** — how far the missing `PathFindExtension` space rule had spread |
 
 ## What the surveys ruled out, and why
 
@@ -28,6 +33,48 @@ semantics rather than sloppiness.
 | `shlwapi!StrChrW` | 5.1 GB/s | reasonable for a scalar scan; the case-INSENSITIVE twin was the anomaly |
 
 ### Slow for a reason — the cost is semantics, not sloppiness
+
+**`shlwapi!StrStrA`** — the one that got furthest before dying, and the most instructive.
+
+It looked clean. 1.20× the wide cost for *half* the bytes, i.e. 2.4× per byte — a plain byte loop,
+not the MBCS walk the rest of the narrow shlwapi family turned out to be. The contract probe said
+byte-wise, case-sensitive, stopping at the terminator. An implementation was written; its correctness
+test ran **200 000 two-letter fuzz cases**, the alphabet that manufactures overlapping candidates,
+with zero failures.
+
+Then **one case in 100 000** failed, and the live export was the odd one:
+
+```
+needle C2 5E, in an 86-byte haystack of random bytes
+ours: NULL      oracle: NULL      LIVE EXPORT: offset 75
+and the bytes at offset 75 are C2 88 — not C2 5E
+```
+
+`0x5E` is `^` and `0x88` is U+02C6 MODIFIER LETTER CIRCUMFLEX on code page 1252. Three measurements
+said "a fold — reproduce it": a single-byte sweep over all 65 025 ordered pairs found **no** two bytes
+equal (so it is context-dependent); a per-position sweep found exactly **one** conflated pair,
+`{5E, 88}`, with the needle's first character still exact; and it is **not** the code page's best-fit
+table, since U+02C6 round-trips to `0x88` either way.
+
+The fourth killed it. **A single `0x88` in the haystack satisfies any number of needle `0x5E`
+characters** — one, two, three, four, five, six all match — and a single `0x5E` satisfies a needle of
+`88 88`. One character matching an unbounded *run* is not a fold, and no per-character rule expresses
+it. Over `{a, b, 5E, 88, 01, C2}` the export disagrees with a byte-wise search on **12.84%** of
+200 000 random cases.
+
+The wide sibling is genuinely ordinal — `StrStrW` conflates **0** pairs — which is why change 133
+stands. `discovery/strstra_not_bytewise.c` reproduces all seven measurements.
+
+> The lesson worth keeping: the "is it byte-wise?" probe every other narrow target in this project
+> passes varies the byte **in front of** the needle. It is blind to a conflation **inside** a
+> candidate, and it passed here.
+
+**`kernelbase!lstrcmpA` / `lstrcmpiA`** — 0.90 GB/s, the slowest thing the narrow survey found, and
+the tell was that the case-INSENSITIVE one cost the *same* as the case-sensitive one. Case-insensitivity
+being free means the routine was going to normalise every character anyway. `lstrcmpA("A","a")`
+returns **+1** where ordinal demands negative, and the sign disagrees with `strcmp` on **44 689 of
+200 000** random pairs (22.34%). The CRT's `strcmp` does the same 4000 characters in 203 ns against
+4792, so the cost *is* the collation work, not a lazy loop. Dead, exactly like `StrCmpNW`.
 
 **`shlwapi!StrCmpNW` / `StrCmpNIW`** — 1.25 GB/s, against their own *unbounded* twins' 9.92 GB/s.
 Eight times slower for strictly less work, which looked like the best find of the survey. It is not:
