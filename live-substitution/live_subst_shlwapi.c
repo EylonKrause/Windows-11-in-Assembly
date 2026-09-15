@@ -1,7 +1,7 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 132, 168-176 and 212-218 -- the shlwapi functions converted on the
+// LIVE-RUN PROOF for changes 132, 168-176 and 212-219 -- the shlwapi functions converted on the
 // second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
-// halves of PathFindExtension, and StrTrimA.
+// halves of PathFindExtension, StrTrimA and PathStripPathA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -42,6 +42,7 @@ extern int         wia_strspna(const char*, const char*);
 extern const char*    wia_pathfindexta(const char*);
 extern const wchar_t* wia_pathfindextw(const wchar_t*);
 extern int            wia_strtrima(char*, const char*);
+extern void           wia_pathstrippatha(char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -70,6 +71,8 @@ static PSTR  WINAPI w_pxa(PCSTR p){ _InterlockedIncrement(&c_pxa); return (PSTR)
 static PWSTR WINAPI w_pxw(PCWSTR p){ _InterlockedIncrement(&c_pxw); return (PWSTR)wia_pathfindextw(p); }
 static volatile LONG c_trma;
 static BOOL WINAPI w_trma(PSTR p, PCSTR set){ _InterlockedIncrement(&c_trma); return (BOOL)wia_strtrima(p,set); }
+static volatile LONG c_spa;
+static void WINAPI w_spa(PSTR p){ _InterlockedIncrement(&c_spa); wia_pathstrippatha(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -1055,9 +1058,76 @@ int main(void){
         }
     }
 
+    // ===================== 219 PathStripPathA =====================
+    // EXHAUSTIVE, and comparing the WHOLE BUFFER -- both for reasons already paid for elsewhere in
+    // this file. The separator rule is the non-local one change 212 derived (a colon separates only
+    // when it is the SOLE colon in its run), so a sampled corpus would validate a wrong
+    // implementation; and the export leaves the bytes past the new terminator untouched, so a
+    // zero-filling implementation would leave the same STRING on every input.
+    //
+    // The alphabet carries a SPACE. That is not decoration: change 132 shipped a PathFindExtension
+    // rule missing exactly that character and three more landed changes inherited it, all corrected
+    // in this session. probes/strip.c cleared this function over 488281 space-bearing strings; this
+    // keeps it cleared against the live export.
+    printf("[219 PathStripPathA]  shlwapi (exhaustive, whole-buffer, space in the alphabet)\n");
+    {
+        typedef void (WINAPI *fsp)(PSTR);
+        void* p_spa = (void*)GetProcAddress(hs, "PathStripPathA");
+        OK(p_spa != NULL, "resolve PathStripPathA");
+        if (p_spa) {
+            fsp sys = (fsp)p_spa;
+            patch_t spa_patch;
+            static const char AL5[5] = { 'a', '\\', '/', ':', ' ' };
+            enum { SB = 64 };
+            char t[12], ba[SB], bb[SB];
+            long cases = 0, withspace = 0, moved = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = withspace = moved = 0;
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 5;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int sp = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL5[v % 5]; if (t[i]==' ') sp = 1; v /= 5; }
+                        t[len] = 0;
+                        if (sp) ++withspace;
+                        memset(ba, '#', SB); memset(bb, '#', SB);
+                        memcpy(ba, t, (size_t)len + 1);
+                        memcpy(bb, t, (size_t)len + 1);
+                        wia_pathstrippatha(ba);
+                        sys(bb);                       /* routes to OUR code in pass 1 */
+                        if ((int)strlen(ba) != len) ++moved;
+                        if (memcmp(ba, bb, SB) != 0) ++mism;   /* THE WHOLE BUFFER */
+                        ++cases;
+                    }
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&spa_patch, p_spa, (void*)w_spa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_spa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_spa);
+                    printf("  corpus: %ld exhaustive strings over {a,backslash,slash,colon,space} of\n"
+                           "          length 0..7, %ld containing a SPACE, %ld of which actually MOVED\n",
+                           cases, withspace, moved);
+                    OK(withspace > 20000, "the space shapes ran in bulk");
+                    OK(moved     > 5000,  "cases that actually move ran in bulk");
+                    OK(patch_off(&spa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 17 functions\n"
-               "(changes 132, 168-176 and 212-218: 16 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 18 functions\n"
+               "(changes 132, 168-176 and 212-219: 17 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
@@ -1075,7 +1145,9 @@ int main(void){
                "on exactly the shapes a random corpus could not reach. For 218 every case compares\n"
                "the WHOLE BUFFER, because that function writes only what it must and the ORDER of its\n"
                "two writes is observable -- an implementation that moved first and terminated once\n"
-               "would return the same BOOL and leave the same STRING on every input. Zero system\n"
+               "would return the same BOOL and leave the same STRING on every input. 219 is both at\n"
+               "once -- exhaustive AND whole-buffer -- and its alphabet carries a space, because that\n"
+               "is the character four landed changes were wrong about this session. Zero system\n"
                "processes touched.\n");
         return 0;
     }

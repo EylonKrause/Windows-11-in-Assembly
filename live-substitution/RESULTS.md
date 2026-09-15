@@ -314,3 +314,22 @@ only about 160 of them, while the no-op is precisely the case that must write no
 Of 6 000 cases: **3 130** trimmed both ends (the overlapping move), **611** leading only, **635**
 trailing only, **1 367** nothing, **257** were entirely trim characters, and **4 855** carried a
 high-byte set member.
+
+### 219 - exhaustive AND whole-buffer, with a space in the alphabet
+
+This entry needs all three disciplines this file has accumulated, for three different reasons.
+
+**Exhaustive**, because the separator rule is the non-local one change 212 derived -- a colon
+separates only when it is the SOLE colon in its run -- so a sampled corpus would validate a wrong
+implementation, as it nearly did for 212.
+
+**Whole-buffer**, because the export leaves the bytes past the new terminator untouched: stripping
+`"C:\dir\file.txt"` leaves `"file.txt\0"` followed by the stale tail `"le.txt\0"`. A zero-filling
+implementation would leave the same STRING on every input.
+
+**A space in the alphabet**, because that is the character four landed changes turned out to be wrong
+about this session (132 and, by inheritance, 140, 143 and 144). `probes/strip.c` cleared both halves
+of PathStripPath over 488 281 space-bearing strings; this keeps them cleared against the live export.
+
+**97 656** exhaustive strings over {a, backslash, slash, colon, space} of length 0..7, each compared
+across the whole buffer.
