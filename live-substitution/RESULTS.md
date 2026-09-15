@@ -96,6 +96,7 @@ live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-
 live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
 live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA)
+live-substitution\build_combase_live.bat    (206 StringFromGUID2)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
 `tools\revalidate.ps1` runs every one of them in sequence and fails the sweep if any harness fails.
@@ -138,3 +139,12 @@ would pass an implementation that scribbled a partial parse before noticing a ba
 also forces the two contract traps: a braced string must be REJECTED (the opposite of ntdll's parser),
 and a NULL pointer must SUCCEED with the nil UUID. Under the live patch, of 200 000 cases **141 233**
 parsed, **58 767** were rejected and **5 406** were the NULL pointer.
+
+### 206 - a refusal that must write nothing
+
+`StringFromGUID2` has **no truncating path**: `cchMax <= 38` returns 0 and leaves the buffer alone,
+where `ConvertGuidToStringW` (202/203) writes a truncated prefix for 1..38. Since 206 reuses 202's
+renderer, that is the one place the two could silently diverge, so every case here compares the whole
+buffer from a poisoned baseline -- refusals included -- and the corpus straddles the boundary and runs
+negative lengths, which must refuse rather than be read as enormous. Under the live patch, of 200 000
+cases **106 693** rendered, **93 307** refused, and **20 121** of those refusals were negative.
