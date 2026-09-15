@@ -11,19 +11,33 @@
 ; bytes remain in n; else it steps one byte at a time. Terminator stops the scan.
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
+; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
+; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
+; happens to keep its accumulators there. See tools/abi-check.
+;
+; Fitting in six registers costs nothing here. The range test was
+;       (c > 0x40) AND (0x5B > c)
+; whose second compare wants the constant as the FIRST operand, so it had to live in a register.
+; Rewritten as
+;       (c > 0x40) AND NOT (c > 0x5A)
+; both compares take c first, so both constants become memory operands and the two ANDs collapse
+; into one vpandn. Identical instruction count, three fewer live registers.
 .const
 c40b db 40h
-c5Bb db 5Bh
-c20b db 20h
+c5Ab db 5Ah
+; 32-byte forms of the constants now used as memory operands. VEX operands carry no
+; alignment requirement, so no ALIGN 32 (which .const rejects with A2189).
+c20m db 32 dup(20h)
+zerom db 32 dup(0)
 .code
 wia_strnicmp PROC
         test      r8, r8
         jz        ret_eq
         mov       r11, r8                           ; remaining bytes
-        vpbroadcastb ymm5, byte ptr [c40b]
-        vpbroadcastb ymm6, byte ptr [c5Bb]
-        vpbroadcastb ymm7, byte ptr [c20b]
-        vpxor     ymm1, ymm1, ymm1
+        vpbroadcastb ymm2, byte ptr [c40b]          ; 0x40  ('A'-1)
+        vpbroadcastb ymm3, byte ptr [c5Ab]          ; 0x5A  ('Z')
 
 top:
         cmp       r11, 32
@@ -44,21 +58,21 @@ vec32:
         cmp       r9, 4064
         ja        scalar_step
         vmovdqu   ymm0, ymmword ptr [rcx]
-        vmovdqu   ymm2, ymmword ptr [rdx]
-        vpcmpgtb  ymm3, ymm0, ymm5
-        vpcmpgtb  ymm4, ymm6, ymm0
-        vpand     ymm3, ymm3, ymm4
-        vpand     ymm3, ymm3, ymm7
-        vpaddb    ymm0, ymm0, ymm3
-        vpcmpgtb  ymm3, ymm2, ymm5
-        vpcmpgtb  ymm4, ymm6, ymm2
-        vpand     ymm3, ymm3, ymm4
-        vpand     ymm3, ymm3, ymm7
-        vpaddb    ymm2, ymm2, ymm3
-        vpcmpeqb  ymm3, ymm0, ymm2
+        vmovdqu   ymm1, ymmword ptr [rdx]
+        vpcmpgtb  ymm4, ymm0, ymm2
+        vpcmpgtb  ymm5, ymm0, ymm3
+        vpandn    ymm4, ymm5, ymm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     ymm4, ymm4, ymmword ptr [c20m]
+        vpaddb    ymm0, ymm0, ymm4
+        vpcmpgtb  ymm4, ymm1, ymm2
+        vpcmpgtb  ymm5, ymm1, ymm3
+        vpandn    ymm4, ymm5, ymm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     ymm4, ymm4, ymmword ptr [c20m]
+        vpaddb    ymm1, ymm1, ymm4
         vpcmpeqb  ymm4, ymm0, ymm1
-        vpmovmskb eax, ymm3
-        vpmovmskb r10d, ymm4
+        vpcmpeqb  ymm5, ymm0, ymmword ptr [zerom]
+        vpmovmskb eax, ymm4
+        vpmovmskb r10d, ymm5
         not       eax
         or        eax, r10d
         test      eax, eax
@@ -78,21 +92,21 @@ vec16:
         cmp       r9, 4080
         ja        scalar_step
         vmovdqu   xmm0, xmmword ptr [rcx]
-        vmovdqu   xmm2, xmmword ptr [rdx]
-        vpcmpgtb  xmm3, xmm0, xmm5
-        vpcmpgtb  xmm4, xmm6, xmm0
-        vpand     xmm3, xmm3, xmm4
-        vpand     xmm3, xmm3, xmm7
-        vpaddb    xmm0, xmm0, xmm3
-        vpcmpgtb  xmm3, xmm2, xmm5
-        vpcmpgtb  xmm4, xmm6, xmm2
-        vpand     xmm3, xmm3, xmm4
-        vpand     xmm3, xmm3, xmm7
-        vpaddb    xmm2, xmm2, xmm3
-        vpcmpeqb  xmm3, xmm0, xmm2
+        vmovdqu   xmm1, xmmword ptr [rdx]
+        vpcmpgtb  xmm4, xmm0, xmm2
+        vpcmpgtb  xmm5, xmm0, xmm3
+        vpandn    xmm4, xmm5, xmm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     xmm4, xmm4, xmmword ptr [c20m]
+        vpaddb    xmm0, xmm0, xmm4
+        vpcmpgtb  xmm4, xmm1, xmm2
+        vpcmpgtb  xmm5, xmm1, xmm3
+        vpandn    xmm4, xmm5, xmm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     xmm4, xmm4, xmmword ptr [c20m]
+        vpaddb    xmm1, xmm1, xmm4
         vpcmpeqb  xmm4, xmm0, xmm1
-        vpmovmskb eax, xmm3
-        vpmovmskb r10d, xmm4
+        vpcmpeqb  xmm5, xmm0, xmmword ptr [zerom]
+        vpmovmskb eax, xmm4
+        vpmovmskb r10d, xmm5
         not       eax
         or        eax, r10d
         and       eax, 0FFFFh
@@ -113,21 +127,21 @@ vec8:
         cmp       r9, 4088
         ja        scalar_step
         vmovq     xmm0, qword ptr [rcx]
-        vmovq     xmm2, qword ptr [rdx]
-        vpcmpgtb  xmm3, xmm0, xmm5
-        vpcmpgtb  xmm4, xmm6, xmm0
-        vpand     xmm3, xmm3, xmm4
-        vpand     xmm3, xmm3, xmm7
-        vpaddb    xmm0, xmm0, xmm3
-        vpcmpgtb  xmm3, xmm2, xmm5
-        vpcmpgtb  xmm4, xmm6, xmm2
-        vpand     xmm3, xmm3, xmm4
-        vpand     xmm3, xmm3, xmm7
-        vpaddb    xmm2, xmm2, xmm3
-        vpcmpeqb  xmm3, xmm0, xmm2
+        vmovq     xmm1, qword ptr [rdx]
+        vpcmpgtb  xmm4, xmm0, xmm2
+        vpcmpgtb  xmm5, xmm0, xmm3
+        vpandn    xmm4, xmm5, xmm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     xmm4, xmm4, xmmword ptr [c20m]
+        vpaddb    xmm0, xmm0, xmm4
+        vpcmpgtb  xmm4, xmm1, xmm2
+        vpcmpgtb  xmm5, xmm1, xmm3
+        vpandn    xmm4, xmm5, xmm4                  ; (c > 0x40) AND NOT (c > 0x5A)  ==  'A'..'Z'
+        vpand     xmm4, xmm4, xmmword ptr [c20m]
+        vpaddb    xmm1, xmm1, xmm4
         vpcmpeqb  xmm4, xmm0, xmm1
-        vpmovmskb eax, xmm3
-        vpmovmskb r10d, xmm4
+        vpcmpeqb  xmm5, xmm0, xmmword ptr [zerom]
+        vpmovmskb eax, xmm4
+        vpmovmskb r10d, xmm5
         not       eax
         or        eax, r10d
         and       eax, 0FFh

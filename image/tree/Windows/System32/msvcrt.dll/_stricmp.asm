@@ -15,16 +15,29 @@
 ; have >= 32 bytes to their page end; otherwise it steps one byte at a time. The
 ; terminator stops the scan. ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
+; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 (their low 128 bits are;
+; the upper halves are volatile), so an earlier cut of this function -- which parked constants in
+; ymm6/ymm7 -- silently destroyed any double the caller had live. That is invisible to a
+; correctness test, which compares integers. See tools/abi-check.
+;
+; Fitting in six registers costs nothing here. The range test was
+;       (c > 0x40) AND (0x5B > c)
+; whose second compare needs the constant as the FIRST operand, so it had to sit in a register.
+; Rewritten as
+;       (c > 0x40) AND NOT (c > 0x5A)
+; both compares take c first, so both constants become memory operands, and the two ANDs collapse
+; to one vpandn. Identical instruction count, three fewer live registers.
 .const
 c40b db 40h
-c5Bb db 5Bh
-c20b db 20h
+c5Ab db 5Ah
+; 32-byte forms for the two constants used as memory operands. VEX operands have no alignment
+; requirement, so no ALIGN 32 (which .const rejects with A2189).
+c20m db 32 dup(20h)
+zerom db 32 dup(0)
 .code
 wia_stricmp PROC
-        vpbroadcastb ymm5, byte ptr [c40b]         ; 0x40
-        vpbroadcastb ymm6, byte ptr [c5Bb]         ; 0x5B
-        vpbroadcastb ymm7, byte ptr [c20b]         ; 0x20
-        vpxor     ymm1, ymm1, ymm1
+        vpbroadcastb ymm2, byte ptr [c40b]         ; 0x40  ('A'-1)
+        vpbroadcastb ymm3, byte ptr [c5Ab]         ; 0x5A  ('Z')
 
 top:
         mov       r8, rcx
@@ -37,21 +50,21 @@ top:
         ja        scalar_step
 
         vmovdqu   ymm0, ymmword ptr [rcx]
-        vmovdqu   ymm2, ymmword ptr [rdx]
-        vpcmpgtb  ymm3, ymm0, ymm5                  ; b > 0x40
-        vpcmpgtb  ymm4, ymm6, ymm0                  ; 0x5B > b
-        vpand     ymm3, ymm3, ymm4
-        vpand     ymm3, ymm3, ymm7
-        vpaddb    ymm0, ymm0, ymm3
-        vpcmpgtb  ymm3, ymm2, ymm5
-        vpcmpgtb  ymm4, ymm6, ymm2
-        vpand     ymm3, ymm3, ymm4
-        vpand     ymm3, ymm3, ymm7
-        vpaddb    ymm2, ymm2, ymm3
-        vpcmpeqb  ymm3, ymm0, ymm2
-        vpcmpeqb  ymm4, ymm0, ymm1                  ; folded s1 == 0
-        vpmovmskb eax, ymm3
-        vpmovmskb r10d, ymm4
+        vmovdqu   ymm1, ymmword ptr [rdx]
+        vpcmpgtb  ymm4, ymm0, ymm2                  ; b > 0x40
+        vpcmpgtb  ymm5, ymm0, ymm3                  ; b > 0x5A
+        vpandn    ymm4, ymm5, ymm4                  ; (b > 0x40) AND NOT (b > 0x5A) == 'A'..'Z'
+        vpand     ymm4, ymm4, ymmword ptr [c20m]
+        vpaddb    ymm0, ymm0, ymm4
+        vpcmpgtb  ymm4, ymm1, ymm2
+        vpcmpgtb  ymm5, ymm1, ymm3
+        vpandn    ymm4, ymm5, ymm4
+        vpand     ymm4, ymm4, ymmword ptr [c20m]
+        vpaddb    ymm1, ymm1, ymm4
+        vpcmpeqb  ymm4, ymm0, ymm1
+        vpcmpeqb  ymm5, ymm0, ymmword ptr [zerom]   ; folded s1 == 0
+        vpmovmskb eax, ymm4
+        vpmovmskb r10d, ymm5
         not       eax
         or        eax, r10d
         test      eax, eax

@@ -17,6 +17,12 @@
 
 EXTERN wia_upcase:WORD
 
+; REGISTER NOTE. This function may only touch xmm0-xmm5: xmm6-xmm15 are CALLEE-SAVED under Win64
+; (their low 128 bits are; the upper halves are volatile). An earlier cut held the haystack chunk in
+; ymm6, which silently destroyed any double the caller had live -- invisible to a correctness test,
+; which compares an NTSTATUS and a position. Only registers 0, 4 and 6 were ever in use here, so
+; moving the chunk to ymm1 costs nothing at all. See tools/abi-check.
+;
 .code
 wia_findchar PROC
         push      rbx
@@ -58,12 +64,12 @@ vf_loop:
         sub       eax, r12d
         cmp       eax, 16
         jb        vf_try8
-        vmovdqu   ymm6, ymmword ptr [rsi + r12*2]
+        vmovdqu   ymm1, ymmword ptr [rsi + r12*2]; the haystack chunk, invariant across the set-broadcast loop
         vpxor     ymm4, ymm4, ymm4
         xor       rax, rax
 vf_bcast:
         vpbroadcastw ymm0, word ptr [rdi + rax*2]
-        vpcmpeqw  ymm0, ymm6, ymm0
+        vpcmpeqw  ymm0, ymm1, ymm0; the haystack chunk, invariant across the set-broadcast loop
         vpor      ymm4, ymm4, ymm0
         inc       rax
         cmp       eax, r11d
@@ -90,12 +96,12 @@ vf_next:
 vf_try8:
         cmp       eax, 8
         jb        vf_scalar
-        vmovdqu   xmm6, xmmword ptr [rsi + r12*2]
+        vmovdqu   xmm1, xmmword ptr [rsi + r12*2]; the haystack chunk, invariant across the set-broadcast loop
         vpxor     xmm4, xmm4, xmm4
         xor       rax, rax
 vf8_bcast:
         vpbroadcastw xmm0, word ptr [rdi + rax*2]
-        vpcmpeqw  xmm0, xmm6, xmm0
+        vpcmpeqw  xmm0, xmm1, xmm0; the haystack chunk, invariant across the set-broadcast loop
         vpor      xmm4, xmm4, xmm0
         inc       rax
         cmp       eax, r11d

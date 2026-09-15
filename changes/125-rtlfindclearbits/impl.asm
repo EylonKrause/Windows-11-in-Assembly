@@ -20,6 +20,12 @@
 ; ISA: AVX2 + POPCNT + LZCNT/TZCNT. Validated on Zen3.
 ;   frame: [rsp]=word  [rsp+8]=scan limit  [rsp+16]=startpos  [rsp+24]=pass flag
 
+; REGISTER NOTE. This function may only touch xmm0-xmm5: xmm6-xmm15 are CALLEE-SAVED under Win64
+; (their low 128 bits are; the upper halves are volatile). An earlier cut kept the all-ones vector
+; and the broadcast invert mask in ymm7/ymm6, which silently destroyed any double the caller had
+; live -- invisible to a correctness test, which compares a bit index. Only registers 0 and 1 were
+; otherwise in use, so moving the pair to ymm3/ymm2 costs nothing. See tools/abi-check.
+;
 .code
 wia_findclearbits PROC
         push      rbx
@@ -56,10 +62,10 @@ num_pos:
 sp_ok:
         mov       r13d, eax                        ; startpos
         mov       [rsp + 16], r13
-        ; ymm7 = all ones; ymm6 = broadcast(invert) so (chunk XOR ymm6) has target bits = 0
-        vpcmpeqd  ymm7, ymm7, ymm7
-        vmovq     xmm6, r14
-        vpbroadcastq ymm6, xmm6
+        ; ymm3 = all ones; ymm2 = broadcast(invert) so (chunk XOR ymm2) has target bits = 0
+        vpcmpeqd  ymm3, ymm3, ymm3
+        vmovq     xmm2, r14
+        vpbroadcastq ymm2, xmm2
         mov       [rsp + 8], r9                    ; pass 1 limit = n
         mov       byte ptr [rsp + 24], 1
         mov       r8, r13                          ; from = startpos
@@ -77,8 +83,8 @@ sf_loop:
         mov       rdx, r8
         shr       rdx, 3
         vmovdqu   ymm0, ymmword ptr [rsi + rdx]
-        vpxor     ymm0, ymm0, ymm6                 ; target bits -> 0
-        vpxor     ymm1, ymm0, ymm7                 ; ~ (no-target => all ones => this is 0)
+        vpxor     ymm0, ymm0, ymm2                 ; target bits -> 0
+        vpxor     ymm1, ymm0, ymm3                 ; ~ (no-target => all ones => this is 0)
         vptest    ymm1, ymm1
         jnz       sf_word                          ; some target bit present -> handle word-by-word
         add       r8, 256                          ; all non-target: skip, run broken
