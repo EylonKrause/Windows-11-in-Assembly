@@ -53,6 +53,7 @@ extern char*          wia_strcatbuffa(char*, const char*, int);
 extern char*          wia_pathremovebackslasha(char*);
 extern int            wia_pathquotespacesa(char*);
 extern char*          wia_pathfindnextcomponenta(const char*);
+extern int            wia_pathisfilespeca(const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -103,6 +104,8 @@ static volatile LONG c_pqsa;
 static BOOL WINAPI w_pqsa(PSTR p){ _InterlockedIncrement(&c_pqsa); return wia_pathquotespacesa(p); }
 static volatile LONG c_pfnca;
 static LPCSTR WINAPI w_pfnca(LPCSTR p){ _InterlockedIncrement(&c_pfnca); return wia_pathfindnextcomponenta(p); }
+static volatile LONG c_pifsa;
+static BOOL WINAPI w_pifsa(LPCSTR p){ _InterlockedIncrement(&c_pifsa); return (BOOL)wia_pathisfilespeca(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -2129,9 +2132,103 @@ int main(void){
         }
     }
 
+
+    // ===================== 235 PathIsFileSpecA =====================
+    // The whole contract is a BOOL, so the corpus has to be chosen for BRANCH coverage rather than
+    // for value coverage. Two things make that non-trivial:
+    //
+    //   * THERE ARE TWO SEPARATORS, 0x5C and 0x3A, and the colon is the one a reader forgets. Both
+    //     appear in the enumeration alphabet, and both are also swept across EVERY position of a
+    //     long string so a block-boundary bug cannot hide behind the short cases.
+    //   * THE EMPTY STRING IS TRUE. That is the single case a natural model gets wrong -- it was the
+    //     only mismatch in 488281 strings when the probe first ran with "non-empty" in its rule --
+    //     so the enumeration starts at length 0 and the count of TRUE answers is asserted.
+    printf("[235 PathIsFileSpecA]  shlwapi (exhaustive to length 8 + both separators at every position)\n");
+    {
+        typedef BOOL (WINAPI *fis)(LPCSTR);
+        void* p_pifsa = (void*)GetProcAddress(hs, "PathIsFileSpecA");
+        OK(p_pifsa != NULL, "resolve PathIsFileSpecA");
+        if (p_pifsa) {
+            fis sys = (fis)p_pifsa;
+            patch_t pifsa_patch;
+            static const char AL5[5] = { 'a', 0x5C, 0x3A, '/', (char)0x80 };
+            char t[128];
+            long cases = 0, trues = 0, empties = 0, colons = 0, backslashes = 0, sweeps = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = trues = empties = colons = backslashes = sweeps = 0;
+                for (int len = 0; len <= 8; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 5;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL5[v % 5]; v /= 5; }
+                        t[len] = 0;
+                        int ra = !!wia_pathisfilespeca(t);
+                        int rc = !!sys(t);
+                        if (ra != rc) ++mism;
+                        if (ra) ++trues;
+                        if (len == 0) ++empties;
+                        for (int i = 0; i < len; ++i) {
+                            if (t[i] == 0x3A) { ++colons; break; }
+                        }
+                        for (int i = 0; i < len; ++i) {
+                            if (t[i] == 0x5C) { ++backslashes; break; }
+                        }
+                        ++cases;
+                    }
+                }
+                /* BOTH separators at EVERY position of strings that span several 32-byte blocks */
+                for (int len = 1; len <= 70; ++len) {
+                    for (int i = 0; i < len; ++i) t[i] = (char)('a' + i % 23);
+                    t[len] = 0;
+                    if (!!wia_pathisfilespeca(t) != !!sys(t)) ++mism;
+                    ++cases; ++sweeps;
+                    for (int pos = 0; pos < len; ++pos) {
+                        char save = t[pos];
+                        t[pos] = 0x5C;
+                        if (!!wia_pathisfilespeca(t) != !!sys(t)) ++mism;
+                        t[pos] = 0x3A;
+                        if (!!wia_pathisfilespeca(t) != !!sys(t)) ++mism;
+                        t[pos] = save;
+                        cases += 2; sweeps += 2;
+                    }
+                }
+                /* NULL, and the empty string asserted on its own */
+                if (!!wia_pathisfilespeca(0) != !!sys(0)) ++mism;
+                if (!!wia_pathisfilespeca("") != !!sys("")) ++mism;
+                cases += 2;
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (exhaustive + full sweep)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pifsa_patch, p_pifsa, (void*)w_pifsa), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pifsa > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pifsa);
+                    printf("  corpus: %ld cases -- %ld TRUE, %ld the EMPTY STRING (which is TRUE, the\n"
+                           "          one case a natural model gets wrong), %ld containing a COLON and\n"
+                           "          %ld a BACKSLASH (two separators, not one), and %ld placements of\n"
+                           "          both separators at EVERY position of strings up to 70 bytes\n",
+                           cases, trues, empties, colons, backslashes, sweeps);
+                    OK(trues       > 100, "the TRUE answer ran in bulk");
+                    OK(empties     > 0,   "the empty string was exercised");
+                    OK(colons      > 100, "the COLON separator ran in bulk");
+                    OK(backslashes > 100, "the BACKSLASH separator ran in bulk");
+                    OK(sweeps      > 4000,"the every-position sweep ran in full");
+                    OK(patch_off(&pifsa_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 28 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-234: 27 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 29 functions\n"
+               "(changes 132, 168-176, 212-226 less 225, and 231-235: 28 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
