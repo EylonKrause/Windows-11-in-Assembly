@@ -95,7 +95,7 @@ live-substitution\build_fmt_s_live.bat      (the bounded 64-bit formatters: 194-
 live-substitution\build_fmt32_s_live.bat    (the bounded 32-bit formatters: 198-201, SIX exports)
 live-substitution\build_iphlpapi_live.bat   (202 + 203 ConvertGuidToStringW/A)
 live-substitution\build_udiv128_live.bat    (204 RtlUdiv128)
-live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA)
+live-substitution\build_rpcrt4_live.bat     (205 UuidFromStringA + 208 UuidFromStringW)
 live-substitution\build_combase_live.bat    (206 StringFromGUID2 + 207 IIDFromString)
 ```
 Each assembles the landed `impl.asm`, links the counting wrappers + hot-patcher, runs the proof.
@@ -139,6 +139,16 @@ would pass an implementation that scribbled a partial parse before noticing a ba
 also forces the two contract traps: a braced string must be REJECTED (the opposite of ntdll's parser),
 and a NULL pointer must SUCCEED with the nil UUID. Under the live patch, of 200 000 cases **141 233**
 parsed, **58 767** were rejected and **5 406** were the NULL pointer.
+
+### 208 - proving a saturating narrow against the real export
+
+The wide parser narrows its 36 UTF-16 cells to bytes with `vpackuswb` before parsing, which is only
+sound because `0100h-7FFFh` clamp to `0FFh`, `8000h-FFFFh` are negative and clamp to `00h` -- both
+invalid in the hex table -- and nothing but `002Dh` can become `'-'`. So its corpus injects characters
+above `0xFF`, including U+0130 and U+FF21 (a truncating narrow would read those as `'0'` and `'!'`)
+and U+802D and U+FF2D (a careless one could turn those into a separator). Under the live patch, of
+200 000 cases **108 210** parsed, **91 790** were rejected, and **21 482** carried a character above
+`0xFF`.
 
 ### 206 - a refusal that must write nothing
 
