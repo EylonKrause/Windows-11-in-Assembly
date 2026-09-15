@@ -1,5 +1,6 @@
 // live-substitution/live_subst_shlwapi.c
-// LIVE-RUN PROOF for changes 168-173 -- the shlwapi functions converted on the second PC.
+// LIVE-RUN PROOF for changes 168-176 and 212 -- the shlwapi functions converted on the second PC,
+// plus the NARROW PathFindFileNameA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
@@ -32,6 +33,7 @@ extern wchar_t* wia_pathfindnextcomponentw(const wchar_t*);
 extern void     wia_pathundecoratew(wchar_t*);
 extern void     wia_pathremoveargsw(wchar_t*);
 extern long     wia_pathcchremovebackslash(wchar_t*, size_t);
+extern const char* wia_pathfindfilenamea(const char*);
 
 static volatile LONG c_cpyn, c_chrn, c_catb, c_prb, c_pqs, c_pfnc;
 static PWSTR WINAPI w_cpyn(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_cpyn); return wia_strcpynw(d,s,n); }
@@ -45,6 +47,8 @@ static void  WINAPI w_pud (PWSTR p){ _InterlockedIncrement(&c_pud);  wia_pathund
 static void  WINAPI w_pra (PWSTR p){ _InterlockedIncrement(&c_pra);  wia_pathremoveargsw(p); }
 static volatile LONG c_pcrb;
 static HRESULT WINAPI w_pcrb(PWSTR p, size_t n){ _InterlockedIncrement(&c_pcrb); return (HRESULT)wia_pathcchremovebackslash(p,n); }
+static volatile LONG c_pffa;
+static PSTR WINAPI w_pffa(PCSTR p){ _InterlockedIncrement(&c_pffa); return (PSTR)wia_pathfindfilenamea(p); }
 
 // ---- x64 hot-patch: prologue -> jmp [rip+0]; abs64 ----
 typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
@@ -458,10 +462,90 @@ int main(void){
         }
     }
 
+    // ===================== 212 PathFindFileNameA =====================
+    // THE CORPUS HERE IS EXHAUSTIVE, NOT SAMPLED, AND THAT IS THE POINT. The separator rule is not
+    // local: a colon sets the answer only when it is the SOLE colon in its run, so a random path
+    // corpus -- which almost never produces two colons between the same pair of backslashes -- would
+    // validate a WRONG implementation. probes/rule.c measured exactly that: the plausible simpler
+    // rule matches the live export on ordinary paths and differs on 76672 of the 349525 strings over
+    // {a, backslash, slash, colon}. So the live run enumerates that alphabet too.
+    printf("[212 PathFindFileNameA]  shlwapi (the rule is NOT local -- exhaustive corpus)\n");
+    {
+        typedef PSTR (WINAPI *fna)(PCSTR);
+        void* p_pffa = (void*)GetProcAddress(hs, "PathFindFileNameA");
+        OK(p_pffa != NULL, "resolve PathFindFileNameA");
+        if (p_pffa) {
+            fna sys = (fna)p_pffa;
+            static const char AL[4] = { 'a', '\\', '/', ':' };
+            char t[16];
+            long cases = 0, twocolon = 0;
+            int vpre = 0;
+            for (int len = 0; len <= 7; ++len) {
+                long combos = 1;
+                for (int i = 0; i < len; ++i) combos *= 4;
+                for (long c = 0; c < combos; ++c) {
+                    long v = c; int cols = 0;
+                    for (int i = 0; i < len; ++i) { t[i] = AL[v & 3]; if (t[i]==':') ++cols; v >>= 2; }
+                    t[len] = 0;
+                    if (cols >= 2) ++twocolon;
+                    const char* ra = wia_pathfindfilenamea(t);
+                    const char* rb = (const char*)sys(t);
+                    if ((ra - t) != (rb - t)) ++vpre;
+                    ++cases;
+                }
+            }
+            OK(vpre == 0, "validate-first vs the LIVE export (exhaustive)");
+            if (vpre) printf("  UNPROVEN -> NOT patching\n\n");
+            else {
+                patch_t p; OK(patch_on(&p, p_pffa, (void*)w_pffa), "install patch");
+                LONG before = c_pffa; int mism = 0; long c2 = 0;
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c; int cols = 0;
+                        for (int i = 0; i < len; ++i) { t[i] = AL[v & 3]; if (t[i]==':') ++cols; v >>= 2; }
+                        t[len] = 0;
+                        if (cols >= 2) ++c2;
+                        const char* ra = wia_pathfindfilenamea(t);
+                        const char* rb = (const char*)sys(t);   /* routes to OUR code */
+                        if ((ra - t) != (rb - t)) ++mism;
+                    }
+                }
+                /* and real-shaped long paths, which is what the block-skipping path sees */
+                static char big[600];
+                for (int k = 0; k < 4000; ++k) {
+                    int sl = 1 + (k % 400);
+                    for (int i = 0; i < sl; ++i) big[i] = (char)('a' + (i % 23));
+                    for (int i = 7; i < sl; i += 11) big[i] = '\\';
+                    if (sl > 3) big[1] = ':';
+                    big[sl] = 0;
+                    const char* ra = wia_pathfindfilenamea(big);
+                    const char* rb = (const char*)sys(big);
+                    if ((ra - big) != (rb - big)) ++mism;
+                }
+                OK(mism == 0, "identical under live patch");
+                OK(c_pffa - before >= cases, "counter proves OUR code executed");
+                printf("  under live patch: %s;  our-code calls = %ld\n",
+                       mism ? "MISMATCH" : "all match", (long)(c_pffa - before));
+                printf("  corpus: %ld exhaustive strings over {a,backslash,slash,colon} of length "
+                       "0..7,\n          of which %ld hold TWO OR MORE COLONS -- the shapes that "
+                       "separate the\n          real rule from the plausible one -- plus 4000 "
+                       "long real-shaped paths\n", cases, twocolon);
+                OK(twocolon > 1000, "the two-colon shapes ran in bulk");
+                OK(patch_off(&p), "unpatch verified byte-identical");
+                printf("  unpatched cleanly.\n\n");
+            }
+        }
+    }
+
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 9 functions\n"
-               "(changes 168-176: 8 shlwapi + 1 kernelbase), results identical to the live\n"
-               "exports, every prologue restored byte-for-byte. Zero system processes touched.\n");
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 10 functions\n"
+               "(changes 168-176 and 212: 9 shlwapi + 1 kernelbase), results identical to the live\n"
+               "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
+               "rather than sampled, because that function's separator rule is not local and a\n"
+               "random path corpus would validate a wrong implementation. Zero system processes\n"
+               "touched.\n");
         return 0;
     }
     printf("SHLWAPI LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);

@@ -258,6 +258,17 @@ static void thunk(void){
     sink += (long long)(size_t)wia_lstrcpyna(b8, a8, 0);
 }
 
+#elif defined(T_212)
+#define NAME "212-pathfindfilenamea"
+extern const char* wia_pathfindfilenamea(const char*);
+static void thunk(void){
+    /* a long path (whole-block skipping), one with no separator at all, and the NULL exit */
+    static const char* p = "C:\\some\\reasonably\\long\\path\\to\\a\\file.txt";
+    sink += (long long)(size_t)wia_pathfindfilenamea(p);
+    sink += (long long)(size_t)wia_pathfindfilenamea(a8);
+    sink += (long long)(size_t)wia_pathfindfilenamea(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
