@@ -621,6 +621,51 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_229)
+#define NAME "229-lstrcpyw"
+extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
+static void thunk(void){
+    /* the fault paths unwind through compiled C, and an unwind that restored the wrong registers
+       or left the upper YMM halves dirty is invisible to correctness because the return is NULL
+       either way -- so both fault shapes are driven, INCLUDING the odd-aligned destination that
+       the whole-character clamp exists for */
+    static wchar_t d[8300];
+    static wchar_t s[4200];
+    int i;
+    for (i = 0; i < 4000; ++i) s[i] = L'a';
+    s[4000] = 0;
+    sink += (long long)(size_t)wia_lstrcpyw(d, s);          /* long: the 64-byte loop */
+    sink += d[0];
+    s[7] = 0;
+    sink += (long long)(size_t)wia_lstrcpyw(d, s);          /* short: the tail ladder only */
+    sink += (long long)(size_t)wia_lstrcpyw(d + 1, s + 1);  /* both unaligned */
+    sink += (long long)(size_t)wia_lstrcpyw(d, L"");        /* empty */
+    sink += (long long)(size_t)wia_lstrcpyw(d, 0);          /* NULL source */
+    sink += (long long)(size_t)wia_lstrcpyw(0, L"abc");     /* NULL destination */
+    {
+        SYSTEM_INFO si; SIZE_T pg; char* base; DWORD old; int tail;
+        GetSystemInfo(&si);
+        pg = si.dwPageSize;
+        base = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+        if (base) {
+            VirtualProtect(base+pg, pg, PAGE_NOACCESS, &old);
+            for (tail = 1; tail <= 40; ++tail) {            /* a faulting SOURCE */
+                wchar_t* q = (wchar_t*)(base+pg) - tail;
+                for (i = 0; i < tail; ++i) q[i] = L'a';     /* NO terminator */
+                sink += (long long)(size_t)wia_lstrcpyw(d, q);
+            }
+            for (i = 0; i < 400; ++i) s[i] = L'b';
+            s[400] = 0;
+            for (tail = 1; tail <= 41; ++tail) {            /* a faulting DESTINATION, ODD and even
+                                                               widths in BYTES */
+                char* q = (base+pg) - tail;
+                sink += (long long)(size_t)wia_lstrcpyw((wchar_t*)q, s);
+            }
+            VirtualFree(base, 0, MEM_RELEASE);
+        }
+    }
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);

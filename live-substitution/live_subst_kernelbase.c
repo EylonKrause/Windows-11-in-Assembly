@@ -47,17 +47,21 @@ extern char*    wia_lstrcpyna(char*, const char*, int);
 extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, int, BOOL);
 extern int      wia_lstrlena(const char*);
 extern char*    wia_lstrcpya(char*, const char*);
+extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
 typedef int      (WINAPI *FNL)(const char*);
 typedef char*    (WINAPI *FNPA)(char*, const char*);
+typedef wchar_t* (WINAPI *FNPW)(wchar_t*, const wchar_t*);
 
 static volatile LONG c_cpn, c_cso, c_cpna, c_lena;
 static int WINAPI w_lena(const char* p){ _InterlockedIncrement(&c_lena); return wia_lstrlena(p); }
 static volatile LONG c_cpa;
 static char* WINAPI w_cpa(char* d, const char* q){ _InterlockedIncrement(&c_cpa); return wia_lstrcpya(d, q); }
+static volatile LONG c_cpw2;
+static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
 }
@@ -590,10 +594,127 @@ int main(void){
         }
     }
 
+    // ===================== 229 lstrcpyW =====================
+    // THE SPLIT CHARACTER is what this block is for, and it is a question the narrow sibling could
+    // not ask. lstrcpyW has no bound, so it runs off the end of a destination too small for the
+    // source, returning NULL with the destination filled to its last writable character. When that
+    // destination has an ODD number of writable bytes the last character cannot be stored whole --
+    // and probes/cpyw.c measured that the export writes WHOLE CHARACTERS ONLY, never half of one.
+    //
+    // An implementation whose page clamp rounds in BYTES rather than CHARACTERS passes every
+    // ordinary corpus, returns the right NULL, and leaves ONE EXTRA BYTE in the caller's buffer.
+    // Nothing crashes; no return value differs. Only an odd-width destination at a guard page sees
+    // it, so every width from 1 to 201 bytes is swept here, odd and even.
+    printf("[229 lstrcpyW]  kernelbase (both guards + EVERY destination width in BYTES)\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrcpyW");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrcpyW") : NULL; }
+        OK(q != NULL, "resolve lstrcpyW");
+        if (q) {
+            FNPW syscp = (FNPW)q;
+            SYSTEM_INFO si; GetSystemInfo(&si);
+            SIZE_T pg = si.dwPageSize;
+            char* gsrc = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gda  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gdc  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            static wchar_t pool[4096], da[4096], dc[4096], src[2200];
+            DWORD old;
+            OK(gsrc && gda && gdc, "VirtualAlloc guard pairs");
+            if (gsrc) VirtualProtect(gsrc+pg, pg, PAGE_NOACCESS, &old);
+            if (gda)  VirtualProtect(gda+pg,  pg, PAGE_NOACCESS, &old);
+            if (gdc)  VirtualProtect(gdc+pg,  pg, PAGE_NOACCESS, &old);
+            patch_t ptw;
+            long cases = 0, srcfault = 0, oddw = 0, evenw = 0, longc = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2 && gsrc && gda && gdc; ++pass) {
+                int mism = 0;
+                cases = srcfault = oddw = evenw = longc = 0;
+                /* ordinary: alignments x lengths */
+                for (int so = 0; so < 8; ++so) {
+                    for (int dof = 0; dof < 8; ++dof) {
+                        for (int n = 0; n <= 70; ++n) {
+                            wchar_t* sp = pool + so;
+                            for (int i = 0; i < n; ++i) sp[i] = (wchar_t)(L'a' + i % 23);
+                            sp[n] = 0;
+                            for (int i = 0; i < 300; ++i) { da[i] = 0x2A2A; dc[i] = 0x2A2A; }
+                            wchar_t* ra = wia_lstrcpyw(da + dof, sp);
+                            wchar_t* rc = syscp(dc + dof, sp);
+                            if ((ra == da + dof) != (rc == dc + dof)) ++mism;
+                            if (memcmp(da, dc, 300*sizeof(wchar_t)) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+                /* long subjects, driving the hoisted 64-byte loop across page boundaries */
+                for (int n = 200; n <= 2000; n += 37) {
+                    for (int i = 0; i < n; ++i) src[i] = (wchar_t)(L'a' + i % 23);
+                    src[n] = 0;
+                    for (int dof = 0; dof < 2; ++dof) {
+                        for (int i = 0; i < 2100; ++i) { da[i] = 0x2A2A; dc[i] = 0x2A2A; }
+                        wia_lstrcpyw(da + dof, src);
+                        syscp(dc + dof, src);
+                        if (memcmp(da, dc, 2100*sizeof(wchar_t)) != 0) ++mism;
+                        ++cases; ++longc;
+                    }
+                }
+                /* a faulting SOURCE at every distance */
+                for (int tail = 1; tail <= 150; ++tail) {
+                    wchar_t* sp = (wchar_t*)(gsrc+pg) - tail;
+                    for (int i = 0; i < tail; ++i) sp[i] = (wchar_t)(L'a' + i % 23);
+                    for (int i = 0; i < 300; ++i) { da[i] = 0x2A2A; dc[i] = 0x2A2A; }
+                    wchar_t* ra = wia_lstrcpyw(da, sp);
+                    wchar_t* rc = syscp(dc, sp);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(da, dc, 300*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++srcfault;
+                }
+                /* EVERY destination width in BYTES -- odd and even */
+                for (int i = 0; i < 400; ++i) src[i] = (wchar_t)(L'A' + i % 26);
+                src[400] = 0;
+                for (int wbytes = 1; wbytes <= 201; ++wbytes) {
+                    char* wa = (gda+pg) - wbytes;
+                    char* wc = (gdc+pg) - wbytes;
+                    memset(wa, 0x5A, wbytes); memset(wc, 0x5A, wbytes);
+                    wchar_t* ra = wia_lstrcpyw((wchar_t*)wa, src);
+                    wchar_t* rc = syscp((wchar_t*)wc, src);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, wbytes) != 0) ++mism;
+                    ++cases;
+                    if (wbytes & 1) ++oddw; else ++evenw;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (both guards, every width)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&ptw, q, (void*)w_cpw2), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_cpw2 > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_cpw2);
+                    printf("  of %ld cases: %ld with a FAULTING SOURCE, %ld destinations of ODD\n"
+                           "  byte width (where the last character cannot be stored whole) and %ld\n"
+                           "  of even width, %ld long enough for the hoisted 64-byte loop\n",
+                           cases, srcfault, oddw, evenw, longc);
+                    OK(oddw  >= 100, "the odd-width sweep ran in full");
+                    OK(evenw >= 100, "the even-width sweep ran in full");
+                    OK(patch_off(&ptw), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+            if (gsrc) VirtualFree(gsrc, 0, MEM_RELEASE);
+            if (gda)  VirtualFree(gda, 0, MEM_RELEASE);
+            if (gdc)  VirtualFree(gdc, 0, MEM_RELEASE);
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
-               "kernelbase!lstrlenA AND kernelbase!lstrcpyA.\n"
+               "kernelbase!lstrlenA, kernelbase!lstrcpyA AND kernelbase!lstrcpyW.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -615,7 +736,13 @@ int main(void){
                "SOURCE passes every ordinary corpus and returns the right NULL while leaving a\n"
                "DIFFERENT number of bytes in the caller buffer -- nothing crashes, only the bytes\n"
                "differ -- so the source is swept at every distance, the destination at every room,\n"
-               "and both at once so the clamp must take the smaller remainder. All five\n"
+               "and both at once so the clamp must take the smaller remainder. For 229 the proof is\n"
+               "THE SPLIT CHARACTER, which the narrow sibling could not even ask about: when a\n"
+               "destination has an ODD number of writable bytes the last character cannot be stored\n"
+               "whole, and the export writes WHOLE CHARACTERS ONLY. An implementation whose clamp\n"
+               "rounds in BYTES rather than CHARACTERS passes every ordinary corpus, returns the\n"
+               "right NULL, and leaves one extra byte in the caller buffer -- so every destination\n"
+               "width from 1 to 201 bytes is swept, odd and even. All six\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
