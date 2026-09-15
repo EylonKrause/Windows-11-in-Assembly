@@ -1,4 +1,4 @@
-# ucrtbase.dll — reimplemented exports (76)
+# ucrtbase.dll — reimplemented exports (75)
 
 | export | speedup | source |
 |---|---|---|
@@ -14,7 +14,6 @@
 | `_memccpy` | 8.69x | [changes/146-memccpy](../../../../../changes/146-memccpy/) |
 | `_memicmp` | 10.70x | [changes/046-memicmp](../../../../../changes/046-memicmp/) |
 | `_stricmp` | 8.73x | [changes/043-stricmp](../../../../../changes/043-stricmp/) |
-| `_strlwr` | 8.80x | [changes/047-strlwr](../../../../../changes/047-strlwr/) |
 | `_strlwr_s` | 5.92x | [changes/179-strlwr-s](../../../../../changes/179-strlwr-s/) |
 | `_strnicmp` | 9.31x | [changes/045-strnicmp](../../../../../changes/045-strnicmp/) |
 | `_strnset` | 5.72x | [changes/078-strnset](../../../../../changes/078-strnset/) |

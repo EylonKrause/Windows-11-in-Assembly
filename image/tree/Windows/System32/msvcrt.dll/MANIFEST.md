@@ -1,4 +1,4 @@
-# msvcrt.dll — reimplemented exports (35)
+# msvcrt.dll — reimplemented exports (34)
 
 | export | speedup | source |
 |---|---|---|
@@ -8,7 +8,6 @@
 | `_itow` | 1.42x | [changes/074-itow](../../../../../changes/074-itow/) |
 | `_memicmp` | 10.70x | [changes/046-memicmp](../../../../../changes/046-memicmp/) |
 | `_stricmp` | 8.73x | [changes/043-stricmp](../../../../../changes/043-stricmp/) |
-| `_strlwr` | 8.80x | [changes/047-strlwr](../../../../../changes/047-strlwr/) |
 | `_strnicmp` | 9.31x | [changes/045-strnicmp](../../../../../changes/045-strnicmp/) |
 | `_strnset` | 5.72x | [changes/078-strnset](../../../../../changes/078-strnset/) |
 | `_strrev` | 9.89x | [changes/070-strrev](../../../../../changes/070-strrev/) |
