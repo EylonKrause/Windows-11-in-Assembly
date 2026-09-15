@@ -726,6 +726,29 @@ static void thunk(void){
     sink += (long long)(size_t)wia_pathremovebackslasha(0);   /* NULL */
 }
 
+#elif defined(T_233)
+#define NAME "233-pathquotespacesa"
+extern int wia_pathquotespacesa(char*);
+static void thunk(void){
+    static char p[700];
+    int i;
+    memcpy(p, "a b", 4);
+    sink += wia_pathquotespacesa(p);            /* the quoting path */
+    sink += p[0];
+    memcpy(p, "nospace", 8);
+    sink += wia_pathquotespacesa(p);            /* refused: nothing written */
+    sink += p[0];
+    for (i = 0; i < 257; ++i) p[i] = 'a';
+    p[100] = ' '; p[257] = 0;
+    sink += wia_pathquotespacesa(p);            /* exactly at the 257 cap */
+    sink += p[0];
+    for (i = 0; i < 300; ++i) p[i] = 'a';
+    p[100] = ' '; p[300] = 0;
+    sink += wia_pathquotespacesa(p);            /* over the cap: refused */
+    sink += p[0];
+    sink += wia_pathquotespacesa(0);            /* NULL */
+}
+
 #elif defined(T_218)
 #define NAME "218-strtrima"
 extern int wia_strtrima(char*, const char*);
