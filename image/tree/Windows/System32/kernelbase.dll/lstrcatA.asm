@@ -1,3 +1,7 @@
+; kernelbase.dll!lstrcatA  --  hand-written x86-64 reimplementation (26.15x vs shipped)
+; source of truth: changes/228-lstrcata/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/228-lstrcata/impl.asm
 ; char* wia_lstrcata_core(PSTR dst, PCSTR src)   [Win64: rcx, rdx -> rax]
 ;

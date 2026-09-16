@@ -15,6 +15,7 @@ ml64 /nologo /c /Fosw_cpyn.obj "%C%\168-strcpynw\impl.asm"                >nul |
 ml64 /nologo /c /Fosw_chrn.obj "%C%\169-strchrnw\impl.asm"                >nul || goto :err
 ml64 /nologo /c /Fosw_catb.obj "%C%\170-strcatbuffw\impl.asm"             >nul || goto :err
 ml64 /nologo /c /Fosw_prb.obj  "%C%\171-pathremovebackslashw\impl.asm"    >nul || goto :err
+ml64 /nologo /c /Fosw_pab.obj  "%C%\142-pathaddbackslashw\impl.asm"       >nul || goto :err
 ml64 /nologo /c /Fosw_pqs.obj  "%C%\172-pathquotespacesw\impl.asm"        >nul || goto :err
 ml64 /nologo /c /Fosw_pfnc.obj "%C%\173-pathfindnextcomponentw\impl.asm"  >nul || goto :err
 ml64 /nologo /c /Fosw_pcrb.obj "%C%\176-pathcchremovebackslash\impl.asm" >nul || goto :err
@@ -43,7 +44,7 @@ ml64 /nologo /c /Fosw_pifsa.obj "%C%\235-pathisfilespeca\impl.asm" >nul || goto 
 ml64 /nologo /c /Fosw_pcpa.obj "%C%\236-pathcommonprefixa\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fosw_pipa.obj "%C%\237-pathisprefixa\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fosw_pmpa.obj "%C%\238-pathmakeprettya\impl.asm" >nul || goto :err
-cl /nologo /O2 live_subst_shlwapi.c sw_pcrb.obj sw_pud.obj sw_pra.obj sw_cpyn.obj sw_chrn.obj sw_catb.obj sw_prb.obj sw_pqs.obj sw_pfnc.obj sw_pffa.obj sw_srca.obj sw_cspa.obj sw_pbka.obj sw_spna.obj sw_pxa.obj sw_pxw.obj sw_trma.obj sw_spa.obj sw_scha.obj sw_prba.obj sw_prxa.obj sw_puda.obj sw_prea.obj sw_praa.obj sw_scba.obj sw_prbsa.obj sw_pqsa.obj sw_pfnca.obj sw_pifsa.obj sw_pcpa.obj sw_pipa.obj sw_pmpa.obj /Fe:live_subst_shlwapi.exe >nul || goto :err
+cl /nologo /O2 live_subst_shlwapi.c sw_pcrb.obj sw_pud.obj sw_pra.obj sw_cpyn.obj sw_chrn.obj sw_catb.obj sw_prb.obj sw_pqs.obj sw_pfnc.obj sw_pffa.obj sw_srca.obj sw_cspa.obj sw_pbka.obj sw_spna.obj sw_pxa.obj sw_pxw.obj sw_trma.obj sw_spa.obj sw_scha.obj sw_prba.obj sw_prxa.obj sw_puda.obj sw_prea.obj sw_praa.obj sw_scba.obj sw_prbsa.obj sw_pqsa.obj sw_pfnca.obj sw_pifsa.obj sw_pcpa.obj sw_pipa.obj sw_pmpa.obj sw_pab.obj /Fe:live_subst_shlwapi.exe >nul || goto :err
 "%H%live_subst_shlwapi.exe"
 endlocal & exit /b %errorlevel%
 :err

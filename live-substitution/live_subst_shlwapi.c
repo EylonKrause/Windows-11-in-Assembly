@@ -65,6 +65,9 @@ static PWSTR WINAPI w_catb(PWSTR d, PCWSTR s, int n){ _InterlockedIncrement(&c_c
 static PWSTR WINAPI w_prb (PWSTR p){ _InterlockedIncrement(&c_prb);  return wia_pathremovebackslashw(p); }
 static BOOL  WINAPI w_pqs (PWSTR p){ _InterlockedIncrement(&c_pqs);  return (BOOL)wia_pathquotespacesw(p); }
 static PWSTR WINAPI w_pfnc(PCWSTR p){ _InterlockedIncrement(&c_pfnc); return wia_pathfindnextcomponentw(p); }
+static volatile LONG c_pab;
+extern wchar_t* wia_pathaddbackslashw(wchar_t*);
+static PWSTR WINAPI w_pab (PWSTR p){ _InterlockedIncrement(&c_pab);  return wia_pathaddbackslashw(p); }
 static volatile LONG c_pud, c_pra;
 static void  WINAPI w_pud (PWSTR p){ _InterlockedIncrement(&c_pud);  wia_pathundecoratew(p); }
 static void  WINAPI w_pra (PWSTR p){ _InterlockedIncrement(&c_pra);  wia_pathremoveargsw(p); }
@@ -281,6 +284,72 @@ int main(void){
     }
 
     // ===================== 171 PathRemoveBackslashW =====================
+    // 142 PathAddBackslashW -- the mirror of 171, and the one place its contract is not symmetric:
+    // THE MAX_PATH RULE IS APPLIED BEFORE THE ALREADY-ENDS-WITH-BACKSLASH SHORTCUT, so the two
+    // thresholds differ by one -- a path needing an append fails from length 259, one that already ends
+    // in a separator still succeeds at 259 even though nothing would be written. The sweep below crosses
+    // 258/259/260 in both shapes for exactly that reason, and a forward slash does NOT count as a
+    // separator, so "a/" gets a backslash appended.
+    printf("[142 PathAddBackslashW]  (in-place transform; the MAX_PATH rule crossed in both shapes)\n");
+    {
+        typedef PWSTR (WINAPI *fn)(PWSTR);
+        patch_t pab_patch;
+        void* p_pab = (void*)GetProcAddress(hs, "PathAddBackslashW");
+        OK(p_pab != NULL, "resolve PathAddBackslashW");
+        if (p_pab) {
+            fn sys = (fn)p_pab;
+            int vpre = 0, boundary = 0, declined = 0;
+            reseed(142);
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                LONG before = c_pab;
+                boundary = declined = 0;
+                reseed(142);
+                for (int t = 0; t < 4000; ++t) {
+                    /* lengths 1..160 plus a deliberate walk across 255..262, in three tail shapes:
+                       plain, already a backslash, and a forward slash */
+                    int sl = (t % 8 < 6) ? (1 + (t % 160)) : (255 + (t % 8));
+                    int shape = t % 3;
+                    mkpath(src, sl, 0, 1);
+                    if (shape == 1) src[sl-1] = L'\\';
+                    if (shape == 2) src[sl-1] = L'/';
+                    for (int i = 0; i < 600; ++i) { a[i] = 0x2A2A; b[i] = 0x2A2A; }
+                    for (int i = 0; i <= sl; ++i) { a[i] = src[i]; b[i] = src[i]; }
+                    wchar_t* ra = wia_pathaddbackslashw(a);
+                    wchar_t* rb = (wchar_t*)sys(b);
+                    /* the returned pointer is compared as an OFFSET when it points into the buffer and
+                       as a VALUE otherwise: the refusal returns NULL, which is the same answer at two
+                       different buffer addresses */
+                    if ((ra == 0) != (rb == 0)) { ++mism; continue; }
+                    if (ra && (ra - a) != (rb - b)) { ++mism; continue; }
+                    { int bad = 0;
+                      for (int i = 0; i < 300; ++i) if (a[i] != b[i]) { bad = 1; break; }
+                      if (bad) { ++mism; continue; } }
+                    if (sl >= 255) ++boundary;
+                    if (ra == 0 || shape == 1) ++declined;
+                }
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (4000, pointer AND whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pab_patch, p_pab, (void*)w_pab), "install patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pab - before >= 4000, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)(c_pab - before));
+                    printf("  of 4000 cases: %d at lengths 255..262 where the MAX_PATH rule decides,\n"
+                           "  and %d that write nothing (already terminated, or refused)\n",
+                           boundary, declined);
+                    OK(boundary > 300, "the MAX_PATH boundary was crossed in bulk");
+                    OK(declined > 300, "the writing-nothing paths ran in bulk");
+                    OK(patch_off(&pab_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     printf("[171 PathRemoveBackslashW]  (in-place transform)\n");
     {
         typedef PWSTR (WINAPI *fn)(PWSTR);
@@ -2616,8 +2685,8 @@ int main(void){
     }
 
     if(failures==0){
-        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 32 functions\n"
-               "(changes 132, 168-176, 212-226 less 225, and 231-238: 31 shlwapi + 1 kernelbase), results identical to the\n"
+        printf("LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 33 functions\n"
+               "(changes 132, 142, 168-176, 212-226 less 225, and 231-238: 32 shlwapi + 1 kernelbase), results identical to the\n"
                "live\n"
                "exports, every prologue restored byte-for-byte. For 212 the corpus is EXHAUSTIVE\n"
                "rather than sampled, because that function's separator rule is not local and a\n"
