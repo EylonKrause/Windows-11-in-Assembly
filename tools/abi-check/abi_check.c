@@ -869,6 +869,59 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_241)
+#define NAME "241-pathcchaddbackslashex"
+extern long wia_pathcchaddbackslashex(wchar_t*, size_t, wchar_t**, size_t*);
+extern long wia_pathcchremovebackslashex(wchar_t*, size_t, wchar_t**, size_t*);
+static void thunk(void){
+    /* both exports and every path: the appending and removing writes, both declines, the short-string
+       vector fast path and the long loop, the two DIFFERENT cch ceilings (AddBackslashEx refuses above
+       0x7FFFFFFF+n while RemoveBackslashEx has no ceiling at all), the too-small-cch failures -- which
+       write the out-parameters too -- and both out-parameters NULL, which is a separate branch. */
+    static wchar_t p[4200];
+    wchar_t* e; size_t r;
+    int i;
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchaddbackslashex(p, 0x8000, &e, &r);      /* appends */
+    sink += p[0] + (long long)r;
+    wcscpy(p, L"C:\\dir\\");
+    sink += wia_pathcchaddbackslashex(p, 0x8000, &e, &r);      /* declines: already ends in one */
+    sink += p[0];
+    wcscpy(p, L"");
+    sink += wia_pathcchaddbackslashex(p, 0x8000, &e, &r);      /* the empty string */
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchaddbackslashex(p, 4, &e, &r);           /* cch too small */
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchaddbackslashex(p, 0, &e, &r);
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchaddbackslashex(p, (size_t)-1, &e, &r);  /* past its moving ceiling */
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchaddbackslashex(p, 0x8000, 0, 0);        /* both out-parameters NULL */
+    wcscpy(p, L"C:\\dir\\file\\");
+    sink += wia_pathcchremovebackslashex(p, 0x8000, &e, &r);   /* removes */
+    sink += p[0] + (long long)r;
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathcchremovebackslashex(p, 0x8000, &e, &r);   /* declines */
+    sink += p[0];
+    wcscpy(p, L"C:\\");
+    sink += wia_pathcchremovebackslashex(p, 0x8000, &e, &r);   /* a protected root */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir\\file\\");
+    sink += wia_pathcchremovebackslashex(p, (size_t)-1, &e, &r); /* accepts SIZE_MAX: no ceiling */
+    wcscpy(p, L"C:\\dir\\file\\");
+    sink += wia_pathcchremovebackslashex(p, 2, &e, &r);        /* cch too small */
+    wcscpy(p, L"C:\\dir\\file\\");
+    sink += wia_pathcchremovebackslashex(p, 0x8000, 0, 0);     /* both out-parameters NULL */
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C;
+    for (i = 3; i < 4000; ++i) p[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[3999] = 0x61; p[4000] = 0;
+    sink += wia_pathcchaddbackslashex(p, 0x8000, &e, &r);      /* the long 64-byte-per-iteration loop */
+    sink += p[0];
+    p[4000] = 0x5C; p[4001] = 0;
+    sink += wia_pathcchremovebackslashex(p, 0x8000, &e, &r);
+    sink += p[0];
+}
+
 #elif defined(T_242)
 #define NAME "242-pathcchappendex"
 extern long wia_pathcchappendex(wchar_t*, size_t, const wchar_t*, unsigned long);

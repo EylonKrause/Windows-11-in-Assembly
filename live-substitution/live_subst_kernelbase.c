@@ -52,6 +52,8 @@ extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
 extern void     wia_pccx_set_fallback(void*);
+extern long     wia_pathcchaddbackslashex(wchar_t*, size_t, wchar_t**, size_t*);
+extern long     wia_pathcchremovebackslashex(wchar_t*, size_t, wchar_t**, size_t*);
 extern long     wia_pathcchappendex(wchar_t*, size_t, const wchar_t*, unsigned long);
 extern long     wia_pathcchcombineex(wchar_t*, size_t, const wchar_t*, const wchar_t*, unsigned long);
 extern void     wia_pcap_set_fallback(void*);
@@ -74,6 +76,23 @@ static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs
 static volatile LONG c_pccx;
 static long WINAPI w_pccx(wchar_t* o, size_t cch, const wchar_t* in, unsigned long f){
     _InterlockedIncrement(&c_pccx); return wia_pathcchcanonicalizeex(o, cch, in, f);
+}
+/* ppszEnd comparison key: an offset into the buffer when it points there, and the raw value otherwise
+   (NULL on the failure paths, or the untouched 0xDEAD sentinel) -- so the same answer at two different
+   buffer addresses compares equal, and a genuinely different one does not. */
+static long long endkey(const wchar_t* e, const wchar_t* base)
+{
+    if (e == 0) return -1;
+    if (e == (const wchar_t*)0xDEAD) return -2;
+    return (long long)(e - base);
+}
+
+static volatile LONG c_pcab, c_pcrb;
+static long WINAPI w_pcab(wchar_t* p, size_t cch, wchar_t** e, size_t* r){
+    _InterlockedIncrement(&c_pcab); return wia_pathcchaddbackslashex(p, cch, e, r);
+}
+static long WINAPI w_pcrb(wchar_t* p, size_t cch, wchar_t** e, size_t* r){
+    _InterlockedIncrement(&c_pcrb); return wia_pathcchremovebackslashex(p, cch, e, r);
 }
 static volatile LONG c_pcap, c_pccb;
 static long WINAPI w_pcap(wchar_t* p, size_t cch, const wchar_t* more, unsigned long f){
@@ -1043,6 +1062,165 @@ int main(void){
         }
     }
 
+    // ===================== 241 PathCchAddBackslashEx + PathCchRemoveBackslashEx =====================
+    // FOUR OBSERVABLES PER CALL, all load-bearing: the HRESULT, the WHOLE BUFFER against a poison fill,
+    // ppszEnd and pcchRemaining. The out-parameters are written on the FAILURE path too, so they are
+    // seeded with a 0xDEAD sentinel rather than zero -- an implementation that left them alone would
+    // otherwise pass -- and `end` is reported even when the call DECLINES, pointing at where the
+    // terminator WOULD go, so "C:\" reports +2 while returning S_FALSE.
+    //
+    // The corpus is ENUMERATED over separators, a letter, a colon and a question mark, because the
+    // protected prefix here is the STRUCTURAL prefix only: "C:\", "\", "\\" and "\\?\C:\" keep their
+    // separator while "\\srv\" and "\\srv\shr\" lose it, so the server and share are NOT protected --
+    // which is neither change 240's root nor PathCchSkipRoot's, and no corpus of realistic paths would
+    // separate the three.
+    printf("[241 PathCchAddBackslashEx + PathCchRemoveBackslashEx]  kernelbase (enumerated; HRESULT,\n"
+           "  whole buffer, ppszEnd and pcchRemaining)\n");
+    {
+        typedef long (WINAPI *fbs)(wchar_t*, size_t, wchar_t**, size_t*);
+        void* p_add = (void*)GetProcAddress(hk, "PathCchAddBackslashEx");
+        void* p_rem = (void*)GetProcAddress(hk, "PathCchRemoveBackslashEx");
+        OK(p_add != NULL, "resolve PathCchAddBackslashEx");
+        OK(p_rem != NULL, "resolve PathCchRemoveBackslashEx");
+        if (p_add && p_rem) {
+            fbs sysadd = (fbs)p_add;
+            fbs sysrem = (fbs)p_rem;
+            patch_t add_patch, rem_patch;
+            static const wchar_t AL[4] = { L'a', L'\\', L':', L'?' };
+            static wchar_t t[32], mine[600], theirs[600];
+            long cases = 0, sok = 0, sfalse = 0, ebuf = 0, einval = 0, prot = 0, longsweep = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = sok = sfalse = ebuf = einval = prot = longsweep = 0;
+
+                for (int len = 0; len <= 7; ++len) {
+                    long combos = 1;
+                    for (int i = 0; i < len; ++i) combos *= 4;
+                    for (long c = 0; c < combos; ++c) {
+                        long v = c;
+                        for (int i = 0; i < len; ++i) { t[i] = AL[v % 4]; v /= 4; }
+                        t[len] = 0;
+                        for (int which = 0; which < 2; ++which) {
+                            for (int k = 0; k < 3; ++k) {
+                                size_t cch = (k == 0) ? 0x8000 : (k == 1) ? (size_t)len + 1
+                                           : (size_t)-1;
+                                wchar_t* e1 = (wchar_t*)0xDEAD; size_t r1 = 0xDEAD;
+                                PWSTR   e2 = (PWSTR)0xDEAD;     size_t r2 = 0xDEAD;
+                                long h1, h2;
+                                for (int z = 0; z < 300; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                                memcpy(mine,   t, (size_t)(len + 1) * 2);
+                                memcpy(theirs, t, (size_t)(len + 1) * 2);
+                                h1 = which ? wia_pathcchremovebackslashex(mine, cch, &e1, &r1)
+                                           : wia_pathcchaddbackslashex(mine, cch, &e1, &r1);
+                                h2 = which ? sysrem(theirs, cch, &e2, &r2)
+                                           : sysadd(theirs, cch, &e2, &r2);
+                                /* ppszEnd is compared as an OFFSET, but only when it was written at
+                                   all: an untouched sentinel is the same VALUE in both calls and a
+                                   different offset, because the two buffers are at different
+                                   addresses. */
+                                /* ppszEnd is compared as an OFFSET when it points into the buffer, and
+                                   as a VALUE otherwise: the failure paths write NULL, and an untouched
+                                   sentinel is the same value in both calls -- both of which are the
+                                   same answer at different addresses, so an offset comparison would
+                                   report a difference that is not one. */
+                                if (h1 != h2 || memcmp(mine, theirs, 600) != 0 || r1 != r2
+                                    || endkey(e1, mine) != endkey((wchar_t*)e2, theirs)) ++mism;
+                                if (h1 == 0) ++sok;
+                                else if (h1 == 1) ++sfalse;
+                                else if ((unsigned long)h1 == 0x8007007AUL) ++ebuf;
+                                else ++einval;
+                                ++cases;
+                            }
+                        }
+                        if (len >= 3 && t[0] == L'\\' && t[1] == L'\\') ++prot;
+                    }
+                }
+
+                /* LENGTH AS A DIMENSION, with and without a trailing separator, so both the short
+                   vector path and the 64-byte loop run at every size */
+                for (int trail = 0; trail < 2; ++trail) {
+                    for (int n = 8; n <= 3000; n += 61) {
+                        static wchar_t s[3200];
+                        wchar_t* e1 = (wchar_t*)0xDEAD; size_t r1 = 0xDEAD;
+                        PWSTR   e2 = (PWSTR)0xDEAD;     size_t r2 = 0xDEAD;
+                        long h1, h2;
+                        int k = 0;
+                        s[k++] = L'C'; s[k++] = L':'; s[k++] = L'\\';
+                        while (k < n) {
+                            for (int i = 0; i < 7 && k < n; ++i) s[k++] = (wchar_t)(L'a' + i);
+                            if (k < n) s[k++] = L'\\';
+                        }
+                        if (trail) s[n-1] = L'\\'; else if (s[n-1] == L'\\') s[n-1] = L'z';
+                        s[n] = 0;
+                        for (int which = 0; which < 2; ++which) {
+                            static wchar_t m2[3300], t2[3300];
+                            for (int z = 0; z < 3300; ++z) { m2[z] = 0xCDCD; t2[z] = 0xCDCD; }
+                            memcpy(m2, s, (size_t)(n + 1) * 2);
+                            memcpy(t2, s, (size_t)(n + 1) * 2);
+                            e1 = (wchar_t*)0xDEAD; r1 = 0xDEAD; e2 = (PWSTR)0xDEAD; r2 = 0xDEAD;
+                            h1 = which ? wia_pathcchremovebackslashex(m2, 0x8000, &e1, &r1)
+                                       : wia_pathcchaddbackslashex(m2, 0x8000, &e1, &r1);
+                            h2 = which ? sysrem(t2, 0x8000, &e2, &r2)
+                                       : sysadd(t2, 0x8000, &e2, &r2);
+                            if (h1 != h2 || memcmp(m2, t2, 6600) != 0 || r1 != r2
+                                || endkey(e1, m2) != endkey((wchar_t*)e2, t2)) ++mism;
+                            ++cases; ++longsweep;
+                        }
+                    }
+                }
+
+                /* both out-parameters NULL is its own branch in both functions */
+                {
+                    static const wchar_t* T[4] = { L"C:\\dir", L"C:\\dir\\", L"C:\\", L"" };
+                    for (int ti = 0; ti < 4; ++ti) {
+                        for (int which = 0; which < 2; ++which) {
+                            long h1, h2;
+                            size_t n = wcslen(T[ti]);
+                            for (int z = 0; z < 300; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                            memcpy(mine,   T[ti], (n + 1) * 2);
+                            memcpy(theirs, T[ti], (n + 1) * 2);
+                            h1 = which ? wia_pathcchremovebackslashex(mine, 0x8000, 0, 0)
+                                       : wia_pathcchaddbackslashex(mine, 0x8000, 0, 0);
+                            h2 = which ? sysrem(theirs, 0x8000, 0, 0)
+                                       : sysadd(theirs, 0x8000, 0, 0);
+                            if (h1 != h2 || memcmp(mine, theirs, 600) != 0) ++mism;
+                            ++cases;
+                        }
+                    }
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE exports (all four observables)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&add_patch, p_add, (void*)w_pcab), "install the Add patch");
+                    OK(patch_on(&rem_patch, p_rem, (void*)w_pcrb), "install the Remove patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pcab > 0, "counter proves OUR AddBackslashEx executed");
+                    OK(c_pcrb > 0, "counter proves OUR RemoveBackslashEx executed");
+                    printf("  under live patch: %s;  our-code calls = %ld add, %ld remove\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pcab, (long)c_pcrb);
+                    printf("  corpus: %ld cases -- %ld S_OK, %ld S_FALSE (which write NOTHING), %ld\n"
+                           "          ERROR_INSUFFICIENT_BUFFER, %ld E_INVALIDARG; %ld two-separator\n"
+                           "          shapes, enumerated because the protected prefix is the STRUCTURAL\n"
+                           "          prefix only and the server and share are NOT protected; and %ld\n"
+                           "          cases at lengths 8..3000 with and without a trailing separator\n",
+                           cases, sok, sfalse, ebuf, einval, prot, longsweep);
+                    OK(sok    > 500,  "the writing paths ran in bulk");
+                    OK(sfalse > 500,  "the declining paths, which write nothing, ran in bulk");
+                    OK(einval > 100,  "the rejection paths ran in bulk");
+                    OK(prot   > 100,  "two-separator shapes ran in bulk");
+                    OK(longsweep > 90, "the length sweep ran in full");
+                    OK(patch_off(&add_patch), "unpatch Add verified byte-identical");
+                    OK(patch_off(&rem_patch), "unpatch Remove verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     // ===================== 242 PathCchAppendEx + PathCchCombineEx =====================
     // TWO EXPORTS, ONE CONTRACT: both are a JOIN followed by canonicalisation, measured against
     // PathCchCanonicalizeEx(join(base, more)) on the live export over 789,770 pairs with 0 mismatches.
@@ -1242,7 +1420,8 @@ int main(void){
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
                "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
-               "kernelbase!PathCchAppendEx AND kernelbase!PathCchCombineEx.\n"
+               "kernelbase!PathCchAppendEx, kernelbase!PathCchCombineEx,\n"
+               "kernelbase!PathCchAddBackslashEx AND kernelbase!PathCchRemoveBackslashEx.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -1291,7 +1470,12 @@ int main(void){
                "Append works IN PLACE, so its buffer is reseeded from the base before every call.\n"
                "Neither of these two is a jmp thunk -- the export IS the body -- so their\n"
                "nonzero-dwFlags delegation is proved in the validate-first pass instead, and only the\n"
-               "implemented domain runs under the patch. All ten\n"
+               "implemented domain runs under the patch. For 241 the FOUR observables are the point:\n"
+               "the HRESULT, the whole buffer, ppszEnd AND pcchRemaining, with the out-parameters\n"
+               "seeded with a 0xDEAD sentinel because they are written on the FAILURE path too, and\n"
+               "ppszEnd compared as an OFFSET when it points into the buffer and as a VALUE when it\n"
+               "does not -- the failure paths write NULL, which is the same answer at two different\n"
+               "buffer addresses. All twelve\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;

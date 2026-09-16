@@ -1,3 +1,7 @@
+; kernelbase.dll!PathCchRemoveBackslashEx  --  hand-written x86-64 reimplementation (5.76x vs shipped)
+; source of truth: changes/241-pathcchaddbackslashex/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/241-pathcchaddbackslashex/impl.asm
 ; HRESULT wia_pathcchaddbackslashex   (PWSTR p, size_t cch, PWSTR* pe, size_t* pr)
 ; HRESULT wia_pathcchremovebackslashex(PWSTR p, size_t cch, PWSTR* pe, size_t* pr)
