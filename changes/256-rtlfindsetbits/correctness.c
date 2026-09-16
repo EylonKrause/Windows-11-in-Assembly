@@ -207,6 +207,73 @@ int main(void)
                cases - before);
     }
 
+    /* ---- 7. A RUN OF EXACTLY N AT EVERY ALIGNMENT, for every block size the scan can pick ----
+     *
+     * This is the corpus for the witness argument, and it is the one the earlier corpora could not
+     * be: they top out at 2048-bit bitmaps and N = 69, so the 64-bit block size is never chosen and
+     * a run never has to be rebuilt across more than one 32-byte chunk. Here a single run of length
+     * N-1, N or N+1 is planted at EVERY bit offset across two chunk boundaries, for an N in each
+     * block class -- 3 and 6 (pairs), 7 and 14 (nibbles), 15 and 30 (bytes), 31 and 62 (words),
+     * 63 and 126 (dwords), 127 and 300 (qwords). A run of exactly N-1 must NOT be found, which is
+     * what catches a filter that answers from the block rather than from the run.
+     */
+    {
+        long before = cases;
+        static ULONG buf[512];                      /* 16 Kbit */
+        static const ULONG NS[12] = { 3, 6, 7, 14, 15, 30, 31, 62, 63, 126, 127, 300 };
+        int k, d, i;
+        ULONG at, len;
+        for (k = 0; k < 12; ++k)
+            for (d = -1; d <= 1; ++d) {
+                len = NS[k] + d;
+                if ((int)len <= 0) continue;
+                for (at = 500; at < 900; ++at) {    /* across two 256-bit chunk boundaries */
+                    for (i = 0; i < 512; ++i) buf[i] = 0u;
+                    for (i = 0; i < (int)len; ++i) buf[(at + i) >> 5] |= (1u << ((at + i) & 31));
+                    one(buf, 16384, NS[k], 0, 1, "planted run, every alignment");
+                    one(buf, 16384, NS[k], at + 1, 1, "planted run, hint past it");
+                    for (i = 0; i < 512; ++i) buf[i] = 0xFFFFFFFFu;
+                    for (i = 0; i < (int)len; ++i) buf[(at + i) >> 5] &= ~(1u << ((at + i) & 31));
+                    one(buf, 16384, NS[k], 0, 0, "planted hole, every alignment");
+                }
+            }
+        printf("  7. a run of exactly N-1, N and N+1 at every alignment 500..899, 12 values of N,\n"
+               "     both exports -- the block sizes from pairs to qwords: %ld cases\n",
+               cases - before);
+    }
+
+    /* ---- 8. LARGE bitmaps and LARGE N, randomised ----
+     * Sizes to 16 Kbit and N to 400, so the scan skips many chunks between witnesses and rebuilds
+     * runs that span several of them. Densities are chosen to make FALSE witnesses common: a
+     * bitmap of scattered all-ones bytes flags a candidate that no run of 300 can use.
+     */
+    {
+        long before = cases;
+        static ULONG buf[512];
+        int trial, i;
+        for (trial = 0; trial < 40000; ++trial) {
+            ULONG sz, n, hint;
+            int shape = (int)(rnd() % 6);
+            for (i = 0; i < 512; ++i)
+                buf[i] = (shape == 0) ? 0u
+                       : (shape == 1) ? 0xFFFFFFFFu
+                       : (shape == 2) ? 0xA5A5A5A5u
+                       : (shape == 3) ? ((i & 1) ? 0xFFFFFFFFu : 0u)
+                       : (shape == 4) ? (ULONG)((rnd() & 7) ? 0u : 0xFFFFFFFFu)  /* sparse blocks */
+                                      : (ULONG)rnd();
+            if (shape == 5) for (i = 0; i < 40; ++i) {      /* plus a few real runs */
+                ULONG s = rnd() % 16000, L = 1 + (rnd() % 400), x;
+                for (x = s; x < s + L && x < 16384; ++x) buf[x >> 5] |= (1u << (x & 31));
+            }
+            sz   = 300 + (rnd() % 16085);
+            n    = 1 + (rnd() % 400);
+            hint = rnd() % (sz + 16);
+            one(buf, sz, n, hint, (int)(rnd() & 1), "large, big N");
+        }
+        printf("  8. 40000 randomised at 300..16384 bits, N 1..400, 6 shapes: %ld cases\n",
+               cases - before);
+    }
+
     printf("\n  total cases: %ld,  mismatches: %ld\n", cases, fails);
     printf(fails ? "CORRECTNESS: FAILED\n" : "CORRECTNESS: PASS (exact vs oracle AND live)\n");
     return fails ? 1 : 0;

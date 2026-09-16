@@ -1920,6 +1920,55 @@ static void thunk(void){
     sink += wia_numberofsetbits(0);
 }
 
+#elif defined(T_256)
+#define NAME "256-rtlfindsetbits"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned long wia_findsetbits(void*, unsigned long, unsigned long);
+extern unsigned long wia_findclearbits(void*, unsigned long, unsigned long);
+static void thunk(void){
+    /* Two entry stubs tail-jump into one framed body, which then calls a leaf that owns ALL EIGHT
+       non-volatile registers -- and the vector phase keeps its cursor and its limit across that
+       call, so a prologue that saved the wrong set would show up here rather than as a wrong
+       answer. Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for its own loop
+       hides an implementation that destroys r15, which is exactly what change 258 demonstrated.
+       Driven: both exports; every witness block size, since N picks it -- pairs (3..6), nibbles
+       (7..14), bytes (15..30), words (31..62), dwords (63..126) and qwords (127+); the first-word
+       fast answer; the inline rebuild and the general-scanner fallback near both edges; the wrap,
+       which runs the whole scan twice; and the refusals, which return before a ymm is touched. */
+    static unsigned long b[512];
+    static const unsigned long NS[10] = { 1, 2, 3, 8, 16, 40, 64, 200, 1000, 5000 };
+    ABI_RBM bm;
+    int i, k, n;
+    bm.Buffer = b;
+    for (k = 0; k < 5; ++k) {
+        for (i = 0; i < 512; ++i)
+            b[i] = (k == 0) ? 0xFFFFFFFFul
+                 : (k == 1) ? 0ul
+                 : (k == 2) ? 0xA5A5A5A5ul
+                 : (k == 3) ? ((i & 1) ? 0xFFFFFFFFul : 0ul)
+                            : ((i & 7) ? 0ul : 0xFFFFFFFFul);
+        for (n = 0; n < 10; ++n) {
+            bm.SizeOfBitMap = 16384;
+            CALL4(wia_findsetbits,   &bm, NS[n], 0, 0);
+            CALL4(wia_findclearbits, &bm, NS[n], 0, 0);
+            CALL4(wia_findsetbits,   &bm, NS[n], 16000, 0);   /* forces the wrap: two full scans */
+            CALL4(wia_findclearbits, &bm, NS[n], 16000, 0);
+            CALL4(wia_findsetbits,   &bm, NS[n], 37, 0);      /* a hint off every boundary */
+            bm.SizeOfBitMap = 331;                            /* smaller than one chunk */
+            CALL4(wia_findsetbits,   &bm, NS[n], 0, 0);
+            CALL4(wia_findclearbits, &bm, NS[n], 5, 0);
+            bm.SizeOfBitMap = 33;                             /* an odd trailing ULONG */
+            CALL4(wia_findsetbits,   &bm, NS[n], 0, 0);
+        }
+    }
+    /* the refusals and the degenerate arguments */
+    bm.SizeOfBitMap = 0;    CALL4(wia_findsetbits,   &bm, 4, 0, 0);
+    bm.SizeOfBitMap = 100;  CALL4(wia_findsetbits,   &bm, 0, 77, 0);   /* N = 0 has its own rule */
+                            CALL4(wia_findclearbits, &bm, 0, 77, 0);
+                            CALL4(wia_findsetbits,   &bm, 101, 0, 0);  /* more bits than exist */
+    CALL4(wia_findsetbits, 0, 4, 0, 0);
+}
+
 #elif defined(T_258)
 #define NAME "258-rtlfindclearruns"
 typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;

@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (76)
+# ntdll.dll — reimplemented exports (78)
 
 | export | speedup | source |
 |---|---|---|
@@ -20,9 +20,11 @@
 | `RtlEthernetStringToAddressA` | 6.29x | [changes/119-rtlethernetstringtoaddress](../../../../../changes/119-rtlethernetstringtoaddress/) |
 | `RtlEthernetStringToAddressW` | 4.17x | [changes/120-rtlethernetstringtoaddressw](../../../../../changes/120-rtlethernetstringtoaddressw/) |
 | `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
+| `RtlFindClearBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
 | `RtlFindClearRuns` | 13.26x | [changes/258-rtlfindclearruns](../../../../../changes/258-rtlfindclearruns/) |
 | `RtlFindLongestRunClear` | 4.79x | [changes/123-rtlfindlongestrunclear](../../../../../changes/123-rtlfindlongestrunclear/) |
 | `RtlFindLongestRunClear` | 40.5x | [changes/255-rtlfindlongestrunclear](../../../../../changes/255-rtlfindlongestrunclear/) |
+| `RtlFindSetBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
 | `RtlFindUnicodeSubstring` | 74.5x | [changes/252-rtlfindunicodesubstring](../../../../../changes/252-rtlfindunicodesubstring/) |
 | `RtlGUIDFromString` | 4.45x | [changes/118-rtlguidfromstring](../../../../../changes/118-rtlguidfromstring/) |
 | `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |
