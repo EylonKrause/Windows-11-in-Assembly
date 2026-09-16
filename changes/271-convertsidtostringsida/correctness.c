@@ -1,0 +1,309 @@
+/* changes/271-convertsidtostringsida/correctness.c
+ *
+ * Gate 1 for advapi32!ConvertSidToStringSidA: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the
+ * BOOL, GetLastError(), what happened to the output pointer, LocalSize, LocalFlags, and every byte
+ * of the returned block. Every block is freed.
+ *
+ * THE COUNT IS SWEPT 0..255 rather than sampled -- change 067's lesson learned the expensive way:
+ * its corpus drew the count as `(seed>>8)%16` and therefore never expressed a count above 15, which
+ * is a refusal the implementation did not have.
+ *
+ * THE GUARD-PAGE SWEEP IS AGAINST THE LIVE EXPORT ONLY, and it has to be: a scalar model cannot
+ * fault on demand. A SID that is not fully readable is a REFUSAL when its sub-authority array runs
+ * off the end and a FAULT when only its six identifier-authority bytes do -- change 067's rule,
+ * inherited here because it is the same formatter underneath.
+ *
+ * THE ONE THING THIS GATE CHECKS THAT CHANGE 270's DOES NOT is that the narrowing does not clip.
+ * VPACKUSWB saturates, so any character at or above 0x100 would come back as 0xFF rather than as
+ * itself. probes/contract.c established that a SID string is 'S', '-', 'x', the digits and A-F --
+ * but "established" means "measured over every shape asked", and the corpus below asks the same
+ * shapes again with the BYTES compared rather than the status, which is where a clip would show.
+ */
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <sddl.h>
+#include <stdio.h>
+#include <string.h>
+
+extern BOOL wia_sid2stra(const void*, char**);
+int ref_sid2stra(const unsigned char*, char**);
+
+typedef BOOL (WINAPI *FN)(PSID, LPSTR*);
+static FN sys;
+
+static int  failures = 0;
+static long cases = 0;
+static long n_ok = 0, n_invalid = 0, n_param = 0;
+
+#define POISON ((char*)(UINT_PTR)0xDEADBEEFDEADBEEFull)
+
+typedef struct {
+    unsigned char ok, ptr;
+    DWORD  err;
+    SIZE_T size;
+    unsigned flags;
+    unsigned long long hash;
+} rec_t;
+
+static unsigned long long fnv(const void* p, size_t n)
+{
+    const unsigned char* b = (const unsigned char*)p;
+    unsigned long long h = 1469598103934665603ull;
+    size_t i;
+    for (i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; }
+    return h;
+}
+
+static void grab(char* p, BOOL r, DWORD err, rec_t* out)
+{
+    out->ok = (unsigned char)(r ? 1 : 0);
+    out->err = err;
+    out->size = 0; out->hash = 0; out->flags = 0;
+    if (p == POISON) { out->ptr = 0; return; }
+    if (!p)          { out->ptr = 1; return; }
+    out->ptr = 2;
+    out->size = LocalSize(p);
+    out->flags = (unsigned)LocalFlags(p);
+    if (out->size != (SIZE_T)-1 && out->size <= 4096) out->hash = fnv(p, out->size);
+    LocalFree(p);
+}
+
+static void one(const unsigned char* sid)
+{
+    rec_t a, b, c;
+    char* p;
+    BOOL r;
+
+    p = POISON; SetLastError(0xD15EA5E); r = wia_sid2stra(sid, &p);  grab(p, r, GetLastError(), &a);
+    p = POISON; SetLastError(0xD15EA5E); r = sys((PSID)sid, &p);     grab(p, r, GetLastError(), &b);
+    p = POISON; SetLastError(0xD15EA5E); r = ref_sid2stra(sid, &p);  grab(p, r, GetLastError(), &c);
+
+    ++cases;
+    if (b.ok) ++n_ok;
+    else if (b.err == ERROR_INVALID_SID) ++n_invalid;
+    else if (b.err == ERROR_INVALID_PARAMETER) ++n_param;
+
+    if (a.ok != b.ok || a.ok != c.ok || a.err != b.err || a.err != c.err ||
+        a.ptr != b.ptr || a.ptr != c.ptr || a.size != b.size || a.size != c.size ||
+        a.hash != b.hash || a.hash != c.hash || a.flags != b.flags) {
+        if (failures < 10)
+            printf("  FAIL rev=%u cnt=%u: ours %d/err=%lu/ptr=%d/size=%Iu  live %d/err=%lu/ptr=%d/size=%Iu"
+                   "  model %d/err=%lu/ptr=%d/size=%Iu%s\n",
+                   sid[0], sid[1],
+                   a.ok, (unsigned long)a.err, a.ptr, a.size,
+                   b.ok, (unsigned long)b.err, b.ptr, b.size,
+                   c.ok, (unsigned long)c.err, c.ptr, c.size,
+                   (a.hash != b.hash && a.ptr == 2 && b.ptr == 2) ? "  (the bytes differ)" : "");
+        ++failures;
+    }
+}
+
+static void mk(unsigned char* sid, unsigned rev, unsigned long long auth,
+               unsigned cnt, const unsigned* sub)
+{
+    unsigned i;
+    sid[0] = (unsigned char)rev;
+    sid[1] = (unsigned char)cnt;
+    for (i = 0; i < 6; ++i) sid[2 + i] = (unsigned char)(auth >> (8 * (5 - i)));
+    for (i = 0; i < cnt && i < 16; ++i) {
+        sid[8 + 4 * i + 0] = (unsigned char)(sub[i]);
+        sid[8 + 4 * i + 1] = (unsigned char)(sub[i] >> 8);
+        sid[8 + 4 * i + 2] = (unsigned char)(sub[i] >> 16);
+        sid[8 + 4 * i + 3] = (unsigned char)(sub[i] >> 24);
+    }
+}
+
+static unsigned char* g_base;
+static SIZE_T g_pagesz;
+
+static void guard_sweep(void)
+{
+    static unsigned char full[8 + 4 * 16];
+    static unsigned sub[16];
+    unsigned cnt, avail, i;
+    long before = cases;
+
+    for (i = 0; i < 16; ++i) sub[i] = 1000000000u + i;
+
+    for (cnt = 0; cnt <= 3; ++cnt) {
+        unsigned need = 8 + 4 * cnt;
+        mk(full, 1, 5, cnt, sub);
+        for (avail = 1; avail <= need + 1; ++avail) {
+            unsigned char* q = g_base + g_pagesz - avail;
+            char *pa, *pb;
+            BOOL ra = FALSE, rb = FALSE;
+            DWORD ea = 0, eb = 0;
+            int fa = 0, fb = 0, k;
+
+            for (k = 0; k < (int)avail; ++k) q[k] = full[k];
+            pa = pb = POISON;
+            __try { SetLastError(0); ra = wia_sid2stra(q, &pa); ea = GetLastError(); }
+            __except (EXCEPTION_EXECUTE_HANDLER) { fa = 1; }
+            __try { SetLastError(0); rb = sys((PSID)q, &pb); eb = GetLastError(); }
+            __except (EXCEPTION_EXECUTE_HANDLER) { fb = 1; }
+
+            ++cases;
+            if (fa != fb || (!fa && (ra != rb || ea != eb || (pa == POISON) != (pb == POISON)))) {
+                if (failures < 10)
+                    printf("  FAIL guard cnt=%u avail=%u: ours %s%d/err=%lu  live %s%d/err=%lu\n",
+                           cnt, avail, fa ? "FAULT " : "", ra, (unsigned long)ea,
+                           fb ? "FAULT " : "", rb, (unsigned long)eb);
+                ++failures;
+            }
+            if (!fa && pa != POISON && pa) LocalFree(pa);
+            if (!fb && pb != POISON && pb) LocalFree(pb);
+        }
+    }
+    printf("  4. a SID ending exactly at a guard page, every count and every truncation: %ld\n",
+           cases - before);
+}
+
+int main(void)
+{
+    static unsigned char sid[8 + 4 * 256];
+    static unsigned sub[256];
+    SYSTEM_INFO si;
+    unsigned i, j, k;
+    unsigned long seed = 1;
+
+    setvbuf(stdout, NULL, _IONBF, 0);
+    sys = (FN)GetProcAddress(LoadLibraryW(L"advapi32.dll"), "ConvertSidToStringSidA");
+    if (!sys) { printf("no ConvertSidToStringSidA\n"); return 2; }
+    printf("== CORRECTNESS: ConvertSidToStringSidA ==\n");
+
+    {
+        long before = cases;
+        for (i = 0; i < 256; ++i) sub[i] = 4000000000u + i;
+        for (i = 0; i <= 255; ++i) { mk(sid, 1, 5, i, sub); one(sid); }
+        for (i = 0; i <= 255; ++i) { mk(sid, i, 5, 3, sub); one(sid); }
+        printf("  1. every sub-authority count 0..255 and every revision 0..255: %ld\n",
+               cases - before);
+    }
+    {
+        long before = cases;
+        static const unsigned long long AS[] = {
+            0ull, 1ull, 9ull, 10ull, 99ull, 100ull, 999ull, 1000ull, 99999ull, 100000ull,
+            999999999ull, 1000000000ull, 0xFFFFFFFEull, 0xFFFFFFFFull, 0x100000000ull,
+            0x100000001ull, 0xABCDEFull, 0x123456789Aull, 0xFFFFFFFFFFFEull, 0xFFFFFFFFFFFFull
+        };
+        for (i = 0; i < sizeof AS / sizeof AS[0]; ++i)
+            for (j = 0; j <= 15; ++j) { mk(sid, 1, AS[i], j, sub); one(sid); }
+        printf("  2. the identifier authority at every boundary, at every count: %ld\n",
+               cases - before);
+    }
+    {
+        long before = cases;
+        static const unsigned VS[] = {
+            0u, 1u, 9u, 10u, 11u, 99u, 100u, 101u, 999u, 1000u, 9999u, 10000u, 99999u,
+            100000u, 999999u, 1000000u, 9999999u, 10000000u, 99999999u, 100000000u,
+            999999999u, 1000000000u, 2147483647u, 2147483648u, 4294967294u, 4294967295u
+        };
+        for (i = 0; i < sizeof VS / sizeof VS[0]; ++i) {
+            for (k = 0; k < 16; ++k) sub[k] = VS[i];
+            /* EVERY COUNT, because the pack runs sixteen characters at a time with an overlapping
+               tail and the result length crosses that boundary at counts nothing round picks. */
+            for (j = 0; j <= 15; ++j) { mk(sid, 1, 5, j, sub); one(sid); }
+            for (k = 0; k < 16; ++k) sub[k] = 1234567890u;
+            for (j = 0; j < 15; ++j) {
+                sub[j] = VS[i];
+                mk(sid, 1, 5, 15, sub); one(sid);
+                sub[j] = 1234567890u;
+            }
+        }
+        printf("  3. every digit-count boundary as a sub-authority, in every position: %ld\n",
+               cases - before);
+    }
+
+    GetSystemInfo(&si);
+    g_pagesz = si.dwPageSize;
+    g_base = (unsigned char*)VirtualAlloc(0, g_pagesz * 2, MEM_RESERVE, PAGE_NOACCESS);
+    if (!g_base || !VirtualAlloc(g_base, g_pagesz, MEM_COMMIT, PAGE_READWRITE)) {
+        printf("  the guard page could not be set up\n"); return 1;
+    }
+    guard_sweep();
+
+    /* 5. EVERY RESULT LENGTH THE PACK CAN PRODUCE. The sixteen-character loop and its overlapping
+          tail change behaviour at every multiple of sixteen, and a corpus of "realistic" SIDs walks
+          straight past most of them. Sub-authority values are chosen so the total lands on each
+          length in turn. */
+    {
+        long before = cases;
+        unsigned target;
+        for (target = 0; target <= 15; ++target) {
+            for (j = 0; j <= 15; ++j) {
+                for (k = 0; k < 16; ++k) {
+                    static const unsigned BYLEN[10] = {
+                        0u, 7u, 42u, 500u, 6000u, 70000u, 800000u, 9000000u, 60000000u, 700000000u
+                    };
+                    sub[k] = BYLEN[(target + k) % 10];
+                }
+                mk(sid, 1, (target & 1) ? 0x100000000ull + target : (unsigned long long)target,
+                   j, sub);
+                one(sid);
+            }
+        }
+        printf("  5. result lengths driven across every 16-character pack boundary: %ld\n",
+               cases - before);
+    }
+
+    {
+        long before = cases;
+        for (i = 0; i < 200000 && failures < 10; ++i) {
+            unsigned cnt;
+            unsigned long long auth = 0;
+            unsigned b;
+            seed = seed * 1103515245u + 12345u;
+            cnt = ((seed >> 8) % 9 == 4) ? (16 + (seed >> 12) % 240) : ((seed >> 8) % 16);
+            for (b = 0; b < 6; ++b) {
+                seed = seed * 1103515245u + 12345u;
+                auth = (auth << 8) | (unsigned char)((b < 2 && ((seed >> 3) & 3)) ? 0 : (seed >> 16));
+            }
+            for (k = 0; k < 16; ++k) { seed = seed * 1103515245u + 12345u; sub[k] = seed; }
+            mk(sid, ((seed >> 5) % 11 == 7) ? (seed >> 9) & 0xFF : 1, auth, cnt > 15 ? 15 : cnt, sub);
+            sid[1] = (unsigned char)cnt;
+            one(sid);
+        }
+        printf("  6. 200000 randomised, the count over its whole byte range: %ld\n", cases - before);
+    }
+
+    {
+        long before = cases;
+        rec_t a, b, c;
+        char* p;
+        BOOL r;
+        mk(sid, 1, 5, 5, sub);
+        p = POISON; SetLastError(0xD15EA5E); r = wia_sid2stra(0, &p); grab(p, r, GetLastError(), &a);
+        p = POISON; SetLastError(0xD15EA5E); r = sys(0, &p);          grab(p, r, GetLastError(), &b);
+        p = POISON; SetLastError(0xD15EA5E); r = ref_sid2stra(0, &p); grab(p, r, GetLastError(), &c);
+        ++cases;
+        if (!b.ok && b.err == ERROR_INVALID_PARAMETER) ++n_param;
+        if (a.ok != b.ok || a.err != b.err || a.ptr != b.ptr ||
+            c.ok != b.ok || c.err != b.err || c.ptr != b.ptr) {
+            printf("  FAIL NULL sid\n"); ++failures;
+        }
+        SetLastError(0xD15EA5E); r = wia_sid2stra(sid, 0);  a.ok = (unsigned char)r; a.err = GetLastError();
+        SetLastError(0xD15EA5E); r = sys((PSID)sid, 0);     b.ok = (unsigned char)r; b.err = GetLastError();
+        SetLastError(0xD15EA5E); r = ref_sid2stra(sid, 0);  c.ok = (unsigned char)r; c.err = GetLastError();
+        ++cases;
+        if (!b.ok && b.err == ERROR_INVALID_PARAMETER) ++n_param;
+        if (a.ok != b.ok || a.err != b.err || c.ok != b.ok || c.err != b.err) {
+            printf("  FAIL NULL out\n"); ++failures;
+        }
+        printf("  7. the NULL arguments: %ld\n", cases - before);
+    }
+
+    printf("\n  total cases: %ld,  mismatches: %d\n", cases, failures);
+    printf("  the live export answered OK %ld, INVALID_SID %ld, INVALID_PARAMETER %ld\n",
+           n_ok, n_invalid, n_param);
+    if (n_ok < 1000 || n_invalid < 1000 || n_param != 2) {
+        printf("  the corpus did not reach all three outcomes -- the gate fails without them\n");
+        ++failures;
+    }
+    if (!failures)
+        printf("CORRECTNESS: PASS (the BOOL, the last error, the output pointer, LocalSize,\n"
+               "LocalFlags and every byte of the block exact vs live advapi32 and vs the scalar\n"
+               "model, including a SID against a guard page)\n");
+    else
+        printf("CORRECTNESS: FAIL (%d)\n", failures);
+    return failures ? 1 : 0;
+}
