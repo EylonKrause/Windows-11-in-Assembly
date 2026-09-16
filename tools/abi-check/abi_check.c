@@ -2843,6 +2843,37 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_275)
+#define NAME "275-inet-ntoa"
+extern char* wia_inet_ntoa(unsigned long);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* A 32-byte frame with one register pushed and ONE CALL OUT -- to the thread-local buffer, which
+       the compiler reaches through gs:[0x58] and the TLS array. That call is the reason the unwind
+       data matters here: a mis-described frame is only visible when something unwinds through it,
+       and a TLS access on a thread whose slot has not been materialised yet can do exactly that.
+
+       Every field length and every mixture of them is driven, because the implementation steps by
+       two, three or four bytes per field and a thunk that only formatted 127.0.0.1 would exercise
+       one step length three times.
+
+       Armed PER CALL (CALL4). */
+    static const unsigned long V[] = {
+        0x01010101ul, 0x0A0A0A0Aul, 0xFFFFFFFFul, 0x00000000ul,
+        0x0100007Ful, 0xC8A8A8C0ul, 0x0101A8C0ul, 0x64020A0Aul,
+        0x63636363ul, 0x64646464ul, 0x09090909ul, 0x0A090A09ul,
+        0xFF0000FFul, 0x00FFFF00ul
+    };
+    unsigned long long sink = 0;
+    int i;
+    for (i = 0; i < (int)(sizeof V / sizeof V[0]); ++i)
+        sink += (unsigned)CALL4(wia_inet_ntoa, V[i], 0, 0, 0);
+    /* and every byte value in the low field, so every table entry is touched */
+    for (i = 0; i < 256; ++i)
+        sink += (unsigned)CALL4(wia_inet_ntoa, (unsigned long)i | 0x01010100ul, 0, 0, 0);
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
