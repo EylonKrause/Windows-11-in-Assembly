@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (82)
+# ntdll.dll — reimplemented exports (83)
 
 | export | speedup | source |
 |---|---|---|
@@ -12,6 +12,7 @@
 | `RtlCompareMemoryUlong` | 5.04x | [changes/026-rtlcomparememoryulong](../../../../../changes/026-rtlcomparememoryulong/) |
 | `RtlCompareString` | 4.47x | [changes/012-rtlcomparestring](../../../../../changes/012-rtlcomparestring/) |
 | `RtlCompareUnicodeString` | 3.97x | [changes/008-rtlcompareunicodestring](../../../../../changes/008-rtlcompareunicodestring/) |
+| `RtlCompareUnicodeStrings` | 16.03x | [changes/263-rtlcompareunicodestrings](../../../../../changes/263-rtlcompareunicodestrings/) |
 | `RtlConvertSidToUnicodeString` | 1.42x | [changes/067-rtlconvertsidtounicodestring](../../../../../changes/067-rtlconvertsidtounicodestring/) |
 | `RtlCrc64` | 3.29x | [changes/076-rtlcrc64](../../../../../changes/076-rtlcrc64/) |
 | `RtlDowncaseUnicodeString` | 11.15x | [changes/017-rtldowncaseunicodestring](../../../../../changes/017-rtldowncaseunicodestring/) |

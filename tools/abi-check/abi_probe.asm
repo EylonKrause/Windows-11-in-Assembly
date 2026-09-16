@@ -388,4 +388,142 @@ c_df:   vzeroupper
         pop       rbx
         ret
 wia_abi_call4 ENDP
+
+; unsigned long long wia_abi_call5(void* fn, u64 a, u64 b, u64 c, u64 d, u64 e)
+; Exactly wia_abi_call4, for a target that takes FIVE arguments: the fifth goes on the stack
+; at [rsp+20h], where the Win64 ABI puts it. It is a second copy rather than a C wrapper on
+; purpose -- a compiled adapter would save and restore xmm6 itself, which is precisely the
+; register change 263 destroyed in its first draft, and the gate would then have reported
+; PASS on a function that was corrupting its caller.
+wia_abi_call5 PROC
+        push      rbx
+        push      rbp
+        push      rdi
+        push      rsi
+        push      r12
+        push      r13
+        push      r14
+        push      r15
+        sub       rsp, 118h                          ; keeps rsp 16-aligned at the call
+        mov       qword ptr [rsp + 0E0h], rcx        ; the target
+        mov       qword ptr [rsp + 0E8h], rdx        ; and its four arguments, parked where they
+        mov       qword ptr [rsp + 0F0h], r8         ; can be reloaded AFTER the sentinels are in
+        mov       qword ptr [rsp + 0F8h], r9
+        mov       rax, qword ptr [rsp + 180h]        ; the fifth incoming argument
+        mov       qword ptr [rsp + 100h], rax
+        mov       rax, qword ptr [rsp + 188h]        ; ... and the SIXTH, which becomes the
+        mov       qword ptr [rsp + 108h], rax        ; ... target call's FIFTH, on the stack
+        mov       qword ptr [rsp + 38h], rsp         ; to prove the callee balanced the stack
+
+        ; preserve the REAL xmm6-15 first: this must itself be ABI-clean.
+        vmovdqu   xmmword ptr [rsp + 40h], xmm6
+        vmovdqu   xmmword ptr [rsp + 50h], xmm7
+        vmovdqu   xmmword ptr [rsp + 60h], xmm8
+        vmovdqu   xmmword ptr [rsp + 70h], xmm9
+        vmovdqu   xmmword ptr [rsp + 80h], xmm10
+        vmovdqu   xmmword ptr [rsp + 90h], xmm11
+        vmovdqu   xmmword ptr [rsp + 0A0h], xmm12
+        vmovdqu   xmmword ptr [rsp + 0B0h], xmm13
+        vmovdqu   xmmword ptr [rsp + 0C0h], xmm14
+        vmovdqu   xmmword ptr [rsp + 0D0h], xmm15
+
+        lea       r10, [xpat]
+        vmovdqa   xmm6  , xmmword ptr [r10 + 0]
+        vmovdqa   xmm7  , xmmword ptr [r10 + 16]
+        vmovdqa   xmm8  , xmmword ptr [r10 + 32]
+        vmovdqa   xmm9  , xmmword ptr [r10 + 48]
+        vmovdqa   xmm10 , xmmword ptr [r10 + 64]
+        vmovdqa   xmm11 , xmmword ptr [r10 + 80]
+        vmovdqa   xmm12 , xmmword ptr [r10 + 96]
+        vmovdqa   xmm13 , xmmword ptr [r10 + 112]
+        vmovdqa   xmm14 , xmmword ptr [r10 + 128]
+        vmovdqa   xmm15 , xmmword ptr [r10 + 144]
+        lea       r10, [gpat]
+        mov       rbx , qword ptr [r10 + 0]
+        mov       rbp , qword ptr [r10 + 8]
+        mov       rdi , qword ptr [r10 + 16]
+        mov       rsi , qword ptr [r10 + 24]
+        mov       r12 , qword ptr [r10 + 32]
+        mov       r13 , qword ptr [r10 + 40]
+        mov       r14 , qword ptr [r10 + 48]
+        mov       r15 , qword ptr [r10 + 56]
+
+        mov       rcx, qword ptr [rsp + 0E8h]        ; only volatile registers are touched between
+        mov       rdx, qword ptr [rsp + 0F0h]        ; arming and the call
+        mov       r8,  qword ptr [rsp + 0F8h]
+        mov       r9,  qword ptr [rsp + 100h]
+        mov       rax, qword ptr [rsp + 108h]
+        mov       qword ptr [rsp + 20h], rax         ; where the Win64 ABI puts a fifth argument
+        mov       r11, qword ptr [rsp + 0E0h]
+        call      r11
+
+        xor       eax, eax
+        lea       r11, [gpat]
+        cmp       rbx , qword ptr [r11 + 0]
+        je        x_c0
+        or        eax, 1
+x_c0:     cmp       rbp , qword ptr [r11 + 8]
+        je        x_c1
+        or        eax, 2
+x_c1:     cmp       rdi , qword ptr [r11 + 16]
+        je        x_c2
+        or        eax, 4
+x_c2:     cmp       rsi , qword ptr [r11 + 24]
+        je        x_c3
+        or        eax, 8
+x_c3:     cmp       r12 , qword ptr [r11 + 32]
+        je        x_c4
+        or        eax, 16
+x_c4:     cmp       r13 , qword ptr [r11 + 40]
+        je        x_c5
+        or        eax, 32
+x_c5:     cmp       r14 , qword ptr [r11 + 48]
+        je        x_c6
+        or        eax, 64
+x_c6:     cmp       r15 , qword ptr [r11 + 56]
+        je        x_c7
+        or        eax, 128
+x_c7:     lea       r11, [xpat]
+        mov       r10d, 0
+        CHKX      0,   xmm6,  256
+        CHKX      16,  xmm7,  512
+        CHKX      32,  xmm8,  1024
+        CHKX      48,  xmm9,  2048
+        CHKX      64,  xmm10, 4096
+        CHKX      80,  xmm11, 8192
+        CHKX      96,  xmm12, 16384
+        CHKX      112, xmm13, 32768
+        CHKX      128, xmm14, 65536
+        CHKX      144, xmm15, 131072
+
+        cmp       rsp, qword ptr [rsp + 38h]
+        je        x_c_sp
+        or        eax, 262144
+x_c_sp:   pushfq
+        pop       r10
+        test      r10d, 400h                         ; DF must be clear on return
+        jz        x_c_df
+        or        eax, 524288
+x_c_df:   vzeroupper
+        vmovdqu   xmm6  , xmmword ptr [rsp + 40h]
+        vmovdqu   xmm7  , xmmword ptr [rsp + 50h]
+        vmovdqu   xmm8  , xmmword ptr [rsp + 60h]
+        vmovdqu   xmm9  , xmmword ptr [rsp + 70h]
+        vmovdqu   xmm10 , xmmword ptr [rsp + 80h]
+        vmovdqu   xmm11 , xmmword ptr [rsp + 90h]
+        vmovdqu   xmm12 , xmmword ptr [rsp + 0A0h]
+        vmovdqu   xmm13 , xmmword ptr [rsp + 0B0h]
+        vmovdqu   xmm14 , xmmword ptr [rsp + 0C0h]
+        vmovdqu   xmm15 , xmmword ptr [rsp + 0D0h]
+        add       rsp, 118h
+        pop       r15
+        pop       r14
+        pop       r13
+        pop       r12
+        pop       rsi
+        pop       rdi
+        pop       rbp
+        pop       rbx
+        ret
+wia_abi_call5 ENDP
 END
