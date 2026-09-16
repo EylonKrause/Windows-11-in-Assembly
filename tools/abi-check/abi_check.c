@@ -2263,6 +2263,44 @@ static void thunk(void){
     CALL4(wia_rtlinitutf8string, &d, 0, 0, 0);                             /* the NULL source */
 }
 
+#elif defined(T_265)
+#define NAME "265-rtlappendasciiztostring"
+typedef struct { unsigned short Length, MaximumLength; char* Buffer; } ABI_ASTR;
+extern long wia_appendasciiztostring(ABI_ASTR*, const char*);
+static void thunk(void){
+    /* A LEAF -- no prologue, no saved registers, no unwind data -- which is the point: it keeps the
+       source pointer in the caller's shadow space rather than in a non-volatile register, because
+       the inlined scan uses edx as a scratch and the pointer does not survive it. If that parking
+       were done with a push instead, this gate is what would notice.
+
+       Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for its own loop hides an
+       implementation that destroys r15, as change 258 demonstrated.
+
+       Driven: the empty source and NULL, every rung of the small-copy ladder (1, 2..3, 4..7, 8..15,
+       16..31 bytes), the 32-byte vector loop and its overlapping tail, a source big enough to run
+       the scan through its 64-byte block loop, and the refusal path at several sizes -- which must
+       return without writing anything at all. */
+    static char src[9000];
+    static char dst[9100];
+    ABI_ASTR d;
+    static const int LENS[14] = { 0, 1, 2, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33, 8000 };
+    int i, k;
+    for (k = 0; k < 9000; ++k) src[k] = (char)('a' + (k % 26));
+    for (i = 0; i < 14; ++i) {
+        src[LENS[i]] = 0;
+        d.Length = 0; d.MaximumLength = 9000; d.Buffer = dst;
+        CALL4(wia_appendasciiztostring, &d, src, 0, 0);          /* it fits */
+        d.Length = 0; d.MaximumLength = 9000; d.Buffer = dst;
+        CALL4(wia_appendasciiztostring, &d, src + 1, 0, 0);      /* ... at an odd alignment */
+        d.Length = 0;
+        d.MaximumLength = (unsigned short)(LENS[i] ? LENS[i] - 1 : 0);
+        CALL4(wia_appendasciiztostring, &d, src, 0, 0);          /* ... and it does not */
+        src[LENS[i]] = (char)('a' + (LENS[i] % 26));
+    }
+    d.Length = 0; d.MaximumLength = 9000; d.Buffer = dst;
+    CALL4(wia_appendasciiztostring, &d, 0, 0, 0);                /* the NULL source */
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
