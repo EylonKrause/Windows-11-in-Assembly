@@ -303,6 +303,24 @@ u82u_measure:
         xor       r11d, r11d                        ; index
         xor       eax, eax                          ; units produced
         jmp       w_test
+
+; THE ASCII BLOCK, ADDED 2026-09-16 BECAUSE A CALLER MEASURED IT. The first version of this mode
+; walked one byte at a time, which is the right shape for a path nothing calls in a loop -- and
+; then change 268 called it on every allocating conversion and on every conversion into a tight
+; destination, where the shipped code's own sizing pass is vectorised. On 4000 ASCII bytes that
+; scalar walk cost more than the conversion it was sizing. Thirty-two bytes are tested at once
+; here: VPMOVMSKB collects their top bits, and if none is set then all thirty-two are one UTF-16
+; unit each and the count moves by 32 with no per-byte work. It needs no constant and no compare --
+; the mask IS the answer. Anything else falls into the byte-at-a-time rule below, which is
+; unchanged and still decides every multi-byte and every malformed case.
+ALIGN 16
+w_fast: vmovdqu   ymm0, ymmword ptr [r9 + r11]
+        vpmovmskb ecx, ymm0
+        test      ecx, ecx
+        jnz       w_loop                            ; a byte with its top bit set: go carefully
+        add       eax, 32
+        add       r11, 32
+        jmp       w_test
 ALIGN 16
 w_loop:
         movzx     ecx, byte ptr [r9 + r11]
@@ -413,7 +431,11 @@ w4hi:   cmp       edx, r8d
         add       eax, 2                            ; a complete four-byte sequence is a PAIR
         add       r11, 4
 
-w_test: cmp       r11, r10
+w_test: mov       rcx, r10
+        sub       rcx, r11
+        cmp       rcx, 32
+        jae       w_fast                            ; thirty-two left: try them as a block
+        cmp       r11, r10
         jb        w_loop
         add       eax, eax                          ; units -> BYTES of UTF-16
         mov       r8, qword ptr [rsp + 16]
@@ -422,7 +444,8 @@ w_test: cmp       r11, r10
         cmp       dword ptr [rsp + 8], 0
         je        w_ret
         mov       eax, 107h                         ; STATUS_SOME_NOT_MAPPED
-w_ret:  ret
+w_ret:  vzeroupper
+        ret
 
 wia_u82u ENDP
 END
