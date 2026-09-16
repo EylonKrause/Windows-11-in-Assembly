@@ -2694,6 +2694,60 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_271)
+#define NAME "271-convertsidtostringsida"
+extern int wia_sid2stra(const void*, char**);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* THE SAME TWO NESTED FRAMES AS 270 -- this one's 856 bytes with four pushes over change 067's
+       552 with eight, whose body calls out to an exception handler -- plus a VECTOR pack, which is
+       the part that matters here: VPACKUSWB writes xmm0 and xmm1, and the LOW 128 BITS of xmm6 to
+       xmm15 are non-volatile. Sixteen implementations in this repository used an xmm register as
+       scratch undetected for months, and the only reason it was ever found is that change 202's
+       benchmark keeps its accumulators in xmm6/xmm7 and reported a correct function as taking
+       0.00 ns.
+
+       The counts are driven 0..15 against four identifier authorities so that the result length
+       crosses the sixteen-character pack boundary in both directions -- the byte loop below sixteen
+       and the overlapping tail above it.
+
+       Armed PER CALL (CALL4). Every allocated block is freed. */
+    static unsigned char sid[8 + 4 * 16];
+    char* p;
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (k = 0; k < 4; ++k) {
+        static const unsigned char AUTH[4][6] = {
+            {0,0,0,0,0,5}, {0,0,0,0,0,0},
+            {0,0,255,255,255,255}, {255,255,255,255,255,255}
+        };
+        for (i = 0; i < 6; ++i) sid[2 + i] = AUTH[k][i];
+        for (i = 0; i < 16; ++i) {
+            unsigned v = (unsigned)(0x9E3779B9u * (unsigned)(i + k + 1));
+            if (k == 1) v = (unsigned)(i + 1);          /* short numbers: short results */
+            sid[8 + 4*i + 0] = (unsigned char)v;
+            sid[8 + 4*i + 1] = (unsigned char)(v >> 8);
+            sid[8 + 4*i + 2] = (unsigned char)(v >> 16);
+            sid[8 + 4*i + 3] = (unsigned char)(v >> 24);
+        }
+        sid[0] = 1;
+        for (i = 0; i <= 15; ++i) {
+            sid[1] = (unsigned char)i;
+            p = 0;
+            sink += (unsigned)CALL4(wia_sid2stra, sid, &p, 0, 0);
+            if (p) LocalFree(p);
+        }
+    }
+    sid[0] = 2; sid[1] = 5;  p = 0; sink += (unsigned)CALL4(wia_sid2stra, sid, &p, 0, 0); if (p) LocalFree(p);
+    sid[0] = 1; sid[1] = 16; p = 0; sink += (unsigned)CALL4(wia_sid2stra, sid, &p, 0, 0); if (p) LocalFree(p);
+    sid[1] = 255;            p = 0; sink += (unsigned)CALL4(wia_sid2stra, sid, &p, 0, 0); if (p) LocalFree(p);
+    p = 0; sink += (unsigned)CALL4(wia_sid2stra, 0, &p, 0, 0);
+    sid[1] = 5;              sink += (unsigned)CALL4(wia_sid2stra, sid, 0, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
