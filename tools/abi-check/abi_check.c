@@ -869,6 +869,97 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_142)
+#define NAME "142-pathaddbackslashw"
+extern wchar_t* wia_pathaddbackslashw(wchar_t*);
+static void thunk(void){
+    /* appends, declines because it already ends in one, declines because a forward slash does NOT
+       count, the empty string (left alone), and both sides of the MAX_PATH rule -- which is applied
+       BEFORE the already-terminated shortcut, so the two thresholds differ by one.
+
+       NO NULL CASE HERE, deliberately, and it is not an oversight: unlike the lstrcat pair below,
+       PathAddBackslashW has no NULL contract -- the shipped export dereferences its argument and so
+       does this one, with no SEH wrapper to swallow it. Calling it with NULL crashes the driver
+       before it can report anything, which is exactly what this thunk did on its first run. */
+    static wchar_t p[600];
+    int i;
+    wcscpy(p, L"C:\\dir");
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);
+    sink += p[0];
+    wcscpy(p, L"C:\\dir\\");
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);
+    wcscpy(p, L"C:\\dir/");
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);   /* a slash does not count */
+    sink += p[0];
+    wcscpy(p, L"");
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);
+    for (i = 0; i < 258; ++i) p[i] = (wchar_t)(0x61 + i % 23);
+    p[258] = 0;
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);   /* 258: the last length that fits */
+    for (i = 0; i < 259; ++i) p[i] = (wchar_t)(0x61 + i % 23);
+    p[259] = 0;
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);   /* 259: refused, returns NULL */
+    for (i = 0; i < 259; ++i) p[i] = (wchar_t)(0x61 + i % 23);
+    p[258] = 0x5C; p[259] = 0;
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);   /* already terminated at 259: still fits */
+    for (i = 0; i < 500; ++i) p[i] = (wchar_t)(0x61 + i % 23);
+    p[500] = 0;
+    sink += (long long)(size_t)wia_pathaddbackslashw(p);   /* long: the vector scan, then refused */
+    sink += p[0];
+}
+
+#elif defined(T_228)
+#define NAME "228-lstrcata"
+extern char* wia_lstrcata(char*, const char*);
+static void thunk(void){
+    /* the destination scan then the page-clamped copy, at lengths that reach every path: an empty
+       destination, a short append, one crossing 32 bytes, a long source, and every NULL combination --
+       which this export SWALLOWS rather than faulting. */
+    static char d[9000];
+    static char s[5000];
+    int i;
+    strcpy(s, "APPENDED");
+    strcpy(d, "");      sink += (long long)(size_t)wia_lstrcata(d, s); sink += d[0];
+    strcpy(d, "abcdefgh"); sink += (long long)(size_t)wia_lstrcata(d, s); sink += d[0];
+    strcpy(d, "0123456789012345678901234567890123456789");
+    sink += (long long)(size_t)wia_lstrcata(d, s); sink += d[0];
+    for (i = 0; i < 4000; ++i) s[i] = (char)(0x41 + i % 26);
+    s[4000] = 0;
+    strcpy(d, "x"); sink += (long long)(size_t)wia_lstrcata(d, s); sink += d[0];
+    for (i = 0; i < 4000; ++i) d[i] = (char)(0x61 + i % 23);
+    d[4000] = 0;
+    sink += (long long)(size_t)wia_lstrcata(d, "tail"); sink += d[0];
+    sink += (long long)(size_t)wia_lstrcata(0, s);
+    sink += (long long)(size_t)wia_lstrcata(d, 0);
+    sink += (long long)(size_t)wia_lstrcata(0, 0);
+}
+
+#elif defined(T_230)
+#define NAME "230-lstrcatw"
+extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
+static void thunk(void){
+    /* the same shapes wide, including ODD-ALIGNED destinations, which is where the split-character
+       rule lives: the export writes whole characters only. */
+    static wchar_t d[9000];
+    static wchar_t s[5000];
+    int i;
+    wcscpy(s, L"APPENDED");
+    wcscpy(d, L"");        sink += (long long)(size_t)wia_lstrcatw(d, s); sink += d[0];
+    wcscpy(d, L"abcdefgh"); sink += (long long)(size_t)wia_lstrcatw(d, s); sink += d[0];
+    wcscpy(d, L"0123456789012345678901234567890123456789");
+    sink += (long long)(size_t)wia_lstrcatw(d, s); sink += d[0];
+    sink += (long long)(size_t)wia_lstrcatw((wchar_t*)((char*)d + 1), s);  /* odd-aligned */
+    for (i = 0; i < 4000; ++i) s[i] = (wchar_t)(0x41 + i % 26);
+    s[4000] = 0;
+    wcscpy(d, L"x"); sink += (long long)(size_t)wia_lstrcatw(d, s); sink += d[0];
+    for (i = 0; i < 4000; ++i) d[i] = (wchar_t)(0x61 + i % 23);
+    d[4000] = 0;
+    sink += (long long)(size_t)wia_lstrcatw(d, L"tail"); sink += d[0];
+    sink += (long long)(size_t)wia_lstrcatw(0, s);
+    sink += (long long)(size_t)wia_lstrcatw(d, 0);
+    sink += (long long)(size_t)wia_lstrcatw(0, 0);
+}
+
 #elif defined(T_241)
 #define NAME "241-pathcchaddbackslashex"
 extern long wia_pathcchaddbackslashex(wchar_t*, size_t, wchar_t**, size_t*);
