@@ -62,10 +62,20 @@
 ; THE FIRST VERSION folded the haystack block to ASCII upper case and compared it against the folded
 ; anchor, then OR-ed in the clause "a non-ASCII haystack unit is always a candidate". That clause is
 ; unavoidable for an ASCII fold: no amount of arithmetic brings U+00E0 and U+00C0 together without
-; also merging units that must stay apart, and U+017F (LATIN SMALL LETTER LONG S) ordinally upcases
-; to the ASCII 'S', so a non-ASCII unit can match an ASCII anchor and cannot be excluded either.
-; The filter was therefore a SUPERSET -- correct, since the scalar verifier settles every candidate
-; exactly -- and it measured:
+; also merging units that must stay apart. The filter was therefore a SUPERSET -- correct, since the
+; scalar verifier settles every candidate exactly -- and it measured:
+;
+; (CORRECTION, 2026-09-16, found while probing kernelbase!FindStringOrdinal for change 254: an
+; earlier version of this comment justified the non-ASCII clause with U+017F LATIN SMALL LETTER
+; LONG S, claiming it ordinally upcases to the ASCII 'S' and so proves a non-ASCII unit can match an
+; ASCII anchor. THAT IS WRONG. RtlUpcaseUnicodeChar(U+017F) = U+017F. The NT ordinal table is
+; considerably NARROWER than Unicode's full case folding -- U+017F, U+0130, U+0131, U+00DF and
+; U+00B5 all map to themselves, and NOTHING in 0x80..0xBF folds at all -- so no non-ASCII unit
+; upcases into ASCII and that particular argument never held. The non-ASCII clause was still
+; REQUIRED, for the reason stated above and now standing alone: an ASCII fold cannot bring U+00E0
+; and U+00C0 together. Nothing in the shipped code changes, because the version that shipped does
+; not use this filter at all -- it enumerates the anchor's case class exactly. The error was in the
+; explanation of a superseded design, and is corrected rather than deleted.)
 ;
 ;       4000 ch, CI miss              546 ns    16.46x      ASCII text: the superset is tight
 ;       non-ASCII 4000, CI miss      5145 ns     2.33x      Cyrillic: the superset is EVERYTHING

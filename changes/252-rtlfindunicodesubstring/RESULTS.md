@@ -64,10 +64,9 @@ That much was the easy part. Two rows of the first benchmark were not.
 
 The first version folded the haystack block to ASCII upper case and OR-ed in the clause *"a
 non-ASCII haystack unit is always a candidate."* That clause is unavoidable for an ASCII fold: no
-arithmetic brings U+00E0 and U+00C0 together without merging units that must stay apart, and U+017F
-(LATIN SMALL LETTER LONG S) ordinally upcases to the **ASCII** `'S'`, so a non-ASCII unit can match
-an ASCII anchor and cannot be excluded either. The filter was therefore a **superset** — correct,
-because the scalar verifier settles every candidate exactly. It measured:
+arithmetic brings U+00E0 and U+00C0 together without merging units that must stay apart. The filter
+was therefore a **superset** — correct, because the scalar verifier settles every candidate exactly.
+It measured:
 
 | | ns | ratio |
 |---|---|---|
@@ -164,7 +163,32 @@ six-character string never reaches the vector path at all.
 | 1. exhaustive `{a,A,b,B}`, haystack 0…6 × needle 0…3, both modes | 928 370 | the scalar tail **only** |
 | 2. vector-loop boundary, `n−m` = 0…40 × `m` = 1…20, planted at **every** offset | 108 240 | the loop bound, on both sides of it |
 | 3. randomised long strings, 4 alphabets, planted and absent | 40 000 | the vector loop |
-| 4. hard fold pairs as body **and as anchors** | 675 | U+00E0/U+00C0, U+017F vs ASCII `'S'`, U+0130/U+0131, U+00DF/U+1E9E, fullwidth |
+| 4. hard fold pairs as body **and as anchors** | 675 | U+00E0/U+00C0, U+00FF/U+0178, Greek, Cyrillic, fullwidth — plus non-pairs the ordinal table refuses to merge (see below) |
+
+### A correction to this document, found while probing change 254
+
+An earlier version of the passage above justified the non-ASCII clause by claiming that **U+017F
+(LATIN SMALL LETTER LONG S) ordinally upcases to the ASCII `'S'`**, and therefore that a non-ASCII
+unit can match an ASCII anchor. **That is wrong**: `RtlUpcaseUnicodeChar(U+017F) = U+017F`. The NT
+ordinal table is considerably **narrower** than Unicode's full case folding —
+
+```
+RtlUpcaseUnicodeChar(U+017F) = U+017F      RtlUpcaseUnicodeChar(U+0130) = U+0130
+RtlUpcaseUnicodeChar(U+0131) = U+0131      RtlUpcaseUnicodeChar(U+00DF) = U+00DF
+RtlUpcaseUnicodeChar(U+00B5) = U+00B5      units in 0x80..0xBF that fold at all: 0
+```
+
+— so no non-ASCII unit upcases *into* ASCII, and that particular argument never held. The non-ASCII
+clause was still **required**, for the other reason given and now standing alone: an ASCII fold
+cannot bring U+00E0 and U+00C0 together. **Nothing in the shipped code changes**, because the
+version that shipped does not use that filter at all — it enumerates the anchor's case class
+exactly. The error was in the explanation of a superseded design.
+
+Section 4 of the corpus is affected only in its labelling: rows built from U+017F/`'S'`,
+U+0130/U+0131 and U+00DF/U+1E9E are pairs the ordinal table does **not** merge, so those cases
+tested that all three implementations agree on a **non**-match. They passed, and they are still
+worth having — a fold that wrongly merged them would now be caught — but they were not exercising
+what their label claimed.
 | 5. a `PAGE_NOACCESS` guard page butted against the end of `Length`, `n` = 1…260 × `m` = 1…20 | 20 040 | **no fault** |
 
 Section 5 is the "no clamp is needed" claim, tested: the haystack's last character ends exactly at
