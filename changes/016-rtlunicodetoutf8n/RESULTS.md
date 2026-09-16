@@ -1,4 +1,4 @@
-# 016 — `RtlUnicodeToUTF8N` (AVX2) — **LANDED** (core ntdll, 2.74× geomean over every input class)
+# 016 — `RtlUnicodeToUTF8N` (AVX2) — **LANDED** (core ntdll, 2.46× geomean over every input class)
 
 The pending hard one: UTF-16 → UTF-8 conversion. Used across the OS wherever names cross the UTF-8 boundary
 (modern path/registry/console interop). A real UTF-8 encoder — 1/2/3/4-byte sequences, surrogate-pair
@@ -101,6 +101,34 @@ that all eight characters are surrogates *and* that they alternate high-low star
 arithmetic is one `VPMADDWD`: subtracting that same pattern leaves each half in `0..0x3FF`, and
 multiplying by `[0x400, 1]` and summing adjacent pairs **is** `(hi − 0xD800)·0x400 + (lo − 0xDC00)`.
 
+### The surplus bytes, and why change 268 found them and this gate did not
+
+Both packing blocks compute sixteen bytes and then advance by however many were *wanted*. Storing
+all sixteen is the cheap way to finish, and inside the destination's capacity it is not a memory
+error -- but it puts **zeros in the caller's buffer past the end of the string**, and the shipped
+export leaves those bytes exactly as the caller left them.
+
+Nothing here noticed, because this gate compared only up to the produced **length**, which is the
+natural thing to compare and is not enough. [Change 268](../268-rtlunicodestringtoutf8string/)
+compares its *whole* destination -- its wrapper's contract includes what a failing call leaves
+behind -- and the first time it was built against these blocks it reported **154 mismatches**, every
+one a single `00` where ntdll had left the caller's fill. Both gates now compare the whole capacity.
+
+**The first fix was to blend, and it was measured and thrown away.** Reading the sixteen bytes back,
+keeping whatever the output did not reach, and storing the result is four instructions and no
+table -- and it cost **2.9x on three-byte input**, because every iteration's read overlaps the
+previous iteration's store by a few bytes. A partially overlapping load cannot be forwarded from the
+store buffer, so each one waits for the store to reach L1.
+
+**What ships never reads the destination.** Exactly *L* bytes go out as two **overlapping** stores --
+the first eight and the last eight -- which together cover `[0, L)` precisely when `L >= 8`; below
+eight the same trick works with two 4-byte stores, which is the only branch. A third
+assembler-generated table makes the second store possible: entry *k* shuffles byte `k+i` down to
+position *i*, bringing the tail to where an 8-byte store will emit it.
+
+It costs about 10% -- geomean 2.735x to 2.461x over the 24 rows -- and that is the honest price of
+not writing into bytes the caller did not ask us to touch.
+
 ### One trap, and it would have mangled ordinary text
 
 The first draft of the general block read the one-byte form out of the three-byte lane's last byte —
@@ -126,7 +154,7 @@ The gate also now checks that **nothing is written at or past `dstMax`**. It did
 comparison stopped at `min(len, dstMax)` and the destination was a 3000-byte array, so an
 implementation that wrote eight bytes past its capacity wrote them into slack nothing looked at.
 
-**Mutation-tested, 14 mutants, all 14 caught**: a shift off by one in each block, the one-byte blend
+**Mutation-tested, 19 mutants, all 19 caught**: a shift off by one in each block, the one-byte blend
 reversed, the `0xC0` lead marker dropped, the two-byte lead fixup removed, the surrogate test made to
 accept anything, the `0x10000` offset dropped, the two halves of the general block swapped, each
 block's destination guard halved, and a wrong entry in each of the two assembler-generated tables.
@@ -145,21 +173,24 @@ it replaces.**
 
 | class | 64 | 512 | 4000 | 32000 |
 |---|---:|---:|---:|---:|
-| ASCII | 2.41× | 3.14× | 3.35× | 3.34× |
-| 2-byte (`U+00A0`…) | 3.99× | 3.16× | 2.86× | 2.99× |
-| 3-byte (`U+20A0`…) | 3.38× | 2.88× | 2.27× | 2.66× |
-| surrogate pairs | 3.49× | 3.37× | 3.28× | 3.26× |
-| mixed ASCII + 2-byte | 2.25× | 1.84× | 1.78× | 1.75× |
-| lone surrogates (scalar on purpose) | 2.32× | 2.46× | 2.48× | 2.49× |
+| ASCII | 2.42× | 3.12× | 3.35× | 3.35× |
+| 2-byte (`U+00A0`…) | 3.36× | 2.64× | 2.20× | 2.41× |
+| 3-byte (`U+20A0`…) | 2.71× | 2.26× | 2.21× | 2.13× |
+| surrogate pairs | 3.28× | 3.10× | 3.02× | 3.00× |
+| mixed ASCII + 2-byte | 2.07× | 1.51× | 1.46× | 1.41× |
+| lone surrogates (scalar on purpose) | 2.31× | 2.47× | 2.50× | 2.50× |
 
-**Overall geomean 2.735× faster over 24 rows. Worst class 1.75×. No size class regressed → LANDS.**
+**Overall geomean 2.461× faster over 24 rows. Worst class 1.41×. No size class regressed → LANDS.**
 
 Against the published ASCII-only numbers, and against the same 24 rows before this work:
 
-| | before | after the window (`e71db44`) | after the blocks |
-|---|---:|---:|---:|
-| geomean, 24 rows | 0.798× | 0.983× | **2.735×** |
-| worst row | 0.21× | 0.28× | **1.75×** |
+| | before | after the window (`e71db44`) | with the blocks | with the exact store |
+|---|---:|---:|---:|---:|
+| geomean, 24 rows | 0.798× | 0.983× | 2.735× | **2.461×** |
+| worst row | 0.21× | 0.28× | 1.75× | **1.41×** |
+
+The last column is the one that ships: the third is what the blocks did while they were still
+writing zeros past the end of the string.
 
 ## Iteration (the "don't give up" widening)
 

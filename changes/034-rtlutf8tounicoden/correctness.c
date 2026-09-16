@@ -62,7 +62,10 @@ static void one(fn sys, const unsigned char* s, int n, ULONG dbytes){
     s2=wia_u82u(d2,dbytes,&l2,s,n);
     sr=ref_u82u(dr,dbytes,&lr,s,n);
     bad=(s1!=s2)||(s2!=sr)||(l1!=l2)||(l2!=lr);
-    cmp=l1<dbytes?l1:dbytes;
+    /* THE WHOLE CAPACITY IS COMPARED, not just the units that were produced -- see the note in
+       change 016's correctness.c: a block that stores sixteen bytes and advances by fewer leaves
+       zeros past the end of the string where ntdll leaves the caller's bytes alone. */
+    cmp=dbytes<DB?dbytes:DB;
     for(b=0;b<cmp && !bad;b++) if(((unsigned char*)d1)[b]!=((unsigned char*)d2)[b]) bad=1;
     for(b=0;b<cmp && !bad;b++) if(((unsigned char*)d2)[b]!=((unsigned char*)dr)[b]) bad=1;
     if(bad){ printf("FAIL n=%d db=%lu: ntdll st=%lx l=%lu ours st=%lx l=%lu ref st=%lx l=%lu\n",
