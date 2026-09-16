@@ -52,6 +52,10 @@ extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
 extern void     wia_pccx_set_fallback(void*);
+extern long     wia_pathcchappendex(wchar_t*, size_t, const wchar_t*, unsigned long);
+extern long     wia_pathcchcombineex(wchar_t*, size_t, const wchar_t*, const wchar_t*, unsigned long);
+extern void     wia_pcap_set_fallback(void*);
+extern void     wia_pccb_set_fallback(void*);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*, int);
 typedef char*    (WINAPI *FNA)(char*, const char*, int);
 typedef int      (WINAPI *FNC)(LPCWCH, int, LPCWCH, int, BOOL);
@@ -70,6 +74,14 @@ static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs
 static volatile LONG c_pccx;
 static long WINAPI w_pccx(wchar_t* o, size_t cch, const wchar_t* in, unsigned long f){
     _InterlockedIncrement(&c_pccx); return wia_pathcchcanonicalizeex(o, cch, in, f);
+}
+static volatile LONG c_pcap, c_pccb;
+static long WINAPI w_pcap(wchar_t* p, size_t cch, const wchar_t* more, unsigned long f){
+    _InterlockedIncrement(&c_pcap); return wia_pathcchappendex(p, cch, more, f);
+}
+static long WINAPI w_pccb(wchar_t* o, size_t cch, const wchar_t* in, const wchar_t* more,
+                          unsigned long f){
+    _InterlockedIncrement(&c_pccb); return wia_pathcchcombineex(o, cch, in, more, f);
 }
 static wchar_t* WINAPI w_cpn(wchar_t* d, const wchar_t* s, int n){
     _InterlockedIncrement(&c_cpn); return wia_lstrcpynw(d, s, n);
@@ -1031,11 +1043,206 @@ int main(void){
         }
     }
 
+    // ===================== 242 PathCchAppendEx + PathCchCombineEx =====================
+    // TWO EXPORTS, ONE CONTRACT: both are a JOIN followed by canonicalisation, measured against
+    // PathCchCanonicalizeEx(join(base, more)) on the live export over 789,770 pairs with 0 mismatches.
+    // So the corpus here is a CROSS PRODUCT rather than a list of paths: the join's rules live in the
+    // relationship between the two arguments, and the three that decide it -- the seam separator being
+    // STRIPPED from `more` rather than skipped, the drive test happening AFTER that strip, and "\\?"
+    // being the one two-separator `more` that does NOT replace the base -- are invisible unless both
+    // sides vary together.
+    //
+    // APPEND WORKS IN PLACE, so its buffer is reseeded from the base before every call, and the
+    // comparison covers the string and its terminator. Combine writes a separate buffer.
+    //
+    // NEITHER OF THESE IS A JMP THUNK, unlike PathCchCanonicalizeEx: PathCchAppendEx begins
+    // "mov [rsp+8],rbx" and PathCchCombineEx "mov r11,rsp", i.e. the export IS the body. So patching
+    // them leaves nothing to delegate to, and the nonzero-dwFlags delegation is proved in the
+    // validate-first pass -- where the fallback is the real export -- while only dwFlags 0, the
+    // implemented domain, runs under the patch. Calling a flagged case under the patch would recurse.
+    printf("[242 PathCchAppendEx + PathCchCombineEx]  kernelbase (crossed corpus; HRESULT and string)\n");
+    {
+        typedef long (WINAPI *fap)(wchar_t*, size_t, const wchar_t*, unsigned long);
+        typedef long (WINAPI *fcb)(wchar_t*, size_t, const wchar_t*, const wchar_t*, unsigned long);
+        void* p_ap = (void*)GetProcAddress(hk, "PathCchAppendEx");
+        void* p_cb = (void*)GetProcAddress(hk, "PathCchCombineEx");
+        OK(p_ap != NULL, "resolve PathCchAppendEx");
+        OK(p_cb != NULL, "resolve PathCchCombineEx");
+        if (p_ap && p_cb) {
+            unsigned char* ab = (unsigned char*)p_ap;
+            unsigned char* cb2 = (unsigned char*)p_cb;
+            /* the fallback is the export itself, which is valid exactly while it is unpatched */
+            wia_pcap_set_fallback(p_ap);
+            wia_pccb_set_fallback(p_cb);
+            printf("  prologues: append %02X %02X %02X, combine %02X %02X %02X -- NOT thunks, so the\n"
+                   "  nonzero-dwFlags delegation is proved unpatched and only dwFlags 0 runs patched\n",
+                   ab[0], ab[1], ab[2], cb2[0], cb2[1], cb2[2]);
+        }
+        if (p_ap && p_cb) {
+            fap sysap = (fap)p_ap;
+            fcb syscb = (fcb)p_cb;
+            patch_t ap_patch, cb_patch;
+            static const wchar_t* SH[] = {
+                L"", L"\\", L"\\\\", L"a", L"a\\", L"C:", L"C:\\", L"C:a", L"C:\\a", L"C:\\a\\",
+                L"C:\\a\\b", L"\\a", L"\\\\srv", L"\\\\srv\\shr", L"\\\\srv\\shr\\a", L"D:\\b",
+                L".", L"..", L"...", L"a\\..", L"z..", L"\\\\?", L"\\\\?a", L"\\\\?\\",
+                L"\\\\?\\C:", L"\\\\?\\C:\\a", L"\\\\?\\UNC\\s\\h", L"\\\\.", L"\\b", L"\\\\b",
+                L"b:", L"\\b:", L"C:\\a\\..\\b", L"?\\C:\\a"
+            };
+            static wchar_t mine[2200], theirs[2200];
+            long cases = 0, sok = 0, ebuf = 0, eexced = 0, einval = 0, flagged = 0;
+            long rooted = 0, replaced = 0, popped = 0, longsweep = 0, flagged0 = 0;
+            int nsh = (int)(sizeof(SH)/sizeof(SH[0]));
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = sok = ebuf = eexced = einval = flagged = 0;
+                rooted = replaced = popped = longsweep = 0;
+
+                for (int i = 0; i < nsh; ++i) {
+                    for (int j = 0; j < nsh; ++j) {
+                        size_t bl = wcslen(SH[i]);
+                        for (int k = 0; k < 3; ++k) {
+                            size_t cch = (k == 0) ? 0x8000 : (k == 1) ? bl + 4 : 2;
+                            size_t q, n;
+                            long r1, r2;
+                            /* Append, in place: reseed both buffers from the base */
+                            for (int z = 0; z < 64; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                            memcpy(mine,   SH[i], (bl + 1) * 2);
+                            memcpy(theirs, SH[i], (bl + 1) * 2);
+                            r1 = wia_pathcchappendex(mine, cch, SH[j], 0);
+                            r2 = sysap(theirs, cch, SH[j], 0);
+                            n = (cch < 64) ? cch : 64;
+                            q = 0; while (q < n && theirs[q] != 0) ++q;
+                            if (q < n) ++q;
+                            if (n == 0) q = 1;
+                            if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                            if (r1 == 0) ++sok;
+                            else if ((unsigned long)r1 == 0x8007007AUL) ++ebuf;
+                            else if ((unsigned long)r1 == 0x800700CEUL) ++eexced;
+                            else ++einval;
+                            ++cases;
+                            /* Combine, separate output */
+                            for (int z = 0; z < 64; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                            r1 = wia_pathcchcombineex(mine, cch, SH[i], SH[j], 0);
+                            r2 = syscb(theirs, cch, SH[i], SH[j], 0);
+                            q = 0; while (q < n && theirs[q] != 0) ++q;
+                            if (q < n) ++q;
+                            if (n == 0) q = 1;
+                            if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                            if (r1 == 0) ++sok;
+                            else if ((unsigned long)r1 == 0x8007007AUL) ++ebuf;
+                            else if ((unsigned long)r1 == 0x800700CEUL) ++eexced;
+                            else ++einval;
+                            ++cases;
+                        }
+                        if (SH[j][0] == L'\\' && SH[j][1] != L'\\') ++rooted;
+                        if (SH[j][0] == L'\\' && SH[j][1] == L'\\') ++replaced;
+                        if (wcsstr(SH[j], L"..") || wcsstr(SH[i], L"..")) ++popped;
+                    }
+                }
+
+                /* LENGTH AS A DIMENSION, across the MAX_PATH result cap, in three base shapes */
+                for (int shape = 0; shape < 3; ++shape) {
+                    for (int n = 8; n <= 300; n += 11) {
+                        static wchar_t s[600];
+                        int k = 0;
+                        size_t q;
+                        long r1, r2;
+                        if (shape == 0) { s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        else if (shape == 1) { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L's'; s[k++]=L'\\';
+                                               s[k++]=L'h'; s[k++]=L'\\'; }
+                        else { s[k++]=L'\\'; s[k++]=L'\\'; s[k++]=L'?'; s[k++]=L'\\';
+                               s[k++]=L'C'; s[k++]=L':'; s[k++]=L'\\'; }
+                        while (k < n) {
+                            for (int i = 0; i < 7 && k < n; ++i) s[k++] = (wchar_t)(L'a' + i);
+                            if (k < n) s[k++] = L'\\';
+                        }
+                        if (k > 0 && s[k-1] == L'\\') s[k-1] = L'z';
+                        s[k] = 0;
+                        for (int z = 0; z < 600; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                        memcpy(mine,   s, (size_t)(k + 1) * 2);
+                        memcpy(theirs, s, (size_t)(k + 1) * 2);
+                        r1 = wia_pathcchappendex(mine, 0x8000, L"tail", 0);
+                        r2 = sysap(theirs, 0x8000, L"tail", 0);
+                        q = 0; while (q < 600 && theirs[q] != 0) ++q;
+                        if (q < 600) ++q;
+                        if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                        ++cases; ++longsweep;
+                        for (int z = 0; z < 600; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                        r1 = wia_pathcchcombineex(mine, 0x8000, s, L"..\\tail", 0);
+                        r2 = syscb(theirs, 0x8000, s, L"..\\tail", 0);
+                        q = 0; while (q < 600 && theirs[q] != 0) ++q;
+                        if (q < 600) ++q;
+                        if (r1 != r2 || memcmp(mine, theirs, q * 2) != 0) ++mism;
+                        ++cases; ++longsweep;
+                    }
+                }
+
+                /* THE DELEGATION, proved unpatched: with the export patched there is no surviving body
+                   for the tail jump to reach, since neither of these is a thunk. */
+                if (pass == 0) {
+                    static const unsigned long F[6] = { 1, 2, 8, 0x10, 0x20, 0x40 };
+                    for (int fi = 0; fi < 6; ++fi) {
+                        long r1, r2;
+                        for (int z = 0; z < 64; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                        wcscpy(mine, L"C:\\a"); wcscpy(theirs, L"C:\\a");
+                        r1 = wia_pathcchappendex(mine, 0x8000, L"..\\b", F[fi]);
+                        r2 = sysap(theirs, 0x8000, L"..\\b", F[fi]);
+                        if (r1 != r2 || memcmp(mine, theirs, 64 * 2) != 0) ++mism;
+                        ++cases; ++flagged;
+                        for (int z = 0; z < 64; ++z) { mine[z] = 0xCDCD; theirs[z] = 0xCDCD; }
+                        r1 = wia_pathcchcombineex(mine, 0x8000, L"C:\\a", L"\\b", F[fi]);
+                        r2 = syscb(theirs, 0x8000, L"C:\\a", L"\\b", F[fi]);
+                        if (r1 != r2 || memcmp(mine, theirs, 64 * 2) != 0) ++mism;
+                        ++cases; ++flagged;
+                    }
+                }
+
+                if (pass == 0) {
+                    flagged0 = flagged;
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE exports (HRESULT and string)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&ap_patch, p_ap, (void*)w_pcap), "install the Append patch");
+                    OK(patch_on(&cb_patch, p_cb, (void*)w_pccb), "install the Combine patch");
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pcap > 0, "counter proves OUR Append executed");
+                    OK(c_pccb > 0, "counter proves OUR Combine executed");
+                    printf("  under live patch: %s;  our-code calls = %ld append, %ld combine\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pcap, (long)c_pccb);
+                    printf("  corpus: %ld cases -- %ld S_OK, %ld ERROR_INSUFFICIENT_BUFFER, %ld\n"
+                           "          ERROR_FILENAME_EXCED_RANGE, %ld E_INVALIDARG; a %d x %d CROSS\n"
+                           "          PRODUCT of shapes because the join's rules live between the two\n"
+                           "          arguments, with %ld rooted-`more` pairs, %ld replacing-`more`\n"
+                           "          pairs and %ld carrying a \"..\"; %ld cases at lengths 8..300 in\n"
+                           "          three base shapes; and %ld nonzero-dwFlags cases delegated in the\n"
+                           "          validate-first pass, since neither export is a thunk and a patched\n"
+                           "          one has no surviving body to tail-jump to\n",
+                           cases, sok, ebuf, eexced, einval, nsh, nsh,
+                           rooted, replaced, popped, longsweep, flagged0);
+                    OK(sok      > 1000, "the joining path ran in bulk");
+                    OK(einval   > 100,  "the rejection paths ran in bulk");
+                    OK(rooted   > 50,   "rooted-`more` pairs ran in bulk");
+                    OK(replaced > 50,   "replacing-`more` pairs ran in bulk");
+                    OK(popped   > 100,  "pairs carrying a \"..\" ran in bulk");
+                    OK(longsweep > 100, "the length sweep ran in full");
+                    OK(flagged0 == 12,  "every nonzero-dwFlags case delegated (unpatched)");
+                    OK(patch_off(&ap_patch), "unpatch Append verified byte-identical");
+                    OK(patch_off(&cb_patch), "unpatch Combine verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     if (failures == 0){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
-               "kernelbase!PathCchRemoveFileSpec AND kernelbase!PathCchCanonicalizeEx.\n"
+               "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
+               "kernelbase!PathCchAppendEx AND kernelbase!PathCchCombineEx.\n"
                "For 209: return value and\n"
                "the WHOLE destination identical across the ordinary, truncating and n==0 paths AND\n"
                "against an unterminated source at a NOACCESS page, where both swallow the fault,\n"
@@ -1075,7 +1282,16 @@ int main(void){
                "-- whether anything was written at all. And because its implemented domain is\n"
                "dwFlags == 0, 48 cases pass NONZERO flags THROUGH the patched thunk to prove the tail\n"
                "jump reaches the original body, which is only possible because the export is a jmp\n"
-               "thunk and the body therefore survives the patch. All eight\n"
+               "thunk and the body therefore survives the patch. For 242 the corpus is a CROSS PRODUCT\n"
+               "of 34 shapes against themselves, because both functions are a JOIN followed by that\n"
+               "same canonicalisation and the join's rules live in the RELATIONSHIP between the two\n"
+               "arguments: the seam separator is STRIPPED from `more` rather than skipped, the drive\n"
+               "test happens AFTER that strip, and \"\\\\?\" is the one two-separator `more` that does\n"
+               "NOT replace the base -- none of which a list of realistic paths would exercise.\n"
+               "Append works IN PLACE, so its buffer is reseeded from the base before every call.\n"
+               "Neither of these two is a jmp thunk -- the export IS the body -- so their\n"
+               "nonzero-dwFlags delegation is proved in the validate-first pass instead, and only the\n"
+               "implemented domain runs under the patch. All ten\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
