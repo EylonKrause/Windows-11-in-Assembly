@@ -7,9 +7,46 @@ to System32; see [the honest-constraints section of the top-level README](../REA
 |---|---|
 | [`abi-check/`](abi-check/) | **Gate 3, dynamic.** Proves an implementation preserves the Win64 non-volatile registers, by making a real call with sentinels in all of them. |
 | [`abi-audit.py`](abi-audit.py) | **Gate 3, static.** Scans every `.asm` in the repo for a callee-saved vector register used without a spill. Instant; covers files no harness drives. |
+| [`vector-reentry-audit.py`](vector-reentry-audit.py) | **Change 263's rule, static.** Scans every `.asm` for a scalar step that jumps straight back into a vector loop — the shape that made four landed changes slower than the code they replace on input their fast path does not handle. Classifies the two innocent look-alikes (a page-safety step, a delimiter-set walk) and prints the rest. |
 | [`revalidate.ps1`](revalidate.ps1) | Re-proves the whole repository against the System32 binaries currently on the machine. |
 | [`on-update.ps1`](on-update.ps1) | Scheduled-task action: hash-compare the watched DLLs, and run the full sweep only if one actually changed. |
 | [`install-update-watch.ps1`](install-update-watch.ps1) | Registers/removes that scheduled task. |
+
+---
+
+## The vector re-entry audit
+
+An implementation with a vector fast path and a scalar fallback is bit-exact either way, and on a
+benchmark built from the input the fast path handles it looks fine. On the input it does *not*
+handle, every scalar element pays for the vector probe again — a load, a test, the bound
+comparisons — and the function can end up **slower than the shipped code it replaces** while its
+published table still says otherwise. Change 263 wrote the rule down:
+
+> **A scalar walk must not re-enter a vector loop.**
+
+It was then found broken in four landed changes in a single day — 016 and 034 (`e71db44`, 0.21×–0.94×
+on non-ASCII UTF-8) and 027 and 031 (`92c5c25`, 0.59× on Cyrillic or CJK) — and in both cases a
+**sibling function written for the same job already did it correctly**. That is the argument for a
+mechanical screen: the rule is known and the fix is known, so the only hard part is remembering to
+look.
+
+Two shapes are identical to a text search and are correct, so the audit classifies rather than
+reports them:
+
+| shape | why it is fine |
+|---|---|
+| **page-safety** | the step exists precisely to avoid a 32-byte load crossing a page, so returning to the vector path after one element *is* the point — at most sixteen times per 4096 bytes |
+| **set-build** | the walk is over a delimiter **set** (`strspn`, `strpbrk`, `strtok`…), one `VPBROADCAST` per set element; the step advances the set, not the subject |
+
+Everything else is printed for a human. Precision comes from one rule: the element advance must be
+the **last instruction before the jump**. A scalar path that is already a run closes its own inner
+loop first (`dec`/`jnz`), which is the correct shape — the first cut of this screen did not
+distinguish the two and reported forty-four changes, which is the same as reporting nothing.
+
+```
+py tools\vector-reentry-audit.py         # the list
+py tools\vector-reentry-audit.py --all   # and the classified sites, to check the classifier
+```
 
 ---
 

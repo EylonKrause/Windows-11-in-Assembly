@@ -29,6 +29,7 @@ semantics rather than sloppiness.
 | [`utf8n_null_destination.c`](utf8n_null_destination.c) | **audit** — changes 016 and 034 did not implement the MEASURING MODE of the functions they replace, and faulted on a documented call. Fixed in `417f31f` and `18d692e` |
 | [`utf8_nonascii_rows.c`](utf8_nonascii_rows.c) | **audit** — changes 016 and 034 are benched on ASCII only, and ASCII is the one case their fast paths exist for. Across the input classes UTF-8 exists for they are **0.21×–0.94×** |
 | [`upcase_nonascii_rows.c`](upcase_nonascii_rows.c) | **audit** — the same question asked of the four upcase conversions, which all bench on `L'a' + (k & 15)`. Two of them are fine; changes **027 and 031 are 0.59×** on Cyrillic or CJK, and their own sibling 020 does the same job at 2.62× |
+| [`cmpordinal_foldpath.c`](cmpordinal_foldpath.c) | **audit** — change 210's row labelled “table path” compares a string with **itself**, which its own first tier answers before the table is consulted. The implementation is fine there (3.89× once the row reaches it); what the probe found instead was a **0.91×** short row hidden under the harness floor |
 
 ### What `shlwapi_url_str.c` found
 

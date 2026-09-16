@@ -1,4 +1,4 @@
-# 210 `kernelbase!CompareStringOrdinal` — **LANDS** (2.84× geomean, up to 5.08×)
+# 210 `kernelbase!CompareStringOrdinal` — **LANDS** (3.19× geomean over ten rows, up to 9.76×)
 
 **Bench:** AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9457, live `kernelbase.dll`.
 
@@ -73,20 +73,59 @@ partner**; one non-ASCII character at **every offset of every length 1..40** ove
 points — which is what exercises the ASCII-guard placement and the table fallback — and 300 000 fuzz
 cases over content, length and mode.
 
+## Two things the benchmark was not saying — 2026-09-16
+
+**1 — the row labelled "table path" never reached the table.** Every pair here was built with
+`B[i] = A[i]` — the two strings *identical* — and this implementation's first tier is *equal raw
+implies equal folded, in any alphabet*, which fires **before** the `0x7F` test that would send the
+chunk to the 64K table. So the Cyrillic ignore-case row measured tier one on Cyrillic input, and the
+fallback that row existed to keep honest had never been timed. `discovery/cmpordinal_foldpath.c`
+found it; the bench now carries two `CASE-differing` pairs that fold equal the hard way, and the
+identical-string rows are kept because tier one is a real case too.
+
+The table path, once actually reached, is **3.89×** — better than the row that was standing in for
+it. Nothing was wrong with the implementation there. What was wrong was the claim.
+
+**2 — a short row was below the harness floor, and it was hiding a real regression.** An empty call
+through this harness costs 2.32 ns (change 261's `probes/floor.c` proved it), so a 13-character
+compare is more than forty percent harness. Timed ×16 as change 261 prescribes, the
+`13 chars, ci` row that had published **1.08×** read **0.91×**.
+
+It was real. With fewer than eight characters left the ignore-case path walked them one at a time
+through a **128 KB** table — two loads per character, on a string whose characters were equal. Two
+fixes, both of which the rest of this function already uses:
+
+* **tier one in the tail.** Folding is a function, so equal raw characters fold equal. The vector
+  path uses that at 16 and at 8 characters; the table walk did not, and paid two table loads per
+  character of an equal string.
+* **an overlapping last-eight compare.** If the string is at least eight characters long, the tail
+  compares the **last eight** instead of walking the remainder. Everything before the cursor is
+  already known to fold equal, so re-reading it cannot produce a false difference, and the load
+  stays inside the string — no page question. The same trick changes 265 and 266 use for copies.
+
+`13 chars, ci` → **1.24×**. Mutation-tested, four mutants, all four caught: the overlap off by one,
+the overlap taken on a string shorter than eight, and the tier-one shortcut both unconditional and
+inverted.
+
 ## Speed — LANDS
+
+Short rows timed ×16, per change 261's floor. Ten rows, including the two the fold path actually
+needs.
 
 | class | ours ns | system ns | ratio |
 |---|---|---|---|
-| 13 chars, cs | 3.24 | 6.98 | 2.15× |
-| 13 chars, ci | 5.33 | 5.75 | 1.08× |
-| 64 chars, cs | 4.91 | 12.28 | 2.50× |
-| 64 chars, ci | 4.54 | 12.27 | 2.70× |
-| 4000 chars, cs | 117.54 | 596.79 | **5.08×** (68.1 GB/s) |
-| 4000 chars, ci | 121.81 | 596.61 | 4.90× |
-| 4000 Cyrillic, ci | 122.85 | 596.56 | 4.86× |
-| -1 lengths, 4000, cs | 351.52 | 786.81 | 2.24× |
+| 13 chars, cs (×16) | 47.85 | 104.88 | 2.19× |
+| 13 chars, ci (×16) | 70.32 | 86.92 | **1.24×** (was 0.91×) |
+| 64 chars, cs (×16) | 73.47 | 198.58 | 2.70× |
+| 64 chars, ci (×16) | 85.62 | 202.25 | 2.36× |
+| 4000 chars, cs | 121.56 | 593.74 | **4.88×** |
+| 4000 chars, ci | 152.97 | 591.11 | 3.86× |
+| 4000 Cyrillic, ci (tier 1) | 153.69 | 591.30 | 3.85× |
+| -1 lengths, 4000, cs | 346.28 | 783.60 | 2.26× |
+| 4000 ASCII, ci, CASE-differing | 354.26 | 3458.59 | **9.76×** |
+| 4000 Cyrillic, ci, CASE-differing (the table path) | 1886.79 | 7337.50 | 3.89× |
 
-**geomean 2.841× → LANDS** (no size class regressed).
+**geomean 3.186× → LANDS** (no size class regressed).
 
 ## Live substitution — PASS
 
