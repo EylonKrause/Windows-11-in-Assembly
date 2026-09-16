@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (70)
+# ntdll.dll — reimplemented exports (71)
 
 | export | speedup | source |
 |---|---|---|
@@ -21,6 +21,7 @@
 | `RtlEthernetStringToAddressW` | 4.17x | [changes/120-rtlethernetstringtoaddressw](../../../../../changes/120-rtlethernetstringtoaddressw/) |
 | `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
 | `RtlFindLongestRunClear` | 4.79x | [changes/123-rtlfindlongestrunclear](../../../../../changes/123-rtlfindlongestrunclear/) |
+| `RtlFindLongestRunClear` | 40.5x | [changes/255-rtlfindlongestrunclear](../../../../../changes/255-rtlfindlongestrunclear/) |
 | `RtlFindUnicodeSubstring` | 74.5x | [changes/252-rtlfindunicodesubstring](../../../../../changes/252-rtlfindunicodesubstring/) |
 | `RtlGUIDFromString` | 4.45x | [changes/118-rtlguidfromstring](../../../../../changes/118-rtlguidfromstring/) |
 | `RtlHashUnicodeString` | 4.50x | [changes/009-rtlhashunicodestring](../../../../../changes/009-rtlhashunicodestring/) |

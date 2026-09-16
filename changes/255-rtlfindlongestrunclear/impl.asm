@@ -1,7 +1,3 @@
-; ntdll.dll!RtlFindLongestRunClear  --  hand-written x86-64 reimplementation (40.5x vs shipped)
-; source of truth: changes/255-rtlfindlongestrunclear/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/255-rtlfindlongestrunclear/impl.asm
 ; ULONG wia_findlongestrunclear(RTL_BITMAP* bm, ULONG* StartingIndex)  [Win64: rcx, rdx -> eax]
 ;
