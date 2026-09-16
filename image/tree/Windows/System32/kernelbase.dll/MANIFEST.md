@@ -2,7 +2,7 @@
 
 | export | speedup | source |
 |---|---|---|
-| `CompareStringOrdinal` | 2.84x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
+| `CompareStringOrdinal` | 3.19x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
 | `FindStringOrdinal` | 24.8x | [changes/254-findstringordinal](../../../../../changes/254-findstringordinal/) |
 | `HashData` | 2.58x | [changes/244-hashdata](../../../../../changes/244-hashdata/) |
 | `PathAddExtensionW` | 7.25x | [changes/247-pathaddextensionw](../../../../../changes/247-pathaddextensionw/) |

@@ -227,7 +227,22 @@ ci_tail:
         mov       r11d, r9d
         sub       r11d, r10d
         cmp       r11d, 8
+        jae       ci_eight
+        ; FEWER THAN EIGHT LEFT, AND THE TAIL IS WHERE THIS FUNCTION WAS LOSING. A 13-character
+        ; case-insensitive compare walked its last five characters one at a time through a 128 KB
+        ; table and came out at 0.91x against the shipped export, while the published row said
+        ; 1.07x -- below five nanoseconds the harness floor was hiding it (change 261).
+        ;
+        ; The fix is the overlapping tail this repository already uses for copies: if the string is
+        ; at least eight characters long, compare the LAST EIGHT instead. Everything before the
+        ; cursor has already been established to fold equal, so re-reading it costs nothing and
+        ; cannot produce a false difference -- and the load stays inside the string, so there is no
+        ; page question.
+        cmp       r9d, 8
         jb        ci_table
+        mov       r10d, r9d
+        sub       r10d, 8
+ci_eight:
         vmovdqu   xmm0, xmmword ptr [rcx + r10*2]
         vmovdqu   xmm1, xmmword ptr [r8 + r10*2]
         vpcmpeqw  xmm2, xmm0, xmm1
@@ -247,15 +262,25 @@ ci_table:
         cmp       eax, r9d
         cmova     eax, r9d
         mov       dword ptr [rsp + 24], eax     ; stop index for this run
+        ; TIER ONE APPLIES HERE TOO, and leaving it out cost this function its short rows.
+        ; Folding is a function, so equal raw characters fold equal in any alphabet -- which is
+        ; exactly the reasoning the vector path above already uses at 16 and at 8 characters, and
+        ; the table walk did not. Every character of an EQUAL string was paying two loads into a
+        ; 128 KB table, and a 13-character case-insensitive compare came out at 0.91x against the
+        ; shipped export while the published table said 1.07x: below five nanoseconds the harness
+        ; floor was hiding it (see change 261). Timed x16, the row says what it is.
 ci_tail_loop:
         cmp       r10d, dword ptr [rsp + 24]
         jae       ci_tail_done
         movzx     eax, word ptr [rcx + r10*2]
-        movzx     eax, word ptr [r11 + rax*2]
         movzx     edx, word ptr [r8 + r10*2]
+        cmp       eax, edx
+        je        ci_tail_adv                   ; equal raw => equal folded: no table at all
+        movzx     eax, word ptr [r11 + rax*2]
         movzx     edx, word ptr [r11 + rdx*2]
         cmp       eax, edx
         jne       ci_settle
+ci_tail_adv:
         inc       r10d
         jmp       ci_tail_loop
 ci_tail_done:
