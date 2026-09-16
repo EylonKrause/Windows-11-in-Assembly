@@ -2236,6 +2236,33 @@ static void thunk(void){
     if (sink == 0x7FFFFFFF) printf("");
 }
 
+#elif defined(T_264)
+#define NAME "264-rtlinitutf8string"
+typedef struct { unsigned short Length, MaximumLength; char* Buffer; } ABI_U8STR;
+extern void wia_rtlinitutf8string(ABI_U8STR*, const char*);
+static void thunk(void){
+    /* The implementation here is change 095's, reached through a LINKER ALIAS -- so what this gate
+       is really checking is that 095's code is still ABI-clean when it is entered under this
+       export's name, and that the alias itself introduces nothing. It is cheap to run and the
+       alternative is assuming it.
+
+       Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for its own loop hides an
+       implementation that destroys r15, as change 258 demonstrated. Driven: the empty string, every
+       length through the vector loop and its tail, a string long enough to saturate both USHORT
+       fields, a string ending right at a page so the page-safe entry is exercised, and NULL. */
+    static char buf[70001];
+    ABI_U8STR d;
+    static const int LENS[10] = { 0, 1, 7, 31, 32, 33, 63, 64, 300, 70000 };
+    int i, k;
+    for (i = 0; i < 10; ++i) {
+        for (k = 0; k < LENS[i]; ++k) buf[k] = (char)(0x41 + (k % 26));
+        buf[LENS[i]] = 0;
+        CALL4(wia_rtlinitutf8string, &d, buf, 0, 0);
+        CALL4(wia_rtlinitutf8string, &d, buf + (LENS[i] ? 1 : 0), 0, 0);   /* an odd alignment */
+    }
+    CALL4(wia_rtlinitutf8string, &d, 0, 0, 0);                             /* the NULL source */
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
