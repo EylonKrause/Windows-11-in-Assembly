@@ -1610,6 +1610,44 @@ static void thunk(void){
     sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];
 }
 
+#elif defined(T_177)
+#define NAME "177-pathisprefixw"
+extern int  wia_pathisprefixw(const wchar_t*, const wchar_t*);
+extern void wia_upcase_init(void);
+#define SETUP() wia_upcase_init()
+static void thunk(void){
+    /* An envelope over TWO landed changes -- 167 for the walk, 001 for the length -- so what this
+       case checks is the seam across two calls: pszPath has to survive the first (it is passed to
+       the second) and the length has to survive the second. Both live in non-volatile registers,
+       and 167 reaches for ymm0-ymm5 while 001 reaches for its own.
+       Driven: both NULL refusals, a true prefix, a false one, the trailing-separator case that does
+       all the work and still returns FALSE, an empty prefix, a case-differing prefix (which is the
+       only input that makes 167 fold a block), and a long path. */
+    static wchar_t a[600], b[600];
+    int i;
+    static const wchar_t* T[][2] = {
+        { L"C:\\a", L"C:\\a\\b" }, { L"C:\\a\\", L"C:\\a\\b" },
+        { L"C:\\a", L"C:\\a" }, { L"C:\\a", L"C:\\ab" }, { L"C:\\A", L"c:\\a\\b" },
+        { L"C:", L"C:\\a" }, { L"C:\\", L"C:\\a" }, { L"", L"C:\\a" }, { L"C:\\a", L"" },
+        { L"\\\\srv\\s", L"\\\\srv\\s\\x" }, { L"\\a", L"\\a\\" },
+    };
+    for (i = 0; i < (int)(sizeof T / sizeof T[0]); ++i)
+        sink += wia_pathisprefixw(T[i][0], T[i][1]);
+    sink += wia_pathisprefixw(0, L"C:\\a");
+    sink += wia_pathisprefixw(L"C:\\a", 0);
+    sink += wia_pathisprefixw(0, 0);
+    for (i = 0; i < 400; ++i) { a[i] = (i % 7 == 6) ? L'\\' : (wchar_t)(L'a' + i % 26);
+                                b[i] = a[i]; }
+    a[400] = 0; b[400] = 0;
+    sink += wia_pathisprefixw(a, b);                       /* long, true */
+    b[400] = L'x'; b[401] = 0;
+    sink += wia_pathisprefixw(a, b);                       /* long, true, path longer */
+    for (i = 0; i < 400; ++i) if (a[i] != L'\\') a[i] = (wchar_t)(a[i] - 32);
+    sink += wia_pathisprefixw(a, b);                       /* long, case-differing: folds blocks */
+    a[3] = L'#';
+    sink += wia_pathisprefixw(a, b);                       /* long, false early */
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

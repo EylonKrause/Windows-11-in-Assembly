@@ -58,6 +58,7 @@ extern int      wia_pathaddextensionw(wchar_t*, const wchar_t*);
 extern long     wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
 extern long     wia_urlhasha(const char*, BYTE*, unsigned long);
 extern int      wia_pathcommonprefixw(const wchar_t*, const wchar_t*, wchar_t*);
+extern int      wia_pathisprefixw(const wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
@@ -107,6 +108,10 @@ static long WINAPI w_uha(const char* u, BYTE* d, DWORD cb){
 static volatile LONG c_pcp;
 static int WINAPI w_pcp(const wchar_t* a, const wchar_t* b, wchar_t* o){
     _InterlockedIncrement(&c_pcp); return wia_pathcommonprefixw(a, b, o);
+}
+static volatile LONG c_pip;
+static BOOL WINAPI w_pip(const wchar_t* pre, const wchar_t* path){
+    _InterlockedIncrement(&c_pip); return wia_pathisprefixw(pre, path) ? TRUE : FALSE;
 }
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
@@ -2681,6 +2686,136 @@ int main(void){
         }
     }
 
+    // ===================== 177 PathIsPrefixW =====================
+    // PARKED NOT AS "WE COULD NOT DERIVE IT" BUT AS "WE DERIVED IT, AND IT IS SOMETHING PARKED".
+    // This change established, black-box and against both live exports, that
+    //
+    //     PathIsPrefixW(pre, path)  ==  ( PathCommonPrefixW(path, pre, NULL) == wcslen(pre) )
+    //
+    // and then could go no further, because PathCommonPrefixW was change 167, stuck at 99.3 %. 167
+    // has now landed bit-exact, so this section patches an export whose entire body is two other
+    // landed changes: 167 for the walk and 001 for the length.
+    //
+    // THE OBSERVABLE IS A SINGLE BOOL, which is the difficulty. A corpus of random path pairs is
+    // almost entirely FALSE, and an implementation that returned FALSE unconditionally would sail
+    // through it. So the corpus is weighted: the same exhaustive 116281 pairs 167 was parked on, and
+    // then every prefix of a 300-character path at every cut, with and without a trailing separator,
+    // and with the prefix upper-cased -- which is how the TRUE count below gets large enough to mean
+    // something. The trailing-separator shapes matter twice over: they are the case the original
+    // probing found surprising ("C:\a\" is NOT a prefix of "C:\a\b", because the common prefix is 4
+    // and wcslen is 5), and they are the ones that do all of the work and still answer FALSE.
+    printf("[177 PathIsPrefixW]  kernelbase (the identity, now that change 167 has landed)\n");
+    {
+        typedef BOOL (WINAPI *fpip)(const wchar_t*, const wchar_t*);
+        void* p_pip = (void*)GetProcAddress(hk, "PathIsPrefixW");
+        OK(p_pip != NULL, "resolve PathIsPrefixW");
+        if (p_pip) {
+            fpip syspip = (fpip)p_pip;
+            static wchar_t corpus[341][8];
+            static wchar_t la[600], lb[600];
+            patch_t pip_patch;
+            int cnt = 0, vpre = 0;
+            long cases = 0, ntrue = 0, trailing = 0;
+            wia_upcase_init();
+            for (int len = 0; len <= 4; ++len) {
+                long total = 1;
+                for (int i = 0; i < len; ++i) total *= 4;
+                for (long v = 0; v < total; ++v) {
+                    long t = v;
+                    for (int i = 0; i < len; ++i) { corpus[cnt][i] = L"ab\\:"[t % 4]; t /= 4; }
+                    corpus[cnt][len] = 0;
+                    ++cnt;
+                }
+            }
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = ntrue = trailing = 0;
+
+                for (int i = 0; i < cnt; ++i)
+                    for (int j = 0; j < cnt; ++j) {
+                        int a = wia_pathisprefixw(corpus[i], corpus[j]) != 0;
+                        int b = syspip(corpus[i], corpus[j]) != 0;
+                        if (a != b) ++mism;
+                        ++cases;
+                        if (a) ++ntrue;
+                    }
+
+                /* every prefix of a 300-character path, three ways -- this is what makes the TRUE
+                   count large enough for the BOOL to be worth comparing */
+                for (int n = 0; n < 300; ++n)
+                    lb[n] = (n % 7 == 6) ? L'\\' : (wchar_t)(L'a' + n % 26);
+                lb[300] = 0;
+                for (int cut = 0; cut <= 300; ++cut) {
+                    int a, b, k;
+                    for (k = 0; k < cut; ++k) la[k] = lb[k];
+                    la[cut] = 0;
+                    a = wia_pathisprefixw(la, lb) != 0; b = syspip(la, lb) != 0;
+                    if (a != b) ++mism;
+                    ++cases; if (a) ++ntrue;
+                    la[cut] = L'\\'; la[cut + 1] = 0;             /* trailing separator */
+                    a = wia_pathisprefixw(la, lb) != 0; b = syspip(la, lb) != 0;
+                    if (a != b) ++mism;
+                    ++cases; ++trailing; if (a) ++ntrue;
+                    for (k = 0; k < cut; ++k) la[k] = (lb[k] == L'\\') ? lb[k]
+                                                                      : (wchar_t)(lb[k] - 32);
+                    la[cut] = 0;
+                    a = wia_pathisprefixw(la, lb) != 0; b = syspip(la, lb) != 0;
+                    if (a != b) ++mism;
+                    ++cases; if (a) ++ntrue;
+                }
+
+                /* the shapes the original probing found odd, and every NULL combination */
+                {
+                    static const wchar_t* T[][2] = {
+                        { L"C:\\a", L"C:\\a\\b" }, { L"C:\\a\\", L"C:\\a\\b" },
+                        { L"C:", L"C:\\a" }, { L"C:\\", L"C:\\a" }, { L"", L"C:\\a" },
+                        { L"\\\\srv\\s", L"\\\\srv\\s\\x" }, { L"\\a", L"\\a\\" },
+                        { L"\\", L"\\\\" }, { L"\\\\", L"\\\\\\" },
+                    };
+                    for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                        int a = wia_pathisprefixw(T[i][0], T[i][1]) != 0;
+                        int b = syspip(T[i][0], T[i][1]) != 0;
+                        if (a != b) ++mism;
+                        ++cases; if (a) ++ntrue;
+                    }
+                    if ((wia_pathisprefixw(0, L"C:\\a") != 0) != (syspip(0, L"C:\\a") != 0)) ++mism;
+                    if ((wia_pathisprefixw(L"C:\\a", 0) != 0) != (syspip(L"C:\\a", 0) != 0)) ++mism;
+                    if ((wia_pathisprefixw(0, 0) != 0) != (syspip(0, 0) != 0)) ++mism;
+                    cases += 3;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pip_patch, p_pip, (void*)w_pip), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_pip)[0], ((unsigned char*)p_pip)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pip > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pip);
+                    printf("  of %ld cases %ld answered TRUE, which is the number that matters: the\n"
+                           "  observable here is ONE BOOL, and a corpus of random path pairs is almost\n"
+                           "  entirely FALSE -- an implementation that answered FALSE unconditionally\n"
+                           "  would pass it. %ld of them put a TRAILING SEPARATOR on the prefix, which\n"
+                           "  is the shape the original probing found surprising and the one that does\n"
+                           "  all of the work and still answers FALSE. The body under the patch is two\n"
+                           "  other landed changes: 167 for the walk, 001 for the length.\n",
+                           cases, ntrue, trailing);
+                    /* 948 on this corpus -- the threshold is set from what it actually produces,
+                       not from a round number, and the whole point of the weighting above is that
+                       an unweighted corpus would produce almost none. */
+                    OK(ntrue >= 900, "the TRUE path ran in bulk");
+                    OK(trailing >= 300, "the trailing-separator shape ran in bulk");
+                    OK(patch_off(&pip_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -3469,7 +3604,11 @@ int main(void){
                "that shlwapi reaches this body. That change was parked for a long time on the\n"
                "conclusion that PathSkipRootW had to be derived first; the disassembly shows it\n"
                "is never called, and the whole root handling is two inline tests for a doubled\n"
-               "leading backslash. All twenty-one prologues\n"
+               "leading backslash. For 177 the point is that the parked note was not \"we could not\n"
+               "derive it\" but \"we derived it, and it is PathCommonPrefixW, which is parked\" --\n"
+               "so with 167 landed its entire body is two other landed changes, and the corpus is\n"
+               "weighted towards TRUE answers because the observable is a single BOOL that a\n"
+               "constant FALSE would satisfy. All twenty-two prologues\n"
                "restored byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
         return 0;
     }

@@ -31,6 +31,9 @@ ml64 /nologo /c /Fouh.obj "%C%\249-urlhasha\impl.asm" >nul || goto :err
 REM  167 (PathCommonPrefixW) folds case with change 210's OS-built RtlUpcaseUnicodeChar table,
 REM  which this harness already compiles for change 210.
 ml64 /nologo /c /Fopcp.obj "%C%\167-pathcommonprefixw\impl.asm" >nul || goto :err
+REM  177 (PathIsPrefixW) is an envelope over 167 and over change 001's wcslen.
+ml64 /nologo /c /Fopip.obj "%C%\177-pathisprefixw\impl.asm" >nul || goto :err
+ml64 /nologo /c /Fowcl.obj "%C%\001-wcslen\impl.asm" >nul || goto :err
 REM  247's append point is change 132's rule, so 132's assembly is linked in too -- the same
 REM  arrangement 246 has with 243.
 ml64 /nologo /c /Fopfe132.obj "%C%\132-pathfindextensionw\impl.asm" >nul || goto :err
@@ -52,7 +55,7 @@ REM  248 keeps its envelope in seh.c too: the INPLACE-before-validation ordering
 REM  refusal, the __try that reproduces lstrlenA swallowing an access violation, and the staging
 REM  buffer for the one overlap direction a forward single pass cannot do.
 cl /nologo /O2 /MD /EHa /c /Foseh248.obj "%C%\248-urlunescapea\seh.c" >nul || goto :err
-cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj seh228.obj seh230.obj seh248.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj lcata.obj lcatw.obj hash.obj unes.obj unea.obj uh.obj pcp.obj pcan.obj addx.obj pfe132.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
+cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj seh228.obj seh230.obj seh248.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj lcata.obj lcatw.obj hash.obj unes.obj unea.obj uh.obj pcp.obj pip.obj wcl.obj pcan.obj addx.obj pfe132.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
 "%H%live_subst_kernelbase.exe"
 endlocal & exit /b %errorlevel%
 :err
