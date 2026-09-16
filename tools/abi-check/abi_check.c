@@ -2641,6 +2641,59 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_270)
+#define NAME "270-convertsidtostringsid"
+extern int wia_sid2str(const void*, wchar_t**);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* AN ENVELOPE OVER CHANGE 067, SO TWO FRAMES ARE UNDER TEST AT ONCE: this one's 856 bytes with
+       four registers pushed, and 067's 552 with eight, nested inside it -- and 067's body calls out
+       to an exception handler of its own. A register that either of them failed to save is only
+       visible from out here.
+
+       Five exits: the success, the two refusals that come back from the formatter, the NULL-argument
+       refusal, and the allocation failure that cannot be provoked. Three of the five call out, to
+       LocalAlloc and to SetLastError.
+
+       Every allocated block is freed. Armed PER CALL (CALL4), because a thunk that uses a register
+       for its own loop hides an implementation that destroys it. */
+    static unsigned char sid[8 + 4 * 16];
+    wchar_t* p;
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (k = 0; k < 4; ++k) {
+        static const unsigned char AUTH[4][6] = {
+            {0,0,0,0,0,5}, {0,0,0,0,0,0},
+            {0,0,255,255,255,255},          /* the last decimal authority */
+            {255,255,255,255,255,255}       /* the longest hexadecimal one */
+        };
+        for (i = 0; i < 6; ++i) sid[2 + i] = AUTH[k][i];
+        for (i = 0; i < 16; ++i) {
+            unsigned v = (unsigned)(0x9E3779B9u * (unsigned)(i + k + 1));
+            sid[8 + 4*i + 0] = (unsigned char)v;
+            sid[8 + 4*i + 1] = (unsigned char)(v >> 8);
+            sid[8 + 4*i + 2] = (unsigned char)(v >> 16);
+            sid[8 + 4*i + 3] = (unsigned char)(v >> 24);
+        }
+        sid[0] = 1;
+        for (i = 0; i <= 15; ++i) {
+            sid[1] = (unsigned char)i;
+            p = 0;
+            sink += (unsigned)CALL4(wia_sid2str, sid, &p, 0, 0);
+            if (p) LocalFree(p);
+        }
+    }
+    /* the refusals, and the two NULL arguments */
+    sid[0] = 2; sid[1] = 5;  p = 0; sink += (unsigned)CALL4(wia_sid2str, sid, &p, 0, 0); if (p) LocalFree(p);
+    sid[0] = 1; sid[1] = 16; p = 0; sink += (unsigned)CALL4(wia_sid2str, sid, &p, 0, 0); if (p) LocalFree(p);
+    sid[1] = 255;            p = 0; sink += (unsigned)CALL4(wia_sid2str, sid, &p, 0, 0); if (p) LocalFree(p);
+    p = 0; sink += (unsigned)CALL4(wia_sid2str, 0, &p, 0, 0);
+    sid[1] = 5;              sink += (unsigned)CALL4(wia_sid2str, sid, 0, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
