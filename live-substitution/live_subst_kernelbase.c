@@ -54,6 +54,7 @@ extern long     wia_hashdata(const unsigned char*, unsigned long, unsigned char*
 extern long     wia_urlunescapew(wchar_t*, wchar_t*, unsigned long*, unsigned long);
 extern void     wia_uue_set_fallback(void*);
 extern int      wia_pathcanonicalizew(wchar_t*, const wchar_t*);
+extern int      wia_pathaddextensionw(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -79,6 +80,10 @@ static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static volatile LONG c_cata, c_catw;
 static char* WINAPI w_cata(char* d, const char* q){ _InterlockedIncrement(&c_cata); return wia_lstrcata(d, q); }
+static volatile LONG c_addx;
+static BOOL WINAPI w_addx(wchar_t* p, const wchar_t* e){
+    _InterlockedIncrement(&c_addx); return wia_pathaddextensionw(p, e) ? TRUE : FALSE;
+}
 static volatile LONG c_pcan;
 static BOOL WINAPI w_pcan(wchar_t* d, const wchar_t* s){
     _InterlockedIncrement(&c_pcan); return wia_pathcanonicalizew(d, s) ? TRUE : FALSE;
@@ -1815,6 +1820,173 @@ int main(void){
             }
         }
     }
+
+    // ===================== 247 PathAddExtensionW =====================
+    // WHAT HAS TO BE PROVED LIVE, and the third one is why every case compares the whole buffer:
+    //
+    //   * THE DEFAULT EXTENSION IS L".exe", not the empty string. A NULL pszExt on an extensionless
+    //     path REWRITES it, which is the one genuine surprise in this function; the corpus below
+    //     drives NULL alongside every explicit extension.
+    //   * THE APPEND POINT IS PathFindExtensionW'S RULE, and this repository has already shipped that
+    //     rule wrong once -- change 132 stopped its backward scan only at a backslash and needed a
+    //     SPACE as well, wrong on 295513 of 2015539 enumerated strings. So every enumerated sweep
+    //     here uses an alphabet CARRYING A SPACE. An alphabet without one would validate the same
+    //     mistake a second time.
+    //   * A REFUSAL WRITES NOTHING AT ALL, and an EMPTY extension writes nothing either -- not even
+    //     the terminator already there. Neither is distinguishable from writing the same bytes back
+    //     unless the whole buffer is compared against a poison fill.
+    //   * THE BOUND IS ON THE RESULT: n + extlen <= 259 appends, >= 260 refuses. Both sides of that
+    //     boundary are driven at every extension length.
+    //
+    // No delegation and no fallback pointer: this implementation calls OUR change-132 code, not the
+    // export, so patching PathAddExtensionW cannot send it back through itself.
+    printf("[247 PathAddExtensionW]  kernelbase (the .exe default, the space rule, both refusals)\n");
+    {
+        typedef BOOL (WINAPI *faddx)(wchar_t*, const wchar_t*);
+        void* p_addx = (void*)GetProcAddress(hk, "PathAddExtensionW");
+        OK(p_addx != NULL, "resolve PathAddExtensionW");
+        if (p_addx) {
+            faddx sysaddx = (faddx)p_addx;
+            enum { XB = 760 };
+            static wchar_t xin[XB], xmine[XB], xlive[XB];
+            patch_t addx_patch;
+            long cases = 0, appended = 0, refused = 0, nullext = 0, emptyext = 0, spacec = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = appended = refused = nullext = emptyext = spacec = 0;
+
+                /* enumerated paths over an alphabet WITH A SPACE, against several extensions */
+                {
+                    static const wchar_t ALPHA[] = L".\\ ab:";
+                    static const wchar_t* EXTS[] = { L".zz", L"", L"z", L".", L".exe", 0 };
+                    for (int len = 0; len <= 5; ++len) {
+                        long total = 1;
+                        for (int i = 0; i < len; ++i) total *= 6;
+                        for (long v = 0; v < total; ++v) {
+                            long t = v;
+                            for (int i = 0; i < len; ++i) { xin[i] = ALPHA[t % 6]; t /= 6; }
+                            xin[len] = 0;
+                            for (int e = 0; e < 6; ++e) {
+                                int ra, rb;
+                                for (int q = 0; q < XB; ++q) { xmine[q] = 0xBEEF; xlive[q] = 0xBEEF; }
+                                memcpy(xmine, xin, (size_t)(len + 1) * sizeof(wchar_t));
+                                memcpy(xlive, xin, (size_t)(len + 1) * sizeof(wchar_t));
+                                ra = wia_pathaddextensionw(xmine, EXTS[e]);
+                                rb = (int)sysaddx(xlive, EXTS[e]);
+                                ++cases;
+                                if (rb) ++appended; else ++refused;
+                                if (EXTS[e] == 0) ++nullext;
+                                else if (EXTS[e][0] == 0) ++emptyext;
+                                for (int q = 0; q < len; ++q) if (xin[q] == L' ') { ++spacec; break; }
+                                if ((ra != 0) != (rb != 0)) ++mism;
+                                if (memcmp(xmine, xlive, XB * sizeof(wchar_t)) != 0) ++mism;
+                            }
+                        }
+                    }
+                }
+
+                /* the length boundary, both sides, at every extension length */
+                for (int pl = 245; pl <= 266; ++pl) {
+                    for (int el = 0; el <= 8; ++el) {
+                        wchar_t ext[16];
+                        int ra, rb;
+                        for (int i = 0; i < pl; ++i)
+                            xin[i] = (i % 9 == 8) ? L'\\' : (wchar_t)(L'a' + i % 23);
+                        if (pl > 2) { xin[0] = L'C'; xin[1] = L':'; xin[2] = L'\\'; }
+                        xin[pl] = 0;
+                        ext[0] = L'.';
+                        for (int i = 1; i < el; ++i) ext[i] = L'x';
+                        ext[el] = 0;
+                        if (el == 0) ext[0] = 0;
+                        for (int q = 0; q < XB; ++q) { xmine[q] = 0xBEEF; xlive[q] = 0xBEEF; }
+                        memcpy(xmine, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        memcpy(xlive, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        ra = wia_pathaddextensionw(xmine, ext);
+                        rb = (int)sysaddx(xlive, ext);
+                        ++cases;
+                        if (rb) ++appended; else ++refused;
+                        if (el == 0) ++emptyext;
+                        if ((ra != 0) != (rb != 0)) ++mism;
+                        if (memcmp(xmine, xlive, XB * sizeof(wchar_t)) != 0) ++mism;
+                    }
+                    /* and the NULL default at the same lengths, whose extension is four characters */
+                    {
+                        int ra, rb;
+                        for (int i = 0; i < pl; ++i)
+                            xin[i] = (i % 9 == 8) ? L'\\' : (wchar_t)(L'a' + i % 23);
+                        if (pl > 2) { xin[0] = L'C'; xin[1] = L':'; xin[2] = L'\\'; }
+                        xin[pl] = 0;
+                        for (int q = 0; q < XB; ++q) { xmine[q] = 0xBEEF; xlive[q] = 0xBEEF; }
+                        memcpy(xmine, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        memcpy(xlive, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        ra = wia_pathaddextensionw(xmine, 0);
+                        rb = (int)sysaddx(xlive, 0);
+                        ++cases; ++nullext;
+                        if (rb) ++appended; else ++refused;
+                        if ((ra != 0) != (rb != 0)) ++mism;
+                        if (memcmp(xmine, xlive, XB * sizeof(wchar_t)) != 0) ++mism;
+                    }
+                }
+
+                /* the SPACE rule swept across every position, which is the rule 132 shipped wrong */
+                for (int pl = 4; pl <= 90; ++pl) {
+                    for (int sp = 0; sp < pl; sp += ((pl > 24) ? 5 : 1)) {
+                        int ra, rb;
+                        for (int i = 0; i < pl; ++i) xin[i] = (wchar_t)(L'a' + i % 23);
+                        xin[sp] = L' ';
+                        if (pl > 6) xin[pl - 3] = L'.';
+                        xin[pl] = 0;
+                        for (int q = 0; q < XB; ++q) { xmine[q] = 0xBEEF; xlive[q] = 0xBEEF; }
+                        memcpy(xmine, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        memcpy(xlive, xin, (size_t)(pl + 1) * sizeof(wchar_t));
+                        ra = wia_pathaddextensionw(xmine, L".zz");
+                        rb = (int)sysaddx(xlive, L".zz");
+                        ++cases; ++spacec;
+                        if (rb) ++appended; else ++refused;
+                        if ((ra != 0) != (rb != 0)) ++mism;
+                        if (memcmp(xmine, xlive, XB * sizeof(wchar_t)) != 0) ++mism;
+                    }
+                }
+
+                /* the NULL path */
+                {
+                    if ((wia_pathaddextensionw(0, L".x") != 0) != (sysaddx(0, L".x") != 0)) ++mism;
+                    if ((wia_pathaddextensionw(0, 0) != 0) != (sysaddx(0, 0) != 0)) ++mism;
+                    cases += 2;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (BOOL and whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&addx_patch, p_addx, (void*)w_addx), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_addx)[0], ((unsigned char*)p_addx)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_addx > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_addx);
+                    printf("  of %ld cases: %ld appended and %ld refused -- and a refusal writes\n"
+                           "  NOTHING AT ALL, which is why every case compares the whole buffer\n"
+                           "  against a poison fill rather than the string. %ld used the NULL\n"
+                           "  extension, whose default is L\".exe\" and not the empty string, %ld an\n"
+                           "  EMPTY extension (which returns TRUE and writes nothing, not even the\n"
+                           "  terminator already there), and %ld carried a SPACE -- the character\n"
+                           "  change 132 shipped its backward scan without, wrong on 295513 strings.\n",
+                           cases, appended, refused, nullext, emptyext, spacec);
+                    OK(appended >= 1000, "the appending path ran in bulk");
+                    OK(refused  >= 1000, "the refusing path ran in bulk");
+                    OK(nullext  >= 1000, "the NULL-extension default ran in bulk");
+                    OK(emptyext >= 1000, "the empty extension ran in bulk");
+                    OK(spacec   >= 1000, "the space rule was exercised in bulk");
+                    OK(patch_off(&addx_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -2483,7 +2655,7 @@ int main(void){
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
                "kernelbase!lstrcatA, kernelbase!lstrcatW, kernelbase!HashData,\n"
-               "kernelbase!UrlUnescapeW, kernelbase!PathCanonicalizeW,\n"
+               "kernelbase!UrlUnescapeW, kernelbase!PathCanonicalizeW, kernelbase!PathAddExtensionW,\n"
                "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
                "kernelbase!PathCchAppendEx, kernelbase!PathCchCombineEx,\n"
                "kernelbase!PathCchAddBackslashEx AND kernelbase!PathCchRemoveBackslashEx.\n"
@@ -2567,7 +2739,13 @@ int main(void){
                "is patched a few blocks above: a BOOL, GetLastError, and a destination CLEARED BETWEEN\n"
                "the two NULL checks -- the one thing a careless envelope gets wrong -- driven over the\n"
                "same enumerated subspace 243 was derived on. It calls OUR 243 core rather than the\n"
-               "export, so unlike 245 it has no delegation hazard under the patch. All seventeen\n"
+               "export, so unlike 245 it has no delegation hazard under the patch. For 247 the corpus\n"
+               "carries a SPACE throughout, and that is not decoration: its append point is\n"
+               "PathFindExtensionW's rule, which this project SHIPPED WRONG as change 132 by stopping\n"
+               "the backward scan only at a backslash -- wrong on 295513 of 2015539 enumerated\n"
+               "strings. An alphabet without a space would validate the same mistake twice. Its NULL\n"
+               "extension defaults to L\".exe\" rather than the empty string, and a refusal writes\n"
+               "NOTHING AT ALL, which is why its cases compare the whole buffer. All eighteen\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
