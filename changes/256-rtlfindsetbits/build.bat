@@ -1,6 +1,5 @@
 @echo off
 REM changes/256-rtlfindsetbits/build.bat -- assemble, gate on correctness, then benchmark.
-REM  PARKED on gate 2; gate 1 passes at 4055766 cases. See RESULTS.md.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1
 set H=%~dp0

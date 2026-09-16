@@ -1,3 +1,7 @@
+; ntdll.dll!RtlFindClearBits  --  hand-written x86-64 reimplementation (13.08x vs shipped)
+; source of truth: changes/256-rtlfindsetbits/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/256-rtlfindsetbits/impl.asm
 ;   ULONG wia_findsetbits  (RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)
 ;   ULONG wia_findclearbits(RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)

@@ -95,23 +95,23 @@ int main(void)
 
     /*   label                                  shape   bits     n   hint  set  plant  len */
     add("SET 64, sparse -- NOT FOUND",              0, 65536,   64,    0, 1,    -1, 0);
-    add("SET 64, found at 60000",                   0, 65536,   64,    0, 1, 60000, 64);
+    add("SET 64, found at 59999",                   0, 65536,   64,    0, 1, 60000, 64);
     add("SET 64, found at 100",                     0, 65536,   64,    0, 1,   100, 64);
     add("SET 8, sparse -- NOT FOUND",               0, 65536,    8,    0, 1,    -1, 0);
     add("SET 1, sparse -- found at once",           0, 65536,    1,    0, 1,    -1, 0);
     add("SET 64, all set -- found at 0",            2, 65536,   64,    0, 1,    -1, 0);
     add("SET 64, hint 60000, run at 100 (WRAPS)",   0, 65536,   64, 60000, 1,   100, 64);
-    add("SET 64, realistic -- found",               3, 65536,   64,    0, 1,    -1, 0);
+    add("SET 64, realistic -- found at 0",          3, 65536,   64,    0, 1,    -1, 0);
     add("SET 64, 8 Kbit sparse -- NOT FOUND",       0,  8192,   64,    0, 1,    -1, 0);
     add("SET 64, 1 Kbit sparse -- NOT FOUND",       0,  1024,   64,    0, 1,    -1, 0);
     add("CLR 64, sparse -- NOT FOUND",              0, 65536,   64,    0, 0,    -1, 0);
     add("CLR 64, found at 60000",                   0, 65536,   64,    0, 0, 60000, 64);
     add("CLR 8, sparse -- NOT FOUND",               0, 65536,    8,    0, 0,    -1, 0);
     add("CLR 64, all clear -- found at 0",          1, 65536,   64,    0, 0,    -1, 0);
-    add("CLR 64, hint 60000, run at 100 (WRAPS)",   0, 65536,   64, 60000, 0,   100, 64);
-    add("CLR 64, realistic -- NOT FOUND",           3, 65536,   64,    0, 0,    -1, 0);
+    add("CLR 64, hint 60000, hole at 99 (WRAPS)",   0, 65536,   64, 60000, 0,   100, 64);
+    add("CLR 64, realistic -- found at 1267",       3, 65536,   64,    0, 0,    -1, 0);
     add("CLR 64, 8 Kbit sparse -- NOT FOUND",       0,  8192,   64,    0, 0,    -1, 0);
-    add("SET 1000, all set",                        2, 65536, 1000,    0, 1,    -1, 0);
+    add("SET 1000, all set -- found at 0",          2, 65536, 1000,    0, 1,    -1, 0);
 
     printf("== SUBJECTS (what each row actually finds) ==\n");
     printf("  %-40s %7s %6s %7s  %10s %10s\n", "case", "bits", "n", "hint", "ours", "live");
