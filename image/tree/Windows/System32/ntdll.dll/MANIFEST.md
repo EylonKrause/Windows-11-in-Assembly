@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (87)
+# ntdll.dll — reimplemented exports (89)
 
 | export | speedup | source |
 |---|---|---|
@@ -77,10 +77,12 @@
 | `RtlStringFromGUIDEx` | 25.5x | [changes/058-rtlstringfromguidex](../../../../../changes/058-rtlstringfromguidex/) |
 | `RtlTimeFieldsToTime` | 1.54x | [changes/127-rtltimefieldstotime](../../../../../changes/127-rtltimefieldstotime/) |
 | `RtlTimeToTimeFields` | 1.73x | [changes/126-rtltimetotimefields](../../../../../changes/126-rtltimetotimefields/) |
+| `RtlUTF8StringToUnicodeString` | 3.53x | [changes/268-rtlunicodestringtoutf8string](../../../../../changes/268-rtlunicodestringtoutf8string/) |
 | `RtlUTF8ToUnicodeN` | 3.96x | [changes/034-rtlutf8tounicoden](../../../../../changes/034-rtlutf8tounicoden/) |
 | `RtlUdiv128` | 6.66x | [changes/204-rtludiv128](../../../../../changes/204-rtludiv128/) |
 | `RtlUnicodeStringToAnsiString` | 12.79x | [changes/018-rtlunicodestringtoansistring](../../../../../changes/018-rtlunicodestringtoansistring/) |
 | `RtlUnicodeStringToOemString` | 7.68x | [changes/024-rtlunicodestringtooemstring](../../../../../changes/024-rtlunicodestringtooemstring/) |
+| `RtlUnicodeStringToUTF8String` | 3.53x | [changes/268-rtlunicodestringtoutf8string](../../../../../changes/268-rtlunicodestringtoutf8string/) |
 | `RtlUnicodeToMultiByteN` | 3.93x | [changes/021-rtlunicodetomultibyten](../../../../../changes/021-rtlunicodetomultibyten/) |
 | `RtlUnicodeToOemN` | 6.34x | [changes/028-rtlunicodetooemn](../../../../../changes/028-rtlunicodetooemn/) |
 | `RtlUnicodeToUTF8N` | 2.46x | [changes/016-rtlunicodetoutf8n](../../../../../changes/016-rtlunicodetoutf8n/) |

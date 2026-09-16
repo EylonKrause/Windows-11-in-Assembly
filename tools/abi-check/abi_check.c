@@ -2369,6 +2369,96 @@ static void thunk(void){
     if (sink == 0x7FFFFFFFul) printf("");
 }
 
+#elif defined(T_268)
+#define NAME "268-rtlunicodestringtoutf8string"
+typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } WIA_USTR;
+typedef struct { unsigned short Length, MaximumLength; char* Buffer; } WIA_U8STR;
+extern long wia_unicodestringtoutf8string(WIA_U8STR*, const WIA_USTR*, unsigned char);
+extern long wia_utf8stringtounicodestring(WIA_USTR*, const WIA_U8STR*, unsigned char);
+static void thunk(void){
+    /* TWO FRAMED FUNCTIONS AND FIVE PATHS EACH, and the gate has to reach all of them: the
+       one-pass conversion into the caller buffer, the shortfall that leaves it partly filled,
+       the sizing pass a tight destination forces, the USHORT-field refusal, and the allocating
+       path -- which is the only one that calls out to the heap, so it is the only one whose
+       register damage could come from somewhere other than this repository.
+
+       Both functions are PROC FRAME with an allocated frame and nothing pushed, which is the shape
+       whose unwind data can be wrong without any test noticing. Armed PER CALL (CALL4), because a
+       thunk that uses a register for its own loop hides an implementation that destroys it.
+
+       THE ALLOCATING CALLS FREE WHAT THEY TAKE, through the paired exports. Without that this
+       thunk leaks a block per call and the run ends up measuring the heap. */
+    static wchar_t wbig[32767];
+    static char    u8big[40000];
+    static char    obuf[70000];
+    static wchar_t owbuf[40000];
+    HMODULE h = GetModuleHandleW(L"ntdll.dll");
+    void (WINAPI *freeu8)(WIA_U8STR*) = (void (WINAPI*)(WIA_U8STR*))GetProcAddress(h, "RtlFreeUTF8String");
+    void (WINAPI *freeu )(WIA_USTR*)  = (void (WINAPI*)(WIA_USTR*)) GetProcAddress(h, "RtlFreeUnicodeString");
+    static const int LENS[9] = { 0, 1, 7, 8, 9, 40, 300, 4000, 21845 };
+    WIA_USTR uin, uout;
+    WIA_U8STR ain, aout;
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (k = 0; k < 32767; ++k)
+        wbig[k] = (wchar_t)((k % 5 == 0) ? (0x20AC + (k & 15))
+                          : (k % 5 == 1) ? (0x00E9 + (k & 15))
+                          : (k % 5 == 2) ? 0xD83D
+                          : (k % 5 == 3) ? (0xDE00 + (k & 15))
+                                         : (wchar_t)(0x61 + (k & 15)));
+    for (k = 0; k < 40000; ++k)
+        u8big[k] = (char)((k % 3 == 0) ? (0x61 + (k & 15)) : (k % 3 == 1) ? 0xC3 : 0xA9);
+
+    for (i = 0; i < 9; ++i) {
+        int n = LENS[i];
+        uin.Buffer = wbig; uin.Length = (unsigned short)(n * 2); uin.MaximumLength = uin.Length;
+        ain.Buffer = u8big; ain.Length = (unsigned short)(n < 32767 ? n : 32767);
+        ain.MaximumLength = ain.Length;
+
+        /* a generous destination: the one-pass path in both directions */
+        aout.Buffer = obuf;  aout.Length = 0; aout.MaximumLength = 0xFFFF;
+        sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 0, 0);
+        uout.Buffer = owbuf; uout.Length = 0; uout.MaximumLength = 0xFFFF;
+        sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 0, 0);
+
+        /* a tight destination: the sizing pass, and the shortfall that partly fills a buffer */
+        aout.MaximumLength = (unsigned short)(n + 1);
+        sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 0, 0);
+        uout.MaximumLength = (unsigned short)(n + 2);
+        sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 0, 0);
+
+        /* capacity zero, which is its own status in one direction and not the other */
+        aout.MaximumLength = 0;
+        sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 0, 0);
+        uout.MaximumLength = 0;
+        sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 0, 0);
+
+        /* and the allocating path, freed by the paired export */
+        memset(&aout, 0, sizeof aout);
+        sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 1, 0);
+        if (freeu8) freeu8(&aout);
+        memset(&uout, 0, sizeof uout);
+        sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 1, 0);
+        if (freeu) freeu(&uout);
+    }
+
+    /* the USHORT-field refusal: 32767 three-byte characters cannot fit a USHORT Length */
+    for (k = 0; k < 32767; ++k) wbig[k] = (wchar_t)(0x20AC + (k & 15));
+    uin.Buffer = wbig; uin.Length = 65534; uin.MaximumLength = 65534;
+    aout.Buffer = obuf; aout.Length = 0; aout.MaximumLength = 0xFFFF;
+    sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 0, 0);
+    memset(&aout, 0, sizeof aout);
+    sink += CALL4(wia_unicodestringtoutf8string, &aout, &uin, 1, 0);
+    ain.Buffer = u8big; ain.Length = 40000; ain.MaximumLength = 40000;
+    uout.Buffer = owbuf; uout.Length = 0; uout.MaximumLength = 0xFFFF;
+    sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 0, 0);
+    memset(&uout, 0, sizeof uout);
+    sink += CALL4(wia_utf8stringtounicodestring, &uout, &ain, 1, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
