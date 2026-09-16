@@ -71,3 +71,8 @@ static ULONG ref_core(void* bmv, ULONG n, ULONG hint, ULONG want)
 
 ULONG ref_findsetbitsandclear(void* bmv, ULONG n, ULONG hint) { return ref_core(bmv, n, hint, 1u); }
 ULONG ref_findclearbitsandset(void* bmv, ULONG n, ULONG hint) { return ref_core(bmv, n, hint, 0u); }
+
+/* THE NULL ANSWER, stated once so the gate does not hard-code it in two places. Change 256 answers
+   NOT FOUND for a NULL RTL_BITMAP rather than faulting, and both of this change's paths -- the
+   64-bit fast path and the general one that calls into 256 -- have to give the same answer. */
+ULONG ref_findsetbitsandclear_null_expect(void) { return 0xFFFFFFFFul; }

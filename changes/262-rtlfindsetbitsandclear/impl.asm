@@ -323,8 +323,21 @@ ENDM
 ; TAIL-JUMPS to its framed body otherwise -- the same shape changes 256 and 260 use, and the reason
 ; is the same: a PROC FRAME cannot have a fast path in front of its prologue.
 ; ---------------------------------------------------------------------------------------------
+; A NULL RTL_BITMAP. The general path inherits change 256's answer for it -- NOT FOUND, not a
+; fault -- and the fast path below has to give the same one: a function that answered -1 for a
+; 4096-bit NULL bitmap and faulted for a 64-bit one would be worse than either choice made
+; consistently. This was missed when the fast path went in, because no corpus passed NULL.
+ALIGN 16
+fsbc_null:
+        mov       eax, -1
+        ret
+
 ALIGN 16
 wia_findsetbitsandclear PROC
+        test      rcx, rcx                    ; a NULL bitmap answers NOT FOUND rather
+        jz        fsbc_null                   ; ... than faulting, which is what change
+                                              ; ... 256 does and therefore what the
+                                              ; ... general path here has always done
         mov       eax, dword ptr [rcx]        ; SizeOfBitMap
         cmp       eax, 64
         ja        fsac_body
@@ -333,7 +346,11 @@ wia_findsetbitsandclear ENDP
 
 ALIGN 16
 wia_findclearbitsandset PROC
-        mov       eax, dword ptr [rcx]
+        test      rcx, rcx                    ; a NULL bitmap answers NOT FOUND rather
+        jz        fsbc_null                   ; ... than faulting, which is what change
+                                              ; ... 256 does and therefore what the
+                                              ; ... general path here has always done
+        mov       eax, dword ptr [rcx]        ; SizeOfBitMap
         cmp       eax, 64
         ja        fcas_body
         SMALL     set
