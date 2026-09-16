@@ -1,7 +1,3 @@
-; ntdll.dll!RtlIntegerToChar  --  hand-written x86-64 reimplementation (2.57x vs shipped)
-; source of truth: changes/279-rtlintegertochar/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/279-rtlintegertochar/impl.asm
 ;   NTSTATUS wia_int2char(ULONG value, ULONG base, LONG length, char* out)
 ;       [Win64: ecx, edx, r8d, r9 -> eax]
