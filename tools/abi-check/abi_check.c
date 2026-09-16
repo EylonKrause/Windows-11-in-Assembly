@@ -2301,6 +2301,44 @@ static void thunk(void){
     CALL4(wia_appendasciiztostring, &d, 0, 0, 0);                /* the NULL source */
 }
 
+#elif defined(T_266)
+#define NAME "266-rtliszeromemory"
+extern unsigned char wia_iszeromemory(const void*, size_t);
+static void thunk(void){
+    /* A LEAF -- no prologue, no saved registers, no unwind data -- so it must not touch a
+       non-volatile register at all. Armed PER CALL (CALL4), not around the thunk: a thunk that
+       uses r15 for its own loop hides an implementation that destroys r15, as change 258
+       demonstrated.
+
+       Driven: every rung of the sub-32-byte ladder (1, 2..3, 4..7, 8..15, 16..31), the 32-byte
+       loop, the 128-byte block loop, the overlapping final vector, the early exit at the very
+       first vector, and the zero length that never reads the pointer at all. Both answers are
+       produced at every size, because the TRUE path and the false path leave the function through
+       different exits and only one of them runs VZEROUPPER at the same place. */
+    static unsigned char buf[4096];
+    static const size_t LENS[16] = { 0, 1, 2, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33, 127, 128, 4000 };
+    int i, k;
+    unsigned long long sink = 0;
+    for (i = 0; i < 16; ++i) {
+        for (k = 0; k < 4096; ++k) buf[k] = 0;
+        sink += CALL4(wia_iszeromemory, buf, LENS[i], 0, 0);          /* all zero: TRUE */
+        if (LENS[i]) {
+            buf[LENS[i] - 1] = 0x01;                                   /* the last byte */
+            sink += CALL4(wia_iszeromemory, buf, LENS[i], 0, 0);
+            buf[LENS[i] - 1] = 0;
+            buf[0] = 0x80;                                             /* the first byte */
+            sink += CALL4(wia_iszeromemory, buf, LENS[i], 0, 0);
+            buf[0] = 0;
+            buf[LENS[i] / 2] = 0x40;                                   /* the middle */
+            sink += CALL4(wia_iszeromemory, buf, LENS[i], 0, 0);
+            buf[LENS[i] / 2] = 0;
+        }
+        sink += CALL4(wia_iszeromemory, buf + 1, LENS[i], 0, 0);       /* an odd alignment */
+    }
+    CALL4(wia_iszeromemory, 0, 0, 0, 0);                               /* NULL at length zero */
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
