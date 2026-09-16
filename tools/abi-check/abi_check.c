@@ -1367,6 +1367,38 @@ static void thunk(void){
     sink += wia_pathcanonicalizew(0, 0);
 }
 
+#elif defined(T_247)
+#define NAME "247-pathaddextensionw"
+extern int wia_pathaddextensionw(wchar_t*, const wchar_t*);
+static void thunk(void){
+    /* every path: the append, the two refusals (already has an extension, and the result would
+       exceed MAX_PATH), the NULL default extension -- which is L".exe", not empty -- an empty
+       extension that writes nothing, the boundary at exactly 259 characters of result, and the
+       NULL-path cases. */
+    static wchar_t p[700];
+    int i;
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathaddextensionw(p, L".abc");        sink += p[0];   /* appends */
+    sink += wia_pathaddextensionw(p, L".abc");        sink += p[0];   /* now has one: refuses */
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathaddextensionw(p, 0);              sink += p[0];   /* the .exe default */
+    wcscpy(p, L"C:\\dir\\file");
+    sink += wia_pathaddextensionw(p, L"");            sink += p[0];   /* writes nothing, TRUE */
+    p[0] = 0;
+    sink += wia_pathaddextensionw(p, L".exe");        sink += p[0];   /* the empty path */
+    for (i = 0; i < 255; ++i) p[i] = (i % 9 == 8) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C; p[255] = 0;
+    sink += wia_pathaddextensionw(p, L".abc");        sink += p[0];   /* 255 + 4 = 259: fits */
+    for (i = 0; i < 256; ++i) p[i] = (i % 9 == 8) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C; p[256] = 0;
+    sink += wia_pathaddextensionw(p, L".abc");        sink += p[0];   /* 256 + 4 = 260: refused */
+    for (i = 0; i < 600; ++i) p[i] = (i % 9 == 8) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C; p[600] = 0;
+    sink += wia_pathaddextensionw(p, L".abc");        sink += p[0];   /* long: refused */
+    sink += wia_pathaddextensionw(0, L".abc");
+    sink += wia_pathaddextensionw(0, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
