@@ -1399,6 +1399,79 @@ static void thunk(void){
     sink += wia_pathaddextensionw(0, 0);
 }
 
+#elif defined(T_248)
+#define NAME "248-urlunescapea"
+extern long wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
+static void thunk(void){
+    /* FOUR kernels and a compiled C envelope, and the envelope is the reason this case matters: the
+       fault path unwinds THROUGH it out of hand-written assembly, and an unwind that restored the
+       wrong registers -- or left the upper YMM halves dirty -- is invisible to correctness, because
+       the answer is S_OK with an empty result either way. So the last block here faults on purpose.
+       Before it: the one-pass path (buffer bigger than the source), the TWO-pass path (buffer
+       smaller, so the measuring kernel runs as well), E_POINTER, the AS_UTF8 refusal, %00 truncating
+       on one path and refusing on the other, the escape-dense inner loop, a long plain run through
+       the 32-byte copy ladder, the masked remainder at 63 bytes, the extra-info flag, the STAGED
+       overlap path (which allocates), in place, and every NULL combination. */
+    static char in[4200];
+    static char out[4200];
+    static char ov[4200];
+    unsigned long cch;
+    int i;
+    strcpy(in, "a%41b%42c");
+    cch = 64;  sink += wia_urlunescapea(in, out, &cch, 0);            sink += out[0] + cch;
+    cch = 3;   sink += wia_urlunescapea(in, out, &cch, 0);            sink += cch;  /* E_POINTER */
+    cch = 6;   sink += wia_urlunescapea(in, out, &cch, 0);            sink += cch;  /* two passes */
+    cch = 64;  sink += wia_urlunescapea(in, out, &cch, 0x00040000);   sink += cch;  /* AS_UTF8 */
+    strcpy(in, "a%00b");
+    cch = 64;  sink += wia_urlunescapea(in, out, &cch, 0);            sink += cch;  /* truncates */
+    cch = 0;   sink += wia_urlunescapea(in, 0, &cch, 0x00100000);     sink += in[0];  /* refuses */
+    for (i = 0; i < 63; ++i) in[i] = (char)(0x61 + i % 23);
+    in[63] = 0;
+    cch = 200; sink += wia_urlunescapea(in, out, &cch, 0);            sink += out[0] + cch;
+    for (i = 0; i < 1200; ++i) in[i] = (char)(0x61 + i % 23);
+    in[1200] = 0;
+    cch = 2000; sink += wia_urlunescapea(in, out, &cch, 0);           sink += out[0] + cch;
+    for (i = 0; i < 1200; i += 3) { in[i] = '%'; in[i+1] = '4'; in[i+2] = '1'; }
+    in[1200] = 0;
+    cch = 2000; sink += wia_urlunescapea(in, out, &cch, 0);           sink += out[0] + cch;
+    cch = 401;  sink += wia_urlunescapea(in, out, &cch, 0);           sink += out[0] + cch;
+    strcpy(in, "a%41b?c%42d#e%43f");
+    cch = 64;  sink += wia_urlunescapea(in, out, &cch, 0x02000000);   sink += out[0] + cch;
+    /* the STAGED path: a destination above the source and inside it, which the kernels cannot write
+       forward and the envelope therefore copies aside first -- twice, once short enough for the
+       inline buffer and once long enough to reach the heap */
+    strcpy(ov, "a%41b%42c%43d%44e");
+    cch = 64;  sink += wia_urlunescapea(ov, ov + 2, &cch, 0);         sink += ov[2] + cch;
+    for (i = 0; i < 2000; ++i) ov[i] = (i % 3 == 0) ? '%' : (i % 3 == 1) ? '4' : '1';
+    ov[2000] = 0;
+    cch = 3000; sink += wia_urlunescapea(ov, ov + 8, &cch, 0);        sink += ov[8] + cch;
+    strcpy(in, "a%41b%42c");
+    cch = 0;   sink += wia_urlunescapea(in, 0, &cch, 0x00100000);     sink += in[0];  /* in place */
+    cch = 64;  sink += wia_urlunescapea(0, out, &cch, 0);
+    cch = 64;  sink += wia_urlunescapea(in, 0, &cch, 0);
+    sink += wia_urlunescapea(in, out, 0, 0);
+    cch = 0;   sink += wia_urlunescapea(in, out, &cch, 0);
+    /* AND THE FAULT. An unterminated source at a PAGE_NOACCESS page: lstrlenA swallows it, so the
+       shipped function returns S_OK with an empty result, and so must this -- by unwinding out of
+       the assembly scan and through the C __except. That is the path this gate exists for. */
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        {
+            char* g = (char*)VirtualAlloc(0, si.dwPageSize * 2,
+                                          MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            if (g) {
+                unsigned long old;
+                char* s2 = (g + si.dwPageSize) - 4;
+                VirtualProtect(g + si.dwPageSize, si.dwPageSize, PAGE_NOACCESS, &old);
+                for (i = 0; i < 4; ++i) s2[i] = (char)('a' + i);
+                cch = 64;
+                sink += wia_urlunescapea(s2, out, &cch, 0);           sink += out[0] + cch;
+                VirtualFree(g, 0, MEM_RELEASE);
+            }
+        }
+    }
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

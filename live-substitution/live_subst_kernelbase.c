@@ -55,6 +55,7 @@ extern long     wia_urlunescapew(wchar_t*, wchar_t*, unsigned long*, unsigned lo
 extern void     wia_uue_set_fallback(void*);
 extern int      wia_pathcanonicalizew(wchar_t*, const wchar_t*);
 extern int      wia_pathaddextensionw(wchar_t*, const wchar_t*);
+extern long     wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -91,6 +92,10 @@ static BOOL WINAPI w_pcan(wchar_t* d, const wchar_t* s){
 static volatile LONG c_unes;
 static long WINAPI w_unes(const wchar_t* u, wchar_t* d, DWORD* pc, DWORD f){
     _InterlockedIncrement(&c_unes); return wia_urlunescapew((wchar_t*)u, d, (unsigned long*)pc, f);
+}
+static volatile LONG c_unea;
+static long WINAPI w_unea(const char* u, char* d, DWORD* pc, DWORD f){
+    _InterlockedIncrement(&c_unea); return wia_urlunescapea((char*)u, d, (unsigned long*)pc, f);
 }
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
@@ -1987,6 +1992,303 @@ int main(void){
             }
         }
     }
+    // ===================== 248 UrlUnescapeA =====================
+    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlUnescapeA is a
+    // jmp thunk through api-ms-win-core-url-l1-1-0 into this body.
+    //
+    // AND UNLIKE CHANGE 245, THERE IS NOTHING THIS SECTION CANNOT RUN UNDER THE PATCH. The wide form
+    // delegates two input classes to the original body through a fallback pointer, so those had to be
+    // proved in the validate-first pass only -- once the export is patched, its "fallback" is our own
+    // code. The narrow form delegates nothing:
+    //
+    //   * URL_UNESCAPE_AS_UTF8 is REFUSED here, not implemented (E_INVALIDARG, destination untouched),
+    //     so there is nothing to hand back;
+    //   * every other flag bit is ignored, which is a measurement and not an assumption --
+    //     correctness.c drives all 32 bits singly and all 1024 PAIRS of them against the live export
+    //     on 15 inputs, and this section drives the interesting ones again;
+    //   * the one overlap direction a forward single pass cannot do -- a destination ABOVE the source
+    //     and inside it -- is STAGED through a buffer in seh.c rather than delegated, because the
+    //     shipped function stages every call and so every placement of the two is well defined.
+    //
+    // FOUR THINGS THE CORPUS HAS TO REACH, three of which are asymmetries with the wide form:
+    //
+    //   * %00 TRUNCATES on the non-in-place path and returns S_OK ("a%00b" -> "a", cch = 1), because
+    //     the shipped code calls its walk and then DISCARDS the HRESULT, measuring the temporary with
+    //     a strlen. IN PLACE the same walk is TAIL-CALLED and the E_INVALIDARG survives. One function,
+    //     two paths, two answers for one input -- so both are driven, on the same strings.
+    //   * THE SIZE TEST IS STRICT and its failure must leave the destination UNTOUCHED, so every case
+    //     compares the WHOLE destination against a sentinel fill and *pcchUnescaped, never the string.
+    //   * BOTH ROUTES THROUGH THE ENVELOPE: a buffer bigger than the source takes ONE pass (the result
+    //     can never be longer than the input, so the size test cannot fail and nothing needs
+    //     measuring); a buffer at or below it takes TWO. Capacities are swept from 1 past the result
+    //     so both are driven at every shape.
+    //   * A FAULTING SOURCE IS SWALLOWED. lstrlenA is SEH-wrapped, so an unterminated source at a
+    //     PAGE_NOACCESS page returns S_OK with an empty result where the WIDE form faults. Under the
+    //     patch that fault has to unwind out of our assembly scan and through our C __except and
+    //     still produce the shipped answer -- which is the single case in this section that a
+    //     correctness harness could pass while the live one failed, because the unwind runs through
+    //     a patched export's frame.
+    printf("[248 UrlUnescapeA]  kernelbase (both routes, %%00 twice over, the swallowed fault)\n");
+    {
+        typedef long (WINAPI *funea)(const char*, char*, DWORD*, DWORD);
+        void* p_unea = (void*)GetProcAddress(hk, "UrlUnescapeA");
+        OK(p_unea != NULL, "resolve UrlUnescapeA");
+        if (p_unea) {
+            funea sysunea = (funea)p_unea;
+            static char ain[2048], amine[2048], alive[2048];
+            static char aipa[2048], aipb[2048];
+            static char aova[512], aovb[512];
+            patch_t unea_patch;
+            long cases = 0, onep = 0, twop = 0, eptr = 0, refused = 0, inplace = 0;
+            long trunc = 0, ovl = 0, faults = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = onep = twop = eptr = refused = inplace = trunc = ovl = faults = 0;
+
+                /* the pinned shapes, at every capacity from 1 to result+3, both flag values */
+                static const char* T[] = {
+                    "", "a", "%", "%%", "%4", "a%", "a%4", "a%zz", "a%4z", "a%z4",
+                    "%41", "%41%42", "%414243", "%2541", "%41x", "a%41b%42c",
+                    "a%00b", "%00", "a%00", "%00b", "%0", "%000", "%00%41", "%41%00%42",
+                    "a%41b?c%42d", "a%41b#c%42d", "?%41", "#%41", "a%3Fb%41", "#", "?",
+                    "%C3%A9", "%FF%FE", "%C3", "%80%81", "%ff%fe",
+                };
+                static const DWORD FL[] = { 0, 0x02000000, 0x00040000, 0x80000001 };
+                for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                    size_t n = strlen(T[i]);
+                    for (int f = 0; f < 4; ++f) {
+                        for (DWORD cap = 1; cap <= (DWORD)n + 3; ++cap) {
+                            DWORD ca = cap, cc = cap;
+                            memset(amine, 0xAB, cap + 24);
+                            memset(alive, 0xAB, cap + 24);
+                            strcpy(ain, T[i]);
+                            long ra = wia_urlunescapea(ain, amine, &ca, FL[f]);
+                            long rb = sysunea(ain, alive, &cc, FL[f]);
+                            if (ra != rb) ++mism;
+                            if (ca != cc) ++mism;
+                            if (memcmp(amine, alive, cap + 24) != 0) ++mism;
+                            ++cases;
+                            if (cap > (DWORD)n) ++onep; else ++twop;
+                            if (ra == (long)0x80004003) ++eptr;
+                            if (ra == (long)0x80070057) ++refused;
+                            /* S_OK with a result SHORTER than the walk would otherwise give: the
+                               truncation at a zero-valued escape, which the wide form refuses */
+                            if (ra == 0 && strstr(T[i], "%00") != 0) ++trunc;
+                        }
+                        /* IN PLACE, on the same string -- where %00 answers differently */
+                        memset(aipa, 0xAB, n + 24);
+                        memset(aipb, 0xAB, n + 24);
+                        strcpy(aipa, T[i]); strcpy(aipb, T[i]);
+                        DWORD ia = 0xABCD, ib = 0xABCD;
+                        long ra2 = wia_urlunescapea(aipa, 0, &ia, FL[f] | 0x00100000);
+                        long rb2 = sysunea(aipb, 0, &ib, FL[f] | 0x00100000);
+                        if (ra2 != rb2) ++mism;
+                        if (ia != ib) ++mism;
+                        if (memcmp(aipa, aipb, n + 24) != 0) ++mism;
+                        ++cases; ++inplace;
+                    }
+                }
+
+                /* every length across the 32-byte block boundary AND its masked remainder, with one
+                   escape walked along it. The remainder is where the first version of this change was
+                   wrong twice: a byte-at-a-time tail made 63 bytes 2.5x slower than 64, and the
+                   vector tail that replaced it read ONE aligned block when a sub-32-byte remainder
+                   can straddle two -- 1100 mismatches, all of them an escape near a string's end. */
+                for (int n = 0; n <= 200; ++n) {
+                    for (int k = 0; k < n; ++k) ain[k] = (char)(0x61 + k % 26);
+                    ain[n] = 0;
+                    DWORD ca = 300, cc = 300;
+                    memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                    long ra = wia_urlunescapea(ain, amine, &ca, 0);
+                    long rb = sysunea(ain, alive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(amine, alive, 340) != 0) ++mism;
+                    ++cases; ++onep;
+                    if (n >= 3) {
+                        for (int q = 0; q + 3 <= n; q += (n > 40 ? 7 : 1)) {
+                            for (int k = 0; k < n; ++k) ain[k] = (char)(0x61 + k % 26);
+                            ain[q] = '%'; ain[q+1] = '4'; ain[q+2] = '1';
+                            ain[n] = 0;
+                            ca = 300; cc = 300;
+                            memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                            ra = wia_urlunescapea(ain, amine, &ca, 0);
+                            rb = sysunea(ain, alive, &cc, 0);
+                            if (ra != rb || ca != cc) ++mism;
+                            if (memcmp(amine, alive, 340) != 0) ++mism;
+                            ++cases; ++onep;
+                            /* and the same string with a capacity that forces the second pass */
+                            ca = (DWORD)(n - 2); cc = (DWORD)(n - 2);
+                            memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                            ra = wia_urlunescapea(ain, amine, &ca, 0);
+                            rb = sysunea(ain, alive, &cc, 0);
+                            if (ra != rb || ca != cc) ++mism;
+                            if (memcmp(amine, alive, 340) != 0) ++mism;
+                            ++cases; ++twop;
+                        }
+                    }
+                }
+
+                /* escape-dense, which is the scalar inner loop rather than the block scan, and a
+                   zero-valued escape walked along it so the truncation happens at every offset */
+                for (int e = 1; e <= 80; ++e) {
+                    int k = 0;
+                    for (int i = 0; i < e; ++i) { ain[k++] = '%'; ain[k++] = '4';
+                                                  ain[k++] = (char)(0x31 + i % 9); }
+                    ain[k] = 0;
+                    DWORD ca = 300, cc = 300;
+                    memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                    long ra = wia_urlunescapea(ain, amine, &ca, 0);
+                    long rb = sysunea(ain, alive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(amine, alive, 340) != 0) ++mism;
+                    ++cases; ++onep;
+                    ca = (DWORD)e; cc = (DWORD)e;
+                    memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                    ra = wia_urlunescapea(ain, amine, &ca, 0);
+                    rb = sysunea(ain, alive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(amine, alive, 340) != 0) ++mism;
+                    ++cases; ++twop;
+                    /* now make escape number e/2 a %00 and re-run both routes */
+                    if (e >= 2) {
+                        ain[3 * (e / 2) + 1] = '0'; ain[3 * (e / 2) + 2] = '0';
+                        ca = 300; cc = 300;
+                        memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                        ra = wia_urlunescapea(ain, amine, &ca, 0);
+                        rb = sysunea(ain, alive, &cc, 0);
+                        if (ra != rb || ca != cc) ++mism;
+                        if (memcmp(amine, alive, 340) != 0) ++mism;
+                        ++cases; ++onep; if (ra == 0) ++trunc;
+                        ca = (DWORD)(e / 2); cc = (DWORD)(e / 2);
+                        memset(amine, 0xAB, 340); memset(alive, 0xAB, 340);
+                        ra = wia_urlunescapea(ain, amine, &ca, 0);
+                        rb = sysunea(ain, alive, &cc, 0);
+                        if (ra != rb || ca != cc) ++mism;
+                        if (memcmp(amine, alive, 340) != 0) ++mism;
+                        ++cases; ++twop;
+                        /* and IN PLACE, where the same %00 returns E_INVALIDARG instead */
+                        memset(aipa, 0xAB, 340); memset(aipb, 0xAB, 340);
+                        strcpy(aipa, ain); strcpy(aipb, ain);
+                        DWORD ia = 0xABCD, ib = 0xABCD;
+                        long r3 = wia_urlunescapea(aipa, 0, &ia, 0x00100000);
+                        long r4 = sysunea(aipb, 0, &ib, 0x00100000);
+                        if (r3 != r4 || ia != ib) ++mism;
+                        if (memcmp(aipa, aipb, 340) != 0) ++mism;
+                        ++cases; ++inplace; if (r3 == (long)0x80070057) ++refused;
+                    }
+                }
+
+                /* OVERLAP, at every relative placement of destination against source -- including the
+                   direction seh.c has to stage, and a capacity that makes the size test fail while
+                   the two still overlap, because that failure must not have moved anything */
+                for (int doff = -16; doff <= 16; ++doff) {
+                    static const char* OT[] = { "a%41b%42c%43d", "%41%42%43%44", "abc%41def",
+                                                "a%00b%41c", "%41%00%42" };
+                    for (int i = 0; i < 5; ++i) {
+                        size_t n = strlen(OT[i]);
+                        int sb = 64;
+                        if (sb + doff < 0) continue;
+                        for (int t = 0; t < 2; ++t) {
+                            DWORD ca = t ? (DWORD)n : 200, cc = ca;
+                            memset(aova, 0xAB, sizeof aova);
+                            memset(aovb, 0xAB, sizeof aovb);
+                            strcpy(aova + sb, OT[i]); strcpy(aovb + sb, OT[i]);
+                            long ra = wia_urlunescapea(aova + sb, aova + sb + doff, &ca, 0);
+                            long rb = sysunea(aovb + sb, aovb + sb + doff, &cc, 0);
+                            if (ra != rb || ca != cc) ++mism;
+                            if (memcmp(aova, aovb, sizeof aova) != 0) ++mism;
+                            ++cases; ++ovl;
+                        }
+                    }
+                }
+
+                /* every NULL combination */
+                {
+                    DWORD ca = 64, cc = 64;
+                    strcpy(ain, "a%41b");
+                    if (wia_urlunescapea(0, amine, &ca, 0) != sysunea(0, alive, &cc, 0)) ++mism;
+                    ca = cc = 64;
+                    if (wia_urlunescapea(ain, 0, &ca, 0) != sysunea(ain, 0, &cc, 0)) ++mism;
+                    if (wia_urlunescapea(ain, amine, 0, 0) != sysunea(ain, alive, 0, 0)) ++mism;
+                    ca = cc = 0;
+                    if (wia_urlunescapea(ain, amine, &ca, 0) != sysunea(ain, alive, &cc, 0)) ++mism;
+                    cases += 4;
+                }
+
+                /* THE SWALLOWED FAULT, and this is the case that only a live run can settle: under
+                   the patch the access violation unwinds out of our assembly scan, through our C
+                   __except, and out of a PATCHED export's frame -- and still has to produce the
+                   shipped S_OK with an empty result. */
+                {
+                    SYSTEM_INFO si; GetSystemInfo(&si);
+                    char* g = (char*)VirtualAlloc(0, si.dwPageSize * 2,
+                                                  MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+                    if (g) {
+                        DWORD old;
+                        VirtualProtect(g + si.dwPageSize, si.dwPageSize, PAGE_NOACCESS, &old);
+                        for (int tail = 1; tail <= 40; ++tail) {
+                            char* q = (g + si.dwPageSize) - tail;
+                            long ra = 0, rb = 0;
+                            DWORD ca = 64, cc = 64;
+                            int fa = 0, fb = 0;
+                            for (int k = 0; k < tail; ++k) q[k] = (char)('a' + k % 26);
+                            memset(amine, 0xAB, 128); memset(alive, 0xAB, 128);
+                            __try { ra = wia_urlunescapea(q, amine, &ca, 0); }
+                            __except (EXCEPTION_EXECUTE_HANDLER) { fa = 1; }
+                            __try { rb = sysunea(q, alive, &cc, 0); }
+                            __except (EXCEPTION_EXECUTE_HANDLER) { fb = 1; }
+                            if (fa != fb || ra != rb || ca != cc) ++mism;
+                            if (memcmp(amine, alive, 128) != 0) ++mism;
+                            ++cases; ++faults;
+                        }
+                        VirtualFree(g, 0, MEM_RELEASE);
+                    }
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (HRESULT, *pcch, whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&unea_patch, p_unea, (void*)w_unea), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_unea)[0], ((unsigned char*)p_unea)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_unea > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_unea);
+                    printf("  of %ld cases: %ld took the ONE-pass route (buffer bigger than the\n"
+                           "  source, so the size test cannot fail and nothing needs measuring) and\n"
+                           "  %ld took TWO passes; %ld returned E_POINTER and %ld E_INVALIDARG, both\n"
+                           "  of which must leave the destination untouched -- which is why every case\n"
+                           "  compares the whole buffer against a sentinel fill rather than the\n"
+                           "  string. %ld ran IN PLACE, where a zero-valued escape REFUSES, against\n"
+                           "  %ld non-in-place cases carrying one where it TRUNCATES and returns S_OK\n"
+                           "  instead: one function, two paths, two answers for one input. %ld drove\n"
+                           "  an OVERLAPPING destination, the direction above the source included --\n"
+                           "  staged rather than delegated, so unlike change 245 NOTHING here had to\n"
+                           "  sit out the patched pass. And %ld were an unterminated source at a\n"
+                           "  PAGE_NOACCESS page, which lstrlenA SWALLOWS: the fault unwound out of\n"
+                           "  our assembly and through our C __except inside a patched export, and\n"
+                           "  returned the shipped S_OK with an empty result. The WIDE form faults on\n"
+                           "  exactly that input.\n",
+                           cases, onep, twop, eptr, refused, inplace, trunc, ovl, faults);
+                    OK(onep >= 2000, "the one-pass route ran in bulk");
+                    OK(twop >= 500,  "the two-pass route ran in bulk");
+                    OK(eptr  >= 40,  "E_POINTER was reached");
+                    OK(refused >= 40, "the in-place %00 refusal was reached");
+                    OK(inplace >= 100, "the in-place path ran");
+                    OK(trunc >= 40,  "the non-in-place %00 truncation was reached");
+                    OK(ovl >= 200,   "the overlap staging ran");
+                    OK(faults == 40, "the swallowed fault ran under the patch");
+                    OK(patch_off(&unea_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -2745,9 +3047,19 @@ int main(void){
                "the backward scan only at a backslash -- wrong on 295513 of 2015539 enumerated\n"
                "strings. An alphabet without a space would validate the same mistake twice. Its NULL\n"
                "extension defaults to L\".exe\" rather than the empty string, and a refusal writes\n"
-               "NOTHING AT ALL, which is why its cases compare the whole buffer. All eighteen\n"
-               "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
-               "modified.\n");
+               "NOTHING AT ALL, which is why its cases compare the whole buffer. For 248 the\n"
+               "point is that NOTHING had to sit out the patched pass: the wide form delegates two\n"
+               "input classes through a fallback pointer and a patched export's fallback is our own\n"
+               "code, while the narrow form REFUSES URL_UNESCAPE_AS_UTF8 outright, ignores every\n"
+               "other flag bit (measured over all 32 singly and all 1024 pairs), and STAGES the one\n"
+               "overlap direction a forward pass cannot do. Its %00 is driven on both paths of the\n"
+               "same function, which answer differently -- truncate and succeed, or refuse -- and 40\n"
+               "of its cases are an unterminated source at a PAGE_NOACCESS page, where lstrlenA\n"
+               "SWALLOWS the fault: that access violation unwound out of our assembly and through\n"
+               "our C __except inside a PATCHED export and still returned S_OK with an empty result,\n"
+               "which is the one case a correctness harness can pass while a live run fails.\n"
+               "All nineteen prologues restored byte-for-byte. Zero system processes touched,\n"
+               "nothing on disk modified.\n");
         return 0;
     }
     printf("KERNELBASE LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);
