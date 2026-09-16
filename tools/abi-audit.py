@@ -72,6 +72,18 @@ GPRNAME = re.compile(r'^(%s)$' % '|'.join(sorted(GPR, key=len, reverse=True)), r
 PUSH = re.compile(r'^push\s+(\w+)\s*$', re.I)
 INSTR = re.compile(r'^([a-z][a-z0-9]*)\s+(.*)$', re.I)
 
+# A LABEL ON THE SAME LINE HID THE INSTRUCTION BEHIND IT (found 2026-09-16, while mutation-testing
+# change 261). This tree writes `f_f1:   mov r12d, 7` -- label and instruction on one line -- and
+# INSTR is anchored, so `f_f1:` failed to match and the write to r12 was never seen. The dynamic
+# gate caught that deliberate clobber and this scan reported PASS, which is the wrong way round for
+# a net that exists to cover what the dynamic gate cannot reach. Every loop head, every branch
+# target and every early-exit stub in this repository is written that way, so the GPR half of the
+# scan was blind to a large fraction of the code it claimed to cover.
+#
+# Anchored at the start and requiring the colon IMMEDIATELY after the identifier, so it cannot eat
+# a segment override in an operand (`mov rax, gs:[30h]` starts with `mov ` -- no colon after it).
+LABEL = re.compile(r'^[A-Za-z_$?@][\w$?@]*:{1,2}\s*')
+
 # Mnemonics whose FIRST operand is read, not written. Everything else that names a bare
 # non-volatile register first is treated as writing it -- deliberately the conservative direction,
 # since a false positive is investigated and a false negative is not.
@@ -94,6 +106,7 @@ def scan(path):
     with io.open(path, encoding='utf-8', errors='replace') as fh:
         for raw in fh:
             code = raw.split(';')[0].strip()          # comments never count as code
+            code = LABEL.sub('', code, count=1)       # `f_f1: mov r12d,7` is a write to r12
             if not code or code.startswith('.'):      # .pushreg rbx is unwind data, not a write
                 continue
 

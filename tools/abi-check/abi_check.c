@@ -2061,6 +2061,62 @@ static void thunk(void){
     CALL4(wia_findclearruns, 0, out, 4, 1);
 }
 
+#elif defined(T_261)
+#define NAME "261-rtlfindnextforwardrunclear"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned long wia_findnextforwardrunclear(void*, unsigned long, unsigned long*);
+extern unsigned long wia_findlastbackwardrunclear(void*, unsigned long, unsigned long*);
+static void thunk(void){
+    /* TWO LEAVES -- no prologue, no saved registers, no unwind data -- which is exactly why this
+       has to be driven rather than reasoned about: both functions keep everything in the seven
+       volatile registers and the shadow space the caller already reserved, and a single stray
+       push or a stray r12 would be invisible until something else broke. Armed PER CALL (CALL4),
+       not around the thunk: a thunk that uses r15 for its own loop hides an implementation that
+       destroys r15, as change 258 demonstrated.
+
+       Every path of both scans is driven: the answer inside the first word; the two scalar
+       pre-steps; the vector skip and its mask-derived hit; the scalar walk after the vector loop
+       falls out; the last word with its slack; the run that reaches the end of the bitmap; the
+       run that reaches bit zero going backward; nothing-found in both directions; and both
+       refusals at FromIndex at or past SizeOfBitMap. */
+    static unsigned long b[512];
+    unsigned long start = 0;
+    ABI_RBM bm;
+    int i, k;
+    bm.Buffer = b;
+    for (k = 0; k < 4; ++k) {
+        for (i = 0; i < 512; ++i)
+            b[i] = (k == 0) ? 0xFFFFFFFFul : (k == 1) ? 0ul
+                 : (k == 2) ? 0xA5A5A5A5ul : ((i & 7) ? 0xFFFFFFFFul : 0xFFFF0000ul);
+        bm.SizeOfBitMap = 16384;
+        for (i = 0; i < 40; ++i) {
+            unsigned long f = (unsigned long)(i * 397);      /* on and off every boundary */
+            CALL4(wia_findnextforwardrunclear,  &bm, f, &start, 0);
+            CALL4(wia_findlastbackwardrunclear, &bm, f, &start, 0);
+        }
+        CALL4(wia_findnextforwardrunclear,  &bm, 0, &start, 0);        /* the longest scans */
+        CALL4(wia_findlastbackwardrunclear, &bm, 16383, &start, 0);
+        bm.SizeOfBitMap = 33;                                          /* an odd trailing ULONG */
+        CALL4(wia_findnextforwardrunclear,  &bm, 1, &start, 0);
+        CALL4(wia_findlastbackwardrunclear, &bm, 32, &start, 0);
+        bm.SizeOfBitMap = 64;                                          /* ... and an even one */
+        CALL4(wia_findnextforwardrunclear,  &bm, 1, &start, 0);
+        CALL4(wia_findlastbackwardrunclear, &bm, 63, &start, 0);
+        bm.SizeOfBitMap = 200;                                         /* too short to vector at all */
+        CALL4(wia_findnextforwardrunclear,  &bm, 3, &start, 0);
+        CALL4(wia_findlastbackwardrunclear, &bm, 199, &start, 0);
+    }
+    /* the refusals: both return before anything at all is loaded */
+    bm.SizeOfBitMap = 100;
+    CALL4(wia_findnextforwardrunclear,  &bm, 100, &start, 0);
+    CALL4(wia_findlastbackwardrunclear, &bm, 100, &start, 0);
+    CALL4(wia_findnextforwardrunclear,  &bm, 0xFFFFFFFFul, &start, 0);
+    CALL4(wia_findlastbackwardrunclear, &bm, 0xFFFFFFFFul, &start, 0);
+    bm.SizeOfBitMap = 0;
+    CALL4(wia_findnextforwardrunclear,  &bm, 0, &start, 0);
+    CALL4(wia_findlastbackwardrunclear, &bm, 0, &start, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
