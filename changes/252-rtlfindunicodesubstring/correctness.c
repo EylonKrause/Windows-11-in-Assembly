@@ -12,7 +12,11 @@
  *   1. EXHAUSTIVE, short             -- reaches ONLY the scalar tail (n-m < 15)
  *   2. THE VECTOR-LOOP BOUNDARY      -- every n-m from 0 to 40, which is where the loop turns on
  *   3. RANDOMISED, long              -- reaches the vector loop, with planted and absent needles
- *   4. THE FOLD, at the hard pairs   -- non-ASCII partners no ASCII fold brings together
+ *   4. THE FOLD, at the hard pairs   -- non-ASCII partners no ASCII fold brings together, AND
+ *                                      pairs the NT ordinal table deliberately does NOT merge
+ *                                      (U+017F, U+0130/U+0131, U+00DF all upcase to themselves --
+ *                                      the ordinal table is much narrower than Unicode case
+ *                                      folding, and a fold that merged them would be wrong)
  *   5. A GUARD PAGE                  -- proves the "no clamp is needed" claim by making an
  *                                      over-read FAULT rather than merely disagree
  */
@@ -192,7 +196,7 @@ int main(void)
         static const struct { wchar_t a, b; const char* what; } P[] = {
             { 0x00E0, 0x00C0, "a-grave / A-grave"                      },
             { 0x00FF, 0x0178, "y-diaeresis / Y-diaeresis"              },
-            { 0x017F, 0x0053, "LATIN SMALL LETTER LONG S / ASCII 'S'"  },
+            { 0x017F, 0x0053, "LONG S vs ASCII S -- the table does NOT merge these" },
             { 0x03B1, 0x0391, "greek alpha / ALPHA"                    },
             { 0x0430, 0x0410, "cyrillic a / A"                         },
             { 0x0131, 0x0049, "dotless i / ASCII 'I'"                  },
@@ -226,7 +230,8 @@ int main(void)
                 }
             }
         }
-        printf("  4. hard fold pairs (incl. U+017F vs ASCII 'S') as body and as anchors: %ld cases\n",
+        printf("  4. fold pairs, AND non-pairs the ordinal table refuses to merge, as body and as "
+               "anchors: %ld cases\n",
                cases - before);
     }
 
