@@ -1,7 +1,3 @@
-; ntdll.dll!RtlNumberOfSetBits  --  hand-written x86-64 reimplementation (3.50x vs shipped)
-; source of truth: changes/257-rtlnumberofsetbits/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/257-rtlnumberofsetbits/impl.asm
 ;   ULONG wia_numberofsetbits       (RTL_BITMAP* bm)
 ;   ULONG wia_numberofclearbits     (RTL_BITMAP* bm)

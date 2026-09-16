@@ -1858,6 +1858,52 @@ static void thunk(void){
     sink += wia_findlongestrunclear(0, &ix);
 }
 
+#elif defined(T_257)
+#define NAME "257-rtlnumberofsetbits"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned long wia_numberofsetbits(void*);
+extern unsigned long wia_numberofclearbits(void*);
+extern unsigned long wia_numberofsetbitsinrange(void*, unsigned long, unsigned long);
+extern unsigned long wia_numberofclearbitsinrange(void*, unsigned long, unsigned long);
+static void thunk(void){
+    /* THIS CHANGE IS WHY THE GATE EXISTS. Its four entry stubs pass a selector to a shared framed
+       body, and the first version put it in r13 -- a NON-VOLATILE register -- BEFORE that body's
+       prologue saved it, destroying the caller's r13. Correctness passed at /Od, where the compiler
+       spills everything, and the /O2 build died with an access violation before its first line of
+       output. The selector now lives in r10, and this driver is what proves it stays that way.
+       Driven: all four exports; the single-word LEAF fast path and the framed body; the vector
+       loop, its scalar remainder and both masked partial words; the refusal paths, which return
+       before any ymm register is touched; and a bitmap large enough that the VPSHUFB body runs
+       many times, since it is the only path that writes ymm0-ymm5 and must VZEROUPPER. */
+    static unsigned long b[512];
+    ABI_RBM bm;
+    int i, k;
+    for (i = 0; i < 512; ++i) b[i] = 0xA5A5A5A5ul ^ (unsigned long)(i * 0x01010101ul);
+    bm.Buffer = b;
+
+    for (k = 0; k < 6; ++k) {
+        static const unsigned long SZ[6] = { 1, 33, 64, 256, 4096, 16384 };
+        bm.SizeOfBitMap = SZ[k];
+        sink += wia_numberofsetbits(&bm);
+        sink += wia_numberofclearbits(&bm);
+        sink += wia_numberofsetbitsinrange(&bm, 0, SZ[k]);
+        sink += wia_numberofclearbitsinrange(&bm, 0, SZ[k]);
+        if (SZ[k] > 8) {
+            sink += wia_numberofsetbitsinrange(&bm, 3, SZ[k] - 5);     /* unaligned both ends */
+            sink += wia_numberofclearbitsinrange(&bm, 5, 3);           /* inside one word */
+            sink += wia_numberofsetbitsinrange(&bm, 1, 1);
+        }
+        sink += wia_numberofsetbitsinrange(&bm, 0, 0);                 /* refused */
+        sink += wia_numberofsetbitsinrange(&bm, SZ[k], 1);             /* refused */
+        sink += wia_numberofclearbitsinrange(&bm, 0, SZ[k] + 1);       /* refused */
+    }
+    bm.SizeOfBitMap = 0;
+    sink += wia_numberofsetbits(&bm);
+    sink += wia_numberofclearbits(&bm);
+    sink += wia_numberofsetbitsinrange(&bm, 0, 1);
+    sink += wia_numberofsetbits(0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

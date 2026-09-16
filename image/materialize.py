@@ -28,7 +28,15 @@ MSVCRT_ALSO = {
     '_i64tow','_ui64tow','memcmp','strcmp',
 }
 
-row = re.compile(r'^\|\s*\[(\d+)\]\(changes/([^)]+)/\)\s*\|\s*(.*?)\s*\|\s*`([^!`]+)!([^`]+)`\s*\|\s*(.*?)\s*\|\s*$')
+# The third column names the host DLL and the export(s). ONE CHANGE MAY COVER SEVERAL EXPORTS --
+# change 257 replaces four -- so the field is captured whole and then split, rather than matched as
+# a single `dll!name`. An earlier version required exactly one, and silently skipped the whole row
+# when it found a list: the change vanished from the tree with no error, which is the worst way for
+# a build step to fail. The first backticked item carries the DLL; any further ones are more exports
+# in that same DLL.
+row = re.compile(r'^\|\s*\[(\d+)\]\(changes/([^)]+)/\)\s*\|\s*(.*?)\s*\|\s*(`[^|]*?`)\s*\|\s*(.*?)\s*\|\s*$')
+first_exp = re.compile(r'`([^!`]+)!([^`]+)`')
+more_exp = re.compile(r'`([^`!]+)`')
 speed = re.compile(r'\*\*([\d.]+)[x×]\*\*')
 
 def main():
@@ -40,12 +48,19 @@ def main():
             m = row.match(line.rstrip('\n'))
             if not m:
                 continue
-            num, cdir, desc, dll, export, verdict = m.groups()
+            num, cdir, desc, field, verdict = m.groups()
+            fm = first_exp.search(field)
+            if not fm:
+                continue
+            dll = fm.group(1)
+            exports = [fm.group(2).strip()]
+            exports += [e.strip() for e in more_exp.findall(field[fm.end():])]
             landed = 'LANDED' in verdict
             sm = speed.search(verdict)
             spd = sm.group(1)+'x' if sm else ''
-            entries.append(dict(num=num, cdir=cdir, dll=dll, export=export.strip(),
-                                landed=landed, spd=spd, verdict=verdict))
+            for export in exports:
+                entries.append(dict(num=num, cdir=cdir, dll=dll, export=export,
+                                    landed=landed, spd=spd, verdict=verdict))
     per_dll = {}
     copied = 0
     for e in entries:
