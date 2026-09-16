@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (80)
+# ntdll.dll — reimplemented exports (82)
 
 | export | speedup | source |
 |---|---|---|
@@ -24,8 +24,10 @@
 | `RtlFindCharInUnicodeString` | 8.26x | [changes/051-rtlfindcharinunicodestring](../../../../../changes/051-rtlfindcharinunicodestring/) |
 | `RtlFindClearBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
 | `RtlFindClearRuns` | 13.26x | [changes/258-rtlfindclearruns](../../../../../changes/258-rtlfindclearruns/) |
+| `RtlFindLastBackwardRunClear` | 12.17x | [changes/261-rtlfindnextforwardrunclear](../../../../../changes/261-rtlfindnextforwardrunclear/) |
 | `RtlFindLongestRunClear` | 4.79x | [changes/123-rtlfindlongestrunclear](../../../../../changes/123-rtlfindlongestrunclear/) |
 | `RtlFindLongestRunClear` | 40.5x | [changes/255-rtlfindlongestrunclear](../../../../../changes/255-rtlfindlongestrunclear/) |
+| `RtlFindNextForwardRunClear` | 12.17x | [changes/261-rtlfindnextforwardrunclear](../../../../../changes/261-rtlfindnextforwardrunclear/) |
 | `RtlFindSetBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
 | `RtlFindUnicodeSubstring` | 74.5x | [changes/252-rtlfindunicodesubstring](../../../../../changes/252-rtlfindunicodesubstring/) |
 | `RtlGUIDFromString` | 4.45x | [changes/118-rtlguidfromstring](../../../../../changes/118-rtlguidfromstring/) |
