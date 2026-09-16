@@ -24,6 +24,7 @@ semantics rather than sloppiness.
 | [`kernelbase_pathcch.c`](kernelbase_pathcch.c) | the unconverted half of kernelbase's `PathCch*` family, plus the kernelbase path helpers |
 | [`shlwapi_url_str.c`](shlwapi_url_str.c) | the three shlwapi families no earlier sweep touched: the **URL** functions, the formatters/parsers, and the remaining path predicates and writers. This is where change 244 came from |
 | [`ntdll_rtl_uncovered.c`](ntdll_rtl_uncovered.c) | ntdll carries 69 landed changes and still has **191 uncovered `Rtl*` exports** whose names suggest string, buffer or bitmap work. This measures the subset that is plausibly byte-wise with a pinnable contract — no locale, no code page, no grammar. This is where **change 252** came from |
+| [`ucrt_uncovered2.c`](ucrt_uncovered2.c) | the ucrtbase exports that are plainly byte loops and are still uncovered, found mechanically: enumerate the exports, subtract `image/tree`’s filenames, drop the `_o__` ordinal aliases, the `_l` locale variants and the `_mbs` code-page family. This is where **change 253** came from |
 
 ### What `shlwapi_url_str.c` found
 
@@ -127,6 +128,31 @@ This file’s header requires every row to **print what it actually returned**, 
 - **`RtlCopyBitMap` measured 1.98 ns and copied nothing**, printing a destination first word of `00000000` against a source of `A5A5A5A5`. Its signature is `(Source, Destination, TargetBit, NumberOfBits)` — **four** parameters, source first — and it was being called with three. The corrected row is 102.02 ns.
 
 Neither was visible in the timing alone. Both would have been invisible without the rule.
+
+### What `ucrt_uncovered2.c` found
+
+ucrtbase carries 75 landed changes and the obvious targets are long gone, but the **narrow** string functions are consistently scalar and consistently slower than their own neighbours in the same DLL:
+
+| export | ns/byte | compared with |
+|---|---|---|
+| `strcat`, 4000 B | **0.200** | 3.9× worse than `strncat`, **33× worse than `memcpy`** |
+| `wcscat`, 4000 ch | 0.101 | 5.6× worse than `wcscpy` |
+| `strncmp`, equal | 0.070 | 3.9× worse than `memcmp` |
+| `strcpy`, 4000 B | 0.052 | 8.7× worse than `memcpy`, 2.9× worse than `wcscpy` |
+| `strstr`, 4000 B miss | 0.042 | already fast — not a naive scan |
+| `memcpy` / `memmove` / `memset` | 0.006 | the four Microsoft certainly **did** vectorise |
+
+`strcat` and `wcscat` became [change 253](../changes/253-strcat/), which **parked**: it wins 3.4–7.6× on a long destination and loses under about sixty-four bytes, because the shipped SWAR is the right instrument at that size. `strncmp` was already parked as [099](../changes/099-strncmp/) for the same reason.
+
+#### Four rows of this survey were dishonest, and the file’s own rule caught all four
+
+Every row must print what it actually returned. That rule earned its keep twice in one session — once in the ntdll survey above and again here:
+
+- **`strncmp` and `memcmp`, both labelled "equal", returned −1.** The comparand had a needle planted in it at offset 3000 for the `strstr` rows, so both comparisons stopped there: the rows were timing a 3000-byte scan while claiming a 4000-byte one. Fixed with a third, genuinely identical buffer.
+- **`_splitpath` measured 11852 ns and produced an EMPTY filename.** It has no size parameters and hands anything longer than `_MAX_FNAME` to the invalid-parameter handler *without writing an output*; given the 4000-character subject the other rows use, it was an error path timed as though it were a split. With a realistic 121-byte path it is 489.88 ns.
+- **`_makepath` measured 3.22 ns and produced a 2-character result**, because it was assembling the empty components `_splitpath` had just failed to produce.
+
+None of the four was visible in the timing. All four were obvious in the returned value.
 
 ## What the surveys ruled out, and why
 
