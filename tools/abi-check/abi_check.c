@@ -2811,6 +2811,38 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_273)
+#define NAME "273-inet-addr"
+extern unsigned long wia_inet_addr(const char*);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* A LEAF WITH A FRAME AND NO CALLS, which is the shape whose unwind data nobody checks because
+       nothing ever unwinds through it -- until something does. Every path is driven: the four
+       forms, the three bases, the wrapping accumulator, the whitespace terminator, the one-byte
+       special case, the five refusals, and NULL.
+
+       Armed PER CALL (CALL4), because a thunk that uses a register for its own loop hides an
+       implementation that destroys it. */
+    static const char* CASES[] = {
+        "1.2.3.4", "192.168.100.200", "255.255.255.254", "0.0.0.0",
+        "1.2.3", "1.2", "16909060",
+        "0x7f000001", "0X7F000001", "017700000001", "0x1.0x2.0x3.0x4", "1.0x2.03.4",
+        "0x112345678",                 /* the wrapping accumulator */
+        "12345678901",                 /* ... in decimal */
+        "0x212345678",                 /* ... and one that goes down: refused */
+        "1.2.3.4 and trailing text",   /* whitespace ends it */
+        "1\t2", " ",                   /* the one-byte special case */
+        "1.2.3.256", "256.1.1.1", "1.1.65536", "0x", "08", "not-an-address", "",
+        "0000000000000000000000000001.2.3.4"
+    };
+    unsigned long long sink = 0;
+    int i;
+    for (i = 0; i < (int)(sizeof CASES / sizeof CASES[0]); ++i)
+        sink += (unsigned)CALL4(wia_inet_addr, CASES[i], 0, 0, 0);
+    sink += (unsigned)CALL4(wia_inet_addr, 0, 0, 0, 0);
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
