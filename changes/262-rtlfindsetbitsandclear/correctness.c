@@ -40,6 +40,7 @@ ULONG wia_findsetbitsandclear(void*, ULONG, ULONG);
 ULONG wia_findclearbitsandset(void*, ULONG, ULONG);
 ULONG ref_findsetbitsandclear(void*, ULONG, ULONG);
 ULONG ref_findclearbitsandset(void*, ULONG, ULONG);
+ULONG ref_findsetbitsandclear_null_expect(void);
 
 static F_Find live_fsac, live_fcas;
 static long fails = 0, cases = 0, n_found = 0, n_none = 0, n_zero = 0;
@@ -279,6 +280,28 @@ int main(void)
             one(src, 128, sz, n, hint, (int)(rnd() & 1), "randomised");
         }
         printf("  6. randomised, 5 densities, N 0..89, hints past the end: %ld\n", cases - before);
+    }
+
+    /* ---- 7. a NULL RTL_BITMAP ----
+       NOT compared against the live export: the shipped code dereferences rcx on its first
+       instruction, so there is only a fault to reproduce and this does not reproduce it (the same
+       position changes 259 and 192 took). What IS checked is that our two paths agree with each
+       other and with change 256, which answers NOT FOUND. The fast path added for bitmaps of 64
+       bits or fewer reads SizeOfBitMap before anything else, so it would have faulted here while
+       the general path returned -1 -- a function that answered -1 for a big NULL bitmap and
+       faulted for a small one. No corpus passed NULL, so nothing caught it until this. */
+    {
+        ULONG a = wia_findsetbitsandclear(NULL, 8, 0);
+        ULONG b = wia_findclearbitsandset(NULL, 8, 0);
+        ULONG c = wia_findsetbitsandclear(NULL, 0, 40);
+        ULONG d = ref_findsetbitsandclear_null_expect();
+        ++cases; ++cases; ++cases;
+        printf("  7. a NULL bitmap, both exports and N=0: %lu / %lu / %lu (expected %lu each)\n",
+               a, b, c, d);
+        if (a != d || b != d || c != d) {
+            ++fails;
+            printf("  MISMATCH [NULL bitmap] the two paths do not agree\n");
+        }
     }
 
     printf("\n  total cases: %ld,  mismatches: %ld\n", cases, fails);
