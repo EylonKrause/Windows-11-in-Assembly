@@ -65,6 +65,7 @@ EXTERN wia_sid_alias_ix:WORD                ; 95*95, one-based
 EXTERN wia_sid_alias_len:BYTE
 EXTERN wia_sid_alias_sid:BYTE               ; [512][68]
 EXTERN wia_sid_alloc:PROC                   ; LocalAlloc(LMEM_FIXED, n) -- see aliases.c
+EXTERN wia_sid_ok:PROC                      ; a successful call ZEROES the last error
 EXTERN wia_sid_err_invalid:PROC
 EXTERN wia_sid_err_param:PROC
 EXTERN wia_sid_err_overflow:PROC
@@ -223,6 +224,7 @@ al_copy:
         jnz       al_copy
         mov       rcx, qword ptr [rsp + POUT]
         mov       qword ptr [rcx], rax
+        call      wia_sid_ok                       ; success zeroes the last error
         mov       eax, 1
         jmp       epi
 
@@ -321,6 +323,7 @@ sa_copy:
 sa_done:
         mov       rcx, qword ptr [rsp + POUT]
         mov       qword ptr [rcx], rdi
+        call      wia_sid_ok                       ; success zeroes the last error
         mov       eax, 1
         jmp       epi
 

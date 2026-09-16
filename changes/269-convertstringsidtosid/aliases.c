@@ -112,6 +112,18 @@ void* wia_sid_alloc(unsigned long n)
 
 /* The two error codes, set through the API rather than poked into the TEB, because the TEB layout
    is not part of any contract this project is allowed to rely on. */
+/* A SUCCESSFUL CALL ZEROES THE LAST ERROR, and this line was missing until change 272's gate
+   found it. All four exports of the SID text family do it -- probes/lasterror.c there asks
+   each of them from six starting values -- and this one was believed not to, because THIS
+   change's gate set the last error to ZERO before every call:
+
+       SetLastError(0); rb = wia_str2sid(s, &b); eb = GetLastError();
+
+   With a pre-value of zero, "left untouched" and "set to zero" read identically, so 429776
+   cases agreed with the live export while disagreeing with it on every call a real program
+   makes. The gate now uses a non-zero sentinel. It is the same defect as change 067's corpus
+   stepping MaximumLength by two: the generator could not express the case. */
+void wia_sid_ok(void)          { SetLastError(0); }
 void wia_sid_err_invalid(void) { SetLastError(ERROR_INVALID_SID); }
 void wia_sid_err_param(void)   { SetLastError(ERROR_INVALID_PARAMETER); }
 void wia_sid_err_overflow(void){ SetLastError(ERROR_ARITHMETIC_OVERFLOW); }

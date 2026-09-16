@@ -308,7 +308,10 @@ static void run_case(F_S2S f, rec_t* out)
 {
     PSID p = POISON;
     BOOL r;
-    SetLastError(0);
+    /* A NON-ZERO SENTINEL, because a zero one cannot tell "left alone" from "set to zero" --
+       and this export ZEROES the last error on success, which the first version of this
+       harness and of the correctness gate were both blind to. */
+    SetLastError(0x0D15EA5Eul);
     r = f(cur, &p);
     out->err = GetLastError();
     out->ok  = (unsigned char)(r ? 1 : 0);

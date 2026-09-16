@@ -159,6 +159,7 @@ BOOL ref_str2sid(const wchar_t* s, PSID* out)
             if (!q) { SetLastError(ERROR_NOT_ENOUGH_MEMORY); return FALSE; }
             memcpy(q, wia_sid_alias_sid[ix], len);
             *out = (PSID)q;
+            SetLastError(0);                    /* a successful call ZEROES the last error */
             return TRUE;
         }
     }
@@ -204,6 +205,7 @@ BOOL ref_str2sid(const wchar_t* s, PSID* out)
             q[8 + 4 * i + 3] = (unsigned char)(sub[i] >> 24);
         }
         *out = (PSID)q;
+        SetLastError(0);                        /* a successful call ZEROES the last error */
         return TRUE;
     }
 
