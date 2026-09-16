@@ -2874,6 +2874,50 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_277)
+#define NAME "277-charupperbuffw"
+extern unsigned long wia_charupperbuffw(wchar_t*, unsigned long);
+extern unsigned long wia_charlowerbuffw(wchar_t*, unsigned long);
+extern int wia_cub_init(void);
+#define SETUP() do { if (wia_cub_init()) {                                                     \
+                         printf("ABI 277: the case tables failed to build\n");                 \
+                         ExitProcess(2); } } while (0)
+static void thunk(void){
+    /* BOTH EXPORTS AND BOTH PATHS. A 16-character block with no code unit at or above 0x80 is
+       handled entirely in YMM registers and everything else falls back to a table, so a thunk of
+       plain ASCII would leave the table path's register use untested -- and the LOW 128 BITS of
+       xmm6 to xmm15 are non-volatile, which is what sixteen implementations in this repository got
+       wrong undetected for months.
+
+       Lengths are driven across the 32-byte block boundary in both directions, plus the count-0
+       case, which must touch nothing.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t buf[4096];
+    unsigned long long sink = 0;
+    int i, n;
+
+    for (n = 0; n <= 80; ++n) {
+        for (i = 0; i < n; ++i) buf[i] = (wchar_t)('a' + (i % 26));
+        sink += CALL4(wia_charupperbuffw, buf, n, 0, 0);
+        sink += CALL4(wia_charlowerbuffw, buf, n, 0, 0);
+        /* the same lengths with a high code unit, which forces the table path */
+        for (i = 0; i < n; ++i) buf[i] = (wchar_t)(0x0100 + (i % 0x200));
+        sink += CALL4(wia_charupperbuffw, buf, n, 0, 0);
+        sink += CALL4(wia_charlowerbuffw, buf, n, 0, 0);
+        /* and one high code unit among ASCII: one block falls back, the rest do not */
+        for (i = 0; i < n; ++i) buf[i] = (wchar_t)('a' + (i % 26));
+        if (n) buf[n / 2] = (wchar_t)0x00E9;
+        sink += CALL4(wia_charupperbuffw, buf, n, 0, 0);
+        sink += CALL4(wia_charlowerbuffw, buf, n, 0, 0);
+    }
+    for (i = 0; i < 4000; ++i) buf[i] = (wchar_t)('A' + (i % 26));
+    sink += CALL4(wia_charupperbuffw, buf, 4000, 0, 0);
+    sink += CALL4(wia_charlowerbuffw, buf, 4000, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
