@@ -1,8 +1,34 @@
 // live-substitution/live_subst_ws2.c
-// ws2_32's IP-conversion exports are ALREADY COVERED by landed ntdll changes -- proved, not asserted.
+// ws2_32's IP-conversion exports DELEGATE into landed ntdll changes -- proved by a counter.
 //
-// The disassembly says ws2_32 does not parse or format an IP address at all. It dispatches through
-// its import table into ntdll:
+// ================================================================================================
+// CORRECTED BY CHANGE 273. This file used to open with "ws2_32's IP-conversion exports are ALREADY
+// COVERED by landed ntdll changes" and "ws2_32 does not parse or format an IP address at all". The
+// first half of that is what the counter below proves and it is true: inet_addr calls
+// RtlIpv4StringToAddressA on every one of its 22 subjects. The second half is NOT true of inet_addr,
+// and changes/273-inet-addr/probes/grammar.c asks the two functions the same ten questions:
+//
+//     "1.2"        inet_addr 02000001     RtlIpv4StringToAddressA refuses
+//     "1"          inet_addr 01000000     refuses
+//     "0x7f.1"     inet_addr 0100007F     refuses
+//     "010.1.1.1"  inet_addr 01010108     refuses
+//     "1.2.3.4x"   inet_addr refuses      accepts, 04030201
+//
+// inet_addr calls the ntdll export and then, when it refuses, parses the string ITSELF with a far
+// more permissive grammar: four forms, three bases, a 32-bit accumulator whose overflow test is
+// "did it go down", and a whitespace terminator. So change 114 is on inet_addr's path but is not
+// its answer, and "already covered" was too strong.
+//
+// THE COUNTER BELOW COULD NEVER HAVE CAUGHT THAT, and it is worth saying why: patching change 114
+// with a BIT-EXACT replacement leaves the composite answer unchanged whichever branch inet_addr
+// takes afterwards. A harness that only asks "did the answer change" is blind to which of two
+// implementations produced it. That is what change 273 exists for, and
+// live-substitution/live_subst_inetaddr.c patches ws2_32!inet_addr itself.
+//
+// inet_ntop is untouched by this correction: change 065's export is what formats the address.
+// ================================================================================================
+//
+// It dispatches through its import table into ntdll:
 //
 //     ws2_32!inet_addr  (RVA 0x263D0)  call [rip+0x30ED2] -> slot 0x572C8 -> ntdll!RtlIpv4StringToAddressA
 //     ws2_32!inet_ntop  (RVA 0x29C20)  call [rip+0x2D644] -> slot 0x57290 -> ntdll!RtlIpv4AddressToStringExA
@@ -184,13 +210,22 @@ int main(void)
 
     if (failures == 0) {
         printf("ws2_32 LIVE SUBSTITUTION: PASS - ws2_32 ran OUR assembly without a line of new code.\n"
-               "inet_addr and inet_ntop do not parse or format an address at all: they dispatch\n"
-               "through their import table into ntdll!RtlIpv4StringToAddressA and\n"
-               "ntdll!RtlIpv4AddressToStringExA, which are changes 114 and 065. Patching the ntdll\n"
+               "inet_addr and inet_ntop DISPATCH through their import table into\n"
+               "ntdll!RtlIpv4StringToAddressA and ntdll!RtlIpv4AddressToStringExA, which are changes\n"
+               "114 and 065, and the counter proves they do it on every input. Patching the ntdll\n"
                "export therefore redirects the ws2_32 caller too -- the same shape as change 242\n"
-               "covering PathCombineW and PathAppendW, and change 249's UrlHashW. The counter is\n"
-               "what turns an import-table reading into a proof. Both prologues restored\n"
-               "byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
+               "covering PathCombineW and PathAppendW, and change 249's UrlHashW.\n"
+               "\n"
+               "BUT DELEGATION IS NOT COVERAGE, for inet_addr. It calls the ntdll export and then,\n"
+               "when that refuses, parses the string ITSELF with a far more permissive grammar --\n"
+               "\"1.2\", \"1\", \"0x7f.1\" and \"010.1.1.1\" are addresses to inet_addr and refusals to\n"
+               "RtlIpv4StringToAddressA, and \"1.2.3.4x\" is the other way round. This counter cannot\n"
+               "see that, because a BIT-EXACT replacement of change 114 leaves the composite answer\n"
+               "unchanged whichever branch inet_addr takes. Change 273 owns the whole function and\n"
+               "live_subst_inetaddr.c patches ws2_32!inet_addr itself. inet_ntop is unaffected.\n"
+               "\n"
+               "Both prologues restored byte-for-byte. Zero system processes touched, nothing on\n"
+               "disk modified.\n");
         return 0;
     }
     printf("ws2_32 LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);
