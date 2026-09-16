@@ -57,6 +57,8 @@ extern int      wia_pathcanonicalizew(wchar_t*, const wchar_t*);
 extern int      wia_pathaddextensionw(wchar_t*, const wchar_t*);
 extern long     wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
 extern long     wia_urlhasha(const char*, BYTE*, unsigned long);
+extern int      wia_pathcommonprefixw(const wchar_t*, const wchar_t*, wchar_t*);
+extern void     wia_upcase_init(void);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -101,6 +103,10 @@ static long WINAPI w_unea(const char* u, char* d, DWORD* pc, DWORD f){
 static volatile LONG c_uha;
 static long WINAPI w_uha(const char* u, BYTE* d, DWORD cb){
     _InterlockedIncrement(&c_uha); return wia_urlhasha(u, d, cb);
+}
+static volatile LONG c_pcp;
+static int WINAPI w_pcp(const wchar_t* a, const wchar_t* b, wchar_t* o){
+    _InterlockedIncrement(&c_pcp); return wia_pathcommonprefixw(a, b, o);
 }
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
@@ -2509,6 +2515,172 @@ int main(void){
         }
     }
 
+    // ===================== 167 PathCommonPrefixW =====================
+    // THE EXPORT PATCHED HERE IS kernelbase's, and this section also PROVES that shlwapi!
+    // PathCommonPrefixW reaches it: every case is driven through the shlwapi name while only the
+    // kernelbase body is patched, and the counter has to move.
+    //
+    // WHAT IS BEING PROVED IS A CONTRACT THAT WAS PARKED AS UNDERIVABLE. This change sat at 99.3 %
+    // for a long time -- 784 of 116281 exhaustive pairs resisted every rule that could be fitted
+    // from the outside, and its RESULTS.md concluded that reproducing it "requires reproducing that
+    // root parser first" and that the next step was to derive PathSkipRootW. There is no root
+    // parser: the disassembly's entire root handling is two inline tests for a DOUBLED leading
+    // backslash, and the notorious "+1" is three instructions that report ANY computed length of
+    // exactly 2 as 3. So the corpus here is deliberately the SAME exhaustive set that used to leave
+    // 784 residuals, plus the four pairs RESULTS.md called mutually contradictory, driven live.
+    //
+    // AND THE CASE-FOLD IS THE OTHER HALF. This change's go/no-go established that the matching is
+    // exactly RtlUpcaseUnicodeChar -- 0 differences over 65534 code-unit pairs, against 947 for a
+    // plain ASCII fold -- which is what made it reachable at all when StrChrIW and its family were
+    // scoped out as collation-based. The vector loop compares RAW units and folds a block only once
+    // the raw compare has already failed, so the corpus carries case-differing paths to drive it.
+    //
+    // BOTH OBSERVABLES ON EVERY CASE: the returned int AND the whole achPath buffer against a
+    // sentinel fill. The buffer is independent of the return three times over -- achPath is cleared
+    // even when the answer is 0, a result of 3 can write only 2 characters because the copy stops at
+    // pszFile1's own terminator, and a result of 260 or more writes nothing at all.
+    printf("[167 PathCommonPrefixW]  kernelbase (the exhaustive corpus that parked it, driven "
+           "through the shlwapi name)\n");
+    {
+        typedef int (WINAPI *fpcp)(const wchar_t*, const wchar_t*, wchar_t*);
+        void* p_pcp = (void*)GetProcAddress(hk, "PathCommonPrefixW");
+        HMODULE hsh = LoadLibraryW(L"shlwapi.dll");
+        fpcp shl = (fpcp)GetProcAddress(hsh, "PathCommonPrefixW");
+        OK(p_pcp != NULL, "resolve kernelbase!PathCommonPrefixW");
+        OK(shl != NULL, "resolve shlwapi!PathCommonPrefixW");
+        if (p_pcp && shl) {
+            static wchar_t corpus[341][8];
+            static wchar_t o1[400], o2[400];
+            patch_t pcp_patch;
+            int cnt = 0;
+            long cases = 0, nz = 0, three = 0, unc = 0, fold = 0;
+            int vpre = 0;
+            wia_upcase_init();
+            for (int len = 0; len <= 4; ++len) {
+                long total = 1;
+                for (int i = 0; i < len; ++i) total *= 4;
+                for (long v = 0; v < total; ++v) {
+                    long t = v;
+                    for (int i = 0; i < len; ++i) { corpus[cnt][i] = L"ab\\:"[t % 4]; t /= 4; }
+                    corpus[cnt][len] = 0;
+                    ++cnt;
+                }
+            }
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = nz = three = unc = fold = 0;
+
+                /* the exhaustive corpus -- the very 116281 pairs that left 784 residuals */
+                for (int i = 0; i < cnt; ++i)
+                    for (int j = 0; j < cnt; ++j) {
+                        int r1, r2;
+                        for (int k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                        r1 = wia_pathcommonprefixw(corpus[i], corpus[j], o1);
+                        r2 = shl(corpus[i], corpus[j], o2);
+                        if (r1 != r2) ++mism;
+                        if (memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                        ++cases;
+                        if (r1) ++nz;
+                        if (r1 == 3) ++three;
+                        if (corpus[i][0] == L'\\' && corpus[i][1] == L'\\') ++unc;
+                    }
+
+                /* the four pairs RESULTS.md called mutually contradictory, plus realistic shapes */
+                {
+                    static const wchar_t* T[][2] = {
+                        { L"\\", L"\\\\" }, { L"\\\\", L"\\\\\\" }, { L"\\\\", L"\\\\a" },
+                        { L"\\a", L"\\a\\" },
+                        { L"C:\\a\\b\\c", L"C:\\a\\b\\d" }, { L"C:\\A\\B", L"c:\\a\\b" },
+                        { L"\\\\srv\\share\\x", L"\\\\SRV\\SHARE\\y" },
+                        { L"\\\\srv\\s", L"C:\\s" }, { L"C:\\abc", L"C:\\abcd" },
+                        { L"ab:\\x", L"ab:\\y" }, { L"C:/a/b", L"C:/a/c" },
+                        { L"\\\\?\\C:\\a", L"\\\\?\\C:\\b" },
+                    };
+                    for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                        int r1, r2;
+                        for (int k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                        r1 = wia_pathcommonprefixw(T[i][0], T[i][1], o1);
+                        r2 = shl(T[i][0], T[i][1], o2);
+                        if (r1 != r2 || memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                        ++cases;
+                        /* and again with achPath NULL, which is a separate path */
+                        if (wia_pathcommonprefixw(T[i][0], T[i][1], 0) != shl(T[i][0], T[i][1], 0))
+                            ++mism;
+                        ++cases;
+                    }
+                }
+
+                /* long paths, and long paths differing ONLY in case -- the block-fold path */
+                {
+                    static wchar_t a[600], b[600];
+                    for (int n = 1; n <= 300; ++n) {
+                        int r1, r2, k;
+                        for (k = 0; k < n; ++k) { a[k] = (k % 7 == 6) ? L'\\'
+                                                                     : (wchar_t)(L'a' + k % 26);
+                                                  b[k] = a[k]; }
+                        a[n] = 0; b[n] = 0;
+                        for (k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                        r1 = wia_pathcommonprefixw(a, b, o1);
+                        r2 = shl(a, b, o2);
+                        if (r1 != r2 || memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                        ++cases;
+                        for (k = 0; k < n; ++k) if (b[k] != L'\\') b[k] = (wchar_t)(b[k] - 32);
+                        for (k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                        r1 = wia_pathcommonprefixw(a, b, o1);
+                        r2 = shl(a, b, o2);
+                        if (r1 != r2 || memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                        ++cases; ++fold;
+                    }
+                }
+
+                /* NULL arguments: achPath must be left untouched */
+                {
+                    for (int k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                    if (wia_pathcommonprefixw(0, L"C:\\a", o1) != shl(0, L"C:\\a", o2)) ++mism;
+                    if (memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                    for (int k = 0; k < 400; ++k) { o1[k] = 0xBEEF; o2[k] = 0xBEEF; }
+                    if (wia_pathcommonprefixw(L"C:\\a", 0, o1) != shl(L"C:\\a", 0, o2)) ++mism;
+                    if (memcmp(o1, o2, sizeof o1) != 0) ++mism;
+                    cases += 2;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (int and whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pcp_patch, p_pcp, (void*)w_pcp), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_pcp)[0], ((unsigned char*)p_pcp)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pcp > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pcp);
+                    printf("  of %ld cases: %ld returned non-zero and %ld returned exactly 3 --\n"
+                           "  which is the rule the black-box derivation could never fit, because it\n"
+                           "  is not about drive letters or identical strings but about ANY computed\n"
+                           "  length of exactly 2. %ld had a UNC pszFile1, exercising the two inline\n"
+                           "  doubled-backslash tests that turned out to BE the whole root handling\n"
+                           "  (this change was parked on the belief that PathSkipRootW had to be\n"
+                           "  derived first; it is never called). %ld pairs differed ONLY IN CASE,\n"
+                           "  which is the only input that makes the vector loop fold a block.\n"
+                           "  EVERY case was driven through shlwapi!PathCommonPrefixW while only the\n"
+                           "  kernelbase body was patched, so the counter also proves the shlwapi\n"
+                           "  name reaches this body.\n",
+                           cases, nz, three, unc, fold);
+                    /* thresholds set from what the corpus actually contains: over "ab\:" most
+                       pairs share no component at all, which is the point of an exhaustive set */
+                    OK(nz >= 2000, "the non-zero path ran in bulk");
+                    OK(three >= 500, "the length-2-reports-3 rule was reached in bulk");
+                    OK(unc >= 5000, "the UNC root handling ran in bulk");
+                    OK(fold >= 200, "the block-fold path ran");
+                    OK(patch_off(&pcp_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -3290,7 +3462,14 @@ int main(void){
                "change here that moves an export IT NEVER PATCHED: kernelbase!UrlHashW is a\n"
                "wide-to-narrow converter that reaches UrlHashA by a DIRECT INTERNAL CALL to the same\n"
                "address the export names, so it ran our assembly with not a byte of itself\n"
-               "modified -- proved by the counter rather than asserted. All twenty prologues\n"
+               "modified -- proved by the counter rather than asserted. For 167 the corpus is\n"
+               "deliberately the SAME exhaustive 116281 pairs that left 784 residuals when the\n"
+               "rule was fitted from outside, driven through the shlwapi name while only the\n"
+               "kernelbase body is patched -- so the counter proves both that our code ran and\n"
+               "that shlwapi reaches this body. That change was parked for a long time on the\n"
+               "conclusion that PathSkipRootW had to be derived first; the disassembly shows it\n"
+               "is never called, and the whole root handling is two inline tests for a doubled\n"
+               "leading backslash. All twenty-one prologues\n"
                "restored byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
         return 0;
     }

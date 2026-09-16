@@ -1565,6 +1565,51 @@ static void thunk(void){
     sink += wia_ip6exw(L"::1", a, &sc, 0);
 }
 
+#elif defined(T_167)
+#define NAME "167-pathcommonprefixw"
+extern int  wia_pathcommonprefixw(const wchar_t*, const wchar_t*, wchar_t*);
+extern void wia_upcase_init(void);
+#define SETUP() wia_upcase_init()
+static void thunk(void){
+    /* The vector loop uses ymm0-ymm5 and nothing above, which is the whole point of the register
+       budget here -- xmm6-xmm15 are non-volatile in Win64 and an implementation that reached for
+       ymm6 would return exactly the right answer at exactly the right speed and corrupt only a
+       caller that happened to have a live double. Sixteen implementations in this repository did
+       that undetected until change 202's benchmark caught one.
+       Driven: both NULL refusals; the UNC skips and the UNC/non-UNC refusal; a boundary at the
+       terminator and mid-component; the length-2 case that reports 3; a case-differing path, which
+       is the only input that folds a block; a path long enough for many blocks; and a 260+ result,
+       which copies nothing. */
+    static wchar_t a[600], b[600], o[600];
+    int i;
+    static const wchar_t* T[][2] = {
+        { L"C:\\a\\b\\c", L"C:\\a\\b\\d" }, { L"C:\\a", L"C:\\a" },
+        { L"C:", L"C:" }, { L"\\a", L"\\a\\" }, { L"ab", L"ab\\c" },
+        { L"\\\\srv\\share\\x", L"\\\\SRV\\SHARE\\y" },
+        { L"\\\\srv\\s", L"C:\\s" }, { L"C:\\s", L"\\\\srv\\s" },
+        { L"\\\\", L"\\\\\\" }, { L"\\", L"\\\\" },
+        { L"", L"" }, { L"a", L"b" }, { L"C:/a/b", L"C:/a/c" },
+    };
+    for (i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+        sink += wia_pathcommonprefixw(T[i][0], T[i][1], o);   sink += o[0];
+        sink += wia_pathcommonprefixw(T[i][0], T[i][1], 0);
+    }
+    sink += wia_pathcommonprefixw(0, L"C:\\a", o);
+    sink += wia_pathcommonprefixw(L"C:\\a", 0, o);
+    /* long, identical -- many whole blocks */
+    for (i = 0; i < 500; ++i) { a[i] = (i % 9 == 8) ? L'\\' : (wchar_t)(L'a' + i % 26);
+                                b[i] = a[i]; }
+    a[500] = 0; b[500] = 0;
+    sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];    /* result >= 260: copies nothing */
+    /* long, differing only in case -- the block-fold path on every block */
+    for (i = 0; i < 300; ++i) b[i] = (a[i] == L'\\') ? a[i] : (wchar_t)(a[i] - 32);
+    b[300] = 0; a[300] = 0;
+    sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];
+    /* and a non-ASCII pair, which the block fold gets WRONG and the table then settles */
+    a[0] = 0x00E0; a[1] = 0; b[0] = 0x00C0; b[1] = 0;
+    sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
