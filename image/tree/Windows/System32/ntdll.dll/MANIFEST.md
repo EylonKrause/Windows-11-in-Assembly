@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (85)
+# ntdll.dll — reimplemented exports (86)
 
 | export | speedup | source |
 |---|---|---|
@@ -59,6 +59,7 @@
 | `RtlIpv6StringToAddressExW` | 4.96x | [changes/250-rtlipv6stringtoaddressexw](../../../../../changes/250-rtlipv6stringtoaddressexw/) |
 | `RtlIpv6StringToAddressW` | 3.62x | [changes/166-rtlipv6stringtoaddressw](../../../../../changes/166-rtlipv6stringtoaddressw/) |
 | `RtlIsTextUnicode` | 5.71x | [changes/193-rtlistextunicode](../../../../../changes/193-rtlistextunicode/) |
+| `RtlIsZeroMemory` | 12.38x | [changes/266-rtliszeromemory](../../../../../changes/266-rtliszeromemory/) |
 | `RtlLargeIntegerToChar` | 1.43x | [changes/100-rtllargeintegertochar](../../../../../changes/100-rtllargeintegertochar/) |
 | `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
 | `RtlNumberOfClearBits` | 1.33x | [changes/124-rtlnumberofclearbits](../../../../../changes/124-rtlnumberofclearbits/) |
