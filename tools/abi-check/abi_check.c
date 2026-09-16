@@ -2957,6 +2957,53 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_279)
+#define NAME "279-rtlintegertochar"
+extern long wia_int2char(unsigned long, unsigned long, long, char*);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* A LEAF WITH NO FRAME AND NO CALLS -- the shape whose unwind data nobody checks because
+       nothing ever unwinds through it, until something does.
+
+       THREE WRITE PATHS ARE UNDER TEST, not one. Base 10 goes through a length-first,
+       two-digits-at-a-time converter; bases 2, 8 and 16 share a shift-and-mask loop; and a NEGATIVE
+       length runs a zero-padding fill that no positive length ever reaches. That fill is the only
+       part of this change that touches an XMM register, so a thunk of positive lengths alone would
+       leave the one vector register the implementation uses entirely undriven.
+
+       Every padding size class is driven too -- 1, 2, 3, 4..7, 8..15, 16..31 and the 32-byte loop --
+       because they are separate blocks with separate register use and the wide ones write through
+       an index the small ones do not.
+
+       Both refusals are driven, because they return before any converter runs.
+
+       Armed PER CALL (CALL4). */
+    static char buf[512];
+    static const unsigned long BASES[] = { 0, 2, 8, 10, 16, 7, 36 };
+    static const unsigned long VALUES[] = {
+        0ul, 1ul, 9ul, 10ul, 255ul, 256ul, 65535ul, 65536ul,
+        3735928559ul, 2147483647ul, 2147483648ul, 4294967295ul
+    };
+    unsigned long long sink = 0;
+    int i, j;
+    long k;
+
+    for (i = 0; i < (int)(sizeof BASES / sizeof BASES[0]); ++i)
+        for (j = 0; j < (int)(sizeof VALUES / sizeof VALUES[0]); ++j) {
+            sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], 400, buf);
+            /* every length from none at all to well past the answer, positive and negative, so
+               that each padding size class and each refusal is armed in turn */
+            for (k = 0; k <= 70; ++k) {
+                sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], k, buf);
+                sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], -k, buf);
+            }
+            sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], -200, buf);
+            sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], -400, buf);
+            sink += (unsigned)CALL4(wia_int2char, VALUES[j], BASES[i], (long)0x80000000ul, buf);
+        }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

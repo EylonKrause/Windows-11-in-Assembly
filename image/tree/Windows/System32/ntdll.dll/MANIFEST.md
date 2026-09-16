@@ -41,7 +41,7 @@
 | `RtlInitUnicodeString` | 1.76x | [changes/094-rtlinitunicodestring](../../../../../changes/094-rtlinitunicodestring/) |
 | `RtlInitUnicodeStringEx` | 1.40x | [changes/096-rtlinitunicodestringex](../../../../../changes/096-rtlinitunicodestringex/) |
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
-| `RtlIntegerToChar` | 1.39x | [changes/097-rtlintegertochar](../../../../../changes/097-rtlintegertochar/) |
+| `RtlIntegerToChar` | 2.57x | [changes/279-rtlintegertochar](../../../../../changes/279-rtlintegertochar/) |
 | `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
 | `RtlIntegerToUnicodeString` | 5.38x | [changes/278-rtlintegertounicodestring](../../../../../changes/278-rtlintegertounicodestring/) |
 | `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
