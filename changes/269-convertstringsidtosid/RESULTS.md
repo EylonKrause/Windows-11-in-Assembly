@@ -187,6 +187,38 @@ The six authority bytes are stored **big-endian**, which is three instructions r
 call. `SetLastError` likewise goes through the API rather than poking the TEB, whose layout is not
 part of any contract this project may rely on.
 
+## Amended by change 272: a successful call zeroes the last error
+
+Change 272 (`ConvertStringSidToSidA`) is this parser behind a widening, and its correctness gate's
+first run reported **1106 mismatches**, all of one shape:
+
+```
+"S-1-5-1"   live: TRUE, GetLastError() == 0        ours and the model: TRUE, err untouched
+```
+
+`changes/272-…/probes/lasterror.c` then asked all four exports of this family from six starting
+values: **every one of them zeroes the last error on success.** This implementation did not — and
+this gate agreed with the live export over 429,776 cases anyway, because **both halves of the
+comparison were blind**:
+
+```c
+SetLastError(0); rb = wia_str2sid(s, &b); eb = GetLastError();   /* a ZERO pre-value ... */
+...
+(!ra && (ea != eb || ea != ec))                                   /* ... compared only on FAILURE */
+```
+
+From a pre-value of zero, "left untouched" and "set to zero" read identically. And even a non-zero
+sentinel would not have been enough on its own, because the *success* path's last error was never
+looked at. Both had to be wrong for the defect to survive, and both were. It is the same class as
+change 067's corpus stepping `MaximumLength` by two and change 210's row that never reached its own
+path: not a weak test, an **absent** one — the generator could not express the case.
+
+Fixed in four places: `impl.asm` calls `wia_sid_ok` on **both** success paths (the alias table and
+the parsed SID), `reference.c` does the same, this gate now uses a non-zero sentinel **and**
+compares the last error on every call, and `live-substitution/live_subst_sid.c` does too. Re-run:
+429,776 cases, 0 mismatches, geomean **5.21×**. With the fix reverted the amended gate reports the
+mismatch on the first alias in the corpus, which is what it should always have done.
+
 ## Correctness — PASS
 
 Three-way on every case: **ours vs the scalar model in `reference.c` vs the live export**, comparing

@@ -2748,6 +2748,69 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_272)
+#define NAME "272-convertstringsidtosida"
+extern int wia_str2sida(const char*, void**);
+extern int wia_sid_alias_init(void);
+extern int wia_sid_classify_init(void);
+#define SETUP() do { if (wia_sid_classify_init() || wia_sid_alias_init()) {                    \
+                         printf("ABI 272: the OS-derived tables failed to build\n");           \
+                         ExitProcess(2); } } while (0)
+static void thunk(void){
+    /* TWO NESTED FRAMES AND A VECTOR SCAN. This one is 2104 bytes with six registers pushed, over
+       change 269's 1080 with seven -- and between them sits an AVX2 scan that finds the length and
+       the "any byte at or above 0x80" answer in one pass. The LOW 128 BITS of xmm6 to xmm15 are
+       non-volatile; sixteen implementations in this repository used an xmm register as scratch
+       undetected for months.
+
+       Both widening paths are driven, because they are different code: pure ASCII takes a
+       VPMOVZXBW zero extension and anything with a high byte calls MultiByteToWideChar. Both the
+       stack temporary and the ALLOCATED one are driven, because the allocation has its own exit and
+       its own free. Alignment is swept 0..63, since the scan's first block is loaded aligned down.
+
+       Armed PER CALL (CALL4). Every allocated SID is freed. */
+    static char buf[8192];
+    static const char* CASES[] = {
+        "S-1-5-1",
+        "S-1-5-21-305419896-2596069104-287454020-1001",
+        "BA", "LA", "ZZ",
+        "S-0x1-5-1a2b-3c4d",
+        "S-1-5-1)",                                   /* clears the output pointer */
+        "S-1-\xE9\xE9-5-1",                           /* a high byte: the code-page fallback */
+        "\x80\x81\x82\x83",
+        "not-a-sid",
+        ""
+    };
+    void* p;
+    unsigned long long sink = 0;
+    int i, off, k, n;
+
+    for (i = 0; i < (int)(sizeof CASES / sizeof CASES[0]); ++i) {
+        for (off = 0; off < 64; off += 7) {
+            char* q = buf + off;
+            for (k = 0; CASES[i][k]; ++k) q[k] = CASES[i][k];
+            q[k] = 0;
+            p = 0;
+            sink += (unsigned)CALL4(wia_str2sida, q, &p, 0, 0);
+            if (p) LocalFree(p);
+        }
+    }
+    /* the ALLOCATED temporary: past 1022 characters the widened copy is not the frame */
+    n = wsprintfA(buf, "S-1-5");
+    while (n < 1000) n += wsprintfA(buf + n, "-%09d", (n % 9) + 1);
+    p = 0; sink += (unsigned)CALL4(wia_str2sida, buf, &p, 0, 0); if (p) LocalFree(p);
+    buf[600] = (char)0xE9;                            /* ... and with a high byte in it */
+    p = 0; sink += (unsigned)CALL4(wia_str2sida, buf, &p, 0, 0); if (p) LocalFree(p);
+    for (k = 0; k < 4000; ++k) buf[k] = (char)('a' + (k % 26));
+    buf[4000] = 0;
+    p = 0; sink += (unsigned)CALL4(wia_str2sida, buf, &p, 0, 0); if (p) LocalFree(p);
+    /* the two NULL arguments */
+    p = 0; sink += (unsigned)CALL4(wia_str2sida, 0, &p, 0, 0);
+    sink += (unsigned)CALL4(wia_str2sida, "S-1-5-1", 0, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

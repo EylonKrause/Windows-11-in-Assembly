@@ -40,24 +40,42 @@ static long n_ok, n_sid, n_over, n_param;
 
 #define POISON ((PSID)(UINT_PTR)0xABCDEF01)
 
+/* THE SENTINEL IS NOT ZERO, AND THAT MATTERS. The first version of this gate wrote
+ *
+ *     SetLastError(0); rb = wia_str2sid(s, &b); eb = GetLastError();
+ *
+ * which cannot tell "the export left the last error alone" from "the export set it to zero" --
+ * they read identically from a pre-value of zero. So 429776 cases agreed with the live export
+ * while the implementation disagreed with it on every successful call a real program makes: all
+ * four exports of the SID text family ZERO the last error on success (changes/272-.../probes/
+ * lasterror.c asks each of them from six starting values) and this one did not. It was change
+ * 272's gate that found it, because its corpus happened to use a non-zero sentinel.
+ *
+ * It is the same defect as change 067's corpus stepping MaximumLength by two: not a weak test, an
+ * absent one -- the generator could not express the case. */
+#define SENTINEL 0x0D15EA5Eul
 static void one(const wchar_t* s)
 {
     PSID a = POISON, b = POISON, c = POISON;
     BOOL ra, rb, rc;
     DWORD ea, eb, ec;
     ++cases;
-    SetLastError(0); ra = ConvertStringSidToSidW(s, &a); ea = GetLastError();
-    SetLastError(0); rb = wia_str2sid(s, &b);            eb = GetLastError();
-    SetLastError(0); rc = ref_str2sid(s, &c);            ec = GetLastError();
+    SetLastError(SENTINEL); ra = ConvertStringSidToSidW(s, &a); ea = GetLastError();
+    SetLastError(SENTINEL); rb = wia_str2sid(s, &b);            eb = GetLastError();
+    SetLastError(SENTINEL); rc = ref_str2sid(s, &c);            ec = GetLastError();
 
     if (ra) ++n_ok;
     else if (ea == ERROR_INVALID_SID) ++n_sid;
     else if (ea == ERROR_ARITHMETIC_OVERFLOW) ++n_over;
     else if (ea == ERROR_INVALID_PARAMETER) ++n_param;
 
+    /* THE LAST ERROR IS COMPARED ON EVERY CALL, SUCCESS INCLUDED. It used to be compared only when
+       the call FAILED -- `(!ra && (ea != eb ...))` -- which is the other half of the blindness the
+       sentinel note above describes: even with a non-zero pre-value, a success-path difference was
+       simply not looked at. Both halves had to be wrong for the defect to survive, and both were. */
     if ((ra != 0) != (rb != 0) || (ra != 0) != (rc != 0) ||
-        (!ra && (ea != eb || ea != ec)) ||
-        (!ra && ((a == POISON) != (b == POISON) || (a == POISON) != (c == POISON)))) {
+        ea != eb || ea != ec ||
+        ((a == POISON) != (b == POISON) || (a == POISON) != (c == POISON))) {
         if (++bad <= 12)
             printf("  MISMATCH %-44ls live %s/%-5lu ours %s/%-5lu ref %s/%-5lu  pointer %s/%s/%s\n",
                    s, ra ? "OK" : "NO", (unsigned long)ea, rb ? "OK" : "NO", (unsigned long)eb,
@@ -201,18 +219,18 @@ int main(void)
         BOOL ra, rb, rc;
         DWORD ea, eb, ec;
         ++cases;
-        SetLastError(0); ra = ConvertStringSidToSidW(0, &p); ea = GetLastError();
-        SetLastError(0); rb = wia_str2sid(0, &p);            eb = GetLastError();
-        SetLastError(0); rc = ref_str2sid(0, &p);            ec = GetLastError();
+        SetLastError(SENTINEL); ra = ConvertStringSidToSidW(0, &p); ea = GetLastError();
+        SetLastError(SENTINEL); rb = wia_str2sid(0, &p);            eb = GetLastError();
+        SetLastError(SENTINEL); rc = ref_str2sid(0, &p);            ec = GetLastError();
         if (!ra && ea == ERROR_INVALID_PARAMETER) ++n_param;
         if ((ra != 0) != (rb != 0) || (ra != 0) != (rc != 0) || ea != eb || ea != ec) {
             ++bad; printf("  MISMATCH NULL string: %lu/%lu/%lu\n",
                           (unsigned long)ea, (unsigned long)eb, (unsigned long)ec);
         }
         ++cases;
-        SetLastError(0); ra = ConvertStringSidToSidW(L"S-1-5-18", 0); ea = GetLastError();
-        SetLastError(0); rb = wia_str2sid(L"S-1-5-18", 0);            eb = GetLastError();
-        SetLastError(0); rc = ref_str2sid(L"S-1-5-18", 0);            ec = GetLastError();
+        SetLastError(SENTINEL); ra = ConvertStringSidToSidW(L"S-1-5-18", 0); ea = GetLastError();
+        SetLastError(SENTINEL); rb = wia_str2sid(L"S-1-5-18", 0);            eb = GetLastError();
+        SetLastError(SENTINEL); rc = ref_str2sid(L"S-1-5-18", 0);            ec = GetLastError();
         if (!ra && ea == ERROR_INVALID_PARAMETER) ++n_param;
         if ((ra != 0) != (rb != 0) || (ra != 0) != (rc != 0) || ea != eb || ea != ec) {
             ++bad; printf("  MISMATCH NULL out: %lu/%lu/%lu\n",
