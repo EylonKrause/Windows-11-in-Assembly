@@ -1757,6 +1757,61 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_254)
+#define NAME "254-findstringordinal"
+extern int wia_findstringordinal(unsigned long, const wchar_t*, int, const wchar_t*, int, int);
+extern int wia_casemate_init(void);
+#define SETUP() wia_casemate_init()
+static void thunk(void){
+    /* Eight non-volatile GPRs are saved here and rbp is used as a FRAME BASE for a 32-byte ymm
+       spill, so a prologue/epilogue mismatch shows up as rbp not being restored rather than as a
+       wrong answer. The function also makes internal calls out of a PROC FRAME into three leaves
+       (two verifiers and the anchor/mask helpers), so stack balance matters as much as registers,
+       and it writes the last error straight to gs:[0x68] -- which must not disturb anything else.
+       Driven: all four modes; both early exits; the refusal paths (they return before any vector
+       state exists); the sub-16 one-block path and the scalar tails; the forward block loop and the
+       BACKWARD one with a hit in the last block, the first block and the head remainder; the
+       degenerate needle that forces the anchor fallback; and non-ASCII, which is the only input
+       that puts real pairs through the case-partner broadcasts. */
+    static wchar_t h[600], n[64];
+    int i, k;
+    static const unsigned long M[4] = { 0x00400000, 0x00800000, 0x00100000, 0x00200000 };
+    for (i = 0; i < 600; ++i) h[i] = (wchar_t)(L'a' + (i % 5));
+    for (i = 0; i < 8; ++i)   n[i] = L'z';
+
+    for (k = 0; k < 4; ++k) {
+        sink += (unsigned)wia_findstringordinal(M[k], h, 600, n, 8, 0);   /* a full miss */
+        sink += (unsigned)wia_findstringordinal(M[k], h, 600, n, 8, 1);
+        sink += (unsigned)wia_findstringordinal(M[k], h, 600, n, 0, 0);   /* the empty needle */
+        sink += (unsigned)wia_findstringordinal(M[k], h,   0, n, 8, 0);   /* the empty haystack */
+        sink += (unsigned)wia_findstringordinal(M[k], h,   4, n,20, 0);   /* needle longer */
+        sink += (unsigned)wia_findstringordinal(M[k], h,  12, n, 4, 0);   /* the scalar tail */
+        sink += (unsigned)wia_findstringordinal(M[k], h,  20, n, 4, 0);   /* the ONE-BLOCK path */
+        sink += (unsigned)wia_findstringordinal(M[k], h,  -1, n,-1, 0);   /* cch = -1 both */
+    }
+    /* hits: in the last block, the first block, and the head remainder a backward walk leaves */
+    for (i = 0; i < 8; ++i) n[i] = h[560 + i];
+    sink += (unsigned)wia_findstringordinal(0x00800000, h, 600, n, 8, 0);
+    for (i = 0; i < 8; ++i) n[i] = h[3 + i];
+    sink += (unsigned)wia_findstringordinal(0x00800000, h, 600, n, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00400000, h, 600, n, 8, 1);
+    /* the degenerate needle: every character equal, so the far anchor falls back to m-1 */
+    for (i = 0; i < 8; ++i) n[i] = L'a';
+    sink += (unsigned)wia_findstringordinal(0x00400000, h, 600, n, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00800000, h, 600, n, 8, 1);
+    /* the refusals */
+    sink += (unsigned)wia_findstringordinal(0x00400000, 0,  -1, n, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00400000, h,  -1, 0, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00400000, h,  -2, n, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00C00000, h,  -1, n, 8, 0);
+    sink += (unsigned)wia_findstringordinal(0x00400000, h,  -1, n, 8, 2);
+    /* non-ASCII, both cases, so the case-partner broadcasts face real pairs */
+    for (i = 0; i < 600; ++i) h[i] = (wchar_t)(0x0430 + (i % 20));
+    for (i = 0; i < 8; ++i)   n[i] = (wchar_t)(0x0410 + ((i + 3) % 20));
+    sink += (unsigned)wia_findstringordinal(0x00400000, h, 600, n, 8, 1);
+    sink += (unsigned)wia_findstringordinal(0x00800000, h, 600, n, 8, 1);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
