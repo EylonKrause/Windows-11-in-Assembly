@@ -98,19 +98,38 @@ ascii8:
         mov       r8d, r13d
         sub       r8d, r14d
         cmp       r8d, 8
-        jb        scalar_char
+        jb        scalar_win
         lea       r8, [r15 + 8]
         cmp       r8, rdi
-        ja        scalar_char
+        ja        scalar_win
         vmovdqu   xmm0, xmmword ptr [rsi + r14*2]
         vpand     xmm1, xmm0, xmmword ptr [CFF80x]
         vptest    xmm1, xmm1
-        jnz       scalar_char
+        jnz       scalar_win
         vpackuswb xmm0, xmm0, xmm0
         vmovq     qword ptr [rbx + r15], xmm0
         add       r15, 8
         add       r14, 8
         jmp       mainloop
+
+; -------------------------------------------------------------------------------------------------
+; THE SCALAR WINDOW, ADDED 2026-09-16. Before it, every scalar character jumped back to `mainloop`
+; and paid for BOTH vector blocks again -- two loads, two VPTESTs and four comparisons -- to
+; discover once more that the character in front of it is not ASCII. On a string that is entirely
+; two-byte characters that cost was paid on every character for the whole string, and on input that
+; alternates ASCII with non-ASCII it was paid twice per character.
+; discovery/utf8_nonascii_rows.c measured what it came to: the ALTERNATING class was the worst row
+; in the table at 0.21x, in a change published at 2.61x on ASCII.
+;
+; This is change 263's rule, which this repository already wrote down and this file already broke:
+; A SCALAR WALK MUST NOT RE-ENTER A VECTOR LOOP. The window is the cheapest possible statement of
+; it -- once the blocks have failed, 16 source characters are encoded one at a time before they are
+; tried again, so the probe is amortised over a cache line of input instead of over one character.
+; The two comparisons in `scalar_next` replace two vector loads.
+; -------------------------------------------------------------------------------------------------
+scalar_win:
+        lea       r8d, [r14 + 16]
+        mov       dword ptr [rsp + 8], r8d          ; encode this far before probing again
 
 scalar_char:
         movzx     eax, word ptr [rsi + r14*2]       ; c
@@ -135,7 +154,7 @@ emit1:
 e1w:    mov       byte ptr [rbx + r15], al
 e1a:    inc       r15
         inc       r14
-        jmp       mainloop
+        jmp       scalar_next
 
 emit2:
         lea       r8, [r15 + 2]
@@ -153,7 +172,7 @@ e2w:    mov       r9d, eax
         mov       byte ptr [rbx + r15 + 1], r9b
 e2a:    add       r15, 2
         inc       r14
-        jmp       mainloop
+        jmp       scalar_next
 
 emit3:
         lea       r8, [r15 + 3]
@@ -176,7 +195,7 @@ e3w:    mov       r9d, eax
         mov       byte ptr [rbx + r15 + 2], r9b
 e3a:    add       r15, 3
         inc       r14
-        jmp       mainloop
+        jmp       scalar_next
 
 high_surr:
         lea       r8d, [r14 + 1]
@@ -218,7 +237,7 @@ e4w:    mov       r9d, eax
         mov       byte ptr [rbx + r15 + 3], r9b
 e4a:    add       r15, 4
         add       r14, 2                             ; consumed 2 wchars
-        jmp       mainloop
+        jmp       scalar_next
 
 low_lone:
 lone:
@@ -233,7 +252,14 @@ ffw:    mov       byte ptr [rbx + r15], 0EFh
         mov       byte ptr [rbx + r15 + 2], 0BDh
 ffa:    add       r15, 3
         inc       r14
-        jmp       mainloop
+        jmp       scalar_next
+
+scalar_next:
+        cmp       r14d, r13d
+        jae       done                              ; the source is finished
+        cmp       r14d, dword ptr [rsp + 8]
+        jb        scalar_char                       ; still inside the window: stay scalar
+        jmp       mainloop                          ; the window is spent: probe the blocks again
 
 done:
         mov       dword ptr [r12], r15d             ; *outLen = dstPos
