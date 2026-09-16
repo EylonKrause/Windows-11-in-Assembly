@@ -30,7 +30,7 @@ set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-b
 set LIST=%LIST% 125-rtlfindclearbits 132-pathfindextensionw 140-pathremoveextensionw 143-pathcchfindextension 144-pathcchremoveextension 158-pathrenameextensionw 159-pathcchrenameextension 160-pathcchaddextension 161-pathfindfilenamew 162-pathstrippathw 174-pathundecoratew
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw
+set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw
 
 set FAILED=0
 set RAN=0
@@ -109,6 +109,13 @@ if "%ID%"=="250" (
   ml64 /nologo /c /Fo"%H%dep166.obj" impl.asm >nul 2>&1
   popd
   set EXTRA=!EXTRA! "%H%dep166.obj"
+)
+rem  167 (PathCommonPrefixW) folds case with change 210's OS-built RtlUpcaseUnicodeChar table --
+rem  its own go/no-go measured 0 differences over 65534 code-unit pairs against 947 for a plain
+rem  ASCII fold -- so 210's upcase.c is linked in and SETUP() builds the table before the probe runs.
+if "%ID%"=="167" (
+  cl /nologo /O2 /c /Fo"%H%dep210up.obj" "%H%..\..\changes\210-comparestringordinal\upcase.c" >nul 2>&1
+  set EXTRA=!EXTRA! "%H%dep210up.obj"
 )
 
 cl /nologo /O2 /EHa /DT_%ID% abi_check.c abi_probe.obj "%P%\impl.obj" %EXTRA% /Fe:abi_%ID%.exe >nul 2>&1
