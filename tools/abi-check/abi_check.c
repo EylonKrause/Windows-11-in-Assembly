@@ -2459,6 +2459,57 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_027) || defined(T_031)
+#if defined(T_027)
+#define NAME "027-rtlupcaseunicodetomultibyten"
+extern long wia_u2umb(char*, unsigned long, unsigned long*, const wchar_t*, unsigned long);
+extern void wia_upansimap_init(void);
+#define UPFN   wia_u2umb
+#define SETUP() wia_upansimap_init()
+#else
+#define NAME "031-rtlupcaseunicodetooemn"
+extern long wia_u2uoem(char*, unsigned long, unsigned long*, const wchar_t*, unsigned long);
+extern void wia_upoemmap_init(void);
+#define UPFN   wia_u2uoem
+#define SETUP() wia_upoemmap_init()
+#endif
+static void thunk(void){
+    /* TWO PATHS THAT ALTERNATE ON THE DATA, and both have to be reached: a 16-wide and an 8-wide
+       ASCII block that upcase in-register, and a table walk for anything above 0x7F. The corpus
+       below is the one that found these two functions running at 0.59x -- pure ASCII, pure
+       non-ASCII, and the two INTERLEAVED, which is what makes the block and the table hand over to
+       each other repeatedly inside a single call.
+
+       The truncating capacities matter separately: this function reports STATUS_BUFFER_OVERFLOW and
+       stops part-way, so the exit it takes on a short destination is a different exit.
+
+       Armed PER CALL (CALL5 -- five arguments), not around the thunk: a thunk that uses a register
+       for its own loop hides an implementation that destroys it. */
+    static wchar_t src[4096];
+    static char dst[4096];
+    static const int LENS[9] = { 0, 1, 7, 8, 9, 15, 16, 17, 4000 };
+    unsigned long produced = 0;
+    unsigned long long sink = 0;
+    int i, k, cls;
+    for (cls = 0; cls < 4; ++cls) {
+        for (k = 0; k < 4096; ++k)
+            src[k] = (wchar_t)(cls == 0 ? (0x61 + (k & 15))
+                             : cls == 1 ? (0x0430 + (k % 26))
+                             : cls == 2 ? (0x4E00 + (k % 512))
+                                        : ((k & 1) ? 0x00E9 : (0x61 + (k & 15))));
+        for (i = 0; i < 9; ++i) {
+            unsigned long sb = (unsigned long)(LENS[i] * 2);
+            sink += CALL5(UPFN, dst, (unsigned long)(LENS[i] + 8), &produced, src, sb);
+            sink += produced;
+            sink += CALL5(UPFN, dst, (unsigned long)(LENS[i] / 2), &produced, src, sb);
+            sink += produced;
+            sink += CALL5(UPFN, dst, 0, &produced, src, sb);   /* nothing fits at all */
+            sink += produced;
+        }
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

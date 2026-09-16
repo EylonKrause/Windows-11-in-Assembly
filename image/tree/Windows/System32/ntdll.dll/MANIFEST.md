@@ -88,6 +88,6 @@
 | `RtlUnicodeToUTF8N` | 2.46x | [changes/016-rtlunicodetoutf8n](../../../../../changes/016-rtlunicodetoutf8n/) |
 | `RtlUpcaseUnicodeString` | 9.12x | [changes/015-rtlupcaseunicodestring](../../../../../changes/015-rtlupcaseunicodestring/) |
 | `RtlUpcaseUnicodeStringToAnsiString` | 9.0x | [changes/020-rtlupcaseunicodestringtoansistring](../../../../../changes/020-rtlupcaseunicodestringtoansistring/) |
-| `RtlUpcaseUnicodeToMultiByteN` | 6.54x | [changes/027-rtlupcaseunicodetomultibyten](../../../../../changes/027-rtlupcaseunicodetomultibyten/) |
-| `RtlUpcaseUnicodeToOemN` | 7.41x | [changes/031-rtlupcaseunicodetooemn](../../../../../changes/031-rtlupcaseunicodetooemn/) |
+| `RtlUpcaseUnicodeToMultiByteN` | 4.23x | [changes/027-rtlupcaseunicodetomultibyten](../../../../../changes/027-rtlupcaseunicodetomultibyten/) |
+| `RtlUpcaseUnicodeToOemN` | 4.19x | [changes/031-rtlupcaseunicodetooemn](../../../../../changes/031-rtlupcaseunicodetooemn/) |
 | `RtlUpperString` | 88.5x | [changes/165-rtlupperstring](../../../../../changes/165-rtlupperstring/) |
