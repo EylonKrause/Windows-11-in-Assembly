@@ -28,6 +28,7 @@ semantics rather than sloppiness.
 | [`kernelbase_path2.c`](kernelbase_path2.c) | the kernelbase path and string exports still uncovered, measured after change 251 landed the `PathCchSkipRoot` root parser. Two **negative results** and a family of already-cheap predicates |
 | [`utf8n_null_destination.c`](utf8n_null_destination.c) | **audit** — changes 016 and 034 did not implement the MEASURING MODE of the functions they replace, and faulted on a documented call. Fixed in `417f31f` and `18d692e` |
 | [`utf8_nonascii_rows.c`](utf8_nonascii_rows.c) | **audit** — changes 016 and 034 are benched on ASCII only, and ASCII is the one case their fast paths exist for. Across the input classes UTF-8 exists for they are **0.21×–0.94×** |
+| [`upcase_nonascii_rows.c`](upcase_nonascii_rows.c) | **audit** — the same question asked of the four upcase conversions, which all bench on `L'a' + (k & 15)`. Two of them are fine; changes **027 and 031 are 0.59×** on Cyrillic or CJK, and their own sibling 020 does the same job at 2.62× |
 
 ### What `shlwapi_url_str.c` found
 
@@ -322,6 +323,50 @@ missing on this input — it is being paid for and thrown away, once per charact
 
 Being right about the bytes is not the same as being fast on them, and a table that only contains
 the input a fast path was written for is a table that cannot say which of the two it is.
+
+### What `upcase_nonascii_rows.c` found: the same defect, in two more changes, next to the sibling that gets it right
+
+`utf8_nonascii_rows.c` established a shape rather than an incident: **an implementation with a
+data-dependent fast path, benched on the data the fast path was written for.** Four more landed
+changes have that shape and say so in their own headers — 015, 020, 027 and 031 all upcase UTF-16
+with an all-ASCII vector block and a table path for anything above `0x7F` — and every one of their
+benchmarks builds its input as `L'a' + (k & 15)`.
+
+Asked about the text the table path exists for, at 32000 characters:
+
+| class | 015 `RtlUpcaseUnicodeString` | 020 `…ToAnsiString` | 027 `…ToMultiByteN` | 031 `…ToOemN` |
+|---|---:|---:|---:|---:|
+| ascii-lower (the published row) | 8.01× | 8.21× | 10.24× | 10.78× |
+| latin-1 | 4.33× | 5.64× | 1.26× | 1.21× |
+| cyrillic | 4.32× | 2.62× | **0.59×** | **0.59×** |
+| CJK | 4.35× | 2.63× | **0.59×** | **0.59×** |
+| mixed ASCII + latin-1 | 3.01× | 3.99× | **0.90×** | **0.92×** |
+| geomean, 24 rows | 5.202× | 5.205× | **1.900× PARKED** | **1.850× PARKED** |
+
+**015 and 020 are fine.** 027 and 031 are slower than the shipped code on any text that is not
+Latin-1 — and they are 4.4× slower than **020**, which does the same job with the same table.
+
+The diff between them is the diagnosis, and it is
+[change 263's rule](../changes/263-rtlcompareunicodestrings/RESULTS.md) for the third time today:
+
+```
+020   a_sblock:  mov edx, 16          <- sixteen characters through the table,
+      a_sb:      ...                     then back to the vector loop
+                 dec edx
+                 jnz a_sb
+                 jmp a_loop
+
+027   mb_scalar: movzx eax, word ptr [rsi + r9*2]     <- ONE character, and then
+      /031       movzx eax, byte  ptr [rcx + rax]        the 16-wide test AND the
+                 mov   byte ptr [rbx + r9], al           8-wide test again, plus
+                 add   r9, 1                             four bound comparisons
+                 jmp   mb_loop
+```
+
+On text where the vector block never applies, 027 and 031 buy and discard two vector loads, two
+`VPTEST`s and four comparisons **per character**, for the whole string. Their sibling, written for
+the same table by the same hand, does not — which is the clearest possible statement that this is a
+slip rather than a necessity.
 
 ## The lesson
 
