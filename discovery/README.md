@@ -30,6 +30,7 @@ semantics rather than sloppiness.
 | [`utf8_nonascii_rows.c`](utf8_nonascii_rows.c) | **audit** — changes 016 and 034 are benched on ASCII only, and ASCII is the one case their fast paths exist for. Across the input classes UTF-8 exists for they are **0.21×–0.94×** |
 | [`upcase_nonascii_rows.c`](upcase_nonascii_rows.c) | **audit** — the same question asked of the four upcase conversions, which all bench on `L'a' + (k & 15)`. Two of them are fine; changes **027 and 031 are 0.59×** on Cyrillic or CJK, and their own sibling 020 does the same job at 2.62× |
 | [`cmpordinal_foldpath.c`](cmpordinal_foldpath.c) | **audit** — change 210's row labelled “table path” compares a string with **itself**, which its own first tier answers before the table is consulted. The implementation is fine there (3.89× once the row reaches it); what the probe found instead was a **0.91×** short row hidden under the harness floor |
+| [`sid_inet_bstr.c`](sid_inet_bstr.c) | three families no earlier sweep touched, found by subtracting `image/tree` from the export tables of twenty-four DLLs: advapi32's **SIDs**, ws2_32's **addresses**, oleaut32's **BSTRs**. The SID PARSER costs **45 ns per decimal number** and is where the next change comes from |
 
 ### What `shlwapi_url_str.c` found
 
@@ -368,6 +369,70 @@ On text where the vector block never applies, 027 and 031 buy and discard two ve
 `VPTEST`s and four comparisons **per character**, for the whole string. Their sibling, written for
 the same table by the same hand, does not — which is the clearest possible statement that this is a
 slip rather than a necessity.
+
+### What `sid_inet_bstr.c` found: a parser that costs 45 ns per number
+
+`image/tree` covers 244 exports across nine DLLs. Subtracting those from the export tables of
+twenty-four System32 DLLs and keeping the names that suggest a byte-wise leaf leaves three families
+never measured here. Every row prints what it returned, because
+[sweep 4](ntdll_rtl_uncovered3.c) timed a **refusal** as though it were a comparison.
+
+| export | ns | ns/byte | verdict |
+|---|---:|---:|---|
+| `advapi32!ConvertStringSidToSidW` | 275.78 | 6.27 | **the target** |
+| `advapi32!ConvertStringSidToSidA` | 500.10 | 11.37 | its narrow sibling |
+| `advapi32!ConvertSidToStringSidW` | 181.69 | 4.13 | bounded by an allocation it cannot avoid |
+| `advapi32!ConvertSidToStringSidA` | 255.57 | 5.81 | |
+| `ws2_32!WSAStringToAddressA` | 631.25 | 48.56 | consults the Winsock catalogue |
+| `ws2_32!WSAAddressToStringA` | 712.70 | 44.54 | likewise |
+| `ws2_32!inet_addr` | 24.75 | 2.75 | small, and the *lenient* parser — `"0x7f.1"` and `"1.2"` are accepted where `RtlIpv4StringToAddress` refuses |
+| `oleaut32!SysAllocString` | 842.97 | 0.105 | 783 ns of it is a length scan at 10 GB/s |
+| `oleaut32!SysAllocStringLen` | 60.01 | 0.0075 | the same copy with the scan removed |
+| `oleaut32!SysStringLen` | 2.52 | — | a header read; nothing to win |
+| `oleaut32!VarBstrCmp` | 3179.69 | 0.398 | takes an LCID — **negative result**, the same shape as `StrCmpNIW` |
+| `advapi32!GetLengthSid`, `IsValidSid`, `EqualSid`, `CopySid` | 3.5–6.5 | — | call overhead; nothing to win |
+
+**Where the SID family's time goes**, which is the measurement that decides whether there is
+anything to win:
+
+```
+advapi32!ConvertSidToStringSidW        181.69 ns
+ntdll!RtlConvertSidToUnicodeString      73.71 ns   the same string, no allocation
+LocalAlloc(96) + LocalFree, alone       39.97 ns   the allocation the contract requires
+advapi32!ConvertStringSidToSidW        275.78 ns
+```
+
+ntdll already formats this SID in a fraction of advapi32's time, and [change
+067](../changes/067-rtlconvertsidtounicodestring/) already beats ntdll by 1.42× — so the
+**formatter's** ceiling is set by a `LocalAlloc` it cannot avoid. The **parser** has no such floor.
+
+Scaling with the number of sub-authorities separates the fixed cost from the per-number one:
+
+| sub-authorities | format ns | parse ns |
+|---:|---:|---:|
+| 1 | 125.00 | 149.02 |
+| 4 | 181.30 | 267.38 |
+| 8 | 265.72 | 463.28 |
+
+**About 20 ns per number to format and 45 ns per number to parse.** For comparison, change 114
+(`RtlIpv4StringToAddressA`) parses four decimal numbers and a dotted structure in single-figure
+nanoseconds. Forty-five nanoseconds to turn `"1986422374"` into a `DWORD` is the finding.
+
+#### And one thing a reimplementation must not transcribe
+
+`ConvertStringSidToSid` also accepts the two-letter **SDDL aliases**, and one of them is not a
+constant:
+
+```
+BA -> S-1-5-32-544        SY -> S-1-5-18         WD -> S-1-1-0        AU -> S-1-5-11
+NU -> S-1-5-2             IU -> S-1-5-4          AN -> S-1-5-7
+LA -> S-1-5-21-530289886-3377633145-1305620013-500     <== this machine's Administrator
+```
+
+`LA` resolves through the local domain. A transcribed table would be right on the machine it was
+copied from and wrong everywhere else — the same reason [change 210](../changes/210-comparestringordinal/)
+builds its upcase table from the OS and [change 267](../changes/267-rtlcrc32/) builds its shift
+tables from the polynomial rather than pasting either.
 
 ## The lesson
 
