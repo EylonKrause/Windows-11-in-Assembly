@@ -1,4 +1,4 @@
-; ntdll.dll!RtlUpcaseUnicodeToMultiByteN  --  hand-written x86-64 reimplementation (6.54x vs shipped)
+; ntdll.dll!RtlUpcaseUnicodeToMultiByteN  --  hand-written x86-64 reimplementation (4.23x vs shipped)
 ; source of truth: changes/027-rtlupcaseunicodetomultibyten/  (reference.c + correctness.c + bench.c)
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
@@ -87,11 +87,42 @@ mb_ascii8:
         vmovq     qword ptr [rbx + r9], xmm0
         add       r9, 8
         jmp       mb_loop
+; -------------------------------------------------------------------------------------------------
+; THE TABLE PATH TAKES A RUN, ADDED 2026-09-16. It used to convert ONE character and jump back to
+; `mb_loop`, which re-ran the 16-wide test AND the 8-wide test -- two vector loads, two VPTESTs and
+; four bound comparisons -- to discover once more that the character in front of it is not ASCII.
+; On text where the vector block never applies, that cost was paid on every character for the whole
+; string.
+;
+; discovery/upcase_nonascii_rows.c measured what it came to: 0.59x against the shipped export on
+; Cyrillic or CJK, in a change published at 10.24x on ASCII. And the sibling that does the same job
+; with the same table -- change 020, RtlUpcaseUnicodeStringToAnsiString -- already converts SIXTEEN
+; characters per visit and measures 2.62x on the same text. This is change 263's rule, which this
+; repository wrote down and this file broke:
+;
+;       A SCALAR WALK MUST NOT RE-ENTER A VECTOR LOOP.
+;
+; The run is bounded by BOTH limits this function has -- characters remaining and output room
+; remaining -- so the loop below cannot overrun either, and `mb_loop` still owns the decision to
+; stop. Sixteen is the vector block's own width: long enough to amortise the probe, short enough
+; that text alternating ASCII with anything else still reaches the vector path.
+; -------------------------------------------------------------------------------------------------
 mb_scalar:
-        movzx     eax, word ptr [rsi + r9*2]
+        mov       r8d, r13d
+        sub       r8d, r9d                          ; characters left
+        mov       edx, edi
+        sub       edx, r9d                          ; bytes of room left
+        cmp       r8d, edx
+        cmova     r8d, edx                          ; whichever runs out first
+        cmp       r8d, 16
+        jbe       mb_sb
+        mov       r8d, 16
+mb_sb:  movzx     eax, word ptr [rsi + r9*2]
         movzx     eax, byte ptr [rcx + rax]
         mov       byte ptr [rbx + r9], al
         add       r9, 1
+        dec       r8d
+        jnz       mb_sb
         jmp       mb_loop
 mb_done:
         mov       dword ptr [r12], r9d              ; *outLen = bytes written

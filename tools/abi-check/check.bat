@@ -30,7 +30,7 @@ set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-b
 set LIST=%LIST% 125-rtlfindclearbits 132-pathfindextensionw 140-pathremoveextensionw 143-pathcchfindextension 144-pathcchremoveextension 158-pathrenameextensionw 159-pathcchrenameextension 160-pathcchaddextension 161-pathfindfilenamew 162-pathstrippathw 174-pathundecoratew
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string
+set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string 027-rtlupcaseunicodetomultibyten 031-rtlupcaseunicodetooemn
 
 set FAILED=0
 set RAN=0
@@ -104,6 +104,17 @@ rem  time -- the driver calls wia_crc32_tables_init through SETUP().
 if "%ID%"=="267" (
   cl /nologo /O2 /c /Fo"%H%dep267tab.obj" "%H%..\..\changes\267-rtlcrc32\shifttab.c" >nul 2>&1
   set EXTRA=!EXTRA! "%H%dep267tab.obj"
+)
+rem  027 and 031 (RtlUpcaseUnicodeToMultiByteN / ToOemN) fold and narrow through a 65536-entry map
+rem  built from the OS code page at run time, so the table object has to be linked and INITIALISED --
+rem  the driver calls it through SETUP().
+if "%ID%"=="027" (
+  cl /nologo /O2 /c /Fo"%H%dep027map.obj" "%H%..\..\changes\027-rtlupcaseunicodetomultibyten\upansimap.c" >nul 2>&1
+  set EXTRA=!EXTRA! "%H%dep027map.obj"
+)
+if "%ID%"=="031" (
+  cl /nologo /O2 /c /Fo"%H%dep031map.obj" "%H%..\..\changes\031-rtlupcaseunicodetooemn\upoemmap.c" >nul 2>&1
+  set EXTRA=!EXTRA! "%H%dep031map.obj"
 )
 rem  268 (RtlUnicodeStringToUTF8String / RtlUTF8StringToUnicodeString) is a WRAPPER over the two
 rem  N-forms this project already converted -- 016 and 034 -- plus the one heap call its allocating

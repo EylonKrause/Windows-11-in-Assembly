@@ -203,11 +203,11 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [024](changes/024-rtlunicodestringtooemstring/) | `RtlUnicodeStringToOemString` (AVX2) | `ntdll.dll!RtlUnicodeStringToOemString` | **LANDED** — geomean **7.68×** (core ntdll) |
 | [025](changes/025-rtloemstringtounicodestring/) | `RtlOemStringToUnicodeString` (AVX2) | `ntdll.dll!RtlOemStringToUnicodeString` | **LANDED** — geomean **5.50×** (core ntdll) |
 | [026](changes/026-rtlcomparememoryulong/) | `RtlCompareMemoryUlong` (AVX2) | `ntdll.dll!RtlCompareMemoryUlong` | **LANDED** — geomean **5.04×** (core ntdll) |
-| [027](changes/027-rtlupcaseunicodetomultibyten/) | `RtlUpcaseUnicodeToMultiByteN` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeToMultiByteN` | **LANDED** — geomean **6.54×** (core ntdll) |
+| [027](changes/027-rtlupcaseunicodetomultibyten/) | `RtlUpcaseUnicodeToMultiByteN` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeToMultiByteN` | **LANDED** — geomean **4.23×** over every input class, worst class **2.13×** (core ntdll) |
 | [028](changes/028-rtlunicodetooemn/) | `RtlUnicodeToOemN` (AVX2) | `ntdll.dll!RtlUnicodeToOemN` | **LANDED** — geomean **6.34×** (core ntdll) |
 | [029](changes/029-rtloemtounicoden/) | `RtlOemToUnicodeN` (AVX2) | `ntdll.dll!RtlOemToUnicodeN` | **LANDED** — geomean **4.51×** (core ntdll) |
 | [030](changes/030-rtlarebitsset/) | `RtlAreBitsSet` (AVX2) | `ntdll.dll!RtlAreBitsSet` | **LANDED** — geomean **3.17×**, up to 7× (core ntdll) |
-| [031](changes/031-rtlupcaseunicodetooemn/) | `RtlUpcaseUnicodeToOemN` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeToOemN` | **LANDED** — geomean **7.41×** (core ntdll) |
+| [031](changes/031-rtlupcaseunicodetooemn/) | `RtlUpcaseUnicodeToOemN` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeToOemN` | **LANDED** — geomean **4.19×** over every input class, worst class **2.11×** (core ntdll) |
 | [032](changes/032-strlen/) | `strlen` (AVX2) | `ucrtbase.dll!strlen` | **LANDED** — geomean **2.83×**, up to 6.8× (ucrtbase) |
 | [033](changes/033-strcmp/) | `strcmp` (AVX2) | `ucrtbase.dll!strcmp` | **LANDED** — geomean **1.31×** (ucrtbase) |
 | [034](changes/034-rtlutf8tounicoden/) | `RtlUTF8ToUnicodeN` (AVX2) | `ntdll.dll!RtlUTF8ToUnicodeN` | **LANDED** — geomean **3.96×** over every input class, worst 1.26× (UTF-8→UTF-16 decoder, core ntdll) |
