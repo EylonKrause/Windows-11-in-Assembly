@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (89)
+# ntdll.dll — reimplemented exports (90)
 
 | export | speedup | source |
 |---|---|---|
@@ -43,6 +43,7 @@
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
 | `RtlIntegerToChar` | 1.39x | [changes/097-rtlintegertochar](../../../../../changes/097-rtlintegertochar/) |
 | `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
+| `RtlIntegerToUnicodeString` | 5.38x | [changes/278-rtlintegertounicodestring](../../../../../changes/278-rtlintegertounicodestring/) |
 | `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
 | `RtlIpv4AddressToStringExA` | 9.78x | [changes/065-rtlipv4addresstostringexa](../../../../../changes/065-rtlipv4addresstostringexa/) |
 | `RtlIpv4AddressToStringExW` | 10.5x | [changes/066-rtlipv4addresstostringexw](../../../../../changes/066-rtlipv4addresstostringexw/) |

@@ -2918,6 +2918,45 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_278)
+#define NAME "278-rtlintegertounicodestring"
+typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U278;
+extern long wia_int2ustr(unsigned long, unsigned long, U278*);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* A LEAF WITH NO FRAME AND NO CALLS -- the shape whose unwind data nobody checks because
+       nothing ever unwinds through it, until something does.
+
+       TWO CONVERTERS ARE UNDER TEST, not one: base 10 goes through a length-first,
+       two-digits-at-a-time path and bases 2, 8 and 16 share a shift-and-mask loop. A thunk of base
+       10 alone would leave half the register use untested. Both refusals are driven too, because
+       they return before either converter runs.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t buf[64];
+    static const unsigned long BASES[] = { 0, 2, 8, 10, 16, 7, 36 };
+    static const unsigned long VALUES[] = {
+        0ul, 1ul, 9ul, 10ul, 255ul, 256ul, 65535ul, 65536ul,
+        3735928559ul, 2147483647ul, 2147483648ul, 4294967295ul
+    };
+    U278 u;
+    unsigned long long sink = 0;
+    int i, j;
+    unsigned short m;
+
+    for (i = 0; i < (int)(sizeof BASES / sizeof BASES[0]); ++i)
+        for (j = 0; j < (int)(sizeof VALUES / sizeof VALUES[0]); ++j) {
+            u.Length = 0; u.MaximumLength = sizeof buf; u.Buffer = buf;
+            sink += (unsigned)CALL4(wia_int2ustr, VALUES[j], BASES[i], &u, 0);
+            /* and with room exactly at the boundary, and with none at all */
+            for (m = 0; m <= 70; m += 7) {
+                u.Length = 0; u.MaximumLength = m; u.Buffer = buf;
+                sink += (unsigned)CALL4(wia_int2ustr, VALUES[j], BASES[i], &u, 0);
+            }
+        }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
