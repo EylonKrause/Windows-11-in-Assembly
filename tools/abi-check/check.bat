@@ -30,7 +30,7 @@ set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-b
 set LIST=%LIST% 125-rtlfindclearbits 132-pathfindextensionw 140-pathremoveextensionw 143-pathcchfindextension 144-pathcchremoveextension 158-pathrenameextensionw 159-pathcchrenameextension 160-pathcchaddextension 161-pathfindfilenamew 162-pathstrippathw 174-pathundecoratew
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string 027-rtlupcaseunicodetomultibyten 031-rtlupcaseunicodetooemn 269-convertstringsidtosid 067-rtlconvertsidtounicodestring 270-convertsidtostringsid 271-convertsidtostringsida 272-convertstringsidtosida 273-inet-addr
+set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string 027-rtlupcaseunicodetomultibyten 031-rtlupcaseunicodetooemn 269-convertstringsidtosid 067-rtlconvertsidtounicodestring 270-convertsidtostringsid 271-convertsidtostringsida 272-convertstringsidtosida 273-inet-addr 275-inet-ntoa
 
 set FAILED=0
 set RAN=0
@@ -104,6 +104,13 @@ rem  time -- the driver calls wia_crc32_tables_init through SETUP().
 if "%ID%"=="267" (
   cl /nologo /O2 /c /Fo"%H%dep267tab.obj" "%H%..\..\changes\267-rtlcrc32\shifttab.c" >nul 2>&1
   set EXTRA=!EXTRA! "%H%dep267tab.obj"
+)
+rem  275 (inet_ntoa) keeps its answer in a THREAD-LOCAL buffer, and tls.c owns it: the compiler
+rem  emits the gs:[0x58] walk with the right relocations, which is not something to hand-write in
+rem  MASM for the 0.38 ns probes/floor.c measured the whole access at.
+if "%ID%"=="275" (
+  cl /nologo /O2 /c /Fo"%H%dep275tls.obj" "%H%..\..\changes\275-inet-ntoa\tls.c" >nul 2>&1
+  set EXTRA=!EXTRA! "%H%dep275tls.obj"
 )
 rem  272 (ConvertStringSidToSidA) is change 269's parser behind a widening, so 269's assembly and
 rem  both of its OS-derived tables come with it, plus 272's own widen.c for MultiByteToWideChar and
