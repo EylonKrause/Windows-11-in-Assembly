@@ -61,8 +61,22 @@
  *     with ERROR_ARITHMETIC_OVERFLOW rather than ERROR_INVALID_SID. A sixteen-sub-authority SID is
  *     built happily and then cannot be formatted back.
  *
- * ON FAILURE THE OUTPUT POINTER IS LEFT ALONE. It is not cleared, so a caller that frees
- * unconditionally behaves the same way against this as against the shipped export.
+ * ON FAILURE THE OUTPUT POINTER IS LEFT ALONE -- EXCEPT AFTER AN SDDL TERMINATOR. Three characters
+ * behave differently from the other 65532, and it took a sweep of every trailing code unit to find
+ * them:
+ *
+ *     S-1-5-1)   FALSE, ERROR_INVALID_SID, and the output pointer set to NULL
+ *     S-1-5-1,   the same
+ *     S-1-5-1;   the same
+ *     S-1-5-1a   FALSE, and the pointer LEFT ALONE, like everything else
+ *
+ * `)`, `,` and `;` are the SDDL ACE terminators -- a SID appears inside an ACE as
+ * `(A;;FA;;;S-1-5-18)` -- so the parser underneath this export has a mode that stops at them, and
+ * the public wrapper, which does not accept trailing text, rejects the result AFTER the inner call
+ * has already stored its answer and then clears it. It only happens when a COMPLETE SID precedes
+ * the terminator: `S-1-5-)` and `S-1)5-1` leave the pointer alone, and the alias path never does
+ * it. probes/terminators.c is where that was measured, and it is not a leak -- the pointer comes
+ * back NULL, not dangling.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -165,6 +179,13 @@ BOOL ref_str2sid(const wchar_t* s, PSID* out)
         if (!scan_num(&p, 0xFFFFFFFFul, &v, &clamped, 0, base, 0)) goto bad;
         if (n >= MAXSUB) { SetLastError(ERROR_ARITHMETIC_OVERFLOW); return FALSE; }
         sub[n++] = (unsigned long)v;
+    }
+    if (n && (*p == L')' || *p == L',' || *p == L';')) {
+        /* a complete SID, then an SDDL terminator: the inner parser succeeded, the wrapper did
+           not, and the pointer is cleared rather than left alone */
+        *out = 0;
+        SetLastError(ERROR_INVALID_SID);
+        return FALSE;
     }
     if (*p != 0 || n == 0) goto bad;
 
