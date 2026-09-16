@@ -2339,6 +2339,36 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_267)
+#define NAME "267-rtlcrc32"
+extern unsigned long wia_crc32(const void*, size_t, unsigned long);
+extern int wia_crc32_tables_init(void);
+#define SETUP() wia_crc32_tables_init()
+static void thunk(void){
+    /* TWO SHAPES IN ONE FUNCTION and the gate has to reach both: a LEAF with no prologue answers
+       anything under 192 bytes, and a PROC FRAME body with four pushed registers -- rbx, rsi, rdi
+       and r12 -- handles everything larger. The framed half is the one that can get the unwind
+       data wrong, and the leaf half is the one that must not touch a non-volatile register at all.
+
+       Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for its own loop hides
+       an implementation that destroys r15, as change 258 demonstrated.
+
+       Driven: lengths either side of BOTH block boundaries (192 and 3072), every tail residue
+       from 1 to 7, the exact block sizes, a non-zero initial CRC, and the zero length. */
+    static unsigned char buf[8192];
+    static const size_t LENS[18] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 63, 64, 191, 192, 193,
+                                     1024, 3071, 3072, 6145 };
+    int i, k;
+    unsigned long sink = 0;
+    for (k = 0; k < 8192; ++k) buf[k] = (unsigned char)(k * 37 + 5);
+    for (i = 0; i < 18; ++i) {
+        sink += CALL4(wia_crc32, buf, LENS[i], 0, 0);
+        sink += CALL4(wia_crc32, buf, LENS[i], 0xDEADBEEFul, 0);       /* a non-zero running CRC */
+        sink += CALL4(wia_crc32, buf + 1, LENS[i], 0, 0);              /* an odd alignment */
+    }
+    if (sink == 0x7FFFFFFFul) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
