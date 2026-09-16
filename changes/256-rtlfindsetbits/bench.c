@@ -2,10 +2,13 @@
  *
  * OURS vs the LIVE ntdll!RtlFindSetBits and ntdll!RtlFindClearBits.
  *
- * BOTH EXPORTS ARE MEASURED SEPARATELY even though one implementation serves both, because the
- * shipped ones are separate code and are FIVE TIMES APART on the same failing full scan -- 0.132
- * ns/byte against 0.026 in discovery/ntdll_bitmap.c. A single "bitmap search" row would average
- * that away and hide which of the two the work actually helps.
+ * BOTH EXPORTS ARE MEASURED SEPARATELY even though one implementation serves both, because they
+ * are FIVE TIMES APART on the same failing full scan -- 0.132 ns/byte against 0.026 in
+ * discovery/ntdll_bitmap.c. A single "bitmap search" row would average that away and hide which of
+ * the two the work actually helps. (That gap belongs to the SUBJECT and not to one export being
+ * worse: probes/topbit.c shows the two timings SWAP when the pattern is rotated one bit, because
+ * both skip loops are driven by the sign bit and one of the two exports inverts the word. Which
+ * makes measuring them separately more important, not less -- a row is timing a particular path.)
  *
  * AND THE ROWS SAY WHETHER THE SEARCH SUCCEEDS, because the two cases have nothing in common. A
  * search that fails examines every bit; a search that succeeds in the first word examines one. The

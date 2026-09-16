@@ -6,11 +6,15 @@
  * WHY THESE TWO, AND WHY TOGETHER. discovery/ntdll_bitmap.c put RtlFindSetBits at 0.132 ns/byte on
  * a 64 Kbit bitmap -- the most expensive row left in the family after RtlFindLongestRunClear, which
  * became change 255 -- and its mirror RtlFindClearBits at 0.026, FIVE TIMES cheaper for the same
- * failing full scan. That asymmetry is not an illusion of the subject: both searches fail, both
- * examine everything, and they are simply not the same code. RtlFindSetBits is at RVA 0x111210 with
- * seven saved registers and an alignment prologue; RtlFindClearBits is at 0xD0140 with five. So the
- * pair is worth one change: the same algorithm serves both, and one of them is five times further
- * behind than the other.
+ * failing full scan.
+ *
+ * A CORRECTION, 2026-09-16: this paragraph used to explain that gap as "not an illusion of the
+ * subject ... they are simply not the same code". The measurement reproduces; the explanation was
+ * wrong. probes/topbit.c rotates the pattern by one bit and the two timings SWAP -- both exports
+ * skip words with the same sign-bit-driven loop, and RtlFindSetBits inverts the word, so the same
+ * data sends one of them down the fast path and the other down the slow one. The pair is still
+ * worth one change, and for a better reason: BOTH have a one-cycle-per-word path and a
+ * five-cycle-per-word path, and the data picks.
  *
  * THE HINT IS THE WHOLE CONTRACT QUESTION. The documented behaviour is "the search begins at
  * HintIndex", and the obvious reading -- search forward from the hint and stop at the end -- is one
