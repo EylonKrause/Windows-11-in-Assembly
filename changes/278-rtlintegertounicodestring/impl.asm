@@ -1,7 +1,3 @@
-; ntdll.dll!RtlIntegerToUnicodeString  --  hand-written x86-64 reimplementation (5.38x vs shipped)
-; source of truth: changes/278-rtlintegertounicodestring/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/278-rtlintegertounicodestring/impl.asm
 ;   NTSTATUS wia_int2ustr(ULONG value, ULONG base, UNICODE_STRING* out)
 ;       [Win64: ecx, edx, r8 -> eax]
