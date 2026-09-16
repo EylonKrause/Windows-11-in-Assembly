@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (68)
+# ntdll.dll — reimplemented exports (69)
 
 | export | speedup | source |
 |---|---|---|
@@ -44,6 +44,7 @@
 | `RtlIpv6AddressToStringW` | 7.42x | [changes/064-rtlipv6addresstostringw](../../../../../changes/064-rtlipv6addresstostringw/) |
 | `RtlIpv6StringToAddressA` | 4.66x | [changes/121-rtlipv6stringtoaddress](../../../../../changes/121-rtlipv6stringtoaddress/) |
 | `RtlIpv6StringToAddressExA` | 4.17x | [changes/122-rtlipv6stringtoaddressex](../../../../../changes/122-rtlipv6stringtoaddressex/) |
+| `RtlIpv6StringToAddressExW` | 4.96x | [changes/250-rtlipv6stringtoaddressexw](../../../../../changes/250-rtlipv6stringtoaddressexw/) |
 | `RtlIpv6StringToAddressW` | 3.62x | [changes/166-rtlipv6stringtoaddressw](../../../../../changes/166-rtlipv6stringtoaddressw/) |
 | `RtlIsTextUnicode` | 5.71x | [changes/193-rtlistextunicode](../../../../../changes/193-rtlistextunicode/) |
 | `RtlLargeIntegerToChar` | 1.43x | [changes/100-rtllargeintegertochar](../../../../../changes/100-rtllargeintegertochar/) |

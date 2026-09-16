@@ -192,7 +192,14 @@ int main(void){
         printf("  page guard: %d fails so far\n", fails);
     }
 
-    if(!fails) printf("CORRECTNESS: PASS (RtlIpv6StringToAddressW vs live + oracle: STATUS+addr+Terminator; %d edges, %d trap units x every position (sub+insert), exhaustive wide alphabet 0..5, 5M fuzz, ALL 65536 units x %d templates, NOACCESS page guard)\n", NC, NTRAP, NTMPL);
+    /* "STATUS+addr+Terminator" used to be the whole of this line, and it overstated what the loops
+       above actually do: they compare the address inside `if(r1==0)`, i.e. ON SUCCESS ONLY. Change
+       250 found the gap by composing this core into RtlIpv6StringToAddressExW -- the shipped parser
+       fills the destination as it goes, so a FAILING call keeps whatever it had committed while this
+       one leaves the buffer untouched, on 17268 of 55987 enumerated strings (0 status, 0 Terminator,
+       0 on any success). See RESULTS.md: the obvious fix measured WORSE and is recorded, not applied.
+       The banner now says what the harness checks. */
+    if(!fails) printf("CORRECTNESS: PASS (RtlIpv6StringToAddressW vs live + oracle: STATUS and Terminator on every case, addr on SUCCESS (see RESULTS.md); %d edges, %d trap units x every position (sub+insert), exhaustive wide alphabet 0..5, 5M fuzz, ALL 65536 units x %d templates, NOACCESS page guard)\n", NC, NTRAP, NTMPL);
     else printf("CORRECTNESS: FAIL (%d)\n",fails);
     return fails?1:0;
 }

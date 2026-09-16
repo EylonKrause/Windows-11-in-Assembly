@@ -335,6 +335,13 @@ al_tpover:
 al_colonp:
         test      r12, r12
         jz        al_check
+        ; --- NOTHING AFTER THE "::" IS THE WHOLE JOB ALREADY DONE. When tp == colonp there are no
+        ;     groups to move, and the gap [colonp, endp) has never been written: the prologue zeroed
+        ;     all sixteen bytes and the parse only ever writes [tmp, tp). So the entire shift -- the
+        ;     copy out, the zero fill and the copy back -- is dead work on every address that ends in
+        ;     "::", which includes the shortest one there is. ---
+        cmp       rbx, r12
+        je        sh_done
         ; --- "::" shift: move [colonp,tp) to the end, zero the gap (BYTES, not units) ---
         mov       rcx, rbx
         sub       rcx, r12                            ; n = tp - colonp
@@ -351,13 +358,42 @@ sh_cp1:
         dec       r8
         jmp       sh_cp1
 sh_cp1d:
-        mov       rax, r12
-sh_z:
-        cmp       rax, r13
-        jae       sh_zd
-        mov       byte ptr [rax], 0
-        inc       rax
-        jmp       sh_z
+; ZEROING THE GAP WAS A BYTE LOOP, AND IT PARKED CHANGE 250. The gap is at most sixteen bytes, so
+; this ran up to sixteen iterations of four instructions to clear memory the prologue had already
+; zeroed -- and the fully-compressed address "::" is the case where the gap is the WHOLE sixteen and
+; there is nothing else to do, so the loop WAS the function: 7.48 ns against the shipped 5.92, a
+; 0.79x REGRESSION on the shortest valid IPv6 address there is.
+;
+; It went unmeasured because this change's own benchmark has no "::" row -- its four rows are a full
+; address, a compressed one, the loopback and a v4-mapped one, all of which have real parsing work to
+; amortise the loop against. It surfaced only when change 250 composed this core into
+; RtlIpv6StringToAddressExW and put "::" in ITS table.
+;
+; Two overlapping stores per width replace it. The overlap is safe because every byte in the range is
+; being set to the same value, and the tail that sh_cp2 is about to overwrite is zeroed first either
+; way -- which is exactly what the byte loop did.
+        mov       rax, r13
+        sub       rax, r12                            ; gap = endp - colonp, 0..16
+        jz        sh_zd
+        cmp       rax, 8
+        jb        sh_z4
+        mov       qword ptr [r12], 0
+        mov       qword ptr [r13 - 8], 0
+        jmp       sh_zd
+sh_z4:
+        cmp       rax, 4
+        jb        sh_z2
+        mov       dword ptr [r12], 0
+        mov       dword ptr [r13 - 4], 0
+        jmp       sh_zd
+sh_z2:
+        cmp       rax, 2
+        jb        sh_z1
+        mov       word ptr [r12], 0
+        mov       word ptr [r13 - 2], 0
+        jmp       sh_zd
+sh_z1:
+        mov       byte ptr [r12], 0
 sh_zd:
         lea       rdx, [rsp + 16]
         mov       rax, r13
@@ -373,6 +409,7 @@ sh_cp2:
         dec       r8
         jmp       sh_cp2
 sh_cp2d:
+sh_done:
         mov       rbx, r13                            ; tp = endp
 al_check:
         cmp       rbx, r13
@@ -385,6 +422,32 @@ al_check:
 al_tpne:
         mov       [r14], rsi
 err_ret:
+; ON FAILURE THE CALLER'S 16 BYTES ARE LEFT UNTOUCHED, AND THE SHIPPED EXPORT'S ARE NOT. Measured
+; while building change 250, over 55987 enumerated strings on the alphabet ": . 0 1 a f" to length 6:
+;
+;     status differ ......... 0
+;     *Terminator differ .... 0
+;     address bytes differ .. 17268  -- ALL of them calls the shipped export FAILED, 0 on successes
+;
+; The shipped parser fills the destination AS IT GOES, so a call that fails part-way leaves whatever
+; it had committed: "f:" leaves 00 0F, "0:" leaves 00 00, "1." leaves 01, "::1." leaves 00 00 01. This
+; implementation accumulates into a stack scratch and copies out once, on success.
+;
+; THE OBVIOUS FIX IS WRONG, and it was tried and measured rather than assumed: copying [tmp, tp) here
+; takes the divergence from 17268 to 18240 and INVERTS it -- we then write for bare groups like "0",
+; "10", "a0" where the shipped one writes nothing at all. A group reaches the destination only when a
+; ':' or '.' COMMITS it, not when the scan has merely accumulated it, and reproducing that write
+; schedule means deriving it from the outside as its own enumerated study. It is left undone
+; deliberately, and recorded here and in RESULTS.md rather than buried.
+;
+; WHY IT IS ACCEPTABLE TO LEAVE: a caller that receives STATUS_INVALID_PARAMETER has no defined
+; address to read, the status and the *Terminator -- the two things such a caller acts on -- are
+; identical in all 55987 cases, and every call that SUCCEEDS is byte-identical. Same shape of
+; argument as change 243's documented dead region.
+;
+; This was invisible to this change's own harness, which compares the address only when the status is
+; success; RESULTS.md used to claim it compared "STATUS, all 16 address bytes and *Terminator", which
+; overstated it and is now corrected.
         mov       eax, 0C000000Dh
 epi:
         add       rsp, 20h
