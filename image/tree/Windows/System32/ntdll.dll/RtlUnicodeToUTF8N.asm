@@ -284,6 +284,23 @@ u2u8_measure:
         xor       r11d, r11d                        ; bytes so far
         xor       ecx, ecx                          ; index
         jmp       m_test
+
+; THE ASCII BLOCK, ADDED 2026-09-16 BECAUSE A CALLER MEASURED IT. The first version of this mode
+; walked one character at a time, which is the right shape for a path nothing calls in a loop --
+; and then change 268 called it on every allocating conversion, where the shipped code's own sizing
+; pass is vectorised. On 4000 ASCII characters that scalar walk cost more than the conversion it
+; was sizing, and the allocating row of change 268's bench came out at 0.47x. Sixteen characters
+; are tested in one VPTEST here: if none of them has a bit above 0x7F, all sixteen are one byte
+; each and the count moves by 16 with no per-character work at all. Anything else falls into the
+; scalar rule below, which is unchanged and still decides every non-ASCII case.
+ALIGN 16
+m_fast: vmovdqu   ymm0, ymmword ptr [r9 + rcx*2]
+        vpand     ymm1, ymm0, ymmword ptr [CFF80y]
+        vptest    ymm1, ymm1
+        jnz       m_loop                            ; not all ASCII: one character at a time
+        add       r11d, 16
+        add       ecx, 16
+        jmp       m_test
 ALIGN 16
 m_loop:
         movzx     eax, word ptr [r9 + rcx*2]
@@ -316,14 +333,19 @@ m_two:  add       r11d, 2
         jmp       m_test
 m_one:  inc       r11d
         inc       ecx
-m_test: cmp       ecx, r10d
+m_test: mov       edx, r10d
+        sub       edx, ecx
+        cmp       edx, 16
+        jae       m_fast                            ; sixteen left: try them as a block
+        cmp       ecx, r10d
         jb        m_loop
         mov       dword ptr [r8], r11d
         xor       eax, eax
         cmp       dword ptr [rsp + 8], 0
         je        m_ret
         mov       eax, 107h                         ; STATUS_SOME_NOT_MAPPED
-m_ret:  ret
+m_ret:  vzeroupper
+        ret
 
 wia_u2u8 ENDP
 END
