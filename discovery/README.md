@@ -23,6 +23,7 @@ semantics rather than sloppiness.
 | [`extension_space_audit.c`](extension_space_audit.c) | **audit** — how far the missing `PathFindExtension` space rule had spread |
 | [`kernelbase_pathcch.c`](kernelbase_pathcch.c) | the unconverted half of kernelbase's `PathCch*` family, plus the kernelbase path helpers |
 | [`shlwapi_url_str.c`](shlwapi_url_str.c) | the three shlwapi families no earlier sweep touched: the **URL** functions, the formatters/parsers, and the remaining path predicates and writers. This is where change 244 came from |
+| [`ntdll_rtl_uncovered.c`](ntdll_rtl_uncovered.c) | ntdll carries 69 landed changes and still has **191 uncovered `Rtl*` exports** whose names suggest string, buffer or bitmap work. This measures the subset that is plausibly byte-wise with a pinnable contract — no locale, no code page, no grammar. This is where **change 252** came from |
 
 ### What `shlwapi_url_str.c` found
 
@@ -94,6 +95,38 @@ put through an adversarial second pass. What came out:
 | `UrlEscapeW` | **BAD** | The two per-character loops are already table-driven and call-free, roughly 2 ns of a ~282 ns call. Everything else is a URL parse and re-serialisation — semantics |
 | `StrStrNW` | **BAD** | Marginal on the first pass, refuted on the second: the per-character part is already an ordinal scalar scan at 0.315 ns/char via `StrChrNW`, leaving too little to win against the no-regression gate |
 | `PathIsSameRootW` | **not NLS — parked for a different reason** | The fan-out called it BAD for calling `CompareStringW` per path segment. That is the wrong reason. Its worker at RVA 0xCBD10 is `PathCommonPrefixW`, which is **change 167** — and 167's probe established that this fold *is* bit-exactly reproducible: over all 65534 code-unit pairs it is exactly `CharUpperW` and exactly `RtlUpcaseUnicodeChar`, 0 differences each, against 947 for a plain ASCII fold. Unlike `StrChrIW`, it is reachable with the OS-built upcase table change 008 already builds. 167 is parked at **99.3 %** on leading-separator residuals — which is precisely the shape change 243 cracked by reading the disassembly instead of probing harder, so this family is revivable rather than dead |
+
+### What `ntdll_rtl_uncovered.c` found
+
+One target, and it was not close:
+
+```
+  export / subject                             ns    ns/byte  what it returned
+  RtlFindUnicodeSubstring, miss           6007.69      0.751  found=NULL (scanned the whole string)
+    ... case-INSENSITIVE                  8961.59      1.120
+  RtlCompareUnicodeStrings, equal          603.28      0.075  cmp=0
+    ... case-INSENSITIVE                   800.26      0.100  cmp=0
+  RtlInitAnsiString, 4000 bytes            185.33      0.046  Length=4000
+  RtlInitUTF8String, 4000 bytes            185.53      0.046  Length=4000
+  RtlFindSetBits, 64 in 64K bits          1088.73      0.133  index=-1 (the FULL scan)
+  RtlNumberOfSetBits, 64K bits             414.94      0.051  count=32768
+  RtlNumberOfClearBits, 64K bits           416.07      0.051  count=32768
+  RtlCopyBitMap, 64K bits                  102.02      0.012  first word=A5A5A5A5
+  RtlCopyUnicodeString, 4000 ch             99.52      0.012  Length=8000
+  RtlFindClearRuns, 64K bits                72.03      0.009  runs=32
+  RtlAppendStringToString, 4000 B           49.85      0.012  Length=4000
+```
+
+`RtlFindUnicodeSubstring` is **ten times** the per-byte cost of the next row and six times the cost of everything else measured — 6.0 and 9.4 **microseconds** to scan a 4000-character string for an absent 8-character needle, because the shipped code is a naive `O(n·m)` scan that shifts its window by one character and, case-insensitively, makes **two function calls per character comparison**. It became [change 252](../changes/252-rtlfindunicodesubstring/), which lands at 21.96–23.07×.
+
+#### Two rows of this survey were dishonest, and the file’s own rule caught both
+
+This file’s header requires every row to **print what it actually returned**, because a survey row whose subject does not do the work its label claims is this project’s most expensive recurring mistake. Both offenders were found by reading those return values, not the timings:
+
+- **`RtlCompareUnicodeStrings` returned −25 for two identical strings.** Its lengths are in **characters**, not bytes; passing `NW*2` walked 8000 characters of a 4000-character buffer, off the end of the subject. The corrected row is `cmp=0` at 0.075 ns/byte — a perfectly ordinary number, and not a target.
+- **`RtlCopyBitMap` measured 1.98 ns and copied nothing**, printing a destination first word of `00000000` against a source of `A5A5A5A5`. Its signature is `(Source, Destination, TargetBit, NumberOfBits)` — **four** parameters, source first — and it was being called with three. The corrected row is 102.02 ns.
+
+Neither was visible in the timing alone. Both would have been invisible without the rule.
 
 ## What the surveys ruled out, and why
 

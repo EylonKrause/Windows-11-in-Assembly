@@ -1700,6 +1700,63 @@ static void thunk(void){
     sink += wia_pathissamerootw(a, b);          /* a different root */
 }
 
+#elif defined(T_252)
+#define NAME "252-rtlfindunicodesubstring"
+typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } ABI_USTR;
+extern wchar_t* wia_findunicodesubstring(void*, void*, unsigned char);
+extern int      wia_casemate_init(void);
+#define SETUP() wia_casemate_init()
+static void thunk(void){
+    /* This one reaches for ymm0-ymm5 AND makes internal calls out of a PROC FRAME to two LEAF
+       verifiers, so the stack-balance and DF bits matter as much as the register bits. The upper
+       halves of ymm6-ymm15 are volatile and are not reported here, but the LOW halves are not, and
+       a broadcast that picked xmm6 instead of xmm2 would show up as a violation.
+       Driven: both modes; the empty-needle and needle-longer-than-haystack early exits, which
+       return before any vector state exists; the sub-16 scalar-only path; the vector loop with a
+       miss, with a hit inside a block, and with a hit in the scalar tail; the degenerate needle
+       that makes the far-anchor choice fall back to m-1; and a non-ASCII haystack, which is the
+       only input that exercises the case-partner broadcasts against real pairs. */
+    static wchar_t h[600], n[64];
+    ABI_USTR H, N;
+    int i, k;
+    for (i = 0; i < 600; ++i) h[i] = (wchar_t)(L'a' + (i % 5));
+    H.Buffer = h; H.Length = 1200; H.MaximumLength = 1200;
+    N.Buffer = n; N.MaximumLength = 128;
+
+    N.Length = 0;                       sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+    N.Length = 0;                       sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+    H.Length = 0;                       sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+    H.Length = 4;  N.Length = 20;       sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+
+    /* sub-16 scalar-only: no vector state is ever created on this path */
+    H.Length = 16; for (i = 0; i < 4; ++i) n[i] = L'z';
+    N.Length = 8;  sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+                   sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+
+    /* the vector loop: miss, hit mid-block, hit in the scalar tail */
+    H.Length = 1200;
+    for (i = 0; i < 8; ++i) n[i] = L'z';
+    N.Length = 16; sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+                   sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+    for (i = 0; i < 8; ++i) n[i] = h[300 + i];
+    sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+    for (i = 0; i < 8; ++i) n[i] = h[592 + i];
+    sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+
+    /* the degenerate needle: every character equal, so the far anchor falls back to m-1 */
+    for (i = 0; i < 8; ++i) n[i] = L'a';
+    sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+    sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+
+    /* non-ASCII, upper and lower, so the case-partner broadcasts face real pairs */
+    for (k = 0; k < 2; ++k) {
+        for (i = 0; i < 600; ++i) h[i] = (wchar_t)(0x0430 + (i % 20));
+        for (i = 0; i < 8; ++i)   n[i] = (wchar_t)(0x0410 + ((i + (k ? 3 : 11)) % 20));
+        sink += (wia_findunicodesubstring(&H, &N, 1) != 0);
+        sink += (wia_findunicodesubstring(&H, &N, 0) != 0);
+    }
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
