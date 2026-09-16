@@ -24,6 +24,22 @@
 
 extern unsigned long long wia_abi_probe(void (*thunk)(void));
 
+/* THE WHOLE-THUNK FORM CAN BE MASKED, AND WAS. wia_abi_probe fills the non-volatile registers,
+   calls the thunk, and compares afterwards -- but the thunk is compiled C, and if the compiler
+   used r15 for a loop variable it saved r15 on entry and restored it on exit, undoing an
+   implementation's damage before the comparison. Demonstrated on change 258: with `push r15` and
+   its matching `pop` deleted from impl.asm the gate still said PASS, and that build's thunk begins
+   with eight pushes including r15. wia_abi_call4 arms the sentinels AROUND THE CALL instead, where
+   nothing can restore them; CALL4 collects the result into callmask, which main ORs into the
+   verdict. Use it for new work -- a thunk that only uses wia_abi_probe is checked for the
+   registers its own compiled code happened to leave alone. */
+extern unsigned long long wia_abi_call4(void* fn, unsigned long long a, unsigned long long b,
+                                        unsigned long long c, unsigned long long d);
+static unsigned long long callmask = 0;
+#define CALL4(fn, a, b, c, d) (callmask |= wia_abi_call4((void*)(fn), (unsigned long long)(a), \
+                               (unsigned long long)(b), (unsigned long long)(c),               \
+                               (unsigned long long)(d)))
+
 static volatile long long sink;
 
 /* Buffers are file-scope and refilled between calls so that each thunk stays trivial. A thunk that
@@ -1904,6 +1920,53 @@ static void thunk(void){
     sink += wia_numberofsetbits(0);
 }
 
+#elif defined(T_258)
+#define NAME "258-rtlfindclearruns"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+typedef struct { unsigned long StartingIndex; unsigned long NumberOfBits; } ABI_RUN;
+extern unsigned long wia_findclearruns(void*, ABI_RUN*, unsigned long, unsigned char);
+static void thunk(void){
+    /* ALL EIGHT non-volatile GPRs hold loop state here, and the two scans SHARE them: r12 is the
+       SortByLength flag on the way in, then the enumeration mask on the sorted path and the byte
+       table's base on the unsorted one. A prologue that saved the wrong set, or a path that
+       returned without the matching epilogue, would show up here as one of those eight not being
+       restored rather than as a wrong answer -- and both scans have their own exit.
+       Driven: both forms; the 64-bit and 32-bit uniform skips and the byte walk between them; the
+       masked final byte and the 32-bit tail read; a capacity smaller, equal to and larger than the
+       number of runs, so the insertion both shifts and falls off the end; the early return when an
+       unsorted array fills mid-byte; and the degenerate arguments, which return before the loop. */
+    static unsigned long b[128];
+    static ABI_RUN out[80];
+    ABI_RBM bm;
+    int i, k, c;
+    static const unsigned long CAP[4] = { 1, 4, 17, 70 };
+
+    bm.Buffer = b;
+    for (k = 0; k < 5; ++k) {
+        for (i = 0; i < 128; ++i)
+            b[i] = (k == 0) ? 0xFFFFFFFFul                      /* no clear bits at all */
+                 : (k == 1) ? 0ul                               /* one enormous run */
+                 : (k == 2) ? 0xA5A5A5A5ul                      /* a run every two or three bits */
+                 : (k == 3) ? ((i & 1) ? 0xFFFFFFFFul : 0ul)    /* uniform over a ULONG, not a pair */
+                            : ((i & 3) ? 0xFFFFFFFFul : 0x0F0F0F0Ful);
+        for (c = 0; c < 4; ++c) {
+            for (i = 0; i < 12; ++i) {
+                bm.SizeOfBitMap = (unsigned long)(1 + i * 331);  /* on and off the byte boundary */
+                CALL4(wia_findclearruns, &bm, out, CAP[c], 1);
+                CALL4(wia_findclearruns, &bm, out, CAP[c], 0);
+            }
+            bm.SizeOfBitMap = 4096;
+            CALL4(wia_findclearruns, &bm, out, CAP[c], 1);
+            CALL4(wia_findclearruns, &bm, out, CAP[c], 0);
+        }
+    }
+    /* the degenerate arguments: every one of them returns before the loop is entered */
+    bm.SizeOfBitMap = 0;    CALL4(wia_findclearruns, &bm, out, 4, 1);
+    bm.SizeOfBitMap = 4096; CALL4(wia_findclearruns, &bm, out, 0, 1);
+    CALL4(wia_findclearruns, &bm, 0, 4, 1);
+    CALL4(wia_findclearruns, 0, out, 4, 1);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
@@ -1926,6 +1989,7 @@ int main(void){
     /* Several calls: a function that only reaches for xmm6 on its AVX2 path has to be driven down
        that path, and the probe reloads fresh sentinels on every call. */
     for(i = 0; i < 4; i++){ fill(); m = wia_abi_probe(thunk); if(m) break; }
+    m |= callmask;   /* whatever the per-call arming saw, which the thunk cannot have hidden */
 
     for(i = 0; i < 8;  i++) if(m & (1ull << i))     { n++; strcat(hit, GPN[i]); strcat(hit, " "); }
     for(i = 0; i < 10; i++) if(m & (1ull << (8+i))) { n++; sprintf(hit + strlen(hit), "xmm%d ", 6+i); }
