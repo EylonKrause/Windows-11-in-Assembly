@@ -115,3 +115,4 @@ void* wia_sid_alloc(unsigned long n)
 void wia_sid_err_invalid(void) { SetLastError(ERROR_INVALID_SID); }
 void wia_sid_err_param(void)   { SetLastError(ERROR_INVALID_PARAMETER); }
 void wia_sid_err_overflow(void){ SetLastError(ERROR_ARITHMETIC_OVERFLOW); }
+void wia_sid_err_nomem(void)   { SetLastError(ERROR_NOT_ENOUGH_MEMORY); }

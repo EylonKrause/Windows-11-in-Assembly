@@ -2510,6 +2510,74 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_269)
+#define NAME "269-convertstringsidtosid"
+extern int wia_str2sid(const wchar_t*, void**);
+extern int wia_sid_alias_init(void);
+extern int wia_sid_classify_init(void);
+/* Abort rather than run: a table that failed to build would turn every alias into a refusal, and
+   the thunk would still "pass" having never entered the alias path. */
+#define SETUP() do { if (wia_sid_classify_init() || wia_sid_alias_init()) {                    \
+                         printf("ABI 269: the OS-derived tables failed to build\n");           \
+                         ExitProcess(2); } } while (0)
+static void thunk(void){
+    /* SEVEN EXITS AND ALL OF THEM MATTER. This function returns through five different failure
+       labels and two success paths, and three of the five CALL OUT -- to LocalAlloc through
+       wia_sid_alloc, and to SetLastError through the three error setters -- so a register the
+       implementation failed to save could be destroyed on one path and preserved on the others.
+
+       The frame is 1080 bytes with seven registers pushed and nothing pushed in the body, which is
+       the shape whose unwind data can be wrong without any test noticing.
+
+       Armed PER CALL (CALL4), because a thunk that uses a register for its own loop hides an
+       implementation that destroys it. Every allocated SID is freed. */
+    static const wchar_t* CASES[] = {
+        L"S-1-5-1",                                    /* the shortest success */
+        L"S-1-5-21-305419896-2596069104-287454020-1001",   /* a real account SID */
+        L"S-1-5-1-2-3-4-5-6-7-8-9-10",                 /* ten sub-authorities */
+        L"S-0x1-5-1a2b-3c4d",                          /* the hexadecimal carry */
+        L"S-1-\x0661\x0662-\x0967\x0968-\x0E51",     /* the Unicode digit path */
+        L"BA",                                         /* the alias table */
+        L"LA",                                         /* ... and a machine-specific one */
+        L"ZZ",                                         /* not an alias: ERROR_INVALID_SID */
+        L"S-1-5",                                      /* no sub-authority */
+        L"S-256-5-1",                                  /* a revision above 255 */
+        L"S-1-281474976710656-1",                      /* an authority above 48 bits */
+        L"S-1-5-1)",                                   /* the SDDL terminator: clears the pointer */
+        L"not-a-sid",                                  /* an immediate refusal */
+        L""                                            /* empty */
+    };
+    static wchar_t manysub[2048];
+    void* p;
+    unsigned long long sink = 0;
+    int i, n, k;
+
+    for (i = 0; i < (int)(sizeof CASES / sizeof CASES[0]); ++i) {
+        p = 0;
+        sink += (unsigned)CALL4(wia_str2sid, CASES[i], &p, 0, 0);
+        if (p) { LocalFree(p); }
+    }
+    /* and the ERROR_ARITHMETIC_OVERFLOW exit, which needs 255 sub-authorities to reach */
+    n = 0;
+    n += wsprintfW(manysub + n, L"S-1-5");
+    for (k = 0; k < 255; ++k) n += wsprintfW(manysub + n, L"-%d", (k % 9) + 1);
+    p = 0;
+    sink += (unsigned)CALL4(wia_str2sid, manysub, &p, 0, 0);
+    if (p) LocalFree(p);
+    /* and the largest SID that IS accepted, which is the largest allocation and the longest copy */
+    n = 0;
+    n += wsprintfW(manysub + n, L"S-1-5");
+    for (k = 0; k < 254; ++k) n += wsprintfW(manysub + n, L"-%d", (k % 9) + 1);
+    p = 0;
+    sink += (unsigned)CALL4(wia_str2sid, manysub, &p, 0, 0);
+    if (p) LocalFree(p);
+    /* the two NULL arguments */
+    sink += (unsigned)CALL4(wia_str2sid, 0, &p, 0, 0);
+    sink += (unsigned)CALL4(wia_str2sid, L"S-1-5-1", 0, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
