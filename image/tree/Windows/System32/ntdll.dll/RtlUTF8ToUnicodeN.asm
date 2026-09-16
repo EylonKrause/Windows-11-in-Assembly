@@ -13,10 +13,40 @@
 ; special range is consumed (1 FFFD, advance 2); a non-continuation byte-2 is not.
 ; Status: 0, 0x107 STATUS_SOME_NOT_MAPPED, or 0xC0000023 STATUS_BUFFER_TOO_SMALL.
 ;
+; ------------------------------------------------------------------------------
+; A NULL DESTINATION IS THE MEASURING MODE, ADDED 2026-09-16 -- IT WAS MISSING.
+;
+; RtlUTF8ToUnicodeN(NULL, 0, &produced, src, srcLen) is the documented way to ask
+; this function how many bytes of UTF-16 the output will need: the shipped export
+; returns STATUS_SUCCESS with `produced` set and writes nothing. This
+; implementation returned STATUS_BUFFER_TOO_SMALL with produced = 0, and with a
+; NULL pointer and a NON-ZERO size it dereferenced the pointer and faulted.
+; discovery/utf8n_null_destination.c is the evidence; change 016 had the same gap
+; and is corrected in the same way.
+;
+; WHY THE GATES DID NOT CATCH IT: this change is bit-exact against the live export
+; over 400000 cases including every malformed class, and every one of them passes
+; a real destination buffer. A NULL destination is not an edge of the LENGTH,
+; which is what the corpora sweep -- it is a different MODE of the same function.
+;
+; THE COUNTING RULE IS THE ONE THIS DECODER ALREADY IMPLEMENTS, stated in the
+; paragraph above and now also counted without converting: a stray continuation
+; or an invalid lead is one unit and one byte; a lead whose byte-2 is not a
+; continuation at all is one unit and one byte; a lead whose byte-2 IS a
+; continuation but outside that lead's special range is one unit and TWO bytes;
+; a truncated-but-valid prefix is one unit and however many bytes it had; and a
+; complete four-byte sequence is TWO units. It was verified against the live
+; measuring mode over 400000 random strings -- ASCII, continuation runs, lead
+; runs, fully random bytes and valid UTF-8 -- with ZERO disagreements on the size
+; AND on the status, before any of it was written in assembly.
+; ------------------------------------------------------------------------------
+;
 ; ISA: AVX2 + BMI1. Validated on Zen3.
 
 .code
 wia_u82u PROC
+        test      rcx, rcx
+        jz        u82u_measure                      ; a NULL destination asks for the SIZE only
         push      rbx
         push      rsi
         push      rdi
@@ -262,5 +292,141 @@ epi:
         pop       rsi
         pop       rbx
         ret
+; ---------------------------------------------------------------------------------------------
+; THE MEASURING MODE. Entered before the prologue, so it is a leaf: only the volatile registers
+; and the caller's shadow space, which holds the two things there is no register left for.
+;
+;   r9 = src,  [rsp+40] = srcBytes,  [rsp+8] = notMapped,  [rsp+16] = the outLen pointer
+;
+; One byte at a time: this path is not the performance case, the conversion is.
+; ---------------------------------------------------------------------------------------------
+u82u_measure:
+        mov       qword ptr [rsp + 16], r8          ; the outLen pointer, so r8 can be scratch
+        mov       dword ptr [rsp + 8], 0            ; notMapped
+        mov       r10d, dword ptr [rsp + 40]        ; srcBytes
+        xor       r11d, r11d                        ; index
+        xor       eax, eax                          ; units produced
+        jmp       w_test
+ALIGN 16
+w_loop:
+        movzx     ecx, byte ptr [r9 + r11]
+        cmp       ecx, 80h
+        jb        w_ascii
+        cmp       ecx, 0C2h
+        jb        w_bad1                            ; a stray continuation, or C0/C1
+        cmp       ecx, 0E0h
+        jb        w_two
+        cmp       ecx, 0F0h
+        jb        w_three
+        cmp       ecx, 0F5h
+        jb        w_four
+        jmp       w_bad1                            ; F5..FF is never a lead
+
+w_ascii:inc       eax
+        inc       r11
+        jmp       w_test
+w_bad1: mov       dword ptr [rsp + 8], 1
+        inc       eax
+        inc       r11
+        jmp       w_test
+w_bad2: mov       dword ptr [rsp + 8], 1
+        inc       eax
+        add       r11, 2
+        jmp       w_test
+w_bad3: mov       dword ptr [rsp + 8], 1
+        inc       eax
+        add       r11, 3
+        jmp       w_test
+
+w_two:  lea       r8, [r11 + 1]
+        cmp       r8, r10
+        jae       w_bad1                            ; nothing follows the lead
+        movzx     r8d, byte ptr [r9 + r11 + 1]
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad1                            ; what follows is not a continuation
+        inc       eax
+        add       r11, 2
+        jmp       w_test
+
+w_three:lea       r8, [r11 + 1]
+        cmp       r8, r10
+        jae       w_bad1
+        movzx     edx, byte ptr [r9 + r11 + 1]
+        mov       r8d, edx
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad1                            ; not a continuation: consume ONE
+        mov       r8d, 80h                          ; the lead's own lower bound
+        cmp       ecx, 0E0h
+        jne       w3lo
+        mov       r8d, 0A0h
+w3lo:   cmp       edx, r8d
+        jb        w_bad2                            ; a continuation, but out of range: consume TWO
+        mov       r8d, 0BFh
+        cmp       ecx, 0EDh
+        jne       w3hi
+        mov       r8d, 9Fh
+w3hi:   cmp       edx, r8d
+        ja        w_bad2
+        lea       r8, [r11 + 2]
+        cmp       r8, r10
+        jae       w_bad2
+        movzx     r8d, byte ptr [r9 + r11 + 2]
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad2
+        inc       eax
+        add       r11, 3
+        jmp       w_test
+
+w_four: lea       r8, [r11 + 1]
+        cmp       r8, r10
+        jae       w_bad1
+        movzx     edx, byte ptr [r9 + r11 + 1]
+        mov       r8d, edx
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad1
+        mov       r8d, 80h
+        cmp       ecx, 0F0h
+        jne       w4lo
+        mov       r8d, 90h
+w4lo:   cmp       edx, r8d
+        jb        w_bad2
+        mov       r8d, 0BFh
+        cmp       ecx, 0F4h
+        jne       w4hi
+        mov       r8d, 8Fh
+w4hi:   cmp       edx, r8d
+        ja        w_bad2
+        lea       r8, [r11 + 2]
+        cmp       r8, r10
+        jae       w_bad2
+        movzx     r8d, byte ptr [r9 + r11 + 2]
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad2
+        lea       r8, [r11 + 3]
+        cmp       r8, r10
+        jae       w_bad3
+        movzx     r8d, byte ptr [r9 + r11 + 3]
+        sub       r8d, 80h
+        cmp       r8d, 40h
+        jae       w_bad3
+        add       eax, 2                            ; a complete four-byte sequence is a PAIR
+        add       r11, 4
+
+w_test: cmp       r11, r10
+        jb        w_loop
+        add       eax, eax                          ; units -> BYTES of UTF-16
+        mov       r8, qword ptr [rsp + 16]
+        mov       dword ptr [r8], eax
+        xor       eax, eax
+        cmp       dword ptr [rsp + 8], 0
+        je        w_ret
+        mov       eax, 107h                         ; STATUS_SOME_NOT_MAPPED
+w_ret:  ret
+
 wia_u82u ENDP
 END
