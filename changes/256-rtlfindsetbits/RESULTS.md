@@ -18,11 +18,43 @@ change would have been.
 | `RtlFindSetBits` 64, sparse | 1 084 | **0.132** |
 | `RtlFindClearBits` 64, sparse | 212 | **0.026** |
 
-**Five times apart for the same failing full scan** — and not because of the subject: both searches
-fail, both examine everything. They are simply not the same code. `RtlFindSetBits` is at RVA
-`0x111210` with seven saved registers and an alignment prologue; `RtlFindClearBits` at `0x0D0140`
-with five. That asymmetry is a real finding on its own, and it made the pair look like one change
-where the same algorithm would serve both and lift the worse one.
+**Five times apart for the same failing full scan.**
+
+### That explanation was wrong — corrected 2026-09-16 (`probes/topbit.c`)
+
+This section used to continue: *"and not because of the subject: both searches fail, both examine
+everything. They are simply not the same code."* The measurement is real and reproduces. **The
+explanation was wrong, and the truth is a better finding than the one that was published.**
+
+Both exports skip words with the *same* seven-instruction loop, differing by exactly one `not`:
+
+```
+RtlFindClearBits  0x0D0390   test r10,r10 / jns out / add r8,8  / cmp / ja / mov r10,[r8]       / jmp
+RtlFindSetBits    0x1113DF   test r8,r8   / jns out / add rdx,8 / cmp / ja / mov r8,[rdx] / not / jmp
+```
+
+and both **continue skipping while the sign bit is set**. `RtlFindSetBits` inverts the word, so the
+two loops are driven by **opposite top bits of the same data**. `0xA5A5A5A5` — the survey's subject —
+has bit 31 set, so every 64-bit word of it has bit 63 set, which lets `RtlFindClearBits` skip the
+entire map and forces `RtlFindSetBits` onto its slow path once per word.
+
+Rotating the subject by one bit **swaps the two timings**, on the same density, the same run lengths
+and the same failing search:
+
+| pattern | | `RtlFindSetBits` | `RtlFindClearBits` |
+|---|---|---|---|
+| `0xA5A5A5A5` | top bit **set** | 1 000.50 ns | 212.00 ns |
+| `0x5A5A5A5A` | top bit **clear** | 211.00 ns | 923.00 ns |
+
+Every one of those four rows returns *not found*, so every one is a full scan; only the path through
+it differs. At `N = 200`, which takes the `>= 128` path in both and scans for a whole word of the
+wanted value, the rows do **not** swap — 211/211 against 412/410 — which is the control.
+
+So it is not that one export is badly written. **Both have a fast path of about one cycle per 64-bit
+word and a slow path of about five, and which one runs is decided by the top bit of every word** — a
+data dependence no caller can see, on a search whose answer does not depend on it at all. The pair
+is still one change, and the target is now clearer than it was: the slow path, which either export
+lands on for half of all data.
 
 ## What the contract turned out to be
 
@@ -117,10 +149,12 @@ all-ones nibble can still carry up to six ones across each boundary. That bookke
 separates a correct filtered scanner from this one, and it is what the shipped code evidently already
 does.
 
-**So the honest summary is that `RtlFindClearBits` was never the target it appeared to be — and
-`RtlFindSetBits`, five times worse per byte than its own mirror for the same work, still is.** A
-future attempt should build the filtered scanner and aim at the `SET` rows, where the shipped code is
-the weaker of the two.
+**So the honest summary is that neither export was the target it appeared to be, and both are still
+targets.** `probes/topbit.c` shows the 5 × belongs to the subject rather than to one export: each of
+them has a one-cycle-per-word fast path and a five-cycle-per-word slow path, and the top bit of the
+data picks between them. A future attempt should build the filtered scanner and aim at the **slow
+path**, which is reachable on half of all bitmaps through either name — not at "the `SET` rows",
+which is what this file said before the correction.
 
 ## Files
 

@@ -10,11 +10,19 @@
 ;       RtlFindSetBits   64, sparse   1084.07 ns   0.132 ns/byte
 ;       RtlFindClearBits 64, sparse    212.07 ns   0.026 ns/byte
 ;
-; FIVE TIMES APART FOR THE SAME FAILING FULL SCAN, and that is not an artefact of the subject: both
-; searches fail, both examine everything, and they are simply not the same code. One is at 0x111210
-; with seven saved registers and an alignment prologue, the other at 0x0D0140 with five. So the pair
-; is worth one change -- the same algorithm serves both -- and one of them is five times further
-; behind than the other.
+; FIVE TIMES APART FOR THE SAME FAILING FULL SCAN.
+;
+; A CORRECTION, 2026-09-16 (probes/topbit.c). This header used to continue "and that is not an
+; artefact of the subject ... they are simply not the same code". The measurement reproduces; THE
+; EXPLANATION WAS WRONG. Both exports skip words with the SAME seven-instruction loop, differing by
+; one `not` (RtlFindClearBits 0x0D0390, RtlFindSetBits 0x1113DF), and both continue skipping WHILE
+; THE SIGN BIT IS SET. RtlFindSetBits inverts the word, so the two loops are driven by OPPOSITE top
+; bits of the same data -- and 0xA5A5A5A5 has bit 31 set, so every 64-bit word of the survey's
+; subject has bit 63 set. Rotating the pattern by one bit to 0x5A5A5A5A SWAPS the two timings
+; exactly (SetBits 1000.50 -> 211.00 ns, ClearBits 212.00 -> 923.00), on the same density and the
+; same failing search. So neither export is badly written: BOTH have a fast path of about one cycle
+; per 64-bit word and a slow path of about five, and the top bit of every word decides which one
+; runs -- a data dependence no caller can see, on a search whose answer does not depend on it.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c). The hint is the whole question, and
