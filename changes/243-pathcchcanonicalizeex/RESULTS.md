@@ -334,6 +334,24 @@ Three things it deliberately does *not* compare, each for a stated reason:
   does not. What is demanded instead is the HRESULT, the string, its terminator, and — across `cch` 0
   against `cch` 1 — whether anything was written at all. **A canary after the buffer proves our
   implementation never writes outside the `cch` it was given**, which is the property that matters.
+
+  **How wide that divergence actually is was measured later, while change 246 was being built** — 246
+  is a fourteen-instruction envelope over this core, and its first correctness run compared the whole
+  buffer, did not yet know about this paragraph, and failed on shapes as small as `"a."`, where the
+  live export leaves a second zero at `[2]` and this implementation leaves the caller's poison. The
+  numbers, against the live export over 7215 enumerated cases at `cch = MAX_PATH`:
+
+  | | differences |
+  |---|---|
+  | HRESULT | **0** |
+  | result string and its terminator (the contract) | **0** |
+  | dead bytes between the terminator and `cch` | **2989** |
+  | wrote at or past `cch` | **0** |
+
+  The figure worth noting is that **the independent oracle diverges on exactly the same 2989**, which
+  is what says the dead region is a deliberate property of the model rather than an artefact of the
+  assembly. Reproducing it would mean reproducing the shipped body's write *order*, which is precisely
+  what the vectorised copy exists not to do.
 * **Nonzero flags against the oracle.** Those delegate, so the test is that ours equals live *exactly*,
   debris included, which also proves the dispatch.
 * **Nothing about NULL except that both fault.** The last section exists mostly to prove the fault is
