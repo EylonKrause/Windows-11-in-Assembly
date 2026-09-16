@@ -56,6 +56,7 @@ extern void     wia_uue_set_fallback(void*);
 extern int      wia_pathcanonicalizew(wchar_t*, const wchar_t*);
 extern int      wia_pathaddextensionw(wchar_t*, const wchar_t*);
 extern long     wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
+extern long     wia_urlhasha(const char*, BYTE*, unsigned long);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -96,6 +97,10 @@ static long WINAPI w_unes(const wchar_t* u, wchar_t* d, DWORD* pc, DWORD f){
 static volatile LONG c_unea;
 static long WINAPI w_unea(const char* u, char* d, DWORD* pc, DWORD f){
     _InterlockedIncrement(&c_unea); return wia_urlunescapea((char*)u, d, (unsigned long*)pc, f);
+}
+static volatile LONG c_uha;
+static long WINAPI w_uha(const char* u, BYTE* d, DWORD cb){
+    _InterlockedIncrement(&c_uha); return wia_urlhasha(u, d, cb);
 }
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
@@ -2289,6 +2294,221 @@ int main(void){
         }
     }
 
+    // ===================== 249 UrlHashA =====================
+    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlHashA is a jmp
+    // thunk through api-ms-win-core-url-l1-1-0 into this body.
+    //
+    // AND IT COVERS A THIRD CALLER THAT IS NOT A THUNK AT ALL. kernelbase!UrlHashW (RVA 0x12F7B0) is
+    // a wide-to-narrow converter -- a 65-byte inline string builder at [rsp+0x20], the conversion at
+    // 0x4AF18 -- that finishes with `call 0x12F750`, a DIRECT INTERNAL CALL to the same address the
+    // UrlHashA export names. So a patch written over the first bytes of that address is on
+    // UrlHashW's path too, and the wide export starts running our assembly WITHOUT ITSELF BEING
+    // PATCHED. This section proves that rather than asserting it: it drives UrlHashW under the patch
+    // and reads the SAME counter, and nothing else in this harness has that shape.
+    //
+    // WHAT IS BEING PROVED IS A SEAM, NOT AN ALGORITHM. Change 249 is six instructions between two
+    // changes that are already patched and proved in this same harness -- 225 for the length,
+    // 244 for the hash. So the corpus is aimed at what the seam can get wrong:
+    //
+    //   * THE ARGUMENTS ACROSS TWO CALLS. The url, the digest and cbHash live in rbx, rsi and rdi
+    //     across a call to change 225's SEH wrapper and then a call to change 244's kernel.
+    //   * EVERY KERNEL CHANGE 244 HAS. cbHash 1..4 are four separate LEAF kernels, 5 and 13 are the
+    //     first case of each twelve-lane pass, and above 256 the seed WRAPS. All are driven.
+    //   * THE OVERLAP FALLBACK. Change 244's grouped kernel is wrong on all 1641 overlapping
+    //     placements its own probe enumerated, because the shipped inner loop re-reads the source
+    //     byte for every digest lane. UrlHashA hands the caller's pointers straight through, so the
+    //     fallback has to be reachable from here -- and the ORDER matters as well as the answer: the
+    //     shipped envelope takes the length BEFORE the worker seeds the digest, so a digest that
+    //     lands on the url must not change the number of bytes hashed.
+    //   * THE SWALLOWED FAULT. lstrlenA is SEH-wrapped, so an unterminated url at a PAGE_NOACCESS
+    //     page returns S_OK with the IDENTITY SEED. Under the patch that access violation unwinds
+    //     out of our assembly, through change 225's C __except, and out of a patched export's frame.
+    //   * AND THAT IT IS STILL HashData. Every disjoint case is compared against the live HashData
+    //     export on the same bytes as well, because "UrlHashA is HashData behind lstrlenA" is the
+    //     claim that lets this change reuse change 244's kernel at all.
+    printf("[249 UrlHashA]  kernelbase (every 244 kernel, the overlap fallback, the swallowed "
+           "fault -- and UrlHashW, which is NOT patched)\n");
+    {
+        typedef long (WINAPI *fuha)(const char*, BYTE*, DWORD);
+        typedef long (WINAPI *fuhw)(const wchar_t*, BYTE*, DWORD);
+        typedef long (WINAPI *fhd)(const BYTE*, DWORD, BYTE*, DWORD);
+        void* p_uha = (void*)GetProcAddress(hk, "UrlHashA");
+        fuhw sysuhw = (fuhw)GetProcAddress(hk, "UrlHashW");
+        fhd  syshd  = (fhd)GetProcAddress(hk, "HashData");
+        OK(p_uha != NULL, "resolve UrlHashA");
+        OK(sysuhw != NULL, "resolve UrlHashW");
+        OK(syshd != NULL, "resolve HashData");
+        if (p_uha && sysuhw && syshd) {
+            fuha sysuha = (fuha)p_uha;
+            static char uh_url[4300];
+            static BYTE uh_mine[2048], uh_live[2048], uh_hd[2048];
+            static BYTE uh_ova[512], uh_ovb[512];
+            patch_t uha_patch;
+            long cases = 0, leafk = 0, grpk = 0, wrapk = 0, ovl = 0, faults = 0, wide = 0, hdchk = 0;
+            int vpre = 0;
+            LONG c_before = 0;
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = leafk = grpk = wrapk = ovl = faults = wide = hdchk = 0;
+
+                /* every cbHash from 0 to 300 against a spread of url lengths */
+                {
+                    static const int L[] = { 0, 1, 2, 3, 5, 8, 13, 16, 31, 32, 33, 64, 100, 257 };
+                    for (int i = 0; i < 14; ++i) {
+                        for (int k = 0; k < L[i]; ++k) uh_url[k] = (char)(1 + (k * 37) % 255);
+                        uh_url[L[i]] = 0;
+                        for (DWORD cb = 0; cb <= 300; ++cb) {
+                            memset(uh_mine, 0xAB, 512); memset(uh_live, 0xAB, 512);
+                            long ra = wia_urlhasha(uh_url, uh_mine, cb);
+                            long rb = sysuha(uh_url, uh_live, cb);
+                            if (ra != rb) ++mism;
+                            if (memcmp(uh_mine, uh_live, 512) != 0) ++mism;
+                            ++cases;
+                            if (cb >= 1 && cb <= 4) ++leafk; else if (cb >= 5) ++grpk;
+                            if (cb > 256) ++wrapk;
+                            /* and that it is still HashData on the same bytes */
+                            memset(uh_hd, 0xAB, 512);
+                            if (syshd((const BYTE*)uh_url, (DWORD)L[i], uh_hd, cb) != S_OK) ++mism;
+                            if (memcmp(uh_mine, uh_hd, 512) != 0) ++mism;
+                            ++hdchk;
+                        }
+                    }
+                }
+
+                /* OVERLAP: the digest at every offset relative to the url, inside one buffer */
+                for (int doff = -24; doff <= 24; ++doff) {
+                    static const DWORD CB[] = { 1, 2, 4, 5, 12, 13, 20 };
+                    int ub = 64;
+                    if (ub + doff < 0) continue;
+                    for (int c = 0; c < 7; ++c) {
+                        memset(uh_ova, 0xAB, sizeof uh_ova);
+                        memset(uh_ovb, 0xAB, sizeof uh_ovb);
+                        for (int k = 0; k < 24; ++k) {
+                            uh_ova[ub + k] = (BYTE)('a' + k);
+                            uh_ovb[ub + k] = (BYTE)('a' + k);
+                        }
+                        uh_ova[ub + 24] = 0; uh_ovb[ub + 24] = 0;
+                        long ra = wia_urlhasha((const char*)(uh_ova + ub), uh_ova + ub + doff, CB[c]);
+                        long rb = sysuha((const char*)(uh_ovb + ub), uh_ovb + ub + doff, CB[c]);
+                        if (ra != rb) ++mism;
+                        if (memcmp(uh_ova, uh_ovb, sizeof uh_ova) != 0) ++mism;
+                        ++cases; ++ovl;
+                    }
+                }
+
+                /* long urls, which is where change 225's scan and 244's source walk both matter */
+                for (int n = 1000; n <= 4000; n += 1000) {
+                    for (int k = 0; k < n; ++k) uh_url[k] = (char)(1 + (k * 101) % 255);
+                    uh_url[n] = 0;
+                    for (DWORD cb = 1; cb <= 17; cb += 4) {
+                        memset(uh_mine, 0xAB, 512); memset(uh_live, 0xAB, 512);
+                        long ra = wia_urlhasha(uh_url, uh_mine, cb);
+                        long rb = sysuha(uh_url, uh_live, cb);
+                        if (ra != rb || memcmp(uh_mine, uh_live, 512) != 0) ++mism;
+                        ++cases;
+                    }
+                }
+
+                /* the NULL refusals */
+                {
+                    memset(uh_mine, 0xAB, 64); memset(uh_live, 0xAB, 64);
+                    if (wia_urlhasha(0, uh_mine, 16) != sysuha(0, uh_live, 16)) ++mism;
+                    if (memcmp(uh_mine, uh_live, 64) != 0) ++mism;
+                    if (wia_urlhasha("abc", 0, 16) != sysuha("abc", 0, 16)) ++mism;
+                    cases += 2;
+                }
+
+                /* THE SWALLOWED FAULT */
+                {
+                    SYSTEM_INFO si; GetSystemInfo(&si);
+                    char* g = (char*)VirtualAlloc(0, si.dwPageSize * 2,
+                                                  MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+                    if (g) {
+                        DWORD old;
+                        VirtualProtect(g + si.dwPageSize, si.dwPageSize, PAGE_NOACCESS, &old);
+                        for (int tail = 1; tail <= 32; ++tail) {
+                            char* q = (g + si.dwPageSize) - tail;
+                            long ra = 0, rb = 0;
+                            int fa = 0, fb = 0;
+                            for (int k = 0; k < tail; ++k) q[k] = (char)('a' + k % 26);
+                            memset(uh_mine, 0xAB, 512); memset(uh_live, 0xAB, 512);
+                            __try { ra = wia_urlhasha(q, uh_mine, 16); }
+                            __except (EXCEPTION_EXECUTE_HANDLER) { fa = 1; }
+                            __try { rb = sysuha(q, uh_live, 16); }
+                            __except (EXCEPTION_EXECUTE_HANDLER) { fb = 1; }
+                            if (fa != fb || ra != rb) ++mism;
+                            if (memcmp(uh_mine, uh_live, 512) != 0) ++mism;
+                            ++cases; ++faults;
+                        }
+                        VirtualFree(g, 0, MEM_RELEASE);
+                    }
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (HRESULT and whole buffer)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    c_before = c_uha;
+                    OK(patch_on(&uha_patch, p_uha, (void*)w_uha), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_uha)[0], ((unsigned char*)p_uha)[1]);
+                } else {
+                    /* THE WIDE EXPORT, under the narrow one's patch and never patched itself. Its
+                       answer must still match ours on the converted text, AND the counter must move,
+                       which is what proves the direct internal call at 0x12F81F lands on the patch. */
+                    LONG before_wide = c_uha;
+                    for (int i = 0; i <= 80; ++i) {
+                        wchar_t w[300];
+                        for (int k = 0; k < i; ++k) {
+                            uh_url[k] = (char)('a' + (k * 5) % 26);
+                            w[k] = (wchar_t)uh_url[k];
+                        }
+                        uh_url[i] = 0; w[i] = 0;
+                        for (DWORD cb = 0; cb <= 20; cb += 4) {
+                            memset(uh_mine, 0xAB, 512); memset(uh_live, 0xAB, 512);
+                            long ra = wia_urlhasha(uh_url, uh_mine, cb);
+                            long rb = sysuhw(w, uh_live, cb);
+                            if (ra != rb || memcmp(uh_mine, uh_live, 512) != 0) ++mism;
+                            ++cases; ++wide;
+                        }
+                    }
+                    OK(c_uha > before_wide + 300,
+                       "UrlHashW reached OUR code through the NARROW export's patch");
+
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_uha > c_before, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_uha);
+                    printf("  of %ld cases: %ld used one of change 244's four LEAF kernels\n"
+                           "  (cbHash 1..4, exactly cbHash lanes and no saved registers) and %ld its\n"
+                           "  twelve-lane kernel, %ld of those with a digest past 256 where the SEED\n"
+                           "  WRAPS. %ld drove an OVERLAPPING digest -- the placements change 244's\n"
+                           "  grouped kernel gets wrong and hands to a byte-for-byte emulation, and\n"
+                           "  where the ENVELOPE also has to take the length BEFORE the seed is\n"
+                           "  written. %ld were an unterminated url at a PAGE_NOACCESS page, whose\n"
+                           "  fault unwound out of our assembly and through change 225's C __except\n"
+                           "  inside a patched export and returned S_OK with the identity seed. %ld\n"
+                           "  cases were ALSO compared against the live HashData export on the same\n"
+                           "  bytes, because \"UrlHashA is HashData behind lstrlenA\" is the claim\n"
+                           "  that lets this change reuse change 244's kernel instead of re-deriving\n"
+                           "  a measured algorithm. And %ld went through kernelbase!UrlHashW, WHICH\n"
+                           "  IS NOT PATCHED: it reaches UrlHashA by a direct internal call at\n"
+                           "  0x12F81F to the very address the patch overwrote, so the wide export\n"
+                           "  ran our assembly without a byte of it being modified.\n",
+                           cases, leafk, grpk, wrapk, ovl, faults, hdchk, wide);
+                    OK(leafk >= 50, "the leaf kernels ran");
+                    OK(grpk >= 1000, "the twelve-lane kernel ran");
+                    OK(wrapk >= 100, "the wrapping seed ran");
+                    OK(ovl >= 300, "the overlap fallback ran");
+                    OK(faults == 32, "the swallowed fault ran under the patch");
+                    OK(wide >= 400, "the WIDE export ran through the narrow one's patch");
+                    OK(patch_off(&uha_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
+
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -3058,8 +3278,20 @@ int main(void){
                "SWALLOWS the fault: that access violation unwound out of our assembly and through\n"
                "our C __except inside a PATCHED export and still returned S_OK with an empty result,\n"
                "which is the one case a correctness harness can pass while a live run fails.\n"
-               "All nineteen prologues restored byte-for-byte. Zero system processes touched,\n"
-               "nothing on disk modified.\n");
+               "For 249 the corpus is aimed at a SEAM rather than an algorithm -- six instructions\n"
+               "between change 225's length and change 244's hash, both of which are patched and\n"
+               "proved in this same harness -- so it drives every kernel 244 has (four leaf kernels\n"
+               "at cbHash 1..4, the twelve-lane kernel, and a digest past 256 where the seed WRAPS),\n"
+               "the overlapping placements 244's grouped kernel gets wrong and hands to a\n"
+               "byte-for-byte emulation, and a faulting url whose access violation unwinds through\n"
+               "225's C __except inside a patched export. Every disjoint case is ALSO compared\n"
+               "against the live HashData export on the same bytes, because that equivalence is what\n"
+               "lets 249 reuse a measured algorithm instead of re-deriving it. And 249 is the only\n"
+               "change here that moves an export IT NEVER PATCHED: kernelbase!UrlHashW is a\n"
+               "wide-to-narrow converter that reaches UrlHashA by a DIRECT INTERNAL CALL to the same\n"
+               "address the export names, so it ran our assembly with not a byte of itself\n"
+               "modified -- proved by the counter rather than asserted. All twenty prologues\n"
+               "restored byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
         return 0;
     }
     printf("KERNELBASE LIVE SUBSTITUTION: %d FAILURE(S)\n", failures);

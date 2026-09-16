@@ -25,6 +25,9 @@ ml64 /nologo /c /Founes.obj "%C%\245-urlunescapew\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopcan.obj "%C%\246-pathcanonicalizew\impl.asm" >nul || goto :err
 ml64 /nologo /c /Foaddx.obj "%C%\247-pathaddextensionw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Founea.obj "%C%\248-urlunescapea\impl.asm" >nul || goto :err
+REM  249 (UrlHashA) is an envelope over TWO changes already linked here -- 225 for the length,
+REM  including its SEH wrapper, and 244 for the hash -- so only its own six instructions are new.
+ml64 /nologo /c /Fouh.obj "%C%\249-urlhasha\impl.asm" >nul || goto :err
 REM  247's append point is change 132's rule, so 132's assembly is linked in too -- the same
 REM  arrangement 246 has with 243.
 ml64 /nologo /c /Fopfe132.obj "%C%\132-pathfindextensionw\impl.asm" >nul || goto :err
@@ -46,7 +49,7 @@ REM  248 keeps its envelope in seh.c too: the INPLACE-before-validation ordering
 REM  refusal, the __try that reproduces lstrlenA swallowing an access violation, and the staging
 REM  buffer for the one overlap direction a forward single pass cannot do.
 cl /nologo /O2 /MD /EHa /c /Foseh248.obj "%C%\248-urlunescapea\seh.c" >nul || goto :err
-cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj seh228.obj seh230.obj seh248.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj lcata.obj lcatw.obj hash.obj unes.obj unea.obj pcan.obj addx.obj pfe132.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
+cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj seh228.obj seh230.obj seh248.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj lcata.obj lcatw.obj hash.obj unes.obj unea.obj uh.obj pcan.obj addx.obj pfe132.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
 "%H%live_subst_kernelbase.exe"
 endlocal & exit /b %errorlevel%
 :err
