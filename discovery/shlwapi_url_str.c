@@ -35,6 +35,12 @@
        PathSearchAndQualify are excluded deliberately: their cost is an FS round trip, which is not
        ours to remove and would make every number a measurement of the disk.
      * Nothing writes to disk, touches the registry or modifies system state.
+     * RUN IT ON AN IDLE MACHINE. This pins to core 2 and raises its priority, which is enough to
+       keep one busy neighbour out of the way but not enough to survive a loaded box: run once while
+       eight other processes were compiling, EVERY row came out about twice its idle value --
+       UrlUnescapeW 1.57 -> 2.32 ns/byte, UrlCanonicalizeW 2.10 -> 4.32, UrlIsW 6.28 -> 11.98.
+       Nothing about the ranking changed, but none of the absolute numbers were usable, and a
+       ranking is not what gets quoted six months later.
 
    HOW TO READ IT. Rank by ns/byte on the LONG row; for an in-place row subtract the restore line.
    A function whose long row is no slower than its short row is not scaling with the input at all --
@@ -80,12 +86,33 @@ static void row(const char* name, double s, double l, int lbytes, const char* no
 }
 
 /* ---- subjects -------------------------------------------------------------------------------
-   A short URL and a long one; a short path and a long one. The long URL carries a query string
-   with characters that MUST be escaped, because a corpus of already-safe characters would time
-   UrlEscape's fast path only and say nothing about the one it exists for. */
+   A short URL and two long ones; a short path and a long one.
+
+   THE TWO LONG URLs ARE THE CORRECTION OF A MISTAKE IN THE FIRST VERSION OF THIS FILE, and it is
+   worth stating plainly because the number it produced was reported before it was checked. The
+   first version built ONE long URL and put the characters that need escaping -- space, quote,
+   ampersand -- in its QUERY, on the assumption that a corpus of already-safe characters would time
+   UrlEscape's fast path only. That assumption was exactly backwards: UrlEscape leaves the query
+   (the "extra info" segment) ALONE by default, so the subject escaped NOTHING and the row measured
+   a scan that copies the input out unchanged. The file even printed the evidence --
+   "escaping the long URL grew it 1000 -> 1000 chars" -- and it was not read.
+
+   Measured directly afterwards, with every flag the function takes:
+
+       survey subject, flags 0 / SPACES_ONLY / PERCENT / SEGMENT_ONLY / AS_UTF8
+                                              -> S_OK, 1000 chars in, 1000 out, IDENTICAL
+       the same characters in the PATH segment -> S_OK, 1000 chars in, 1784 out
+       "a b\"c d\"e f"                         -> "a%20b%22c%20d%22e%20f"
+
+   So both subjects are kept and both are timed. LONG_U escapes nothing and LONG_UE escapes about
+   four characters in ten, and the pair is more informative than either alone: the difference
+   between the two rows is the cost of the escaping itself, and the LONG_U row is the cost of the
+   walk that decides there is nothing to do. */
 static wchar_t SHORT_U[128];
-static wchar_t LONG_U[4096];
+static wchar_t LONG_U[4096];                 /* escapable characters in the QUERY -> nothing escaped */
+static wchar_t LONG_UE[4096];                /* escapable characters in the PATH  -> about 40% escaped */
 static int     LONG_UN;
+static int     LONG_UEN;
 static wchar_t SHORT_P[64];
 static wchar_t LONG_P[4096];
 static int     LONG_PN;
@@ -95,7 +122,7 @@ static int     ESC_UN;
 static wchar_t out1[8192], out2[8192];
 static wchar_t work[8192], keep[8192];
 static char    workA[8192], keepA[8192];
-static char    SHORT_UA[128], LONG_UA[4096], SHORT_PA[64], LONG_PA[4096];
+static char    SHORT_UA[128], LONG_UA[4096], LONG_UEA[4096], SHORT_PA[64], LONG_PA[4096];
 
 typedef BOOL    (WINAPI *FN_PBW)(const wchar_t*);
 typedef HRESULT (WINAPI *FN_URL3)(const wchar_t*, wchar_t*, DWORD*, DWORD);
@@ -155,6 +182,21 @@ int main(void){
         LONG_U[k] = 0;
         LONG_UN = k;
     }
+    {
+        /* the same length, but the escapable characters are in the PATH, where UrlEscape does act */
+        int k = 0;
+        const wchar_t* head = L"http://example.com/";
+        while (head[k]) { LONG_UE[k] = head[k]; ++k; }
+        while (k < 1000) {
+            LONG_UE[k++] = L'a';
+            if (k < 1000) LONG_UE[k++] = L' ';      /* escaped */
+            if (k < 1000) LONG_UE[k++] = L'b';
+            if (k < 1000) LONG_UE[k++] = L'"';      /* escaped */
+            if (k < 1000) LONG_UE[k++] = L'/';
+        }
+        LONG_UE[k] = 0;
+        LONG_UEN = k;
+    }
     wcscpy(SHORT_P, L"C:\\dir\\file.txt");
     {
         int k = 0;
@@ -168,6 +210,7 @@ int main(void){
     }
     WideCharToMultiByte(CP_ACP, 0, SHORT_U, -1, SHORT_UA, sizeof SHORT_UA, 0, 0);
     WideCharToMultiByte(CP_ACP, 0, LONG_U,  -1, LONG_UA,  sizeof LONG_UA,  0, 0);
+    WideCharToMultiByte(CP_ACP, 0, LONG_UE, -1, LONG_UEA, sizeof LONG_UEA, 0, 0);
     WideCharToMultiByte(CP_ACP, 0, SHORT_P, -1, SHORT_PA, sizeof SHORT_PA, 0, 0);
     WideCharToMultiByte(CP_ACP, 0, LONG_P,  -1, LONG_PA,  sizeof LONG_PA,  0, 0);
 
@@ -195,13 +238,35 @@ int main(void){
         BYTE hashbuf[16];
 
         if (esc) {
+            /* TWO ROWS, and the pair is the point -- see the note at the subjects. The first
+               subject's escapable characters sit in the query, which UrlEscape leaves alone, so
+               that row is the cost of deciding there is nothing to do. The second's sit in the
+               path, so that row carries the escaping as well. */
             cch = 8192; TIME(200000, { cch = 8192; sink += esc(SHORT_U, out1, &cch, 0); });
             double s = _ns;
             cch = 8192; TIME(20000,  { cch = 8192; sink += esc(LONG_U,  out1, &cch, 0); });
-            row("UrlEscapeW", s, _ns, LONG_UN, "writes a 2nd buffer");
-            /* the escaped long URL is UrlUnescape's subject */
-            cch = 8192; esc(LONG_U, ESC_U, &cch, 0); ESC_UN = (int)wcslen(ESC_U);
-            printf("      escaping the long URL grew it %d -> %d chars\n", LONG_UN, ESC_UN);
+            row("UrlEscapeW (no-op)", s, _ns, LONG_UN, "writes a 2nd buffer");
+            cch = 8192; TIME(20000,  { cch = 8192; sink += esc(LONG_UE, out1, &cch, 0); });
+            row("UrlEscapeW (escaping)", s, _ns, LONG_UEN, "writes a 2nd buffer");
+            {
+                /* out2, NOT a local. A `wchar_t chk[8192]` here put sixteen kilobytes on main's
+                   stack frame and shifted every local declared after it, and the HashData row --
+                   twelve sections further down, whose digest is a 16-byte LOCAL read against a
+                   4096-byte static source -- went from 26 115 ns to 50 266. Change 244's own
+                   benchmark, run immediately afterwards, was unmoved at 25 801 ns, which is what
+                   ruled out the machine and pointed at this file. It is the same 4K-aliasing family
+                   as the restore hazard that parked changes 142, 228, 230 and 241: a survey that
+                   measures its own stack layout is not measuring the functions. */
+                DWORD c2 = 8192;
+                esc(LONG_U, out2, &c2, 0);
+                printf("      the query-side subject: %d chars in, %d out -- NOTHING escaped\n",
+                       LONG_UN, (int)wcslen(out2));
+                c2 = 8192; esc(LONG_UE, out2, &c2, 0);
+                printf("      the path-side subject:  %d chars in, %d out\n",
+                       LONG_UEN, (int)wcslen(out2));
+            }
+            /* UrlUnescape's subject is the one that actually carries escapes */
+            cch = 8192; esc(LONG_UE, ESC_U, &cch, 0); ESC_UN = (int)wcslen(ESC_U);
         }
         if (une && ESC_UN) {
             cch = 8192; TIME(200000, { cch = 8192; sink += une(SHORT_U, out1, &cch, 0); });
@@ -281,8 +346,10 @@ int main(void){
             cch = 8192; TIME(200000, { cch = 8192; sink += escA(SHORT_UA, workA, &cch, 0); });
             double s = _ns;
             cch = 8192; TIME(20000,  { cch = 8192; sink += escA(LONG_UA,  workA, &cch, 0); });
-            row("UrlEscapeA", s, _ns, LONG_UN, "writes a 2nd buffer");
-            cch = 8192; escA(LONG_UA, escbuf, &cch, 0); escAN = (int)strlen(escbuf);
+            row("UrlEscapeA (no-op)", s, _ns, LONG_UN, "writes a 2nd buffer");
+            cch = 8192; TIME(20000,  { cch = 8192; sink += escA(LONG_UEA, workA, &cch, 0); });
+            row("UrlEscapeA (escaping)", s, _ns, LONG_UEN, "writes a 2nd buffer");
+            cch = 8192; escA(LONG_UEA, escbuf, &cch, 0); escAN = (int)strlen(escbuf);
         }
         if (uneA && escAN) {
             cch = 8192; TIME(200000, { cch = 8192; sink += uneA(SHORT_UA, workA, &cch, 0); });
