@@ -159,37 +159,51 @@ set side on this subject. Our code is nearly side-independent (8.30 against 7.95
 (9.10 against 22.08). So the row we lose is the one where the shipped code happens to be at its best,
 and the mirror row on the set side is **2.31×**.
 
-### And the third row is the mutation, not the search
+### And the third row: a cliff at N = 65, most of which is the SEARCH
 
-`PAIR 64 Kbit all ones, N=1024` at 0.92× is a *found* case, and there our search is comfortably
-ahead — 6.39 ns against `ntdll`'s 9.14 for the same read-only search. Timing the self-inverting pair
-across N shows where it goes:
+`PAIR 64 Kbit all ones, N=1024` at 0.92× is a *found* case. Timing the self-inverting pair across N,
+beside the same search **read-only** at the same N, splits it:
 
-| N | ntdll pair | ours pair |
-|---|---|---|
-| 8 | 11.00 | **10.41** |
-| 64 | 11.28 | **10.46** |
-| 256 | 13.23 | 21.89 |
-| 1024 | 20.10 | 23.84 |
-| 30000 | 248.83 | **212.35** |
+| N | ntdll pair | ours pair | ratio | ntdll search alone | our search alone |
+|---|---|---|---|---|---|
+| 8 | 11.00 | **10.41** | 1.06× | 3.76 | **2.42** |
+| 64 | 11.38 | **10.46** | 1.09× | 3.80 | **2.43** |
+| 128 | 12.25 | 19.85 | 0.62× | 4.04 | 5.03 |
+| 192 | 12.42 | 21.66 | 0.57× | 4.26 | 5.58 |
+| 256 | 13.35 | 21.85 | 0.61× | 4.39 | 4.59 |
+| 512 | 15.63 | 22.53 | 0.69× | 5.97 | **5.18** |
+| 1024 | 20.16 | 23.42 | 0.86× | 9.09 | **6.31** |
+| 30000 | 250.29 | **243.36** | 1.03× | 189.36 | **80.55** |
 
-There is a **cliff between N=64 and N=256** that belongs to us and not to `ntdll`: ours jumps 11.4 ns
-where the shipped code moves 2.0. Both sides write the same bits, so the fill itself cannot be it;
-what changes at that size is that our mutation stops being one or two masked words and starts
-writing a *run of whole words* — and the very next call in the pair reads those same bytes back with
-**32-byte vector loads**, which cannot forward from the narrow stores that just wrote them, while
-`ntdll`'s scalar `mov r10d, [rax+4]` loop can. That is the same store-forwarding shape change 142
-hit from the other direction, and it is the specific thing to fix first when this is unparked.
+**The step is at N = 65, and the search is most of it.** Our search alone goes from **2.43 ns at
+N ≤ 64 to 5.03 at N = 128** — +2.6 ns — which is change 256's code, not this change's: N = 64 is the
+last size whose aligned filter block is 32 bits, and above it the block doubles. The pair moves
++4.7 ns per call across the same step, so **about 2.6 of it is the search and about 2.1 is the
+mutation and the wrapper**.
+
+**What that remaining 2.1 ns is has NOT been established, and it is recorded here as an open
+question rather than an explanation.** The leading candidate is store forwarding: at N ≥ 65 the
+mutation stops being two masked words and starts writing a run of whole words, and the very next
+call in the pair reads those same bytes back with 32-byte vector loads, which cannot forward from
+the narrow stores that just wrote them — the shape change 142 hit from the other direction, where
+`ntdll`'s scalar `mov r10d, [rax+4]` loop forwards cheaply. **That is a hypothesis.** An earlier
+draft of this file asserted it as the cause of the whole cliff and attributed none of it to the
+search; the table above is what showed that to be wrong, and change 256's own published explanation
+of its 5× gap had to be corrected in five files for the same kind of mistake.
 
 ## What would unpark it
 
-1. **The mutation's store width**, so the search that follows can forward from it — the cliff above
-   is 11 ns on one row and is the largest single item.
-2. **A no-call path for 65…1024 bits.** The 64-bit fast path proves the shape; the obstacle is that a
-   register-resident search stops being cheap past one register, and the honest fix is probably to
-   attack change 256's fixed cost instead, where it would help that change's own small rows too
-   (its worst class is 1.00× for the same reason).
-3. The wrapper's 0.79 ns is **not** worth attacking: it is a call, a frame and two stores, and there
+Every one of the three failing rows is within about **1 ns** of the gate, and two separate items
+would each close most of that. Both of them are in **change 256**, not here:
+
+1. **Change 256's fixed cost below 512 bits** (~7 ns, flat) is what makes the two not-found rows a
+   tie before this change's wrapper is even added. Fixing it would unpark these rows *and* lift
+   change 256's own worst class, which is 1.00× for exactly the same reason.
+2. **Change 256's step at N = 65** (2.43 → 5.03 ns, where its filter block doubles) is most of the
+   pair cliff.
+3. **The remaining ~2.1 ns of that cliff**, which is in the mutation and is not yet explained.
+   Isolating it is the first thing to do, not the first thing to fix — see the hypothesis above.
+4. The wrapper's 0.79 ns is **not** worth attacking: it is a call, a frame and two stores, and there
    is no version of "call another function and then write" that is meaningfully cheaper.
 
 ## Gate 3 — Win64 ABI: PASS

@@ -20,6 +20,19 @@
  *
  * (4) minus (3) IS THE WRAPPER, measured rather than estimated. (1) minus (2) is what the shipped
  * code pays for the same privilege, which is the fair thing to compare it against.
+ *
+ * WHAT IT FOUND, AND WHAT IT CORRECTED. The wrapper is a flat 0.79 ns at every size, and change
+ * 256's search has a fixed cost of about 7 ns that is nearly constant from 128 bits to 1 Kbit --
+ * so below 512 bits the search merely TIES the shipped code and the wrapper turns a tie into a
+ * loss. That is (a), not (b).
+ *
+ * The last section then did the same thing to the PAIR rows, and it is the reason this probe has a
+ * read-only column at all: the first write-up of this change asserted that the cliff between N=64
+ * and N=256 was the MUTATION -- a store-forwarding stall between the fill and the next call's
+ * vector loads -- and credited the search with none of it. Timing the SEARCH ALONE at the same N
+ * shows it stepping 2.43 -> 5.03 ns across exactly that boundary, which is more than half of the
+ * cliff and belongs to change 256. The hypothesis about the remaining ~2.1 ns may still be right;
+ * it is now written down as a hypothesis.
  */
 #include "../../../harness/bench.h"
 
@@ -131,6 +144,10 @@ int main(void)
            "subject", "", "ntdll", "ours256", "", "", "");
     row_found("64 Kbit ones, N=8",     65536, 8);
     row_found("64 Kbit ones, N=64",    65536, 64);
+    row_found("64 Kbit ones, N=128",   65536, 128);
+    row_found("64 Kbit ones, N=192",   65536, 192);
+    row_found("64 Kbit ones, N=256",   65536, 256);
+    row_found("64 Kbit ones, N=512",   65536, 512);
     row_found("64 Kbit ones, N=1024",  65536, 1024);
     row_found("64 Kbit ones, N=30000", 65536, 30000);
 
@@ -141,24 +158,25 @@ int main(void)
        amount of searching and no writing -- leaves the two mutations, and nothing else. */
     {
         volatile uint64_t sink = 0;
-        static const ULONG NS[5] = { 8, 64, 256, 1024, 30000 };
+        static const ULONG NS[8] = { 8, 64, 128, 192, 256, 512, 1024, 30000 };
         int k;
-        printf("\n== THE FILL, ISOLATED (a self-inverting pair, minus the same pair read-only) ==\n");
-        printf("  %-16s %10s %10s %10s %10s\n", "N", "ntdll pair", "ours pair", "ntdll fill", "ours fill");
-        for (k = 0; k < 5; ++k) {
-            double lpair, opair, lpure, opure;
+        /* THE READ-ONLY BASELINE IS NOT A VALID SUBTRAHEND and the columns that used it are gone:
+           RtlFindClearBits over an ALL-ONES bitmap finds nothing and scans all 64 Kbit, so the
+           "read-only pair" does hundreds of ns more searching than the mutating pair, and the
+           difference came out NEGATIVE. What is printed is what can honestly be compared: the two
+           self-inverting pairs against each other, beside the SEARCH alone at the same N from the
+           table above -- which is what separates the search from the fill. */
+        printf("\n== THE SELF-INVERTING PAIR ACROSS N (the only repeatable way to time a mutation) ==\n");
+        printf("  %-16s %10s %10s %10s\n", "N", "ntdll pair", "ours pair", "ratio");
+        for (k = 0; k < 8; ++k) {
+            double lpair, opair;
             ULONG i;
             bm.SizeOfBitMap = 65536; bm.Buffer = buf; n_want = NS[k];
             for (i = 0; i < 2048; ++i) buf[i] = 0xFFFFFFFFu;
             lpair = wia_measure(op_live_pair, NULL, 25, &sink) / REPS;
             for (i = 0; i < 2048; ++i) buf[i] = 0xFFFFFFFFu;
             opair = wia_measure(op_ours_pair, NULL, 25, &sink) / REPS;
-            for (i = 0; i < 2048; ++i) buf[i] = 0xFFFFFFFFu;
-            lpure = wia_measure(op_live_pure2, NULL, 25, &sink) / REPS;
-            for (i = 0; i < 2048; ++i) buf[i] = 0xFFFFFFFFu;
-            opure = wia_measure(op_ours_pure2, NULL, 25, &sink) / REPS;
-            printf("  %-16lu %10.2f %10.2f %10.2f %10.2f\n",
-                   NS[k], lpair, opair, lpair - lpure, opair - opure);
+            printf("  %-16lu %10.2f %10.2f %9.2fx\n", NS[k], lpair, opair, lpair / opair);
         }
     }
     return 0;
