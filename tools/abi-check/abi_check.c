@@ -1648,6 +1648,58 @@ static void thunk(void){
     sink += wia_pathisprefixw(a, b);                       /* long, false early */
 }
 
+#elif defined(T_251)
+#define NAME "251-pathissamerootw"
+extern int       wia_pathissamerootw(const wchar_t*, const wchar_t*);
+extern wchar_t*  wia_pathskiprootw(const wchar_t*);
+extern int       wia_pathcchskiproot_len(const wchar_t*);
+extern void      wia_upcase_init(void);
+#define SETUP() wia_upcase_init()
+static void thunk(void){
+    /* THREE entry points, and the seam between them is what this checks: the root parser is a LEAF
+       that must touch no callee-saved register at all, wia_pathskiprootw keeps the path in rbx
+       across a call to it, and wia_pathissamerootw keeps BOTH paths and then the root length across
+       a call into change 167 -- which reaches for ymm0-ymm5.
+       Driven: every branch of the root parser (drive, lone separator, plain UNC with an empty
+       server and an empty share, the extended prefix in all three of its forms, and the volume GUID
+       including the '[' case-fold trap), both NULL refusals, a relative path where the root skip
+       fails, a shared root with a long tail, and a case-differing root, which is the only input
+       that makes change 167 fold a block. */
+    static wchar_t a[600], b[600];
+    int i;
+    static const wchar_t* R[] = {
+        L"C:\\a\\b", L"C:", L"C:\\", L"c:x", L"1:\\", L"\\", L"\\a",
+        L"\\\\", L"\\\\\\", L"\\\\s", L"\\\\s\\", L"\\\\s\\h",
+        L"\\\\s\\h\\", L"\\\\s\\\\h", L"\\\\.\\C:\\",
+        L"\\\\?\\C:", L"\\\\?\\C:\\", L"\\\\?\\a", L"\\\\?aa:",
+        L"\\\\?\\UNC\\s\\h\\", L"\\\\?\\unc\\s\\h",
+        L"\\\\?\\Volume{12345678-1234-1234-1234-123456789abc}\\",
+        L"\\\\?\\Volume[12345678-1234-1234-1234-123456789abc}\\",
+        L"rel", L"", L"a",
+    };
+    for (i = 0; i < (int)(sizeof R / sizeof R[0]); ++i) {
+        sink += wia_pathcchskiproot_len(R[i]);
+        sink += (wia_pathskiprootw(R[i]) != 0);
+        sink += wia_pathissamerootw(R[i], R[i]);
+    }
+    sink += wia_pathcchskiproot_len(0);
+    sink += (wia_pathskiprootw(0) != 0);
+    sink += wia_pathissamerootw(0, L"C:\\a");
+    sink += wia_pathissamerootw(L"C:\\a", 0);
+    /* a shared root with a long tail: this is where change 167's walk does the work */
+    a[0] = L'C'; a[1] = L':'; a[2] = L'\\';
+    for (i = 0; i < 400; ++i) a[3 + i] = (i % 7 == 6) ? L'\\' : (wchar_t)(L'a' + i % 26);
+    a[403] = 0;
+    memcpy(b, a, sizeof(wchar_t) * 404);
+    sink += wia_pathissamerootw(a, b);
+    b[3] = L'#';
+    sink += wia_pathissamerootw(a, b);
+    for (i = 0; i < 400; ++i) if (b[3 + i] != L'\\') b[3 + i] = (wchar_t)(b[3 + i] - 32);
+    sink += wia_pathissamerootw(a, b);          /* case-differing: folds blocks in 167 */
+    b[0] = L'D';
+    sink += wia_pathissamerootw(a, b);          /* a different root */
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

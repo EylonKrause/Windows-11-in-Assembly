@@ -59,6 +59,8 @@ extern long     wia_urlunescapea(char*, char*, unsigned long*, unsigned long);
 extern long     wia_urlhasha(const char*, BYTE*, unsigned long);
 extern int      wia_pathcommonprefixw(const wchar_t*, const wchar_t*, wchar_t*);
 extern int      wia_pathisprefixw(const wchar_t*, const wchar_t*);
+extern int      wia_pathissamerootw(const wchar_t*, const wchar_t*);
+extern wchar_t* wia_pathskiprootw(const wchar_t*);
 extern void     wia_upcase_init(void);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
@@ -112,6 +114,14 @@ static int WINAPI w_pcp(const wchar_t* a, const wchar_t* b, wchar_t* o){
 static volatile LONG c_pip;
 static BOOL WINAPI w_pip(const wchar_t* pre, const wchar_t* path){
     _InterlockedIncrement(&c_pip); return wia_pathisprefixw(pre, path) ? TRUE : FALSE;
+}
+static volatile LONG c_psr;
+static BOOL WINAPI w_psr(const wchar_t* a, const wchar_t* b){
+    _InterlockedIncrement(&c_psr); return wia_pathissamerootw(a, b) ? TRUE : FALSE;
+}
+static volatile LONG c_skw;
+static wchar_t* WINAPI w_skw(const wchar_t* p){
+    _InterlockedIncrement(&c_skw); return wia_pathskiprootw(p);
 }
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
@@ -2816,6 +2826,189 @@ int main(void){
         }
     }
 
+    // ===================== 251 PathIsSameRootW =====================
+    // TWO EXPORTS ARE PATCHED HERE, SEPARATELY, because this change has two halves that can fail
+    // independently: the ROOT SKIP -- derived from kernelbase!PathCchSkipRoot's disassembly and
+    // refuted against the live export over 210720 cases before any assembly was written -- and the
+    // three lines of arithmetic that sit between it and change 167's walk.
+    //
+    //     PathIsSameRootW(a, b) = a && b && PathSkipRootW(a) != NULL
+    //                          && (PathSkipRootW(a) - a) <= PathCommonPrefixW(a, b, NULL) + 1
+    //
+    // So PathSkipRootW is patched and driven first, over an exhaustive corpus, and only then
+    // PathIsSameRootW. A failure in the first is a failure of the root parser; a failure in the
+    // second with the first passing is a failure of the arithmetic.
+    //
+    // WHY THE ROOT PARSER NEEDED DERIVING AT ALL. This is the blocker that parked change 163, whose
+    // note recorded "leading backslash runs are non-monotonic in length, so no single rule fits".
+    // They are non-monotonic -- 1, 2, 3, 3, 3, ... -- and it IS one rule: the UNC walk consumes the
+    // separator after the SERVER even when the server is empty, and the one after the SHARE only
+    // when the share is not. The corpus below is saturated with exactly those shapes.
+    //
+    // AND OURS SHORT-CIRCUITS WHERE THE SHIPPED ONE DOES NOT. The shipped code calls
+    // PathCommonPrefixW BEFORE it tests whether the root is NULL, so a relative path pays for the
+    // whole walk and then throws it away; ours tests the root first. That is unobservable -- the
+    // walk has no side effects with achPath NULL -- and it is where the 335x row in the benchmark
+    // comes from. The corpus carries relative paths on both sides so the claim is exercised here.
+    printf("[251 PathIsSameRootW]  kernelbase (the root parser first, then the function)\n");
+    {
+        typedef wchar_t* (WINAPI *fskw)(const wchar_t*);
+        typedef BOOL     (WINAPI *fsame)(const wchar_t*, const wchar_t*);
+        HMODULE hsh2 = LoadLibraryW(L"shlwapi.dll");
+        void* p_skw  = (void*)GetProcAddress(hk, "PathSkipRootW");
+        void* p_same = (void*)GetProcAddress(hk, "PathIsSameRootW");
+        fskw  shskw  = (fskw)GetProcAddress(hsh2, "PathSkipRootW");
+        fsame shsame = (fsame)GetProcAddress(hsh2, "PathIsSameRootW");
+        OK(p_skw != NULL, "resolve kernelbase!PathSkipRootW");
+        OK(p_same != NULL, "resolve kernelbase!PathIsSameRootW");
+        OK(shskw != NULL && shsame != NULL, "resolve the shlwapi names");
+        if (p_skw && p_same && shskw && shsame) {
+            static wchar_t corpus[800][10];   /* 5^0..5^4 is 781 -- 400 overflowed and crashed */
+            int cnt = 0;
+            wia_upcase_init();
+            for (int len = 0; len <= 4; ++len) {
+                long total = 1;
+                for (int i = 0; i < len; ++i) total *= 5;
+                for (long v = 0; v < total; ++v) {
+                    long t = v;
+                    for (int i = 0; i < len; ++i) { corpus[cnt][i] = L"\\a:?."[t % 5]; t /= 5; }
+                    corpus[cnt][len] = 0;
+                    ++cnt;
+                }
+            }
+
+            /* ---- the ROOT SKIP, on its own ---- */
+            {
+                patch_t skw_patch;
+                int vpre = 0;
+                long cases = 0, nonnull = 0;
+                for (int pass = 0; pass < 2; ++pass) {
+                    int mism = 0;
+                    cases = nonnull = 0;
+                    for (int i = 0; i < cnt; ++i) {
+                        wchar_t* a = wia_pathskiprootw(corpus[i]);
+                        wchar_t* b = shskw(corpus[i]);
+                        if (a != b) ++mism;
+                        ++cases;
+                        if (a) ++nonnull;
+                    }
+                    {
+                        static const wchar_t* T[] = {
+                            L"C:\\a\\b", L"C:", L"C:\\", L"\\\\srv\\share\\x", L"\\\\srv\\share",
+                            L"\\\\", L"\\\\\\", L"\\\\\\\\", L"\\\\s\\\\h", L"\\\\.\\C:\\",
+                            L"\\\\?\\C:\\", L"\\\\?\\UNC\\s\\h\\", L"\\\\?\\unc\\s\\h",
+                            L"\\\\?\\Volume{12345678-1234-1234-1234-123456789abc}\\",
+                            L"\\\\?\\a", L"\\\\?aa:", L"relative", L"",
+                        };
+                        for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                            wchar_t* a = wia_pathskiprootw(T[i]);
+                            wchar_t* b = shskw(T[i]);
+                            if (a != b) ++mism;
+                            ++cases;
+                            if (a) ++nonnull;
+                        }
+                    }
+                    if (pass == 0) {
+                        vpre = mism;
+                        OK(vpre == 0, "root skip: validate-first vs the LIVE export");
+                        if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                        OK(patch_on(&skw_patch, p_skw, (void*)w_skw), "install the root-skip patch");
+                    } else {
+                        OK(mism == 0, "root skip: identical under live patch");
+                        OK(c_skw > 0, "root skip: counter proves OUR code executed");
+                        printf("  root skip: %s; %ld cases, %ld returned a root; our-code calls = %ld\n",
+                               mism ? "MISMATCH" : "all match", cases, nonnull, (long)c_skw);
+                        OK(nonnull >= 100, "the root skip found roots in bulk");
+                        OK(patch_off(&skw_patch), "root skip: unpatch verified byte-identical");
+                    }
+                }
+            }
+
+            /* ---- and then PathIsSameRootW ---- */
+            {
+                patch_t same_patch;
+                int vpre = 0;
+                long cases = 0, ntrue = 0, norootcase = 0;
+                static const wchar_t* ROOTS[] = {
+                    L"C:\\", L"c:\\", L"D:\\", L"C:", L"\\\\srv\\share\\", L"\\\\srv\\other\\",
+                    L"\\\\?\\C:\\", L"\\\\?\\UNC\\srv\\share\\", L"\\", L"\\\\", L"rel", L"",
+                };
+                static const wchar_t* TAIL[] = { L"", L"a", L"a\\b", L"dir\\file.txt" };
+                static wchar_t x[400], y[400];   /* the long-root loop writes x[3+200] */
+                for (int pass = 0; pass < 2; ++pass) {
+                    int mism = 0;
+                    cases = ntrue = norootcase = 0;
+                    for (int i = 0; i < 12; ++i)
+                        for (int j = 0; j < 12; ++j)
+                            for (int ti = 0; ti < 4; ++ti)
+                                for (int tj = 0; tj < 4; ++tj) {
+                                    int a, b;
+                                    wcscpy(x, ROOTS[i]); wcscat(x, TAIL[ti]);
+                                    wcscpy(y, ROOTS[j]); wcscat(y, TAIL[tj]);
+                                    a = wia_pathissamerootw(x, y) != 0;
+                                    b = shsame(x, y) != 0;
+                                    if (a != b) ++mism;
+                                    ++cases;
+                                    if (a) ++ntrue;
+                                    if (!wia_pathskiprootw(x)) ++norootcase;
+                                }
+                    for (int i = 0; i < cnt; ++i)
+                        for (int j = 0; j < cnt; j += 7) {
+                            int a = wia_pathissamerootw(corpus[i], corpus[j]) != 0;
+                            int b = shsame(corpus[i], corpus[j]) != 0;
+                            if (a != b) ++mism;
+                            ++cases;
+                            if (a) ++ntrue;
+                        }
+                    {   /* a long shared root, which is where change 167's walk earns its keep */
+                        for (int n = 1; n <= 200; ++n) {
+                            int a, b, k;
+                            wcscpy(x, L"C:\\");
+                            for (k = 0; k < n; ++k)
+                                x[3 + k] = (k % 7 == 6) ? L'\\' : (wchar_t)(L'a' + k % 26);
+                            x[3 + n] = 0;
+                            wcscpy(y, x);
+                            a = wia_pathissamerootw(x, y) != 0; b = shsame(x, y) != 0;
+                            if (a != b) ++mism;
+                            ++cases; if (a) ++ntrue;
+                            for (k = 0; k < n; ++k) if (y[3+k] != L'\\') y[3+k] = (wchar_t)(y[3+k]-32);
+                            a = wia_pathissamerootw(x, y) != 0; b = shsame(x, y) != 0;
+                            if (a != b) ++mism;
+                            ++cases; if (a) ++ntrue;
+                        }
+                    }
+                    if ((wia_pathissamerootw(0, L"C:\\a") != 0) != (shsame(0, L"C:\\a") != 0)) ++mism;
+                    if ((wia_pathissamerootw(L"C:\\a", 0) != 0) != (shsame(L"C:\\a", 0) != 0)) ++mism;
+                    cases += 2;
+
+                    if (pass == 0) {
+                        vpre = mism;
+                        OK(vpre == 0, "validate-first vs the LIVE export");
+                        if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                        OK(patch_on(&same_patch, p_same, (void*)w_psr), "install patch");
+                        printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                               ((unsigned char*)p_same)[0], ((unsigned char*)p_same)[1]);
+                    } else {
+                        OK(mism == 0, "identical under live patch");
+                        OK(c_psr > 0, "counter proves OUR code executed");
+                        printf("  under live patch: %s;  our-code calls = %ld\n",
+                               mism ? "MISMATCH" : "all match", (long)c_psr);
+                        printf("  of %ld cases %ld answered TRUE and %ld had NO ROOT AT ALL -- the\n"
+                               "  path where ours short-circuits and the shipped one walks both\n"
+                               "  strings first and then throws the answer away. Every case was\n"
+                               "  driven through the shlwapi name while only the kernelbase body was\n"
+                               "  patched, so the counter also proves shlwapi reaches this body.\n",
+                               cases, ntrue, norootcase);
+                        OK(ntrue >= 500, "the TRUE path ran in bulk");
+                        OK(norootcase >= 100, "the no-root short circuit ran in bulk");
+                        OK(patch_off(&same_patch), "unpatch verified byte-identical");
+                        printf("  unpatched cleanly.\n\n");
+                    }
+                }
+            }
+        }
+    }
+
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -3608,7 +3801,11 @@ int main(void){
                "derive it\" but \"we derived it, and it is PathCommonPrefixW, which is parked\" --\n"
                "so with 167 landed its entire body is two other landed changes, and the corpus is\n"
                "weighted towards TRUE answers because the observable is a single BOOL that a\n"
-               "constant FALSE would satisfy. All twenty-two prologues\n"
+               "constant FALSE would satisfy. For 251 TWO exports are patched separately, because the\n"
+               "change has two halves that fail independently: the ROOT PARSER -- the blocker\n"
+               "that parked change 163, derived from PathCchSkipRoot's disassembly and refuted\n"
+               "against the live export over 210720 cases -- and the arithmetic between it and\n"
+               "change 167's walk. All twenty-four prologues\n"
                "restored byte-for-byte. Zero system processes touched, nothing on disk modified.\n");
         return 0;
     }
