@@ -1,37 +1,231 @@
-# 067 — `RtlConvertSidToUnicodeString` (SID → string) — **LANDS**
+# 067 — `RtlConvertSidToUnicodeString` (SID → string) — **LANDED** (core ntdll, 2.86× geomean)
 
-`NTSTATUS RtlConvertSidToUnicodeString(PUNICODE_STRING Out, PSID Sid, BOOLEAN Allocate)` (the
-caller-buffer form, `Allocate=FALSE`) — format a SID as `"S-<rev>-<authority>-<subauth>-..."`. Used
-**pervasively** in Windows security: ACLs, token/SID comparisons, registry permissions, audit logs.
-ntdll's is scalar (~105 ns).
+`NTSTATUS RtlConvertSidToUnicodeString(PUNICODE_STRING Out, PSID Sid, BOOLEAN Allocate)`, the
+caller-buffer form. Format a SID as `S-<rev>-<authority>-<subauth>-…`. Used **pervasively** in
+Windows security: ACLs, token and SID comparisons, registry permissions, audit logs.
 
-## Semantics (reverse-engineered, validated 0 mismatches / 2,000,000 vs the live export)
-- `"S-"` + revision (decimal) + `"-"` + authority + (`"-"` + sub-authority)×count.
-- The 48-bit identifier authority (6 bytes, big-endian) is **decimal** when < 2³², else `"0x"` +
-  minimal **uppercase** hex.
-- Each sub-authority is an unsigned 32-bit decimal.
-- Revision must be 1, else `STATUS_INVALID_SID` (0xC0000078). Writes the string + NUL and sets
-  `Out->Length`; needs `MaximumLength >= Length + 2` else `STATUS_BUFFER_OVERFLOW` (0x80000005),
-  `Out` untouched.
+- **Compared against:** live `ntdll.dll!RtlConvertSidToUnicodeString`.
+- **ISA:** AVX2 for the final copy; the rest is baseline x64.
 
-## Approach
-A scalar state machine building into a stack temp (decimal via a `du` subroutine, authority hex via a
-`hex64` subroutine, `-` separators), then a bounds-check and copy. The win over ntdll is the lower
-per-field overhead; both are division-bound on the (up to 15) sub-authorities. Baseline x64.
+> **This change was rebuilt from the inside out.** It first landed at **1.42×** with one benchmark
+> row built `/Od`, a correctness gate that could not express three whole classes of input, and an
+> implementation that was wrong on two of them — one of those wrongly enough to overrun its own
+> stack. Everything below the first section is the rebuild. The reason it was reopened is change
+> 270 (`advapi32!ConvertSidToStringSidW`), which is an envelope over this function: a wrapper cannot
+> be faster than what it wraps, and it cannot be more correct either.
 
-## Correctness — bit-exact vs live ntdll
-`correctness.exe`: **PASS**. 3,000,000 random SIDs (0..15 sub-authorities; authorities biased to hit
-both the decimal and `0x` hex forms) + the overflow boundary + revision ≠ 1. Status, `Length`, and the
-string match ntdll and the scalar oracle.
+## What this function is: fifteen number conversions and a copy
 
-## Benchmark — vs live `ntdll!RtlConvertSidToUnicodeString`
+Nothing else is on the critical path, so the only thing that matters is what one 32-bit number
+costs. The first version of `impl.asm` cost **a division per digit**:
+
+```asm
+dul:    xor  edx, edx
+        div  ecx                 ; ecx = 10
+        add  dl, 30h
+        mov  byte ptr [r10], dl  ; ... into a scratch, read back in reverse afterwards
+        inc  r10
+        test eax, eax
+        jnz  dul
 ```
-                       ours ns   system ns    ratio
-S-1-5-21-x-x-x-500      74.18     105.01      1.42x  => LANDS
+
+A sub-authority such as `2596069104` is ten digits, so that was ten **dependent** 32-bit divisions
+and then a second pass to reverse the bytes into wide characters. The file even declared
+`EXTERN wia_dec2b` — the two-digit table changes 054 and 202 use — and then never referenced it.
+
+`probes/decimal.c` measures the three candidates per number:
+
+| | 10-digit | realistic | 1–3 digit |
+|---|---:|---:|---:|
+| a division per digit (what shipped) | 12.77 ns | 13.04 ns | 3.44 ns |
+| multiply by 100, scratch + reverse | 8.62 ns | 8.64 ns | 3.15 ns |
+| **length first, pairs written backwards** | **3.76 ns** | **5.15 ns** | **1.86 ns** |
+
+A five-sub-authority SID is seven numbers, so essentially the *whole* of this function was `div`.
+
+The form now in `impl.asm` does three things differently:
+
+1. **It divides by 100 with a multiply**: `q = (v * 0x51EB851F) >> 37`, in 64 bits.
+2. **It knows the length first**, so the characters go straight into the destination **backwards** —
+   no scratch buffer and no reversal pass. `digits10(v)` is one `BSR`, one byte from a table indexed
+   by the bit length, and one compare against a power of ten.
+3. **It emits two characters per iteration**, as a single dword store out of a 100-entry table of
+   pre-packed UTF-16 pairs.
+
+**Neither constant is quoted.** `probes/decimal.c` checks `(v * 0x51EB851F) >> 37` against the
+compiler's own division, and `digits10` against the compiler's own loop, for **all 4,294,967,296**
+values of `v`: zero counterexamples each. A magic constant that is right for 99.9999 % of its domain
+is a defect no random corpus finds — the standard change 267 applied to its GF(2) shift tables,
+whose first construction *was* wrong.
+
+Every table is generated by the assembler from the definition it is supposed to satisfy: the digit
+pairs from `I/10` and `I MOD 10`, the powers of ten from a running multiply, the bit-length table
+from `(B*1233)/4096 + 1`, and the hex digits from a string. `correctness.c` then checks all four
+against those definitions computed the slow obvious way.
+
+It is also now a **`PROC FRAME`**. The first version was a bare `PROC` with five pushes, a 480-byte
+frame and `call du` inside the body, so it had **no unwind data at all** and an exception raised
+underneath it could not be unwound through.
+
+## Three things the old gate could not express — and two of them were live defects
+
+Each of these was found by *widening the generator*, not by reading the code.
+
+### 1 — A sub-authority count above 15 (a stack overrun)
+
+The old corpus drew its count as `cnt = (seed>>8)%16`. **A count above 15 was never generated
+once.** The live export refuses every one of them with `STATUS_INVALID_SID`; the implementation did
+not, and would have formatted all 200 sub-authorities of a SID whose count byte said 200 — reading
+1028 bytes out of a 68-byte structure and writing about 2500 bytes into a **400-byte stack
+temporary**. `ConvertStringSidToSidW` accepts **254** sub-authorities, so producing such a SID takes
+one call.
+
+The count is now swept **0…255 exhaustively**.
+
+### 2 — An odd `MaximumLength` (the room rule is Length+1, not Length+2)
+
+The old overflow sweep was `for (USHORT ml = 8; ml <= 22; ml += 2)`. **It stepped by two**, so every
+odd value — which is to say the entire boundary — was skipped, and the other 3,000,000 cases all
+used `MaximumLength` 600. `probes/oddroom.c` measured every value around the boundary at three
+lengths:
+
+| `MaximumLength` | status | what is at `[Length]`, `[Length+1]` |
+|---|---|---|
+| ≤ `Length` | `STATUS_BUFFER_OVERFLOW`, `Out` **completely untouched** | the caller's fill |
+| `Length + 1` | **`STATUS_SUCCESS`** | the caller's fill — **no terminator at all** |
+| `Length + 2` and above | `STATUS_SUCCESS` | a full wide NUL |
+
+Both `reference.c` and `impl.asm` required `Length + 2`. Neither writes a terminator at `Length + 1`
+now, and neither writes one byte past `MaximumLength` — `probes/oddroom.c` checked for that too,
+since "it accepts `Length+1`" would also be explained by ntdll overrunning by a byte.
+
+### 3 — A SID that is not fully readable (a refusal *and* a fault, depending on the field)
+
+`changes/270-convertsidtostringsid/probes/truncated.c` placed a SID so that only its first *A* bytes
+were readable, with `PAGE_NOACCESS` immediately after, and swept *A* against the count:
+
+| count | readable | `RtlValidSid` | `RtlConvertSidToUnicodeString` |
+|---:|---:|---|---|
+| 0 | 1 | FALSE | refused |
+| 0 | 2 … 7 | TRUE | **FAULT** — the six authority bytes are unprotected |
+| 0 | 8 | TRUE | OK |
+| 1 | 1 … 11 | FALSE | refused — **the sub-authority array is protected** |
+| 1 | 12 | TRUE | OK |
+| 2 | 1 … 15 | FALSE | refused |
+| 2 | 16 | TRUE | OK |
+
+So the revision byte, the count byte and the sub-authority array are read **under an exception
+handler**, and the six identifier-authority bytes are then read **without one**. An implementation
+that refused everywhere, or faulted everywhere, is wrong on inputs a guard page finds immediately
+and nothing else ever does.
+
+That handler is the compiler's, in `probe.c`, deliberately: hand-rolling an x64 language-specific
+handler and its scope table in MASM so a fault unwinds to a landing pad inside the assembly is real
+work with a real chance of being subtly wrong, and it would buy nothing — table-based SEH costs
+**nothing** at run time when no exception occurs, so all it is worth is the call and four loads.
+The same decision change 269 made about `LocalAlloc` and `SetLastError`: the things the OS owns are
+*called*, not imitated. It is also what the two refusal rows in the benchmark are paying for, and
+ntdll pays it too (it calls `RtlValidSid`).
+
+## Correctness — PASS
+
+Three-way on every case: **ours vs the scalar model in `reference.c` vs the live export**, comparing
+the `NTSTATUS`, `Out->Length`, `Out->MaximumLength` **and every byte of a 1024-byte poison-filled
+destination** — on failing calls as well, because `STATUS_BUFFER_OVERFLOW` must leave it untouched.
+(Comparing only up to the produced length is exactly what let change 016 store sixteen bytes and
+advance by fewer; change 268's whole-buffer comparison found 154 such mismatches.)
+
+| corpus | cases |
+|---|---:|
+| 0. the four assembler-generated tables against their definitions | — |
+| 1. every sub-authority count 0–255 (the limit is 15) | 256 |
+| 2. every revision 0–255 (the only legal one is 1) | 256 |
+| 3. the identifier authority at every decimal and hex boundary, at five counts | 155 |
+| 4. every digit-count boundary as a sub-authority, in every position | 806 |
+| 5. a SID ending exactly at a guard page, every count and every truncation | 60 |
+| 6. every `MaximumLength` 0–300 at five lengths | 1,806 |
+| 7. randomised, the count drawn over its **whole byte range** | 400,000 |
+| | **403,339** |
+
+**0 mismatches.**
+
+**Mutation-tested, 8 mutants, all 8 caught** by both the correctness gate and the live harness: the
+room rule back to `Length+2`; the terminator written when it does not fit; the count limit moved to
+255; the divide-by-100 constant off by one; the digit-count correction dropped; the decimal/hex
+authority boundary moved to 2⁴⁰; the copy rounding its tail up instead of overlapping it; and the
+sub-authority array no longer probed.
+
+## ABI — PASS
+
+`tools\abi-check\check.bat 067`: all 8 non-volatile GPRs and xmm6–xmm15 preserved, stack balanced,
+DF clear. The frame is 552 bytes with eight registers pushed and **one call out** — and the call is
+what makes the unwind data matter, because `wia_sid_header` runs an exception handler and a
+mis-described frame is only visible when something unwinds through it. The thunk drives every path:
+all sixteen counts against six identifier authorities, each at ample room, at barely enough, and at
+none, plus the three refusals. Sentinels armed **per call**.
+
+## Live substitution — PASS
+
+`live-substitution\build_sidfmt_live.bat` patches the export in a sacrificial single-threaded child
+and compares **40,000 cases** on the `NTSTATUS`, `Length`, `MaximumLength` and a hash of **all 1024
+destination bytes**:
+
 ```
-`bench.c` built `/Od`. (`Allocate=TRUE`, which heap-allocates, is out of scope as with 015-031.)
+[pre-patch]  40000 cases;  SUCCESS 19491 (of which 5412 at exactly Length+1, where NO
+             terminator is written, and 6189 longer than 200 bytes, which is the 32-byte
+             copy path), BUFFER_OVERFLOW 12846, INVALID_SID 7663
+[patched]    40000 cases, 0 differ;  our-code calls = 40000
+[post]       40000 cases through the RESTORED export, 0 differ;  our-code calls = 0
+```
+
+`MaximumLength` is drawn from **around the boundary** — `Length-1`, `Length`, `Length+1`,
+`Length+2`, anywhere, ample — rather than from "something generous", and the count is drawn over its
+whole byte range.
+
+**The harness caught its own corpus first.** Its length calculation started at `4` where `"S-1-"` is
+**eight** bytes, so every "exactly `Length+1`" case landed four bytes short of the boundary: the
+first run reported **zero** of them and failed rather than passing with its most important class
+never once reached.
+
+## Speed — LANDS (no size class regressed)
+
+The old benchmark was **one row, built `/Od`, with `#pragma optimize("",off)` around both
+operations** — which times the harness as much as the function, and could not show the one thing
+that matters here, the per-number cost. Eleven rows now, `/O2`, each **pre-flighted**: the table
+states per row what the live export must return, and the bench refuses to run if it does not.
+
+| row | ours ns | ntdll ns | ratio |
+|---|---:|---:|---:|
+| 0 sub-authorities | 6.45 | 12.62 | 1.96× |
+| 1 sub-authority | 7.33 | 18.16 | 2.48× |
+| 2 sub-authorities | 10.24 | 35.09 | 3.43× |
+| 5, a real account SID | 19.84 | 75.09 | **3.78×** |
+| 8 sub-authorities | 32.54 | 126.87 | 3.90× |
+| 15, the maximum | 60.88 | 247.05 | 4.06× |
+| 15, short (1–3 digits) | 28.12 | 121.04 | 4.30× |
+| hex authority, 5 subs | 22.12 | 89.14 | 4.03× |
+| a refusal: revision 2 | 3.89 | 4.28 | 1.10× |
+| a refusal: count 16 | 3.34 | 4.30 | 1.29× |
+| a refusal: no room | 56.62 | 243.00 | 4.29× |
+
+**Overall geomean 2.86× over 11 rows. Worst row 1.10×. No size class regressed → LANDS.**
+
+The row that used to be the whole benchmark — a five-sub-authority account SID — went from
+**1.42× to 3.78×**. The ratio climbs with the count because the per-number cost is what changed; the
+two refusal rows are the floor, and what they are paying for is the protected header read described
+above, which ntdll also pays.
 
 ## Reproduce
 ```
 changes\067-rtlconvertsidtounicodestring\build.bat
+tools\abi-check\check.bat 067
+live-substitution\build_sidfmt_live.bat
 ```
+and the two probes the rewrite rests on:
+```
+cl /O2 probes\decimal.c user32.lib & decimal.exe      (a few seconds: it sweeps all 2^32)
+cl /O2 probes\oddroom.c            & oddroom.exe
+```
+
+`Allocate=TRUE`, which heap-allocates, remains out of scope for this change — as with 015–031. It is
+change 270 that owns the allocating form, through `advapi32!ConvertSidToStringSidW`.

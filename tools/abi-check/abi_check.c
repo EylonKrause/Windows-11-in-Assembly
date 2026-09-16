@@ -2578,6 +2578,69 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_067)
+#define NAME "067-rtlconvertsidtounicodestring"
+typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U067;
+extern long wia_sidfmt(U067*, void*, unsigned char);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* THE FRAME IS 552 BYTES WITH EIGHT REGISTERS PUSHED AND ONE CALL OUT, which is the shape whose
+       unwind data can be wrong without any test noticing -- and the call out is what makes it
+       matter, because wia_sid_header runs an exception handler and a mis-described frame is only
+       visible when something unwinds through it.
+
+       Four paths, and all four are driven: the ordinary format, the hexadecimal identifier
+       authority (a different converter), the two refusals, and the destination-too-small refusal
+       that formats everything first and then throws it away. The maximum-length case is included
+       because it is the one that takes the 32-byte AVX2 copy loop rather than the 8-byte one.
+
+       Armed PER CALL (CALL4), because a thunk that uses a register for its own loop hides an
+       implementation that destroys it. */
+    static unsigned char sid[8 + 4 * 16];
+    static wchar_t buf[512];
+    U067 u;
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (k = 0; k < 6; ++k) {
+        static const unsigned char AUTH[6][6] = {
+            {0,0,0,0,0,5}, {0,0,0,0,0,0}, {0,0,0,0,0,16},
+            {0,0,255,255,255,255}, {1,0,0,0,0,0}, {255,255,255,255,255,255}
+        };
+        for (i = 0; i < 6; ++i) sid[2 + i] = AUTH[k][i];
+        for (i = 0; i < 16; ++i) {
+            unsigned v = (unsigned)(0x9E3779B9u * (unsigned)(i + k + 1));
+            sid[8 + 4*i + 0] = (unsigned char)v;
+            sid[8 + 4*i + 1] = (unsigned char)(v >> 8);
+            sid[8 + 4*i + 2] = (unsigned char)(v >> 16);
+            sid[8 + 4*i + 3] = (unsigned char)(v >> 24);
+        }
+        sid[0] = 1;
+        for (i = 0; i <= 15; ++i) {
+            sid[1] = (unsigned char)i;
+            u.Length = 0; u.MaximumLength = sizeof buf; u.Buffer = buf;
+            sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+            /* ... and the same SID with barely enough room, and with none */
+            u.Length = 0; u.MaximumLength = 12; u.Buffer = buf;
+            sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+            u.Length = 0; u.MaximumLength = 0; u.Buffer = buf;
+            sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+        }
+    }
+    /* the two refusals */
+    sid[0] = 2; sid[1] = 5;
+    u.Length = 0; u.MaximumLength = sizeof buf; u.Buffer = buf;
+    sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+    sid[0] = 1; sid[1] = 16;
+    u.Length = 0; u.MaximumLength = sizeof buf; u.Buffer = buf;
+    sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+    sid[1] = 255;
+    u.Length = 0; u.MaximumLength = sizeof buf; u.Buffer = buf;
+    sink += (unsigned)CALL4(wia_sidfmt, &u, sid, 0, 0);
+
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
