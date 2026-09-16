@@ -2117,6 +2117,74 @@ static void thunk(void){
     CALL4(wia_findlastbackwardrunclear, &bm, 0, &start, 0);
 }
 
+#elif defined(T_262)
+#define NAME "262-rtlfindsetbitsandclear"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned long wia_findsetbitsandclear(void*, unsigned long, unsigned long);
+extern unsigned long wia_findclearbitsandset(void*, unsigned long, unsigned long);
+static void thunk(void){
+    /* THIS ONE IS NOT A LEAF, and it is the only thing in the bitmap family here that is not: it
+       CALLS change 256's search and then mutates, so it has a real frame with real unwind data and
+       it must both preserve the register contract itself AND not be broken by the callee. It keeps
+       the bitmap and the count in the frame it has to allocate anyway rather than in rbx and rsi,
+       so a violation here would mean either the frame arithmetic or change 256 underneath.
+
+       Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for its own loop hides
+       an implementation that destroys r15, as change 258 demonstrated.
+
+       Every path of both halves is driven: the 64-bit fast path that never makes the call (both
+       its found and not-found arms, at one and two ULONGs), the general path through change 256,
+       the mutation inside one word, across two words, and across enough words to reach the vector
+       fill and its overlapping tail; not-found and NumberToFind = 0, which write nothing at all;
+       and every refusal. THE BUFFER IS REBUILT BETWEEN CALLS because these calls CONSUME what they
+       find -- a thunk that did not would be driving the not-found path over and over while
+       believing it was driving the mutation. */
+    static unsigned long b[512];
+    ABI_RBM bm;
+    int i, k, t;
+    static const unsigned long NS[8] = { 1, 2, 8, 33, 64, 200, 1024, 9000 };
+    bm.Buffer = b;
+    for (k = 0; k < 4; ++k) {
+        for (t = 0; t < 8; ++t) {
+            for (i = 0; i < 512; ++i)
+                b[i] = (k == 0) ? 0xFFFFFFFFul : (k == 1) ? 0ul
+                     : (k == 2) ? 0xA5A5A5A5ul : ((i & 3) ? 0xFFFFFFFFul : 0ul);
+            bm.SizeOfBitMap = 16384;
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 0, 0);
+            CALL4(wia_findclearbitsandset, &bm, NS[t], 0, 0);
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 9000, 0);   /* forces the wrap */
+            CALL4(wia_findclearbitsandset, &bm, NS[t], 9000, 0);
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 37, 0);     /* a hint off every boundary */
+
+            /* the 64-bit fast path: one ULONG and two, found and not found */
+            for (i = 0; i < 512; ++i)
+                b[i] = (k == 0) ? 0xFFFFFFFFul : (k == 1) ? 0ul
+                     : (k == 2) ? 0xA5A5A5A5ul : 0xFFFF0000ul;
+            bm.SizeOfBitMap = 32;
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 0, 0);
+            CALL4(wia_findclearbitsandset, &bm, NS[t], 5, 0);
+            bm.SizeOfBitMap = 33;
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 1, 0);
+            CALL4(wia_findclearbitsandset, &bm, NS[t], 40, 0);
+            bm.SizeOfBitMap = 64;
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 0, 0);
+            CALL4(wia_findclearbitsandset, &bm, NS[t], 63, 0);
+            bm.SizeOfBitMap = 7;
+            CALL4(wia_findsetbitsandclear, &bm, NS[t], 0, 0);
+        }
+    }
+    /* the refusals and the arms that write nothing */
+    bm.SizeOfBitMap = 100;
+    CALL4(wia_findsetbitsandclear, &bm, 0, 0, 0);            /* N = 0, an index and no write */
+    CALL4(wia_findclearbitsandset, &bm, 0, 77, 0);
+    CALL4(wia_findsetbitsandclear, &bm, 0, 9999, 0);         /* ... with the hint past the end */
+    CALL4(wia_findsetbitsandclear, &bm, 101, 0, 0);          /* more bits than exist */
+    CALL4(wia_findclearbitsandset, &bm, 101, 0, 0);
+    bm.SizeOfBitMap = 0;
+    CALL4(wia_findsetbitsandclear, &bm, 4, 0, 0);            /* a bitmap of no bits */
+    CALL4(wia_findsetbitsandclear, &bm, 0, 0, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
