@@ -25,6 +25,7 @@ semantics rather than sloppiness.
 | [`shlwapi_url_str.c`](shlwapi_url_str.c) | the three shlwapi families no earlier sweep touched: the **URL** functions, the formatters/parsers, and the remaining path predicates and writers. This is where change 244 came from |
 | [`ntdll_rtl_uncovered.c`](ntdll_rtl_uncovered.c) | ntdll carries 69 landed changes and still has **191 uncovered `Rtl*` exports** whose names suggest string, buffer or bitmap work. This measures the subset that is plausibly byte-wise with a pinnable contract — no locale, no code page, no grammar. This is where **change 252** came from |
 | [`ucrt_uncovered2.c`](ucrt_uncovered2.c) | the ucrtbase exports that are plainly byte loops and are still uncovered, found mechanically: enumerate the exports, subtract `image/tree`’s filenames, drop the `_o__` ordinal aliases, the `_l` locale variants and the `_mbs` code-page family. This is where **change 253** came from |
+| [`kernelbase_path2.c`](kernelbase_path2.c) | the kernelbase path and string exports still uncovered, measured after change 251 landed the `PathCchSkipRoot` root parser. Two **negative results** and a family of already-cheap predicates |
 
 ### What `shlwapi_url_str.c` found
 
@@ -153,6 +154,46 @@ Every row must print what it actually returned. That rule earned its keep twice 
 - **`_makepath` measured 3.22 ns and produced a 2-character result**, because it was assembling the empty components `_splitpath` had just failed to produce.
 
 None of the four was visible in the timing. All four were obvious in the returned value.
+
+### What `kernelbase_path2.c` found: two NO-GOs and nothing worth building
+
+```
+  export / subject                             ns    ns/char  what it returned
+  PathMatchSpecW, 3 patterns              1052.62      0.904  match=1
+  PathMatchSpecExW, 3 patterns            1057.28      0.908  hr=0 (PMSF_MULTIPLE)
+  ChrCmpIW(a,A)                             35.42     35.425  ret=0
+  PathCchStripToRoot, 620-char              19.15      0.016  result="C:\"
+  PathCchStripPrefix, UNC                   15.00      0.027  hr=1
+  PathIsUNCServerShareW, UNC                12.07      0.021  ret=0
+  PathIsUNCServerW, UNC                      8.70      0.015  ret=0
+  PathIsRootW, 620-char                      7.45      0.006  ret=0
+  PathCchIsRoot, 620-char path               7.00      0.006  hr=0
+  PathCchSkipRoot, 620-char path             5.05      0.004  root=3 chars
+  PathIsUNCW, UNC                            4.62      0.008  ret=1
+  CharPrevW, 500 in                          2.00               stepped back 1
+  PathIsUNCW, non-UNC                        1.80      0.002  ret=0
+  PathGetDriveNumberW, 620-char              1.40      0.001  drive=2
+  PathIsRelativeW, 620-char                  1.20      0.001  ret=0
+```
+
+**`PathMatchSpecW` / `PathMatchSpecExW` — BAD, and the reason is concrete.** At 0.9 ns/char these were fifty times the cost of anything else in the survey, and the wrapper looked promising: `PathMatchSpecExW` (RVA 0x0A2E40) `LocalAlloc`s a copy of the spec, splits it on `;` in place, and calls a single-pattern matcher per segment — all of which a reimplementation could do without allocating at all. And the matcher itself (0x0A30E0) opens as ordinary ordinal character work: `cmp ecx, 0x2a` for `*`, `cmp ax, 0x2e` for `.`, `cmp word ptr [rdx], 0x20` for a leading space. **But it folds case with `LCMapStringEx`, per character, at 0x0A31CA and 0x0A3221** — and the argument setup is decisive:
+
+```
+000A31C3  xor ecx, ecx              lpLocaleName = NULL  <== the CURRENT THREAD locale
+000A31B6  mov edx, 0x200            LCMAP_UPPERCASE
+000A31AB  mov r9d, 1                one character at a time
+000A31CA  call LCMapStringEx
+```
+
+A NULL locale name means the thread locale, not the invariant one, so the fold is **locale-parameterised**: under a Turkish locale `i` uppercases to `İ` and the match changes. That is the same category as `StrCmpLogicalW`, `StrChrIW`, `StrStrIW` and `StrCSpnIW` — not reproducible from an ordinal table — and it is also the whole explanation for the cost: a full NLS API call per character.
+
+**`ChrCmpIW` — BAD.** Thirty-five nanoseconds to compare two characters, which is absurd enough to be worth reading: it builds a 0x90-byte stack frame and calls into the same locale machinery (`00012B20`: `sub rsp, 0x90` then `mov ecx, 0x400 / call 0x14730`). Same category, same verdict.
+
+**Everything else in the family is already cheap.** `PathIsRelativeW` at 1.20 ns and `PathGetDriveNumberW` at 1.40 ns over a 1164-character path are O(1) prefix tests that never walk the string; `PathCchSkipRoot` at 5.05 ns is the parser change 251 already derived, and `PathCchIsRoot`/`PathCchStripToRoot` are that parser plus one comparison, at 7.00 and 19.15 ns. There is no byte loop left in this family to vectorise — which is itself the useful finding, because it closes the family rather than leaving it open.
+
+#### And one more dishonest row, caught the same way
+
+`PathMatchSpecExW` was first measured at **16.02 ns against PathMatchSpecW’s 1046** — a 65x gap between two functions that ought to be the same work. They were not being asked the same question: with `flags = 0` (`PMSF_NORMAL`) the Ex form treats the whole `";"`-separated spec as ONE pattern, so it failed immediately. The returned values said so — `match=1` against `hr=S_FALSE` — while the timings looked like a discovery. With `PMSF_MULTIPLE` they agree to within half a percent, which is the real result: `PathMatchSpecW` IS `PathMatchSpecExW(..., PMSF_MULTIPLE)`.
 
 ## What the surveys ruled out, and why
 
