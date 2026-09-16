@@ -1812,6 +1812,52 @@ static void thunk(void){
     sink += (unsigned)wia_findstringordinal(0x00800000, h, 600, n, 8, 1);
 }
 
+#elif defined(T_255)
+#define NAME "255-rtlfindlongestrunclear"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned long wia_findlongestrunclear(void*, unsigned long*);
+static void thunk(void){
+    /* Eight non-volatile GPRs are saved and rbp carries the loop index across an internal call to a
+       leaf -- deliberately, because the obvious `push rax / push rcx` around that call would move
+       rsp by eight bytes this function's unwind info does not describe. So a prologue/epilogue
+       mismatch surfaces here as rbp or r15 not being restored rather than as a wrong answer. The
+       function also uses ymm0-ymm3 for the four-word skip and must VZEROUPPER on every exit.
+       Driven: the all-ones and all-zero vector skips, a mixed bitmap that takes neither, the
+       degenerate sizes (0 bits, 1 bit, a bitmap with no clear bits), the ODD trailing ULONG that
+       must be read as 32 bits, the slack masking, and a long run spanning many words. */
+    static unsigned long b[128];
+    ABI_RBM bm;
+    unsigned long ix = 0;
+    int i, k;
+
+    bm.Buffer = b;
+    for (k = 0; k < 4; ++k) {
+        for (i = 0; i < 128; ++i)
+            b[i] = (k == 0) ? 0xFFFFFFFFul                      /* the all-ones skip */
+                 : (k == 1) ? 0ul                               /* the all-zero skip */
+                 : (k == 2) ? 0xA5A5A5A5ul                      /* mixed: neither skip */
+                            : ((i & 1) ? 0xFFFFFFFFul : 0ul);   /* half and half */
+        for (i = 0; i < 20; ++i) {
+            bm.SizeOfBitMap = (unsigned long)(1 + i * 199);      /* odd and even ULONG counts */
+            sink += wia_findlongestrunclear(&bm, &ix);
+            sink += ix;
+        }
+        bm.SizeOfBitMap = 4096;
+        sink += wia_findlongestrunclear(&bm, &ix);
+        sink += ix;
+    }
+    /* the degenerate sizes, and a long run spanning many words */
+    for (i = 0; i < 128; ++i) b[i] = 0xFFFFFFFFul;
+    bm.SizeOfBitMap = 0;    sink += wia_findlongestrunclear(&bm, &ix);
+    bm.SizeOfBitMap = 1;    sink += wia_findlongestrunclear(&bm, &ix);
+    bm.SizeOfBitMap = 33;   sink += wia_findlongestrunclear(&bm, &ix);
+    bm.SizeOfBitMap = 4096; sink += wia_findlongestrunclear(&bm, &ix);
+    for (i = 40; i < 3000; ++i) b[i >> 5] &= ~(1ul << (i & 31));
+    bm.SizeOfBitMap = 4096; sink += wia_findlongestrunclear(&bm, &ix);
+    sink += ix;
+    sink += wia_findlongestrunclear(0, &ix);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
