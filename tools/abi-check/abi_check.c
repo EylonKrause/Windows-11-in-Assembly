@@ -1524,6 +1524,47 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_250)
+#define NAME "250-rtlipv6stringtoaddressexw"
+extern long wia_ip6exw(const wchar_t*, void*, unsigned long*, unsigned short*);
+static void thunk(void){
+    /* An ENVELOPE over change 166, so the seam is what this checks: the cursor lives in rsi across a
+       call into a routine that saves seven registers of its own, and ScopeId, Port and the bracket
+       flag live in this frame's slots rather than in saved registers -- a callee that failed to
+       restore rsi, or an unwind descriptor that did not match the 64-byte allocation, would corrupt
+       a parse that still looked plausible.
+       Driven: all four NULL refusals; the three port bases and an empty body at each; the scope at
+       its cap and one past; the port at its cap and one past; a bracket opened and never closed and
+       one closed without opening; an address whose remainder the W form would report and this form
+       must reject; and change 166's own paths underneath -- "::" (nothing after the compression, the
+       skip added while landing this change), a full eight groups, and an embedded IPv4 tail. */
+    static wchar_t u[160];
+    unsigned char a[16];
+    unsigned long sc;
+    unsigned short po;
+    static const wchar_t* T[] = {
+        L"::", L"::1", L"1:2:3:4:5:6:7:8", L"::ffff:1.2.3.4", L"1::",
+        L"[::1]", L"[::1]:0", L"[::1]:80", L"[::1]:65535", L"[::1]:65536",
+        L"[::1]:0x", L"[::1]:0x50", L"[::1]:0xffff", L"[::1]:0x10000",
+        L"[::1]:0", L"[::1]:010", L"[::1]:0177777", L"[::1]:0200000", L"[::1]:",
+        L"::1%0", L"::1%4294967295", L"::1%4294967296", L"::1%", L"[fe80::1%9]:443",
+        L"[::1", L"::1]", L"[::1]80", L"::0x1", L"::1.2.3.0x5", L"", L"[", L"]",
+    };
+    int i;
+    for (i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+        int k;
+        for (k = 0; T[i][k]; ++k) u[k] = T[i][k];
+        u[k] = 0;
+        sc = 0xDEADBEEF; po = 0xBEEF;
+        sink += wia_ip6exw(u, a, &sc, &po);
+        sink += a[0] + sc + po;
+    }
+    sink += wia_ip6exw(0, a, &sc, &po);
+    sink += wia_ip6exw(L"::1", 0, &sc, &po);
+    sink += wia_ip6exw(L"::1", a, 0, &po);
+    sink += wia_ip6exw(L"::1", a, &sc, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
