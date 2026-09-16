@@ -1329,6 +1329,44 @@ static void thunk(void){
     cch = 0;   sink += wia_urlunescapew(in, out, &cch, 0);
 }
 
+#elif defined(T_246)
+#define NAME "246-pathcanonicalizew"
+extern int  wia_pathcanonicalizew(wchar_t*, const wchar_t*);
+extern void wia_pccx_set_fallback(void*);
+/* the envelope always passes dwFlags = 0, so change 243's delegation pointer is never followed --
+   it is installed so that a bug which passed something else would fail here rather than jump
+   through a null pointer */
+#define SETUP() wia_pccx_set_fallback((void*)GetProcAddress(LoadLibraryW(L"kernelbase.dll"), \
+                                                           "PathCchCanonicalizeEx"))
+static void thunk(void){
+    /* the envelope's own paths -- both NULL checks, the TRUE return, and both halves of the failure
+       mapping -- plus enough of change 243's core to make sure the call through it preserves
+       everything: a plain path, a dot-dot walk, the MAX_PATH cap on both sides, and a path whose
+       canonical form is far shorter than its input. */
+    static wchar_t out[600];
+    static wchar_t in[700];
+    int i, k;
+    sink += wia_pathcanonicalizew(out, L"C:\\dir\\file.txt");      sink += out[0];
+    sink += wia_pathcanonicalizew(out, L"C:\\a\\..\\b");           sink += out[0];
+    sink += wia_pathcanonicalizew(out, L"\\\\srv\\shr\\x\\..");    sink += out[0];
+    sink += wia_pathcanonicalizew(out, L"\\\\?\\C:\\a\\..\\b");    sink += out[0];
+    sink += wia_pathcanonicalizew(out, L"");                       sink += out[0];
+    for (i = 0; i < 259; ++i) in[i] = (i % 9 == 8) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    in[0] = 0x43; in[1] = 0x3A; in[2] = 0x5C; in[259] = 0;
+    sink += wia_pathcanonicalizew(out, in);                        sink += out[0];  /* 259: fits */
+    for (i = 0; i < 260; ++i) in[i] = (i % 9 == 8) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    in[0] = 0x43; in[1] = 0x3A; in[2] = 0x5C; in[260] = 0;
+    sink += wia_pathcanonicalizew(out, in);                        sink += out[0];  /* 260: refused */
+    k = 0; in[k++] = 0x43; in[k++] = 0x3A; in[k++] = 0x5C;
+    while (k < 594) { in[k++] = 0x61; in[k++] = 0x5C; in[k++] = 0x2E; in[k++] = 0x2E; in[k++] = 0x5C; }
+    while (k < 600) in[k++] = 0x62;
+    in[600] = 0;
+    sink += wia_pathcanonicalizew(out, in);                        sink += out[0];
+    sink += wia_pathcanonicalizew(out, 0);                         sink += out[0];  /* clears out[0] */
+    sink += wia_pathcanonicalizew(0, L"C:\\a");
+    sink += wia_pathcanonicalizew(0, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

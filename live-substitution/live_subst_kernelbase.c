@@ -53,6 +53,7 @@ extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
 extern long     wia_hashdata(const unsigned char*, unsigned long, unsigned char*, unsigned long);
 extern long     wia_urlunescapew(wchar_t*, wchar_t*, unsigned long*, unsigned long);
 extern void     wia_uue_set_fallback(void*);
+extern int      wia_pathcanonicalizew(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -78,6 +79,10 @@ static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static volatile LONG c_cata, c_catw;
 static char* WINAPI w_cata(char* d, const char* q){ _InterlockedIncrement(&c_cata); return wia_lstrcata(d, q); }
+static volatile LONG c_pcan;
+static BOOL WINAPI w_pcan(wchar_t* d, const wchar_t* s){
+    _InterlockedIncrement(&c_pcan); return wia_pathcanonicalizew(d, s) ? TRUE : FALSE;
+}
 static volatile LONG c_unes;
 static long WINAPI w_unes(const wchar_t* u, wchar_t* d, DWORD* pc, DWORD f){
     _InterlockedIncrement(&c_unes); return wia_urlunescapew((wchar_t*)u, d, (unsigned long*)pc, f);
@@ -1613,6 +1618,203 @@ int main(void){
             }
         }
     }
+
+    // ===================== 246 PathCanonicalizeW =====================
+    // An ENVELOPE, and the live proof is about the envelope rather than the walk: the walk is change
+    // 243's, already patched and proved a few blocks above. What is new here is fourteen instructions
+    // -- two NULL checks with a buffer clear BETWEEN them, cch hard-wired to MAX_PATH, dwFlags to
+    // zero, and an HRESULT-to-Win32 mapping -- and three observables that the Ex form does not have:
+    // a BOOL, GetLastError, and the clear itself.
+    //
+    // THERE IS NO DELEGATION HAZARD HERE, unlike change 245. This envelope calls OUR 243 core
+    // directly, not the export, so patching PathCanonicalizeW cannot send it back through itself.
+    //
+    // WHAT IS COMPARED, AND WHAT IS NOT. The BOOL, the result string and its terminator,
+    // GetLastError, and that nothing is written at or past MAX_PATH. NOT the bytes between the
+    // terminator and MAX_PATH: the shipped body leaves the trace of its own character-by-character
+    // walk there and a vectorised one leaves a different trace. That is change 243's documented
+    // decision, not a new one -- demanding those bytes would forbid any vectorised store at all -- and
+    // this change's first correctness run, which did not know that, is what produced the first
+    // measurement of its width: 2989 of 7215 enumerated cases differ there, with ZERO differences in
+    // the result, the HRESULT, or the no-write-past-cch guarantee, and the ORACLE diverges
+    // identically, which is what says the dead region is a property of the model rather than a bug in
+    // the assembly.
+    printf("[246 PathCanonicalizeW]  kernelbase (the envelope: BOOL, GetLastError, clear-then-check)\n");
+    {
+        typedef BOOL (WINAPI *fpcan)(wchar_t*, const wchar_t*);
+        void* p_pcan = (void*)GetProcAddress(hk, "PathCanonicalizeW");
+        OK(p_pcan != NULL, "resolve PathCanonicalizeW");
+        if (p_pcan) {
+            fpcan syspcan = (fpcan)p_pcan;
+            enum { PCAP = 0x104, PTAIL = 32 };
+            static wchar_t pin[900], pmine[PCAP + PTAIL], plive[PCAP + PTAIL];
+            patch_t pcan_patch;
+            long cases = 0, truec = 0, falsec = 0, cleared = 0, longc = 0;
+            int vpre = 0;
+            wia_pccx_set_fallback((void*)GetProcAddress(hk, "PathCchCanonicalizeEx"));
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = truec = falsec = cleared = longc = 0;
+
+                /* the enumerated subspace change 243's contract lives in */
+                static const wchar_t ALPHA[] = L"\\.a:";
+                for (int len = 0; len <= 6; ++len) {
+                    long total = 1;
+                    for (int i = 0; i < len; ++i) total *= 4;
+                    for (long v = 0; v < total; ++v) {
+                        long t = v;
+                        for (int i = 0; i < len; ++i) { pin[i] = ALPHA[t & 3]; t >>= 2; }
+                        pin[len] = 0;
+                        for (int i = 0; i < PCAP + PTAIL; ++i) { pmine[i] = 0xBEEF;
+                                                                 plive[i] = 0xBEEF; }
+                        SetLastError(0xFFFFFFFFu);
+                        int ra = wia_pathcanonicalizew(pmine, pin);
+                        DWORD ea = GetLastError();
+                        SetLastError(0xFFFFFFFFu);
+                        int rb = (int)syspcan(plive, pin);
+                        DWORD eb = GetLastError();
+                        ++cases;
+                        if (rb) ++truec; else ++falsec;
+                        if ((ra != 0) != (rb != 0)) ++mism;
+                        if (!rb && ea != eb) ++mism;
+                        int k = 0;
+                        while (k < PCAP && plive[k] != 0) ++k;
+                        if (k < PCAP) ++k;
+                        if (memcmp(pmine, plive, (size_t)k * sizeof(wchar_t)) != 0) ++mism;
+                        for (int i = PCAP; i < PCAP + PTAIL; ++i)
+                            if (pmine[i] != 0xBEEF) { ++mism; break; }
+                    }
+                }
+
+                /* the shapes the Ex contract turns on, and the MAX_PATH boundary on both sides */
+                {
+                    static const wchar_t* T[] = {
+                        L"", L"C:\\", L"C:\\a", L"C:\\a\\..", L"C:\\a\\..\\b", L"C:\\..\\..",
+                        L"\\\\srv\\shr\\..", L"\\\\?\\C:\\a\\..\\b", L"\\\\?\\UNC\\srv\\shr\\..",
+                        L"C:a", L"C:.", L"...", L"a..", L"\\a\\..", L"C:\\a\\.\\b\\.\\c",
+                    };
+                    for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                        for (int q = 0; q < PCAP + PTAIL; ++q) { pmine[q] = 0xBEEF;
+                                                                 plive[q] = 0xBEEF; }
+                        SetLastError(0xFFFFFFFFu);
+                        int ra = wia_pathcanonicalizew(pmine, T[i]);
+                        DWORD ea = GetLastError();
+                        SetLastError(0xFFFFFFFFu);
+                        int rb = (int)syspcan(plive, T[i]);
+                        DWORD eb = GetLastError();
+                        ++cases;
+                        if (rb) ++truec; else ++falsec;
+                        if ((ra != 0) != (rb != 0) || (!rb && ea != eb)) ++mism;
+                        int k = 0;
+                        while (k < PCAP && plive[k] != 0) ++k;
+                        if (k < PCAP) ++k;
+                        if (memcmp(pmine, plive, (size_t)k * sizeof(wchar_t)) != 0) ++mism;
+                    }
+                }
+
+                /* every input length across the cap, and inputs far past it that canonicalise down */
+                for (int n = 240; n <= 320; ++n) {
+                    for (int i = 0; i < n; ++i) pin[i] = (i % 9 == 8) ? L'\\'
+                                                                     : (wchar_t)(L'a' + i % 23);
+                    pin[0] = L'C'; pin[1] = L':'; pin[2] = L'\\';
+                    pin[n] = 0;
+                    for (int q = 0; q < PCAP + PTAIL; ++q) { pmine[q] = 0xBEEF; plive[q] = 0xBEEF; }
+                    SetLastError(0xFFFFFFFFu);
+                    int ra = wia_pathcanonicalizew(pmine, pin);
+                    DWORD ea = GetLastError();
+                    SetLastError(0xFFFFFFFFu);
+                    int rb = (int)syspcan(plive, pin);
+                    DWORD eb = GetLastError();
+                    ++cases; ++longc;
+                    if (rb) ++truec; else ++falsec;
+                    if ((ra != 0) != (rb != 0) || (!rb && ea != eb)) ++mism;
+                    int k = 0;
+                    while (k < PCAP && plive[k] != 0) ++k;
+                    if (k < PCAP) ++k;
+                    if (memcmp(pmine, plive, (size_t)k * sizeof(wchar_t)) != 0) ++mism;
+                    for (int i = PCAP; i < PCAP + PTAIL; ++i)
+                        if (pmine[i] != 0xBEEF) { ++mism; break; }
+                }
+                for (int n = 300; n <= 880; n += 4) {
+                    int k = 0;
+                    pin[k++] = L'C'; pin[k++] = L':'; pin[k++] = L'\\';
+                    while (k < n - 6) { pin[k++] = L'a'; pin[k++] = L'\\'; pin[k++] = L'.';
+                                        pin[k++] = L'.'; pin[k++] = L'\\'; }
+                    while (k < n) pin[k++] = L'b';
+                    pin[n] = 0;
+                    for (int q = 0; q < PCAP + PTAIL; ++q) { pmine[q] = 0xBEEF; plive[q] = 0xBEEF; }
+                    int ra = wia_pathcanonicalizew(pmine, pin);
+                    int rb = (int)syspcan(plive, pin);
+                    ++cases; ++longc;
+                    if (rb) ++truec; else ++falsec;
+                    if ((ra != 0) != (rb != 0)) ++mism;
+                    int kk = 0;
+                    while (kk < PCAP && plive[kk] != 0) ++kk;
+                    if (kk < PCAP) ++kk;
+                    if (memcmp(pmine, plive, (size_t)kk * sizeof(wchar_t)) != 0) ++mism;
+                }
+
+                /* the NULL cases, where the ORDER of the two checks is observable because the buffer
+                   is cleared between them */
+                {
+                    for (int q = 0; q < PCAP + PTAIL; ++q) { pmine[q] = 0xBEEF; plive[q] = 0xBEEF; }
+                    SetLastError(0xFFFFFFFFu);
+                    int ra = wia_pathcanonicalizew(pmine, 0);
+                    DWORD ea = GetLastError();
+                    SetLastError(0xFFFFFFFFu);
+                    int rb = (int)syspcan(plive, 0);
+                    DWORD eb = GetLastError();
+                    if ((ra != 0) != (rb != 0) || ea != eb) ++mism;
+                    if (memcmp(pmine, plive, (PCAP + PTAIL) * sizeof(wchar_t)) != 0) ++mism;
+                    if (pmine[0] != 0 || plive[0] != 0) ++mism;     /* CLEARED, both of them */
+                    else ++cleared;
+                    SetLastError(0xFFFFFFFFu);
+                    ra = wia_pathcanonicalizew(0, L"C:\\a");
+                    ea = GetLastError();
+                    SetLastError(0xFFFFFFFFu);
+                    rb = (int)syspcan(0, L"C:\\a");
+                    eb = GetLastError();
+                    if ((ra != 0) != (rb != 0) || ea != eb) ++mism;
+                    SetLastError(0xFFFFFFFFu);
+                    ra = wia_pathcanonicalizew(0, 0);
+                    ea = GetLastError();
+                    SetLastError(0xFFFFFFFFu);
+                    rb = (int)syspcan(0, 0);
+                    eb = GetLastError();
+                    if ((ra != 0) != (rb != 0) || ea != eb) ++mism;
+                    cases += 3;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (BOOL, result, GetLastError)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&pcan_patch, p_pcan, (void*)w_pcan), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_pcan)[0], ((unsigned char*)p_pcan)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_pcan > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_pcan);
+                    printf("  of %ld cases: %ld returned TRUE and %ld FALSE, %ld crossed the\n"
+                           "  MAX_PATH cap in one direction or the other, and the NULL-source case\n"
+                           "  confirmed the buffer is CLEARED BEFORE pszSrc is validated -- which is\n"
+                           "  the one thing a careless envelope gets wrong. Compared: the BOOL, the\n"
+                           "  result string and its terminator, GetLastError, and that nothing is\n"
+                           "  written at or past MAX_PATH. The bytes BETWEEN the terminator and\n"
+                           "  MAX_PATH are excluded, because the shipped body leaves the trace of its\n"
+                           "  own per-character walk there; see 243's RESULTS.md for the measurement.\n",
+                           cases, truec, falsec, longc);
+                    OK(truec >= 1000, "the success path ran in bulk");
+                    OK(falsec >= 40, "the failure path ran");
+                    OK(cleared == 1, "the clear-before-validate order was confirmed");
+                    OK(patch_off(&pcan_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -2281,6 +2483,7 @@ int main(void){
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
                "kernelbase!lstrcatA, kernelbase!lstrcatW, kernelbase!HashData,\n"
+               "kernelbase!UrlUnescapeW, kernelbase!PathCanonicalizeW,\n"
                "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
                "kernelbase!PathCchAppendEx, kernelbase!PathCchCombineEx,\n"
                "kernelbase!PathCchAddBackslashEx AND kernelbase!PathCchRemoveBackslashEx.\n"
@@ -2360,7 +2563,11 @@ int main(void){
                "walk. Its DELEGATED classes -- URL_UNESCAPE_AS_UTF8, and an overlap with the\n"
                "destination above the source -- run in the validate-first pass ONLY, because they\n"
                "leave through a tail jump to the original body and a patched export is no longer\n"
-               "that. All sixteen\n"
+               "that. For 246 the ENVELOPE is what is proved rather than the walk, which is 243's and\n"
+               "is patched a few blocks above: a BOOL, GetLastError, and a destination CLEARED BETWEEN\n"
+               "the two NULL checks -- the one thing a careless envelope gets wrong -- driven over the\n"
+               "same enumerated subspace 243 was derived on. It calls OUR 243 core rather than the\n"
+               "export, so unlike 245 it has no delegation hazard under the patch. All seventeen\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
