@@ -17,16 +17,42 @@ extern char* wia_lstrcata(char*, const char*);
 typedef char* (WINAPI *FN)(char*, const char*);
 static FN sys;
 
-typedef struct { char* d; int dn; const char* s; } CASE;
+/* THE RESTORE'S ADDRESS, not its cost. The restore is already minimal -- one store putting back the
+   destination's terminator -- but it landed on the buffer the next call was about to read, and for the
+   short-onto-short rows that store sits INSIDE the first 32-byte block the destination scan loads. A
+   wide load overlapping a just-retired narrow store cannot use store-to-load forwarding: it waits for
+   the store to drain, while the shipped byte loop reads narrowly and forwards from it cheaply. Change
+   241 measured this shape directly -- ours moved 2.9x, the live export 3% -- and it is what parked that
+   change for five runs, its wide sibling 230, and this one.
+
+   So the destination rotates: the store lands on the buffer the PREVIOUS call dirtied. Same single
+   store, same single call, one address apart. The diagnostic in main() reprints both shapes. */
+#define ROT 4
+typedef struct { char* d; int dn; const char* s; char* ds[ROT]; unsigned idx; } CASE;
 
 #pragma optimize("", off)
-static uint64_t op_ours(void* c){ CASE* k=(CASE*)c; k->d[k->dn]=0;
-                                  return (uint64_t)(size_t)wia_lstrcata(k->d, k->s); }
-static uint64_t op_sys (void* c){ CASE* k=(CASE*)c; k->d[k->dn]=0;
-                                  return (uint64_t)(size_t)sys(k->d, k->s); }
+static uint64_t op_ours(void* c){
+    CASE* k=(CASE*)c;
+    unsigned i=k->idx, prev=(i+ROT-1)&(ROT-1);
+    k->ds[prev][k->dn]=0;
+    k->idx=(i+1)&(ROT-1);
+    return (uint64_t)(size_t)wia_lstrcata(k->ds[i], k->s);
+}
+static uint64_t op_sys (void* c){
+    CASE* k=(CASE*)c;
+    unsigned i=k->idx, prev=(i+ROT-1)&(ROT-1);
+    k->ds[prev][k->dn]=0;
+    k->idx=(i+1)&(ROT-1);
+    return (uint64_t)(size_t)sys(k->ds[i], k->s);
+}
+/* the OLD shape, kept only to reprint the artefact: restore and call on the SAME buffer */
+static uint64_t op_ours_same(void* c){ CASE* k=(CASE*)c; k->d[k->dn]=0;
+                                       return (uint64_t)(size_t)wia_lstrcata(k->d, k->s); }
+static uint64_t op_sys_same (void* c){ CASE* k=(CASE*)c; k->d[k->dn]=0;
+                                       return (uint64_t)(size_t)sys(k->d, k->s); }
 #pragma optimize("", on)
 
-static char dpool[24576];
+static char dpool[80000];
 /* 16384, and the offsets below are spaced so no case's source lands inside another's. They
    were not, at first: a 4000-byte source at offset 100 was truncated to 164 bytes by the next
    case writing its terminator at offset 264, and the "4000 onto empty" row then reported 461
@@ -75,6 +101,13 @@ int main(void){
             C[i].dn = DN[i];
             C[i].s  = mks(scur, SN[i]);
             dcur += DN[i] + SN[i] + 64;
+            /* the rotating destinations: identical content, so every iteration times the same call */
+            C[i].ds[0] = C[i].d;
+            C[i].idx = 0;
+            for (int q = 1; q < ROT; ++q) {
+                C[i].ds[q] = mkd(dcur, DN[i]);
+                dcur += DN[i] + SN[i] + 64;
+            }
             scur += SN[i] + 64;
             if (dcur > (int)sizeof dpool || scur > (int)sizeof spool) {
                 printf("BENCH SETUP ERROR: pool too small (dcur=%d, scur=%d)\n", dcur, scur);
@@ -87,5 +120,24 @@ int main(void){
         }
     }
 
-    return wia_bench_compare("kernelbase lstrcatA (wia AVX2 scan + page-clamped append vs kernelbase byte loop)", cs, N, 300);
+    /* reprint the artefact, measured on this run: the same single store, one address apart */
+    {
+        volatile uint64_t sink = 0;
+        printf("the restore's ADDRESS, measured on this run (same work, one address apart):\n");
+        for (int i = 0; i < N; ++i) {
+            if (DN[i] > 64) continue;                 /* the hazard needs the store near the scan start */
+            double so = wia_measure(op_ours_same, &C[i], 60, &sink);
+            double sl = wia_measure(op_sys_same,  &C[i], 60, &sink);
+            double ro = wia_measure(op_ours,      &C[i], 60, &sink);
+            double rl = wia_measure(op_sys,       &C[i], 60, &sink);
+            printf("  %-16s same buffer: ours %6.2f live %6.2f -> %5.2fx   rotated: ours %6.2f "
+                   "live %6.2f -> %5.2fx\n",
+                   names[i], so, sl, so > 0 ? sl/so : 0.0, ro, rl, ro > 0 ? rl/ro : 0.0);
+        }
+        printf("\n");
+    }
+
+    return wia_bench_compare("kernelbase lstrcatA (wia AVX2 scan + page-clamped append vs kernelbase "
+                             "byte loop; the restore is ONE store, on a ROTATED destination)",
+                             cs, N, 300);
 }

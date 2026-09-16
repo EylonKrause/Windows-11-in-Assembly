@@ -18,6 +18,8 @@ ml64 /nologo /c /Folcpna.obj "%C%\211-lstrcpyna\impl.asm" >nul || goto :err
 ml64 /nologo /c /Folena.obj "%C%\225-lstrlena\impl.asm" >nul || goto :err
 ml64 /nologo /c /Folcpa.obj "%C%\227-lstrcpya\impl.asm" >nul || goto :err
 ml64 /nologo /c /Folcpw2.obj "%C%\229-lstrcpyw\impl.asm" >nul || goto :err
+ml64 /nologo /c /Folcata.obj "%C%\228-lstrcata\impl.asm" >nul || goto :err
+ml64 /nologo /c /Folcatw.obj "%C%\230-lstrcatw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Foprfs.obj "%C%\240-pathcchremovefilespec\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopccx.obj "%C%\243-pathcchcanonicalizeex\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopcap.obj "%C%\242-pathcchappendex\impl.asm" >nul || goto :err
@@ -30,7 +32,9 @@ cl /nologo /O2 /MD /c /Foseh211.obj "%C%\211-lstrcpyna\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh225.obj "%C%\225-lstrlena\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh227.obj "%C%\227-lstrcpya\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh229.obj "%C%\229-lstrcpyw\seh.c" >nul || goto :err
-cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
+cl /nologo /O2 /MD /EHa /c /Foseh228.obj "%C%\228-lstrcata\seh.c" >nul || goto :err
+cl /nologo /O2 /MD /EHa /c /Foseh230.obj "%C%\230-lstrcatw\seh.c" >nul || goto :err
+cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj seh228.obj seh230.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj lcata.obj lcatw.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
 "%H%live_subst_kernelbase.exe"
 endlocal & exit /b %errorlevel%
 :err

@@ -1,3 +1,7 @@
+; kernelbase.dll!lstrcatW  --  hand-written x86-64 reimplementation (27.83x vs shipped)
+; source of truth: changes/230-lstrcatw/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/230-lstrcatw/impl.asm
 ; wchar_t* wia_lstrcatw_core(PWSTR dst, PCWSTR src)   [Win64: rcx, rdx -> rax]
 ;

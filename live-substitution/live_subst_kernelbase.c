@@ -48,6 +48,8 @@ extern int      wia_comparestringordinal(const wchar_t*, int, const wchar_t*, in
 extern int      wia_lstrlena(const char*);
 extern char*    wia_lstrcpya(char*, const char*);
 extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
+extern char*    wia_lstrcata(char*, const char*);
+extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -71,6 +73,9 @@ static volatile LONG c_cpa;
 static char* WINAPI w_cpa(char* d, const char* q){ _InterlockedIncrement(&c_cpa); return wia_lstrcpya(d, q); }
 static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
+static volatile LONG c_cata, c_catw;
+static char* WINAPI w_cata(char* d, const char* q){ _InterlockedIncrement(&c_cata); return wia_lstrcata(d, q); }
+static wchar_t* WINAPI w_catw(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_catw); return wia_lstrcatw(d, q); }
 static volatile LONG c_prfs;
 static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs); return wia_pathcchremovefilespec(p, cch); }
 static volatile LONG c_pccx;
@@ -751,6 +756,482 @@ int main(void){
         }
     }
 
+    // ===================== 228 lstrcatA =====================
+    // THE DESTINATION GUARD PAGE is the sweep that matters here, and it is one lstrcpy cannot have.
+    // lstrcat READS the destination before it writes it, so there are THREE ways to go wrong rather
+    // than two, and probes/cata.c measured the shipped export swallowing every one of them:
+    //
+    //     an UNTERMINATED DESTINATION at a NOACCESS page : 80 of 80 tails RETURNED NULL, 0 faulted
+    //     an unterminated SOURCE at a NOACCESS page      : 80 of 80 tails RETURNED NULL, 0 faulted
+    //     a DESTINATION too small for the append         : 79 of 79 rooms RETURNED NULL, 0 faulted
+    //
+    // An implementation that page-clamps only the SOURCE and the APPEND passes every ordinary corpus,
+    // returns the right NULL on the short-destination sweep, and still FAULTS on the one input that
+    // distinguishes cat from cpy: a destination whose terminator is not inside its own mapping. So
+    // that sweep runs here at every distance from the page, alongside a second one that is a
+    // DIFFERENT failure -- a destination terminated exactly ON the last writable byte, where the scan
+    // succeeds and the append has no room at all.
+    //
+    // Every case compares the WHOLE DESTINATION against a poison fill rather than as a string,
+    // because the result is TERMINATED, NOT PADDED, and because an empty append writes a terminator
+    // over an existing one -- a store that is invisible in the bytes but observable on a read-only
+    // page, which is why this implementation falls into the copy with a one-byte length instead of
+    // branching around it.
+    printf("[228 lstrcatA]  kernelbase (THREE guard sweeps: destination, source, and room)\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrcatA");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrcatA") : NULL; }
+        OK(q != NULL, "resolve lstrcatA");
+        if (q) {
+            FNPA syscat = (FNPA)q;
+            SYSTEM_INFO si; GetSystemInfo(&si);
+            SIZE_T pg = si.dwPageSize;
+            char* gsrc = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gda  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gdc  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            static char cpool[8192], cda[8192], cdc[8192], csrc[4200];
+            static const int SNS[7] = { 0, 1, 2, 8, 17, 33, 64 };
+            DWORD old;
+            OK(gsrc && gda && gdc, "VirtualAlloc guard pairs");
+            if (gsrc) VirtualProtect(gsrc+pg, pg, PAGE_NOACCESS, &old);
+            if (gda)  VirtualProtect(gda+pg,  pg, PAGE_NOACCESS, &old);
+            if (gdc)  VirtualProtect(gdc+pg,  pg, PAGE_NOACCESS, &old);
+            patch_t cat_patch;
+            long cases = 0, dstfault = 0, edgecase = 0, srcfault = 0, roomcase = 0, longc = 0,
+                 emptyapp = 0, bytev = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2 && gsrc && gda && gdc; ++pass) {
+                int mism = 0;
+                cases = dstfault = edgecase = srcfault = roomcase = longc = emptyapp = bytev = 0;
+
+                /* ordinary: destination alignment x destination length x source length */
+                for (int dof = 0; dof < 8; ++dof) {
+                    for (int dn = 0; dn <= 60; ++dn) {
+                        for (int k = 0; k < 7; ++k) {
+                            int sn = SNS[k];
+                            char* sp = cpool;
+                            for (int i = 0; i < sn; ++i) sp[i] = (char)('A' + i % 26);
+                            sp[sn] = 0;
+                            memset(cda, '#', 512); memset(cdc, '#', 512);
+                            for (int i = 0; i < dn; ++i) {
+                                cda[dof+i] = (char)('a' + i % 23);
+                                cdc[dof+i] = (char)('a' + i % 23);
+                            }
+                            cda[dof+dn] = 0; cdc[dof+dn] = 0;
+                            char* ra = wia_lstrcata(cda + dof, sp);
+                            char* rc = syscat(cdc + dof, sp);
+                            if ((ra == cda + dof) != (rc == cdc + dof)) ++mism;
+                            if (memcmp(cda, cdc, 512) != 0) ++mism;
+                            ++cases;
+                            if (sn == 0) ++emptyapp;
+                        }
+                    }
+                }
+
+                /* long destinations, where the SCAN dominates -- the shape a caller appending in a
+                   loop actually hits, and the one this change is thirty times faster on */
+                for (int dn = 200; dn <= 4000; dn += 53) {
+                    for (int k = 0; k < 7; ++k) {
+                        int sn = SNS[k];
+                        char* sp = cpool;
+                        for (int i = 0; i < sn; ++i) sp[i] = (char)('A' + i % 26);
+                        sp[sn] = 0;
+                        memset(cda, '#', 4200); memset(cdc, '#', 4200);
+                        for (int i = 0; i < dn; ++i) {
+                            cda[i] = (char)('a' + i % 23);
+                            cdc[i] = (char)('a' + i % 23);
+                        }
+                        cda[dn] = 0; cdc[dn] = 0;
+                        wia_lstrcata(cda, sp);
+                        syscat(cdc, sp);
+                        if (memcmp(cda, cdc, 4200) != 0) ++mism;
+                        ++cases; ++longc;
+                    }
+                }
+
+                /* THE SWEEP lstrcpy DOES NOT HAVE: an UNTERMINATED DESTINATION at every distance from
+                   a NOACCESS page. The scan runs off the end; the export returns NULL having written
+                   nothing, and so must we -- byte for byte. */
+                for (int tail = 1; tail <= 200; ++tail) {
+                    char* wa = (gda+pg) - tail;
+                    char* wc = (gdc+pg) - tail;
+                    for (int i = 0; i < tail; ++i) {                /* NO terminator anywhere */
+                        wa[i] = (char)('a' + i % 23);
+                        wc[i] = (char)('a' + i % 23);
+                    }
+                    char* ra = wia_lstrcata(wa, "xy");
+                    char* rc = syscat(wc, "xy");
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, tail) != 0) ++mism;
+                    ++cases; ++dstfault;
+                }
+
+                /* the destination TERMINATED EXACTLY AT THE EDGE: the scan succeeds and there is no
+                   room for even one appended byte, which is a different failure from the one above */
+                for (int tail = 1; tail <= 200; ++tail) {
+                    char* wa = (gda+pg) - tail;
+                    char* wc = (gdc+pg) - tail;
+                    for (int i = 0; i < tail-1; ++i) {
+                        wa[i] = (char)('a' + i % 23);
+                        wc[i] = (char)('a' + i % 23);
+                    }
+                    wa[tail-1] = 0; wc[tail-1] = 0;
+                    char* ra = wia_lstrcata(wa, "xy");
+                    char* rc = syscat(wc, "xy");
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, tail) != 0) ++mism;
+                    ++cases; ++edgecase;
+                    /* and the EMPTY append onto the same edge-terminated destination, which stores a
+                       terminator exactly where one already is */
+                    char* rb = wia_lstrcata(wa, "");
+                    char* rd = syscat(wc, "");
+                    if ((rb == wa) != (rd == wc)) ++mism;
+                    if (memcmp(wa, wc, tail) != 0) ++mism;
+                    ++cases; ++emptyapp;
+                }
+
+                /* an unterminated SOURCE at every distance: the partial append must match byte for byte */
+                for (int stail = 1; stail <= 200; ++stail) {
+                    char* sp = (gsrc+pg) - stail;
+                    for (int i = 0; i < stail; ++i) sp[i] = (char)('A' + i % 26);  /* no terminator */
+                    memset(cda, '#', 512); memset(cdc, '#', 512);
+                    cda[0] = 'k'; cda[1] = 'e'; cda[2] = 'y'; cda[3] = 0;
+                    cdc[0] = 'k'; cdc[1] = 'e'; cdc[2] = 'y'; cdc[3] = 0;
+                    char* ra = wia_lstrcata(cda, sp);
+                    char* rc = syscat(cdc, sp);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(cda, cdc, 512) != 0) ++mism;
+                    ++cases; ++srcfault;
+                }
+
+                /* a DESTINATION TOO SMALL at every room: filled to the same byte, or the clamp is wrong */
+                for (int i = 0; i < 400; ++i) csrc[i] = (char)('A' + i % 26);
+                csrc[400] = 0;
+                for (int room = 1; room <= 200; ++room) {
+                    char* wa = (gda+pg) - room;
+                    char* wc = (gdc+pg) - room;
+                    int pre = (room >= 6) ? 4 : (room - 1);
+                    memset(wa, '#', room); memset(wc, '#', room);
+                    for (int i = 0; i < pre; ++i) {
+                        wa[i] = (char)('a' + i % 23);
+                        wc[i] = (char)('a' + i % 23);
+                    }
+                    wa[pre] = 0; wc[pre] = 0;
+                    char* ra = wia_lstrcata(wa, csrc);
+                    char* rc = syscat(wc, csrc);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, room) != 0) ++mism;
+                    ++cases; ++roomcase;
+                }
+
+                /* EVERY non-NUL byte value, in the destination and in the source, as a single byte and
+                   as a hundred-byte run -- the narrow siblings in this repository resolve 0x00..0x7F
+                   and 0x80..0xFF through different tables, and an ASCII-only corpus cannot tell a
+                   byte-blind scan from a table-driven one */
+                for (int v = 1; v <= 255; ++v) {
+                    memset(cda, '#', 512); memset(cdc, '#', 512);
+                    cda[0] = (char)v; cda[1] = 0; cdc[0] = (char)v; cdc[1] = 0;
+                    csrc[0] = (char)v; csrc[1] = 'z'; csrc[2] = 0;
+                    wia_lstrcata(cda, csrc); syscat(cdc, csrc);
+                    if (memcmp(cda, cdc, 512) != 0) ++mism;
+                    ++cases; ++bytev;
+                    memset(cda, '#', 512); memset(cdc, '#', 512);
+                    for (int i = 0; i < 100; ++i) { cda[i] = (char)v; cdc[i] = (char)v; }
+                    cda[100] = 0; cdc[100] = 0;
+                    for (int i = 0; i < 200; ++i) csrc[i] = (char)v;
+                    csrc[200] = 0;
+                    wia_lstrcata(cda, csrc); syscat(cdc, csrc);
+                    if (memcmp(cda, cdc, 512) != 0) ++mism;
+                    ++cases; ++bytev;
+                }
+
+                /* every NULL combination, and a NULL source must LEAVE THE DESTINATION ALONE */
+                {
+                    memset(cda, '#', 16); memcpy(cda, "keepme", 7);
+                    memset(cdc, '#', 16); memcpy(cdc, "keepme", 7);
+                    if ((wia_lstrcata(cda, 0) == 0) != (syscat(cdc, 0) == 0)) ++mism;
+                    if (memcmp(cda, cdc, 16) != 0) ++mism;
+                    if (memcmp(cda, "keepme", 7) != 0) ++mism;
+                    if ((wia_lstrcata(0, "abc") == 0) != (syscat(0, "abc") == 0)) ++mism;
+                    if ((wia_lstrcata(0, 0) == 0) != (syscat(0, 0) == 0)) ++mism;
+                    cases += 3;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (three guard sweeps)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&cat_patch, q, (void*)w_cata), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_cata > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_cata);
+                    printf("  of %ld cases: %ld with an UNTERMINATED DESTINATION at a guard page (the\n"
+                           "  failure lstrcpy does not have), %ld terminated EXACTLY on the last\n"
+                           "  writable byte, %ld with an unterminated SOURCE, %ld with a destination\n"
+                           "  TOO SMALL at every room, %ld EMPTY appends (a terminator stored over an\n"
+                           "  existing one), %ld byte-value cases covering all 255 non-NUL values in\n"
+                           "  both strings, %ld long enough for the scan to dominate\n",
+                           cases, dstfault, edgecase, srcfault, roomcase, emptyapp, bytev, longc);
+                    OK(dstfault >= 200, "the unterminated-destination sweep ran in full");
+                    OK(edgecase >= 200, "the edge-terminated sweep ran in full");
+                    OK(srcfault >= 200, "the faulting-source sweep ran in full");
+                    OK(roomcase >= 200, "the short-destination sweep ran in full");
+                    OK(bytev    >= 510, "every non-NUL byte value was placed in both strings");
+                    OK(patch_off(&cat_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+            if (gsrc) VirtualFree(gsrc, 0, MEM_RELEASE);
+            if (gda)  VirtualFree(gda, 0, MEM_RELEASE);
+            if (gdc)  VirtualFree(gdc, 0, MEM_RELEASE);
+        }
+    }
+
+    // ===================== 230 lstrcatW =====================
+    // THE SPLIT CHARACTER, and it is a question the narrow sibling cannot ask. lstrcatW has no bound,
+    // so it runs off the end of a destination too small for the append, returning NULL with the
+    // destination filled to its last writable CHARACTER. When the room left after the existing string
+    // is an ODD number of bytes, the last character cannot be stored whole -- and change 229 measured
+    // the copy-family export writing WHOLE CHARACTERS ONLY, never half of one.
+    //
+    // An implementation whose page clamp rounds in BYTES rather than CHARACTERS passes every ordinary
+    // corpus, returns the right NULL, and leaves ONE EXTRA BYTE in the caller's buffer. Nothing
+    // crashes and no return value differs. Only an odd-width destination at a guard page sees it, so
+    // every width from 1 to 201 bytes is swept here, odd and even.
+    //
+    // On top of that this function inherits lstrcat's THIRD failure, which lstrcpy does not have: it
+    // READS the destination before writing it, so a destination whose terminator is not inside its own
+    // mapping is its own distinct way to go wrong. probes/catw.c measured the shipped export swallowing
+    // all three -- 80 of 80 unterminated destinations, 80 of 80 unterminated sources, 38 of 38 rooms --
+    // and all three are swept below.
+    printf("[230 lstrcatW]  kernelbase (three guard sweeps + EVERY destination width in BYTES)\n");
+    {
+        void* q = (void*)GetProcAddress(hk, "lstrcatW");
+        if (!q) { HMODULE h2 = LoadLibraryW(L"kernel32.dll");
+                  q = h2 ? (void*)GetProcAddress(h2, "lstrcatW") : NULL; }
+        OK(q != NULL, "resolve lstrcatW");
+        if (q) {
+            FNPW syscat = (FNPW)q;
+            SYSTEM_INFO si; GetSystemInfo(&si);
+            SIZE_T pg = si.dwPageSize;
+            char* gsrc = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gda  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            char* gdc  = (char*)VirtualAlloc(0, pg*2, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            static wchar_t wpool[4096], wda[4096], wdc[4096], wsrc[2200];
+            static const int WSNS[7] = { 0, 1, 2, 8, 17, 33, 64 };
+            DWORD old;
+            OK(gsrc && gda && gdc, "VirtualAlloc guard pairs");
+            if (gsrc) VirtualProtect(gsrc+pg, pg, PAGE_NOACCESS, &old);
+            if (gda)  VirtualProtect(gda+pg,  pg, PAGE_NOACCESS, &old);
+            if (gdc)  VirtualProtect(gdc+pg,  pg, PAGE_NOACCESS, &old);
+            patch_t catw_patch;
+            long cases = 0, dstfault = 0, edgecase = 0, srcfault = 0, oddw = 0, evenw = 0,
+                 longc = 0, emptyapp = 0, unitv = 0;
+            int vpre = 0;
+            for (int pass = 0; pass < 2 && gsrc && gda && gdc; ++pass) {
+                int mism = 0;
+                cases = dstfault = edgecase = srcfault = oddw = evenw = longc = emptyapp = unitv = 0;
+
+                /* ordinary: destination alignment x destination length x source length */
+                for (int dof = 0; dof < 8; ++dof) {
+                    for (int dn = 0; dn <= 60; ++dn) {
+                        for (int k = 0; k < 7; ++k) {
+                            int sn = WSNS[k];
+                            wchar_t* sp = wpool;
+                            for (int i = 0; i < sn; ++i) sp[i] = (wchar_t)(L'A' + i % 26);
+                            sp[sn] = 0;
+                            for (int i = 0; i < 300; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                            for (int i = 0; i < dn; ++i) {
+                                wda[dof+i] = (wchar_t)(L'a' + i % 23);
+                                wdc[dof+i] = (wchar_t)(L'a' + i % 23);
+                            }
+                            wda[dof+dn] = 0; wdc[dof+dn] = 0;
+                            wchar_t* ra = wia_lstrcatw(wda + dof, sp);
+                            wchar_t* rc = syscat(wdc + dof, sp);
+                            if ((ra == wda + dof) != (rc == wdc + dof)) ++mism;
+                            if (memcmp(wda, wdc, 300*sizeof(wchar_t)) != 0) ++mism;
+                            ++cases;
+                            if (sn == 0) ++emptyapp;
+                        }
+                    }
+                }
+
+                /* long destinations, where the SCAN dominates -- the accidental quadratic a caller
+                   appending in a loop pays, and the shape this change is fastest on */
+                for (int dn = 200; dn <= 2000; dn += 37) {
+                    for (int k = 0; k < 7; ++k) {
+                        int sn = WSNS[k];
+                        wchar_t* sp = wpool;
+                        for (int i = 0; i < sn; ++i) sp[i] = (wchar_t)(L'A' + i % 26);
+                        sp[sn] = 0;
+                        for (int i = 0; i < 2100; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                        for (int i = 0; i < dn; ++i) {
+                            wda[i] = (wchar_t)(L'a' + i % 23);
+                            wdc[i] = (wchar_t)(L'a' + i % 23);
+                        }
+                        wda[dn] = 0; wdc[dn] = 0;
+                        wia_lstrcatw(wda, sp);
+                        syscat(wdc, sp);
+                        if (memcmp(wda, wdc, 2100*sizeof(wchar_t)) != 0) ++mism;
+                        ++cases; ++longc;
+                    }
+                }
+
+                /* THE SWEEP lstrcpy DOES NOT HAVE: an UNTERMINATED DESTINATION at every distance */
+                for (int tail = 1; tail <= 150; ++tail) {
+                    wchar_t* wa = (wchar_t*)(gda+pg) - tail;
+                    wchar_t* wc = (wchar_t*)(gdc+pg) - tail;
+                    for (int i = 0; i < tail; ++i) {                /* NO terminator anywhere */
+                        wa[i] = (wchar_t)(L'a' + i % 23);
+                        wc[i] = (wchar_t)(L'a' + i % 23);
+                    }
+                    wchar_t* ra = wia_lstrcatw(wa, L"xy");
+                    wchar_t* rc = syscat(wc, L"xy");
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, tail*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++dstfault;
+                }
+
+                /* terminated EXACTLY on the last writable character: the scan succeeds and the append
+                   has no room, which is a different failure from the one above */
+                for (int tail = 1; tail <= 150; ++tail) {
+                    wchar_t* wa = (wchar_t*)(gda+pg) - tail;
+                    wchar_t* wc = (wchar_t*)(gdc+pg) - tail;
+                    for (int i = 0; i < tail-1; ++i) {
+                        wa[i] = (wchar_t)(L'a' + i % 23);
+                        wc[i] = (wchar_t)(L'a' + i % 23);
+                    }
+                    wa[tail-1] = 0; wc[tail-1] = 0;
+                    wchar_t* ra = wia_lstrcatw(wa, L"xy");
+                    wchar_t* rc = syscat(wc, L"xy");
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, tail*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++edgecase;
+                    /* the EMPTY append onto the same edge-terminated destination: a terminator stored
+                       exactly where one already is */
+                    wchar_t* rb = wia_lstrcatw(wa, L"");
+                    wchar_t* rd = syscat(wc, L"");
+                    if ((rb == wa) != (rd == wc)) ++mism;
+                    if (memcmp(wa, wc, tail*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++emptyapp;
+                }
+
+                /* an unterminated SOURCE at every distance: the partial append, character for character */
+                for (int stail = 1; stail <= 150; ++stail) {
+                    wchar_t* sp = (wchar_t*)(gsrc+pg) - stail;
+                    for (int i = 0; i < stail; ++i) sp[i] = (wchar_t)(L'A' + i % 26);
+                    for (int i = 0; i < 300; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                    wda[0] = L'k'; wda[1] = L'e'; wda[2] = L'y'; wda[3] = 0;
+                    wdc[0] = L'k'; wdc[1] = L'e'; wdc[2] = L'y'; wdc[3] = 0;
+                    wchar_t* ra = wia_lstrcatw(wda, sp);
+                    wchar_t* rc = syscat(wdc, sp);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wda, wdc, 300*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++srcfault;
+                }
+
+                /* EVERY destination width in BYTES -- odd and even. The odd ones are the whole point:
+                   the last character cannot be stored whole, and a clamp that rounds in bytes leaves
+                   one extra byte behind with the same return value and no fault. */
+                for (int i = 0; i < 400; ++i) wsrc[i] = (wchar_t)(L'A' + i % 26);
+                wsrc[400] = 0;
+                for (int wbytes = 1; wbytes <= 201; ++wbytes) {
+                    char* wa = (gda+pg) - wbytes;
+                    char* wc = (gdc+pg) - wbytes;
+                    memset(wa, 0x5A, wbytes); memset(wc, 0x5A, wbytes);
+                    if (wbytes >= 2) {                      /* room for at least a terminator */
+                        int cap = wbytes/2 - 1;             /* characters before it that still fit */
+                        int k = cap < 4 ? cap : 4;
+                        for (int i = 0; i < k; ++i) {
+                            ((wchar_t*)wa)[i] = (wchar_t)(L'a' + i % 23);
+                            ((wchar_t*)wc)[i] = (wchar_t)(L'a' + i % 23);
+                        }
+                        ((wchar_t*)wa)[k] = 0; ((wchar_t*)wc)[k] = 0;
+                    }                                        /* wbytes == 1: unterminated by construction */
+                    wchar_t* ra = wia_lstrcatw((wchar_t*)wa, wsrc);
+                    wchar_t* rc = syscat((wchar_t*)wc, wsrc);
+                    if ((ra == 0) != (rc == 0)) ++mism;
+                    if (memcmp(wa, wc, wbytes) != 0) ++mism;
+                    ++cases;
+                    if (wbytes & 1) ++oddw; else ++evenw;
+                }
+
+                /* EVERY code unit in both strings. The narrow sibling could only ask this of 255
+                   values; here it is all 65535 non-NUL ones, placed in the destination and in the
+                   source, so a scan that treats any unit as special is visible. */
+                for (int v = 1; v <= 0xFFFF; ++v) {
+                    for (int i = 0; i < 64; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                    wda[0] = (wchar_t)v; wda[1] = 0; wdc[0] = (wchar_t)v; wdc[1] = 0;
+                    wpool[0] = (wchar_t)v; wpool[1] = L'z'; wpool[2] = 0;
+                    wia_lstrcatw(wda, wpool); syscat(wdc, wpool);
+                    if (memcmp(wda, wdc, 64*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++unitv;
+                }
+                /* and as RUNS, sampled, so the unit under test also drives the vector loop */
+                for (int v = 1; v <= 0xFFFF; v += 137) {
+                    for (int i = 0; i < 400; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                    for (int i = 0; i < 100; ++i) { wda[i] = (wchar_t)v; wdc[i] = (wchar_t)v; }
+                    wda[100] = 0; wdc[100] = 0;
+                    for (int i = 0; i < 200; ++i) wsrc[i] = (wchar_t)v;
+                    wsrc[200] = 0;
+                    wia_lstrcatw(wda, wsrc); syscat(wdc, wsrc);
+                    if (memcmp(wda, wdc, 400*sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++unitv;
+                }
+
+                /* every NULL combination, and a NULL source must LEAVE THE DESTINATION ALONE */
+                {
+                    for (int i = 0; i < 16; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
+                    memcpy(wda, L"keepme", 7*sizeof(wchar_t));
+                    memcpy(wdc, L"keepme", 7*sizeof(wchar_t));
+                    if ((wia_lstrcatw(wda, 0) == 0) != (syscat(wdc, 0) == 0)) ++mism;
+                    if (memcmp(wda, wdc, 16*sizeof(wchar_t)) != 0) ++mism;
+                    if (memcmp(wda, L"keepme", 7*sizeof(wchar_t)) != 0) ++mism;
+                    if ((wia_lstrcatw(0, L"abc") == 0) != (syscat(0, L"abc") == 0)) ++mism;
+                    if ((wia_lstrcatw(0, 0) == 0) != (syscat(0, 0) == 0)) ++mism;
+                    cases += 3;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (three guards, every width)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&catw_patch, q, (void*)w_catw), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)q)[0], ((unsigned char*)q)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_catw > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_catw);
+                    printf("  of %ld cases: %ld with an UNTERMINATED DESTINATION at a guard page (the\n"
+                           "  failure lstrcpy does not have), %ld terminated EXACTLY on the last\n"
+                           "  writable character, %ld with an unterminated SOURCE, %ld destinations of\n"
+                           "  ODD byte width (where the last character cannot be stored whole) and %ld\n"
+                           "  of even width, %ld EMPTY appends, %ld cases placing a CODE UNIT under\n"
+                           "  test in both strings, %ld long enough for the scan to dominate\n",
+                           cases, dstfault, edgecase, srcfault, oddw, evenw, emptyapp, unitv, longc);
+                    OK(dstfault >= 150, "the unterminated-destination sweep ran in full");
+                    OK(edgecase >= 150, "the edge-terminated sweep ran in full");
+                    OK(srcfault >= 150, "the faulting-source sweep ran in full");
+                    OK(oddw     >= 100, "the odd-width sweep ran in full");
+                    OK(evenw    >= 100, "the even-width sweep ran in full");
+                    OK(unitv    >= 65535, "every non-NUL code unit was placed in both strings");
+                    OK(patch_off(&catw_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+            if (gsrc) VirtualFree(gsrc, 0, MEM_RELEASE);
+            if (gda)  VirtualFree(gda, 0, MEM_RELEASE);
+            if (gdc)  VirtualFree(gdc, 0, MEM_RELEASE);
+        }
+    }
+
 
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
@@ -1419,6 +1900,7 @@ int main(void){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
+               "kernelbase!lstrcatA, kernelbase!lstrcatW,\n"
                "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
                "kernelbase!PathCchAppendEx, kernelbase!PathCchCombineEx,\n"
                "kernelbase!PathCchAddBackslashEx AND kernelbase!PathCchRemoveBackslashEx.\n"
@@ -1475,7 +1957,13 @@ int main(void){
                "seeded with a 0xDEAD sentinel because they are written on the FAILURE path too, and\n"
                "ppszEnd compared as an OFFSET when it points into the buffer and as a VALUE when it\n"
                "does not -- the failure paths write NULL, which is the same answer at two different\n"
-               "buffer addresses. All twelve\n"
+               "buffer addresses. For 228 and 230 the sweep lstrcpy cannot have is the point: lstrcat\n"
+               "READS the destination before writing it, so a destination whose terminator is not\n"
+               "inside its own mapping is a THIRD way to fail, and an implementation that clamps only\n"
+               "the source and the append passes every ordinary corpus and still faults there. 230\n"
+               "additionally sweeps EVERY destination width in BYTES, because a clamp that rounds in\n"
+               "bytes rather than characters leaves one extra byte behind with the same return value,\n"
+               "no fault, and no difference a string comparison could see. All fourteen\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
