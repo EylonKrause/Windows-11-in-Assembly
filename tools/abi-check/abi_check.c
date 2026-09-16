@@ -1472,6 +1472,58 @@ static void thunk(void){
     }
 }
 
+#elif defined(T_249)
+#define NAME "249-urlhasha"
+extern long wia_urlhasha(const char*, unsigned char*, unsigned long);
+static void thunk(void){
+    /* An ENVELOPE over two other changes, so what this case is really checking is the SEAM: six
+       instructions that keep the url, the digest and cbHash in rbx, rsi and rdi across a call to
+       change 225's SEH-wrapped length and then a call to change 244's kernel. Every one of those
+       three is non-volatile, so a callee that failed to preserve them would corrupt arguments this
+       envelope still needs -- and 244 reaches for xmm registers on its seed path.
+       Driven: both NULL refusals; cbHash 0, which writes nothing; the four LEAF kernels (1..4); the
+       twelve-lane kernel and its second pass (12, 13, 16); a digest bigger than 256, where the seed
+       WRAPS; an OVERLAPPING digest, which is the byte-for-byte fallback; a long url; and a url that
+       FAULTS, because the swallow unwinds out of assembly through change 225's C __except. */
+    static char u[4200];
+    static unsigned char d[600];
+    int i;
+    strcpy(u, "http://example.com/a/b?c=d");
+    for (i = 1; i <= 4; ++i)  { sink += wia_urlhasha(u, d, i);  sink += d[0]; }
+    sink += wia_urlhasha(u, d, 5);   sink += d[0];
+    sink += wia_urlhasha(u, d, 12);  sink += d[0];
+    sink += wia_urlhasha(u, d, 13);  sink += d[0];
+    sink += wia_urlhasha(u, d, 16);  sink += d[0];
+    sink += wia_urlhasha(u, d, 0);   sink += d[0];
+    sink += wia_urlhasha(u, d, 300); sink += d[299];          /* the seed wraps at 256 */
+    sink += wia_urlhasha("", d, 16); sink += d[0];
+    for (i = 0; i < 4000; ++i) u[i] = (char)('a' + i % 26);
+    u[4000] = 0;
+    sink += wia_urlhasha(u, d, 16);  sink += d[0];
+    sink += wia_urlhasha(u, d, 1);   sink += d[0];
+    /* the digest INSIDE the url: change 244's grouped kernel is wrong on every overlapping
+       placement and hands them to a byte-for-byte emulation of the shipped loop */
+    strcpy(u, "abcdefghijklmnopqrstuvwxyz");
+    sink += wia_urlhasha(u, (unsigned char*)u + 4, 12);  sink += u[4];
+    sink += wia_urlhasha(0, d, 16);
+    sink += wia_urlhasha("abc", 0, 16);
+    {
+        SYSTEM_INFO si; GetSystemInfo(&si);
+        {
+            char* g = (char*)VirtualAlloc(0, si.dwPageSize * 2,
+                                          MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            if (g) {
+                unsigned long old;
+                char* s2 = (g + si.dwPageSize) - 6;
+                VirtualProtect(g + si.dwPageSize, si.dwPageSize, PAGE_NOACCESS, &old);
+                for (i = 0; i < 6; ++i) s2[i] = (char)('a' + i);   /* NO terminator */
+                sink += wia_urlhasha(s2, d, 16);  sink += d[0];
+                VirtualFree(g, 0, MEM_RELEASE);
+            }
+        }
+    }
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
