@@ -20,6 +20,34 @@
    byte-identical -- so the row cannot silently drift into measuring a function applied to a string it
    has already modified.
 
+   AND THE RESTORE MUST NOT LAND ON THE BUFFER THE NEXT CALL IS ABOUT TO READ. This is the second
+   version of that lesson and a subtler one: a minimal restore can be cheap and STILL replace the
+   measurement, not by costing time but by creating a DEPENDENCY. A 2-byte store followed immediately by
+   a call whose first act is a 64-byte vector load covering that address cannot use store-to-load
+   forwarding -- the load has to wait for the store to drain -- while the shipped implementation, which
+   reads one character at a time, forwards from it cheaply. Measured on this machine, restoring the SAME
+   buffer against restoring a ROTATED one, with identical work on both sides and only the ADDRESS
+   different:
+
+       length  16   same buffer: ours 7.92 ns, live 6.45 ns -> 0.81x
+                    rotated:     ours 2.73 ns, live 6.64 ns -> 2.43x
+       length  64   same buffer: ours 8.90 ns, live 16.16 ns -> 1.81x
+                    rotated:     ours 3.67 ns, live 16.32 ns -> 4.44x
+       length 260   same buffer: ours 9.02 ns, live 59.99 ns -> 6.65x
+                    rotated:     ours 10.22 ns, live 55.91 ns -> 5.47x
+
+   Live moves by 3% and ours by 2.9x. The hazard bites exactly when the restored address falls inside
+   the first block the scan loads, which is why it hit the short rows and not the 260-character one, and
+   why it made our time look FLAT from 16 to 260 characters -- a stall, not work. So each row now holds
+   FOUR buffers and the op restores the one the PREVIOUS call dirtied while calling on the next: the
+   same single store, the same single call, one address apart. The diagnostic above is reprinted by the
+   setup so the artefact stays visible instead of being quietly designed out.
+
+   THIS IS WHY THIS CHANGE WAS PARKED AND IS NOW NOT. The 0.90x that parked it was the harness, not the
+   function; nothing in impl.asm was slow. The one implementation change that came out of re-examining
+   it -- answering "does it already end in a separator" from the vector masks instead of from a load
+   that has to wait for the length -- is kept because it is right, not because it moved this row.
+
    THE CASE MIX. discovery/kernelbase_pathcch.c measured both at 0.101 ns per byte on a 1000-character
    path: 202 ns for work that is "find the end, then write at most one character". The whole cost is
    the length scan, so the rows vary length and nothing else -- there is no early exit to exploit and
@@ -40,27 +68,57 @@ extern HRESULT wia_pathcchremovebackslashex(wchar_t*, size_t, wchar_t**, size_t*
 typedef HRESULT (WINAPI *FN)(PWSTR, size_t, PWSTR*, size_t*);
 static FN sys_add, sys_rem;
 
-/* fixup: the single slot the call overwrites, and the character that belongs there */
-typedef struct { wchar_t* buf; size_t n; size_t fix_at; wchar_t fix_ch; int which; } CASE;
+/* fixup: the single slot the call overwrites, and the character that belongs there.
+   ROT buffers, rotated so the restoring store never lands on the buffer the next call reads. */
+#define ROT 4
+typedef struct {
+    wchar_t* buf;                /* the buffer the setup asserts against */
+    wchar_t* bufs[ROT];
+    unsigned idx;
+    size_t n; size_t fix_at; wchar_t fix_ch; int which;
+} CASE;
 
 #pragma optimize("", off)
-/* The minimal restore: one store, undoing exactly the one the call made. */
+/* The minimal restore: one store, undoing exactly the one the call made -- on the buffer the PREVIOUS
+   call dirtied, so a 2-byte store never sits in front of this call's 64-byte load. */
 static uint64_t op_ours_r(void* c){
     CASE* k = (CASE*)c;
     wchar_t* e; size_t r;
-    HRESULT h = k->which ? wia_pathcchremovebackslashex(k->buf, PATHCCH_MAX_CCH, &e, &r)
-                         : wia_pathcchaddbackslashex(k->buf, PATHCCH_MAX_CCH, &e, &r);
-    k->buf[k->fix_at] = k->fix_ch;
+    unsigned i = k->idx;
+    unsigned prev = (i + ROT - 1) & (ROT - 1);
+    k->bufs[prev][k->fix_at] = k->fix_ch;
+    k->idx = (i + 1) & (ROT - 1);
+    HRESULT h = k->which ? wia_pathcchremovebackslashex(k->bufs[i], PATHCCH_MAX_CCH, &e, &r)
+                         : wia_pathcchaddbackslashex(k->bufs[i], PATHCCH_MAX_CCH, &e, &r);
     return (uint64_t)h;
 }
 static uint64_t op_sys_r(void* c){
     CASE* k = (CASE*)c;
     PWSTR e; size_t r;
-    HRESULT h = k->which ? sys_rem(k->buf, PATHCCH_MAX_CCH, &e, &r)
-                         : sys_add(k->buf, PATHCCH_MAX_CCH, &e, &r);
-    k->buf[k->fix_at] = k->fix_ch;
+    unsigned i = k->idx;
+    unsigned prev = (i + ROT - 1) & (ROT - 1);
+    k->bufs[prev][k->fix_at] = k->fix_ch;
+    k->idx = (i + 1) & (ROT - 1);
+    HRESULT h = k->which ? sys_rem(k->bufs[i], PATHCCH_MAX_CCH, &e, &r)
+                         : sys_add(k->bufs[i], PATHCCH_MAX_CCH, &e, &r);
     return (uint64_t)h;
 }
+/* the OLD shape, kept only to reprint the artefact: restore and call on the SAME buffer */
+static uint64_t op_ours_same(void* c){
+    CASE* k = (CASE*)c;
+    wchar_t* e; size_t r;
+    k->buf[k->fix_at] = k->fix_ch;
+    return (uint64_t)(k->which ? wia_pathcchremovebackslashex(k->buf, PATHCCH_MAX_CCH, &e, &r)
+                               : wia_pathcchaddbackslashex(k->buf, PATHCCH_MAX_CCH, &e, &r));
+}
+static uint64_t op_sys_same(void* c){
+    CASE* k = (CASE*)c;
+    PWSTR e; size_t r;
+    k->buf[k->fix_at] = k->fix_ch;
+    return (uint64_t)(k->which ? sys_rem(k->buf, PATHCCH_MAX_CCH, &e, &r)
+                               : sys_add(k->buf, PATHCCH_MAX_CCH, &e, &r));
+}
+
 /* the declining paths write nothing, so there is nothing to undo */
 static uint64_t op_ours_n(void* c){
     CASE* k = (CASE*)c;
@@ -135,13 +193,43 @@ int main(void){
                        bad1 ? "INEXACT" : "exact", bad2 ? "INEXACT" : "exact");
                 return 1;
             }
+            /* the rotating copies: identical content, so every iteration times the same call */
+            C[i].bufs[0] = b;
+            for (int q = 1; q < ROT; ++q) {
+                wchar_t* extra = pool + cur;
+                cur += n + 40;
+                if (cur > 78000) { printf("BENCH SETUP ERROR: pool overflow\n"); return 1; }
+                memcpy(extra, b, (size_t)(n + 2) * 2);
+                C[i].bufs[q] = extra;
+            }
+            C[i].idx = 0;
+
             cs[i].label = names[i]; cs[i].bytes = (size_t)n * 2;
             cs[i].ours = op_ours_r; cs[i].system = op_sys_r; cs[i].ctx = &C[i];
         }
     }
+    /* REPRINT THE ARTEFACT, measured here rather than quoted: the same single store and the same single
+       call, differing only in whether the store lands on the buffer the call is about to read. */
+    {
+        volatile uint64_t sink = 0;
+        printf("the restore's ADDRESS, measured on this run (same work, one address apart):\n");
+        for (int i = 0; i < N; ++i) {
+            if (LEN[i] != 16 && LEN[i] != 64 && LEN[i] != 260) continue;
+            double so = wia_measure(op_ours_same, &C[i], 60, &sink);
+            double sl = wia_measure(op_sys_same,  &C[i], 60, &sink);
+            double ro = wia_measure(op_ours_r,    &C[i], 60, &sink);
+            double rl = wia_measure(op_sys_r,     &C[i], 60, &sink);
+            printf("  %-9s same buffer: ours %6.2f live %6.2f -> %5.2fx   rotated: ours %6.2f "
+                   "live %6.2f -> %5.2fx\n",
+                   names[i], so, sl, so > 0 ? sl/so : 0.0, ro, rl, ro > 0 ? rl/ro : 0.0);
+        }
+        printf("\n");
+    }
+
     int rc = wia_bench_compare("kernelbase PathCchAddBackslashEx + PathCchRemoveBackslashEx "
                                "(wia AVX2 wcslen + O(1) tail vs kernelbase; the restore is ONE store, "
-                               "undoing exactly the one store the call made)", cs, N, 300);
+                               "on a ROTATED buffer so it cannot stall the next call's wide load)",
+                               cs, N, 300);
 
     /* ---- the declining paths, which write nothing and so need no restore --------------------- */
     {

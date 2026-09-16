@@ -1,15 +1,17 @@
-# kernelbase.dll — reimplemented exports (16)
+# kernelbase.dll — reimplemented exports (18)
 
 | export | speedup | source |
 |---|---|---|
 | `CompareStringOrdinal` | 2.84x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
 | `PathCchAddBackslash` | 2.17x | [changes/164-pathcchaddbackslash](../../../../../changes/164-pathcchaddbackslash/) |
+| `PathCchAddBackslashEx` | 5.76x | [changes/241-pathcchaddbackslashex](../../../../../changes/241-pathcchaddbackslashex/) |
 | `PathCchAddExtension` | 3.37x | [changes/160-pathcchaddextension](../../../../../changes/160-pathcchaddextension/) |
 | `PathCchAppendEx` | 12.27x | [changes/242-pathcchappendex](../../../../../changes/242-pathcchappendex/) |
 | `PathCchCanonicalizeEx` | 13.12x | [changes/243-pathcchcanonicalizeex](../../../../../changes/243-pathcchcanonicalizeex/) |
 | `PathCchCombineEx` | 12.27x | [changes/242-pathcchappendex](../../../../../changes/242-pathcchappendex/) |
 | `PathCchFindExtension` | 4.42x | [changes/143-pathcchfindextension](../../../../../changes/143-pathcchfindextension/) |
 | `PathCchRemoveBackslash` | 1.93x | [changes/176-pathcchremovebackslash](../../../../../changes/176-pathcchremovebackslash/) |
+| `PathCchRemoveBackslashEx` | 5.76x | [changes/241-pathcchaddbackslashex](../../../../../changes/241-pathcchaddbackslashex/) |
 | `PathCchRemoveExtension` | 2.59x | [changes/144-pathcchremoveextension](../../../../../changes/144-pathcchremoveextension/) |
 | `PathCchRemoveFileSpec` | 4.87x | [changes/240-pathcchremovefilespec](../../../../../changes/240-pathcchremovefilespec/) |
 | `PathCchRenameExtension` | 3.37x | [changes/159-pathcchrenameextension](../../../../../changes/159-pathcchrenameextension/) |

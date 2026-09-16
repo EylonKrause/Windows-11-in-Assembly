@@ -21,6 +21,7 @@ ml64 /nologo /c /Folcpw2.obj "%C%\229-lstrcpyw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Foprfs.obj "%C%\240-pathcchremovefilespec\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopccx.obj "%C%\243-pathcchcanonicalizeex\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopcap.obj "%C%\242-pathcchappendex\impl.asm" >nul || goto :err
+ml64 /nologo /c /Fopcbs.obj "%C%\241-pathcchaddbackslashex\impl.asm" >nul || goto :err
 REM  209 and 211 both call their exception wrapper seh.c. Compiled in one cl command they
 REM  would both land on seh.obj and the second would overwrite the first, so each gets its
 REM  own object name.
@@ -29,7 +30,7 @@ cl /nologo /O2 /MD /c /Foseh211.obj "%C%\211-lstrcpyna\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh225.obj "%C%\225-lstrlena\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh227.obj "%C%\227-lstrcpya\seh.c" >nul || goto :err
 cl /nologo /O2 /MD /EHa /c /Foseh229.obj "%C%\229-lstrcpyw\seh.c" >nul || goto :err
-cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj prfs.obj pccx.obj pcap.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
+cl /nologo /O2 /MD /EHa live_subst_kernelbase.c "%C%\210-comparestringordinal\wrapper.c" "%C%\210-comparestringordinal\upcase.c" seh209.obj seh211.obj seh225.obj seh227.obj seh229.obj lcpn.obj cso.obj lcpna.obj lena.obj lcpa.obj lcpw2.obj prfs.obj pccx.obj pcap.obj pcbs.obj /Fe:live_subst_kernelbase.exe >nul || goto :err
 "%H%live_subst_kernelbase.exe"
 endlocal & exit /b %errorlevel%
 :err

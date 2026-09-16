@@ -1,15 +1,61 @@
-# 241 `kernelbase!PathCchAddBackslashEx` + `PathCchRemoveBackslashEx` — **PARKED** (one size class at 0.90×)
+# 241 `kernelbase!PathCchAddBackslashEx` + `PathCchRemoveBackslashEx` — **LANDED, 5.76× geomean**
 
-**Bench:** AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9457. Min of five runs.
+**Bench:** AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9457.
 
-The contract is **completely pinned** and the implementation is **1.92× to 10.07× on thirteen of
-fourteen size classes**. It is parked because the fourteenth — a 16-character append — is
-reproducibly **0.90×**, and this project's speed gate is "no size class below 0.97×". Dropping that
-row would have landed it, and dropping it is what change 228 explicitly refused to do when its
-short-onto-short rows were *added* after the first run rather than removed.
+| gate | result |
+|---|---|
+| correctness | PASS — 654,000+ three-way calls, all four observables, 0 mismatches |
+| speed | **5.758× geomean**, every class BETTER, the worst now **1.92×** |
+| ABI | PASS — all 8 non-volatile GPRs and xmm6–xmm15 preserved, stack balanced, DF clear |
+| live substitution | PASS — Windows ran our assembly inside both real exports **65,639 times each** |
 
-Everything is committed — probes, `impl.asm`, the oracles, both harnesses — so resuming is purely a
-code-generation problem, not a research one.
+## It was parked for five runs by a benchmark artefact, not by the function
+
+The gate is "no size class below 0.97×", and `add 16` sat reproducibly at **0.90×** while thirteen of
+fourteen classes were 1.92× to 10.07×. So it was parked, honestly, with a note that closing "the last
+~2 cycles" was a measurable experiment rather than a research question.
+
+It was an experiment — and the answer was that there were no cycles to close.
+
+**The restore's ADDRESS was the measurement.** These rows restore the buffer with a single 2-byte store
+— already the minimal restore, already the lesson change 238 taught — and then call again *on the same
+buffer*. Our first act is a 64-byte vector load covering that address, and **a wide load overlapping a
+just-retired narrow store cannot use store-to-load forwarding**: it waits for the store to drain. The
+shipped implementation reads one character at a time and forwards from it cheaply.
+
+Measured with identical work on both sides and only the restore's address different:
+
+| length | restore on the same buffer | restore on a rotated buffer |
+|---|---|---|
+| 16 | ours 7.92 ns, live 6.45 ns → **0.81×** | ours **2.73 ns**, live 6.64 ns → **2.43×** |
+| 64 | ours 8.90 ns, live 16.16 ns → 1.81× | ours **3.67 ns**, live 16.32 ns → **4.44×** |
+| 260 | ours 9.02 ns, live 59.99 ns → 6.65× | ours 10.22 ns, live 55.91 ns → 5.47× |
+
+**Live moves by 3%; ours by 2.9×.** The hazard bites exactly when the restored address falls inside the
+first block the scan loads, which is why it hit the short rows and vanished at 260 — and it explains the
+symptom nobody could place: our time looked *flat* from 16 to 260 characters. That is a stall, not work.
+
+So each row now holds four buffers and restores the one the **previous** call dirtied — the same single
+store, the same single call, one address apart — and `bench.c` prints both measurements every run so the
+artefact stays visible instead of being quietly designed out.
+
+**This is change 238's lesson at one remove.** A restore can be minimal, can cost almost nothing, and
+can *still* replace the measurement — not by taking time but by creating a **dependency** that penalises
+one implementation's access pattern. 238's restore was too heavy; this one was in the wrong place.
+
+## The one real optimisation that came out of re-examining it
+
+Kept because it is right, not because it moved the row: **"does it already end in a separator" was a
+load of `[n-1]`**, which cannot issue until the length scan has produced `n`, so it added about six
+cycles of pure serial delay to a function that costs twenty-five. Both questions are now answered from
+the *same* vector compares — the terminator mask gives `n`, and the separator mask, shifted by one
+character and indexed by the terminator's own bit position, says whether the character before it was a
+separator — computed in parallel rather than after.
+
+The 64-bit mask combine this change had already tried and **reverted** (it cost the 4000-character row
+10.07× → 7.69×, because the `shl`/`or` sat on the critical path of a loop that runs many times) is used
+in that fast path **only**, where it runs once and replaces two dependent `vpmovmskb` chains with one.
+Longer strings still take the original loop, unchanged.
 
 ## Why these two, and why together
 
@@ -71,23 +117,27 @@ case — **654 000+ calls**:
 - 32 probe-derived shapes × `cch` × four combinations; lengths 10..3000 in four root shapes
 - 16 alignments × lengths 1..70; 200 000 fuzz pairs; a page-guard sweep for `RemoveBackslashEx`
 
-## Gate 2 — speed: **one class regressed**
+## Gate 2 — speed: **PASS**, every class better
 
-| case | ours ns | kernelbase ns | ratio |
-|---|---|---|---|
-| **add 16** | **8.34** | **7.48** | **0.90×** |
-| add 64 | 8.58 | 16.84 | 1.96× |
-| add 260 | 8.92 | 54.79 | 6.14× |
-| add 1000 | 22.84 | 200.94 | 8.80× |
-| add 4000 | 77.08 | 776.20 | **10.07×** |
-| rem 16 | 6.90 | 13.23 | 1.92× |
-| rem 64 | 7.16 | 22.95 | 3.21× |
-| rem 260 | 9.24 | 60.79 | 6.58× |
-| rem 1000 | 21.11 | 211.59 | 10.02× |
-| rem 4000 | 81.00 | 793.51 | 9.80× |
+| case | ours ns | kernelbase ns | ratio | was (same-buffer restore) |
+|---|---|---|---|---|
+| add 16 | 4.00 | 7.70 | **1.92×** | 0.90× |
+| add 64 | 5.95 | 17.51 | 2.94× | 1.96× |
+| add 260 | 8.24 | 55.37 | 6.72× | 6.14× |
+| add 1000 | 21.21 | 207.73 | 9.80× | 8.80× |
+| add 4000 | 79.41 | 785.83 | 9.90× | 10.07× |
+| rem 16 | 4.15 | 13.97 | 3.37× | 1.92× |
+| rem 64 | 5.12 | 23.26 | 4.55× | 3.21× |
+| rem 260 | 8.38 | 61.52 | 7.34× | 6.58× |
+| rem 1000 | 22.19 | 213.64 | 9.63× | 10.02× |
+| rem 4000 | 79.17 | 794.46 | 10.03× | 9.80× |
 
-**geomean 4.55×**, and the declining paths — timed separately with no restore, because they write
-nothing — are 1.95× to 9.75×, geomean 4.71×.
+**geomean 5.758×**, and the declining paths — timed separately with no restore, because they write
+nothing — are 2.40× to 9.73×, geomean 4.79×.
+
+The last column is the same implementation measured with the old harness, and the shape of the
+difference is the diagnosis: the short rows move by 1.7–2.1× and the long ones barely move at all,
+because the hazard only exists while the restored address lies inside the first block the scan loads.
 
 ### Four optimisations were made chasing that row, and all four are kept
 
@@ -111,23 +161,23 @@ A fifth was tried and **measured worse**: combining both halves into one 64-bit 
 0.91× to 0.87×, because the shift and or sit on the critical path where the second mask read did not.
 Measured, reverted, and recorded in the source so nobody tries it again.
 
-### Why the 16-character append cannot be won this way
+### What the 16-character append actually was
 
-At 16 characters the terminator sits at index 16, so **any 32-byte-block scheme needs two dependency
-chains** — one to cover characters 0..15 and one to reach index 16 — and a 64-byte scheme needs one
-chain plus an extra mask read to find which half. Measured in isolation the function is 2.66× there
-(2.57 ns against 6.84). In the append row it is ~3.1 ns against the shipped ~2.4, and the shipped
-function evidently resolves a 16-character length with a scalar loop that is competitive at that
-length and hopeless at 4000, where it costs 776 ns to this implementation's 77.
+The note that stood here said the row could not be won with a block scan, and reasoned about dependency
+chains: at 16 characters the terminator sits at index 16, so a 32-byte scheme needs two chains and a
+64-byte one needs an extra mask read. That reasoning was sound and irrelevant — it was explaining a cost
+that was not there. The row's own evidence said so and went unread: **the function's time was flat from
+16 to 260 characters**, which no dependency-chain argument predicts, and the same note recorded that "in
+isolation the function is 2.66× there". In isolation meant *without the restore*. That was the
+measurement; the row was the artefact.
 
-Closing the remaining ~2 cycles needs a different short-length strategy, not a faster block scan.
-
-## What would unblock it
-
-A length dispatch: a cheap scalar or 16-byte path for very short strings, falling into the 64-byte
-loop beyond some threshold. That is a measurable experiment rather than a research question — the
-contract is already pinned, which is the part that usually costs.
+The lesson is about reading a benchmark, not about codegen: **a row whose time does not vary with the
+input is not measuring the input.** Two numbers already in the file said the same thing — the flat
+profile and the isolated 2.66× — and a plausible micro-architectural story about why 16 characters is
+hard was enough to stop anyone reconciling them for five runs.
 
 ## ISA and portability
 
-AVX2 + BMI1 (`tzcnt`). No AVX-512. Not added to `tools/abi-check` or the image, since it is parked.
+AVX2 + BMI1 (`tzcnt`) + BMI2 (`shrx`, used by the short-string fast path; every AVX2 CPU has BMI2). No
+AVX-512. Registered in `tools/abi-check` as T_241, in the kernelbase live-substitution driver, and in
+the image under both export names.
