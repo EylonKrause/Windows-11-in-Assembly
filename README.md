@@ -210,7 +210,7 @@ Foundation up; measurement pipeline proven end-to-end. Landed changes:
 | [031](changes/031-rtlupcaseunicodetooemn/) | `RtlUpcaseUnicodeToOemN` (AVX2) | `ntdll.dll!RtlUpcaseUnicodeToOemN` | **LANDED** — geomean **7.41×** (core ntdll) |
 | [032](changes/032-strlen/) | `strlen` (AVX2) | `ucrtbase.dll!strlen` | **LANDED** — geomean **2.83×**, up to 6.8× (ucrtbase) |
 | [033](changes/033-strcmp/) | `strcmp` (AVX2) | `ucrtbase.dll!strcmp` | **LANDED** — geomean **1.31×** (ucrtbase) |
-| [034](changes/034-rtlutf8tounicoden/) | `RtlUTF8ToUnicodeN` (AVX2) | `ntdll.dll!RtlUTF8ToUnicodeN` | **LANDED** — geomean **3.12×** (UTF-8→UTF-16 decoder, core ntdll) |
+| [034](changes/034-rtlutf8tounicoden/) | `RtlUTF8ToUnicodeN` (AVX2) | `ntdll.dll!RtlUTF8ToUnicodeN` | **LANDED** — geomean **3.96×** over every input class, worst 1.26× (UTF-8→UTF-16 decoder, core ntdll) |
 | [035](changes/035-wcspbrk/) | `wcspbrk` (AVX2 set-broadcast) | `ucrtbase.dll!wcspbrk` | **LANDED** — geomean **7.98×** (2.11×–13.6×; set hoisted into registers, spare slots holding a duplicate of member 0 since `a OR a == a`) |
 | [036](changes/036-wcsspn/) | `wcsspn` (AVX2 set-broadcast) | `ucrtbase.dll!wcsspn` | **LANDED** — geomean **8.64×** (2.69×–13.96×; set hoisted out of the block loop, which also removed a code-layout hazard) |
 | [037](changes/037-wcscspn/) | `wcscspn` (AVX2 set-broadcast) | `ucrtbase.dll!wcscspn` | **LANDED** — geomean **8.61×** (2.36×–13.95×; the NUL must be OR-ed into the stop mask, which the plain span gets for free) |

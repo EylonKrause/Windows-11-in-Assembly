@@ -77,7 +77,7 @@
 | `RtlStringFromGUIDEx` | 25.5x | [changes/058-rtlstringfromguidex](../../../../../changes/058-rtlstringfromguidex/) |
 | `RtlTimeFieldsToTime` | 1.54x | [changes/127-rtltimefieldstotime](../../../../../changes/127-rtltimefieldstotime/) |
 | `RtlTimeToTimeFields` | 1.73x | [changes/126-rtltimetotimefields](../../../../../changes/126-rtltimetotimefields/) |
-| `RtlUTF8ToUnicodeN` | 3.12x | [changes/034-rtlutf8tounicoden](../../../../../changes/034-rtlutf8tounicoden/) |
+| `RtlUTF8ToUnicodeN` | 3.96x | [changes/034-rtlutf8tounicoden](../../../../../changes/034-rtlutf8tounicoden/) |
 | `RtlUdiv128` | 6.66x | [changes/204-rtludiv128](../../../../../changes/204-rtludiv128/) |
 | `RtlUnicodeStringToAnsiString` | 12.79x | [changes/018-rtlunicodestringtoansistring](../../../../../changes/018-rtlunicodestringtoansistring/) |
 | `RtlUnicodeStringToOemString` | 7.68x | [changes/024-rtlunicodestringtooemstring](../../../../../changes/024-rtlunicodestringtooemstring/) |
