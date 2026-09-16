@@ -112,11 +112,28 @@ recorded in change 243's RESULTS.md, where the decision lives.
 
 **geomean 6.34–6.53×**, worst class **3.21×** over five runs.
 
-The `259` rows are the interesting ones and they are honest: our cost jumps from 15 ns at 128
-characters to 177 at 259, an order of magnitude for twice the length, because change 243's core has a
-slow path as the result approaches its 259-character cap. It still wins 3.3–3.7× there, so it lands —
-but it is the one place in this family where the shipped code is comparatively close, and it is where
-a future pass at 243 would pay.
+The `259` rows are the interesting ones, and having said in an earlier draft that "a future pass at
+243 would pay" there, the cliff was then measured properly — every even input length from 200 to 268,
+ours against live:
+
+| input length | ours ns | live ns | ratio | HRESULT |
+|---|---|---|---|---|
+| 250 | 23.59 | 652.79 | 27.67× | S_OK |
+| 256 | 24.54 | 667.71 | 27.21× | S_OK |
+| **258** | **175.69** | 672.26 | **3.83×** | S_OK |
+| 260 | 182.03 | 616.40 | 3.39× | `0x800700CE` |
+
+It is a **cliff at 257, not a slope**, and it is a deliberate decision in change 243 rather than a
+defect: its fast path takes a verbatim copy only when the input is at most 256 characters, because —
+as its header says — "a longer one cannot pass the MAX_PATH result cap anyway, and 256 is also the
+per-component cap, **so one test covers both**". Inputs of 257 to 259 characters *can* still succeed,
+so they fall through to the scalar walk and cost 175 ns rather than 24.
+
+So the earlier claim was overstated and is withdrawn: the window is **exactly three input lengths**
+(257, 258, 259 — 260 and up legitimately fail), and inside it we are still 3.8× faster than shipped.
+Separating the two bounds would recover about 150 ns on those three lengths, at the cost of re-running
+a 7.4-million-case gate on a landed change and re-verifying 242 and 246 behind it. Not worth it, and
+recorded here so the next person does not have to measure it again.
 
 The per-row diagnostic earns its keep here: it caught a **mislabelled row**. "600 with .. (refused)"
 does not refuse — its canonical form is 5 characters, so it succeeds — and the label now says so.

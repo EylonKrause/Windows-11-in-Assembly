@@ -352,6 +352,31 @@ Three things it deliberately does *not* compare, each for a stated reason:
   is what says the dead region is a deliberate property of the model rather than an artefact of the
   assembly. Reproducing it would mean reproducing the shipped body's write *order*, which is precisely
   what the vectorised copy exists not to do.
+
+## Where the fast path stops, measured
+
+Also found while change 246 was being built, and worth recording because the first reading of it was
+wrong. The `cmp r10, 256 / ja scalar_walk` above is a **cliff, not a slope**, and it is exactly where
+the header says it is:
+
+| input length | ours ns | live ns | ratio | HRESULT |
+|---|---|---|---|---|
+| 250 | 23.59 | 652.79 | 27.67× | S_OK |
+| 256 | 24.54 | 667.71 | 27.21× | S_OK |
+| **258** | **175.69** | 672.26 | **3.83×** | S_OK |
+| 260 | 182.03 | 616.40 | 3.39× | `0x800700CE` |
+
+The fast path requires the input to be at most 256 characters, because that one test covers both the
+per-component cap and the MAX_PATH result cap. Inputs of **257, 258 and 259** characters can still
+succeed, so they take the scalar walk — 175 ns rather than 24, and still 3.8× the shipped cost. The
+same cliff sits at the same lengths with `cch = 0x8000`, which confirms the bound is the `dwFlags == 0`
+MAX_PATH cap rather than the caller's `cch`.
+
+Change 246's write-up briefly called this "where a future pass would pay"; that was withdrawn once
+measured. Separating the two bounds — the fast path would need to know that a separator exists, which
+proves no single component can exceed 256 in a 259-character input — would recover about 150 ns on
+**three input lengths**. It is not worth re-running a 7.4-million-case gate and re-verifying 242 and
+246 behind it.
 * **Nonzero flags against the oracle.** Those delegate, so the test is that ours equals live *exactly*,
   debris included, which also proves the dispatch.
 * **Nothing about NULL except that both fault.** The last section exists mostly to prove the fault is
