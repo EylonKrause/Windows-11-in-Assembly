@@ -35,7 +35,13 @@ extern unsigned long long wia_abi_probe(void (*thunk)(void));
    registers its own compiled code happened to leave alone. */
 extern unsigned long long wia_abi_call4(void* fn, unsigned long long a, unsigned long long b,
                                         unsigned long long c, unsigned long long d);
+extern unsigned long long wia_abi_call5(void* fn, unsigned long long a, unsigned long long b,
+                                        unsigned long long c, unsigned long long d,
+                                        unsigned long long e);
 static unsigned long long callmask = 0;
+#define CALL5(fn, a, b, c, d, e) (callmask |= wia_abi_call5((void*)(fn), (unsigned long long)(a), \
+    (unsigned long long)(b), (unsigned long long)(c), (unsigned long long)(d), \
+    (unsigned long long)(e)), 0)
 #define CALL4(fn, a, b, c, d) (callmask |= wia_abi_call4((void*)(fn), (unsigned long long)(a), \
                                (unsigned long long)(b), (unsigned long long)(c),               \
                                (unsigned long long)(d)))
@@ -2183,6 +2189,51 @@ static void thunk(void){
     bm.SizeOfBitMap = 0;
     CALL4(wia_findsetbitsandclear, &bm, 4, 0, 0);            /* a bitmap of no bits */
     CALL4(wia_findsetbitsandclear, &bm, 0, 0, 0);
+}
+
+#elif defined(T_263)
+#define NAME "263-rtlcompareunicodestrings"
+extern long wia_compareunicodestrings(const wchar_t*, size_t, const wchar_t*, size_t, unsigned char);
+extern unsigned short wia_upcase[65536];
+extern void wia_upcase_init(void);
+#define SETUP() wia_upcase_init()
+static void thunk(void){
+    /* THIS GATE ALREADY EARNED ITS KEEP ON THIS CHANGE. The first draft parked four constants in
+       ymm4..ymm7, and the low 128 bits of xmm6-xmm15 are NON-VOLATILE under Win64 -- so it
+       destroyed two registers belonging to the caller. The symptom was not a crash: the benchmark
+       printed 0.00 ns for every case-insensitive row, because the compiler had a double live in
+       xmm6 across the call and the number being formatted had been overwritten. A gate that only
+       checked GPRs would have passed it.
+
+       Driven: the vector loop and the scalar tail on both flags; a block that disagrees only in
+       case, which is the in-vector fold; a block containing a character at or above 0x80, which is
+       the table fallback; the length tie-break; zero lengths; and lengths either side of the
+       sixteen-character block. */
+    static wchar_t a[512], b[512];
+    int i, k, t;
+    static const size_t L[8] = { 0, 1, 7, 15, 16, 17, 33, 400 };
+    long sink = 0;
+    for (k = 0; k < 5; ++k) {
+        for (i = 0; i < 512; ++i) {
+            wchar_t c = (wchar_t)(0x61 + (i % 26));
+            a[i] = c;
+            b[i] = (k == 0) ? c                                   /* identical */
+                 : (k == 1) ? (wchar_t)(c - 32)                   /* differs only in case */
+                 : (k == 2) ? (wchar_t)(0x00E0 + (i % 24))        /* forces the table */
+                 : (k == 3) ? (wchar_t)(c + 1)                    /* differs everywhere */
+                            : (wchar_t)0xFFFF;                    /* the top of the range */
+            if (k == 2) a[i] = (wchar_t)(0x00C0 + (i % 24));
+        }
+        for (t = 0; t < 8; ++t) {
+            sink += CALL5(wia_compareunicodestrings, a, L[t], b, L[t], 0);
+            sink += CALL5(wia_compareunicodestrings, a, L[t], b, L[t], 1);
+            sink += CALL5(wia_compareunicodestrings, a, L[t], b, 400, 0);   /* the lengths decide */
+            sink += CALL5(wia_compareunicodestrings, a, 400, b, L[t], 1);
+        }
+    }
+    sink += CALL5(wia_compareunicodestrings, 0, 0, 0, 0, 0);       /* NULL, never read at length 0 */
+    sink += CALL5(wia_compareunicodestrings, 0, 0, b, 3, 1);
+    if (sink == 0x7FFFFFFF) printf("");
 }
 
 #else
