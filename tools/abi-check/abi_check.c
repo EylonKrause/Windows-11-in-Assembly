@@ -869,6 +869,85 @@ static void thunk(void){
     sink += p[0];
 }
 
+#elif defined(T_242)
+#define NAME "242-pathcchappendex"
+extern long wia_pathcchappendex(wchar_t*, size_t, const wchar_t*, unsigned long);
+extern long wia_pathcchcombineex(wchar_t*, size_t, const wchar_t*, const wchar_t*, unsigned long);
+static void thunk(void){
+    /* both exports, and every branch of the join: an ordinary seam, a `more` that replaces, a drive
+       and a UNC `more`, the "\\?" exception that does NOT replace, Combine's rooted case and its
+       refusal, the extended-prefix forms on both sides, a prefix that STRADDLES the seam, a pop that
+       reaches back into the base's output, the AVX2 fast path at length, both length caps and a
+       too-small cch. dwFlags stays 0, which is the implemented domain; a nonzero value tail-jumps to a
+       fallback this driver does not install. */
+    static wchar_t p[1200];
+    static wchar_t out[1200];
+    int i;
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8000, L"file.txt", 0);   /* the ordinary seam */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir\\");
+    sink += wia_pathcchappendex(p, 0x8000, L"\\file", 0);     /* the separator stripped at the seam */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8000, L"..\\up", 0);     /* a pop into the base's output */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8000, L"D:\\x", 0);      /* a drive `more` replaces */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8000, L"\\\\srv\\shr", 0); /* a UNC `more` replaces */
+    sink += p[0];
+    wcscpy(p, L"a");
+    sink += wia_pathcchappendex(p, 0x8000, L"\\\\?", 0);      /* "\\?" does NOT replace */
+    sink += p[0];
+    wcscpy(p, L"\\\\?");
+    sink += wia_pathcchappendex(p, 0x8000, L"C:", 0);         /* the prefix STRADDLES the seam */
+    sink += p[0];
+    wcscpy(p, L"");
+    sink += wia_pathcchappendex(p, 0x8000, L"\\a", 0);        /* an empty base */
+    sink += p[0];
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8000, 0, 0);             /* a NULL `more` reads as empty */
+    sink += wia_pathcchappendex(0, 0x8000, L"x", 0);          /* a NULL destination is refused */
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 4, L"file", 0);            /* cch too small */
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0, L"file", 0);            /* cch 0 */
+    wcscpy(p, L"C:\\dir");
+    sink += wia_pathcchappendex(p, 0x8001, L"file", 0);       /* past the maximum */
+    p[0] = 0x43; p[1] = 0x3A; p[2] = 0x5C;
+    for (i = 3; i < 250; ++i) p[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[250] = 0;
+    sink += wia_pathcchappendex(p, 0x8000, L"z", 0);          /* the vectorised fast path */
+    sink += p[0];
+    for (i = 3; i < 400; ++i) p[i] = (i % 8 == 7) ? 0x5C : (wchar_t)(0x61 + i % 23);
+    p[400] = 0;
+    sink += wia_pathcchappendex(p, 0x8000, L"z", 0);          /* past the result cap */
+
+    sink += wia_pathcchcombineex(out, 0x8000, L"C:\\dir", L"file", 0);
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"C:\\dir\\sub", L"\\rooted", 0);  /* the rooted case */
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"\\\\srv\\shr\\x", L"\\y", 0);    /* a UNC root */
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"\\\\?\\C:\\x", L"\\y", 0);       /* a prefixed root */
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"\\\\?\\UNC\\s\\h", L"\\y", 0);
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"relative", L"\\y", 0);           /* refused */
+    sink += wia_pathcchcombineex(out, 0x8000, L"\\\\?", L"\\y", 0);              /* also refused */
+    sink += wia_pathcchcombineex(out, 0x8000, 0, L"y", 0);                       /* a NULL base */
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, L"C:\\a", 0, 0);                   /* a NULL `more` */
+    sink += out[0];
+    sink += wia_pathcchcombineex(out, 0x8000, 0, 0, 0);                          /* both NULL */
+    sink += wia_pathcchcombineex(0, 0x8000, L"C:\\a", L"b", 0);                  /* a NULL output */
+    sink += wia_pathcchcombineex(out, 6, L"C:\\a\\b", L"c", 0);                  /* cch too small */
+    sink += wia_pathcchcombineex(out, 0x8000, p, L"z", 0);                       /* past the cap */
+    sink += out[0];
+}
+
 #elif defined(T_243)
 #define NAME "243-pathcchcanonicalizeex"
 extern long wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
