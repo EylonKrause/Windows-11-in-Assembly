@@ -50,6 +50,7 @@ extern char*    wia_lstrcpya(char*, const char*);
 extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
 extern char*    wia_lstrcata(char*, const char*);
 extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
+extern long     wia_hashdata(const unsigned char*, unsigned long, unsigned char*, unsigned long);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -75,6 +76,10 @@ static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static volatile LONG c_cata, c_catw;
 static char* WINAPI w_cata(char* d, const char* q){ _InterlockedIncrement(&c_cata); return wia_lstrcata(d, q); }
+static volatile LONG c_hash;
+static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
+    _InterlockedIncrement(&c_hash); return wia_hashdata(s, n, d, m);
+}
 static wchar_t* WINAPI w_catw(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_catw); return wia_lstrcatw(d, q); }
 static volatile LONG c_prfs;
 static long WINAPI w_prfs(wchar_t* p, size_t cch){ _InterlockedIncrement(&c_prfs); return wia_pathcchremovefilespec(p, cch); }
@@ -1233,6 +1238,162 @@ int main(void){
     }
 
 
+
+    // ===================== 244 HashData =====================
+    // THE EXPORT PATCHED HERE IS kernelbase's, and that is the point: shlwapi!HashData is a jmp
+    // thunk through api-ms-win-core-url-l1-1-0 into this body, so patching it here redirects BOTH
+    // names at once -- a caller going through shlwapi lands in our assembly too.
+    //
+    // WHAT HAS TO BE PROVED LIVE, and none of it is the happy path:
+    //
+    //   * THE OVERLAP FALLBACK. The fast path holds twelve digest lanes in registers and advances
+    //     each group across the whole source, which is valid only because the digest bytes are
+    //     independent chains -- and that independence fails when the digest overlaps the source,
+    //     because the shipped inner loop RE-READS src[i] for every lane. probes/overlap.c measured
+    //     the grouped shape agreeing on 760 of 760 disjoint placements and disagreeing on all 1641
+    //     overlapping ones. So every relative placement is driven here, under the patch, against
+    //     what Windows actually does rather than against an oracle's opinion of it.
+    //   * cbHash == 0 WRITES NOTHING AT ALL and cbData == 0 writes the SEED and nothing else, so
+    //     every case compares the WHOLE BUFFER against a poison fill with a canary past the digest.
+    //     A digest-only comparison cannot tell "wrote the same bytes back" from "wrote nothing".
+    //   * THE FIVE CODE PATHS. cbHash 1..4 each have their own leaf kernel with a different register
+    //     set and no saved registers at all; cbHash >= 5 uses a framed twelve-lane kernel; a last
+    //     group of four or fewer uses a four-lane kernel. The sweep below crosses every one of those
+    //     boundaries rather than sampling around them.
+    printf("[244 HashData]  kernelbase (every kernel, the overlap fallback, whole buffer vs poison)\n");
+    {
+        typedef long (WINAPI *fhash)(const BYTE*, DWORD, BYTE*, DWORD);
+        void* p_hash = (void*)GetProcAddress(hk, "HashData");
+        OK(p_hash != NULL, "resolve HashData");
+        if (p_hash) {
+            fhash syshash = (fhash)p_hash;
+            static BYTE hsrc[4200];
+            static BYTE mine[1200], live[1200];
+            static BYTE ovm[512], ovl[512], ovseed[512];
+            patch_t hash_patch;
+            long cases = 0, leafc = 0, bigc = 0, ovlp = 0, disj = 0, seedonly = 0, zeroh = 0;
+            int vpre = 0;
+            for (int i = 0; i < 4200; ++i) hsrc[i] = (BYTE)(i * 31 + 7);
+            for (int i = 0; i < 512; ++i) ovseed[i] = (BYTE)(i * 37 + 11);
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = leafc = bigc = ovlp = disj = seedonly = 0; zeroh = 0;
+
+                /* every digest length across all three kernel boundaries, at several source lengths */
+                static const DWORD NS[] = { 0, 1, 2, 7, 16, 137, 1024, 4000 };
+                for (int ni = 0; ni < (int)(sizeof NS / sizeof NS[0]); ++ni) {
+                    for (DWORD m = 0; m <= 40; ++m) {
+                        memset(mine, 0xAB, sizeof mine);
+                        memset(live, 0xAB, sizeof live);
+                        long ra = wia_hashdata(hsrc, NS[ni], mine, m);
+                        long rb = syshash(hsrc, NS[ni], live, m);
+                        if (ra != rb) ++mism;
+                        if (memcmp(mine, live, (size_t)m + 32) != 0) ++mism;
+                        ++cases;
+                        if (m == 0) ++zeroh;
+                        else if (NS[ni] == 0) ++seedonly;
+                        else if (m <= 4) ++leafc;
+                        else ++bigc;
+                    }
+                }
+
+                /* every byte value as a one-byte source, at each kernel's own digest length */
+                for (int v = 0; v < 256; ++v) {
+                    BYTE one = (BYTE)v;
+                    static const DWORD MS[] = { 1, 2, 3, 4, 5, 12, 13, 16, 24, 25 };
+                    for (int mi = 0; mi < (int)(sizeof MS / sizeof MS[0]); ++mi) {
+                        memset(mine, 0xAB, sizeof mine);
+                        memset(live, 0xAB, sizeof live);
+                        long ra = wia_hashdata(&one, 1, mine, MS[mi]);
+                        long rb = syshash(&one, 1, live, MS[mi]);
+                        if (ra != rb) ++mism;
+                        if (memcmp(mine, live, MS[mi] + 32) != 0) ++mism;
+                        ++cases;
+                        if (MS[mi] <= 4) ++leafc; else ++bigc;
+                    }
+                }
+
+                /* long digests: many passes of the twelve-lane kernel, and the seed writer's
+                   vector blocks plus its byte tail */
+                for (DWORD m = 250; m <= 1100; m += 13) {
+                    memset(mine, 0xAB, sizeof mine);
+                    memset(live, 0xAB, sizeof live);
+                    long ra = wia_hashdata(hsrc, 3, mine, m);
+                    long rb = syshash(hsrc, 3, live, m);
+                    if (ra != rb) ++mism;
+                    if (memcmp(mine, live, (size_t)m + 32) != 0) ++mism;
+                    ++cases; ++bigc;
+                    memset(mine, 0xAB, sizeof mine);
+                    memset(live, 0xAB, sizeof live);
+                    ra = wia_hashdata(hsrc, 0, mine, m);
+                    rb = syshash(hsrc, 0, live, m);
+                    if (ra != rb) ++mism;
+                    if (memcmp(mine, live, (size_t)m + 32) != 0) ++mism;
+                    ++cases; ++seedonly;
+                }
+
+                /* THE OVERLAP SWEEP: every relative placement of source and digest in one buffer */
+                {
+                    static const DWORD ON[] = { 1, 5, 13, 24 };
+                    static const DWORD OM[] = { 1, 4, 13, 20 };
+                    for (int ni = 0; ni < 4; ++ni) {
+                        for (int mi = 0; mi < 4; ++mi) {
+                            DWORD n = ON[ni], m = OM[mi];
+                            for (DWORD doff = 0; doff <= 40; ++doff) {
+                                for (DWORD hoff = 0; hoff <= 40; ++hoff) {
+                                    memcpy(ovm, ovseed, sizeof ovm);
+                                    memcpy(ovl, ovseed, sizeof ovl);
+                                    long ra = wia_hashdata(ovm + doff, n, ovm + hoff, m);
+                                    long rb = syshash(ovl + doff, n, ovl + hoff, m);
+                                    if (ra != rb) ++mism;
+                                    if (memcmp(ovm, ovl, sizeof ovm) != 0) ++mism;
+                                    ++cases;
+                                    if (doff < hoff + m && hoff < doff + n) ++ovlp; else ++disj;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /* every NULL combination: the digest must be untouched */
+                {
+                    memset(mine, 0xAB, 64); memset(live, 0xAB, 64);
+                    if (wia_hashdata(0, 4, mine, 4) != syshash(0, 4, live, 4)) ++mism;
+                    if (memcmp(mine, live, 64) != 0) ++mism;
+                    if (wia_hashdata(hsrc, 4, 0, 4) != syshash(hsrc, 4, 0, 4)) ++mism;
+                    if (wia_hashdata(0, 0, 0, 0) != syshash(0, 0, 0, 0)) ++mism;
+                    cases += 3;
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (every kernel + overlap)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&hash_patch, p_hash, (void*)w_hash), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_hash)[0], ((unsigned char*)p_hash)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_hash > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_hash);
+                    printf("  of %ld cases: %ld through the LEAF kernels (cbHash 1..4, no saved\n"
+                           "  registers), %ld through the framed twelve-lane kernel, %ld seed-only\n"
+                           "  (cbData 0, where the seed IS the result), %ld with cbHash 0 (which must\n"
+                           "  write nothing at all), and %ld OVERLAPPING placements against %ld\n"
+                           "  disjoint ones -- the grouped fast path is provably wrong on the former\n"
+                           "  and this is where its fallback is proved\n",
+                           cases, leafc, bigc, seedonly, zeroh, ovlp, disj);
+                    OK(ovlp >= 1000, "the overlapping sweep ran in full");
+                    OK(disj >= 1000, "the disjoint sweep ran in full");
+                    OK(leafc >= 1000, "the leaf kernels were exercised");
+                    OK(seedonly >= 40, "the seed-only path was exercised");
+                    OK(patch_off(&hash_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -1900,7 +2061,7 @@ int main(void){
         printf("KERNELBASE LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for\n"
                "kernelbase!lstrcpynW, kernelbase!CompareStringOrdinal, kernelbase!lstrcpynA\n"
                "kernelbase!lstrlenA, kernelbase!lstrcpyA, kernelbase!lstrcpyW,\n"
-               "kernelbase!lstrcatA, kernelbase!lstrcatW,\n"
+               "kernelbase!lstrcatA, kernelbase!lstrcatW, kernelbase!HashData,\n"
                "kernelbase!PathCchRemoveFileSpec, kernelbase!PathCchCanonicalizeEx,\n"
                "kernelbase!PathCchAppendEx, kernelbase!PathCchCombineEx,\n"
                "kernelbase!PathCchAddBackslashEx AND kernelbase!PathCchRemoveBackslashEx.\n"
@@ -1963,7 +2124,15 @@ int main(void){
                "the source and the append passes every ordinary corpus and still faults there. 230\n"
                "additionally sweeps EVERY destination width in BYTES, because a clamp that rounds in\n"
                "bytes rather than characters leaves one extra byte behind with the same return value,\n"
-               "no fault, and no difference a string comparison could see. All fourteen\n"
+               "no fault, and no difference a string comparison could see. For 244 the patched export\n"
+               "is the one BOTH names reach: shlwapi!HashData is a jmp thunk through\n"
+               "api-ms-win-core-url-l1-1-0 into this body, so a caller going through shlwapi lands in\n"
+               "our assembly too. Its corpus drives every relative placement of source against digest\n"
+               "inside one buffer, because the fast path holds twelve digest lanes in registers and\n"
+               "that is valid ONLY while the two are disjoint -- the shipped inner loop re-reads the\n"
+               "source byte for every lane, so a digest write landing on it changes what the\n"
+               "remaining lanes consume, and the grouped shape is measurably wrong on all 1641\n"
+               "overlapping placements probes/overlap.c enumerated. All fifteen\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;

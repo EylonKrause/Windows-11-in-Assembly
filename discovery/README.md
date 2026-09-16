@@ -21,6 +21,45 @@ semantics rather than sloppiness.
 | [`lstrcmp_is_linguistic.c`](lstrcmp_is_linguistic.c) | **negative result** — why `lstrcmpA`/`lstrcmpiA` are not targets |
 | [`strstra_not_bytewise.c`](strstra_not_bytewise.c) | **negative result** — why `StrStrA` is not a target |
 | [`extension_space_audit.c`](extension_space_audit.c) | **audit** — how far the missing `PathFindExtension` space rule had spread |
+| [`kernelbase_pathcch.c`](kernelbase_pathcch.c) | the unconverted half of kernelbase's `PathCch*` family, plus the kernelbase path helpers |
+| [`shlwapi_url_str.c`](shlwapi_url_str.c) | the three shlwapi families no earlier sweep touched: the **URL** functions, the formatters/parsers, and the remaining path predicates and writers. This is where change 244 came from |
+
+### What `shlwapi_url_str.c` found
+
+The earlier shlwapi sweeps all went after the string primitives and the path *editors*, which is
+where changes 131–239 came from. Three families had never been timed at all. Ranked by the long
+row's cost per byte, the survey's answer is:
+
+| routine | ns per source byte (1000-char subject) | note |
+|---|---|---|
+| `StrCSpnIW` | **69.97** | the case-**insensitive** family, and all of it is a known negative — `strchri_is_linguistic.c` already established that these fold through the locale machinery, not an ordinal table |
+| `StrChrNIW`, `StrRChrIW`, `StrStrNIW`, `StrRStrIW` | 33.6–35.0 | same family, same reason |
+| `UrlCreateFromPathW` | 59.55 | |
+| `UrlEscapeW` / `UrlEscapeA` | 31.96 / 33.24 | 140–270 cycles per character for a transform that escaped nothing on this subject |
+| `HashData` | **6.37** (0.157 GB/s) | **became change 244** — pure bytes in, bytes out |
+| `UrlHashW` | 6.25 | |
+| `PathIsSameRootW` | 5.77 | |
+| `StrCmpLogicalW` | 4.68 | natural sort order; the grammar is not pinned |
+| `UrlCanonicalizeA` / `UrlCanonicalizeW` | 3.67 / 2.10 | |
+| `UrlCompareW` | 2.61 | |
+| `PathAppendW`, `PathCombineW` | 1.56, 1.54 | both are a join followed by `PathCanonicalizeW` |
+| `PathRelativePathToW` | 1.84 | |
+| `UrlUnescapeW` / `UrlUnescapeA` | 1.57 / 1.59 | |
+| `PathCompactPathExW` | 1.28 | |
+| `IntlStrEqWorkerW` | 1.63 | |
+| `PathAddExtensionW` | 0.67 | and its long row REFUSES — 670 ns to decide the result will not fit |
+| `PathCanonicalizeW` | 0.63 | |
+| `PathParseIconLocationW` | 0.56 | |
+| `PathMatchSpecW` / `PathMatchSpecExW` | 0.44 / 0.40 | the grammar that parked change 239 |
+| `StrStrNW` | 0.40 | the case-**sensitive** bounded search, i.e. ordinal and therefore a live target |
+| `StrFormatByteSizeW` | 1533 ns for one number | locale formatting; the cost is semantics |
+| `PathIsNetworkPathW` | 511 ns, flat in the input | answers from the head; the cost is elsewhere |
+| `PathIsRootW`, `PathIsUNCW`, `PathIsRelativeW`, `PathSkipRootW`, `PathGetDriveNumberW`, `UrlIsW`, `PathUnquoteSpacesW`, `PathStripToRootW`, `PathBuildRootW` | 1.4–7.3 ns **total**, flat in the input | nothing to win: their ceiling is call overhead, not throughput |
+
+Two corrections the survey needed before it could be trusted, both crashes rather than wrong numbers:
+`IntlStrEqWorkerW` takes **four** arguments (a leading `BOOL fCaseSens`), and `StrRStrIW`/`StrRChrIW`
+take **three** (a `lpLast`/`lpEnd` bound in the middle). Calling them with the obvious signature
+faults immediately, which is the good kind of mistake.
 
 ## What the surveys ruled out, and why
 
