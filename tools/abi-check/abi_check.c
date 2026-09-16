@@ -1287,6 +1287,48 @@ static void thunk(void){
     sink += wia_hashdata(0, 0, 0, 0);
 }
 
+#elif defined(T_245)
+#define NAME "245-urlunescapew"
+extern long wia_urlunescapew(wchar_t*, wchar_t*, unsigned long*, unsigned long);
+extern void wia_uue_set_fallback(void*);
+/* the delegated flag domain tail-jumps to the shipped export, so it has to be installed before the
+   thunk runs -- and the tail jump is itself the thing worth checking here, because it happens with
+   eight non-volatile registers already pushed and must unwind them all before transferring */
+#define SETUP() wia_uue_set_fallback((void*)GetProcAddress(LoadLibraryW(L"shlwapi.dll"), \
+                                                          "UrlUnescapeW"))
+static void thunk(void){
+    /* every path, because they use different register sets and two of them leave through a tail
+       jump: the fast path (buffer bigger than the input, so only the %00 pattern scan runs), the
+       measuring path (buffer smaller, so the full walk runs), E_POINTER, the %00 refusal, the
+       escape-dense tight loop, a long plain run through the 32-byte copy ladder, the extra-info
+       flag, in-place, the DELEGATED flag domain, and every NULL combination. */
+    static wchar_t in[4200];
+    static wchar_t out[4200];
+    unsigned long cch;
+    int i;
+    wcscpy(in, L"a%41b%42c");
+    cch = 64;  sink += wia_urlunescapew(in, out, &cch, 0);            sink += out[0] + cch;
+    cch = 4;   sink += wia_urlunescapew(in, out, &cch, 0);            sink += cch;  /* E_POINTER */
+    cch = 6;   sink += wia_urlunescapew(in, out, &cch, 0);            sink += cch;  /* measuring */
+    wcscpy(in, L"a%00b");
+    cch = 64;  sink += wia_urlunescapew(in, out, &cch, 0);            sink += cch;  /* refusal */
+    for (i = 0; i < 1200; ++i) in[i] = (wchar_t)(0x61 + i % 23);
+    in[1200] = 0;
+    cch = 2000; sink += wia_urlunescapew(in, out, &cch, 0);           sink += out[0] + cch;
+    for (i = 0; i < 1200; i += 3) { in[i] = L'%'; in[i+1] = L'4'; in[i+2] = L'1'; }
+    in[1200] = 0;
+    cch = 2000; sink += wia_urlunescapew(in, out, &cch, 0);           sink += out[0] + cch;
+    wcscpy(in, L"a%41b?c%42d#e%43f");
+    cch = 64;  sink += wia_urlunescapew(in, out, &cch, 0x02000000);   sink += out[0] + cch;
+    cch = 64;  sink += wia_urlunescapew(in, out, &cch, 0x00040000);   sink += cch;  /* DELEGATED */
+    wcscpy(in, L"a%41b%42c");
+    cch = 0;   sink += wia_urlunescapew(in, 0, &cch, 0x00100000);     sink += in[0];  /* in place */
+    cch = 64;  sink += wia_urlunescapew(0, out, &cch, 0);
+    cch = 64;  sink += wia_urlunescapew(in, 0, &cch, 0);
+    sink += wia_urlunescapew(in, out, 0, 0);
+    cch = 0;   sink += wia_urlunescapew(in, out, &cch, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

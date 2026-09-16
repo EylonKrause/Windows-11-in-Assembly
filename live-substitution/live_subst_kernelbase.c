@@ -51,6 +51,8 @@ extern wchar_t* wia_lstrcpyw(wchar_t*, const wchar_t*);
 extern char*    wia_lstrcata(char*, const char*);
 extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
 extern long     wia_hashdata(const unsigned char*, unsigned long, unsigned char*, unsigned long);
+extern long     wia_urlunescapew(wchar_t*, wchar_t*, unsigned long*, unsigned long);
+extern void     wia_uue_set_fallback(void*);
 extern void     wia_upcase_init(void);
 extern long     wia_pathcchremovefilespec(wchar_t*, size_t);
 extern long     wia_pathcchcanonicalizeex(wchar_t*, size_t, const wchar_t*, unsigned long);
@@ -76,6 +78,10 @@ static volatile LONG c_cpw2;
 static wchar_t* WINAPI w_cpw2(wchar_t* d, const wchar_t* q){ _InterlockedIncrement(&c_cpw2); return wia_lstrcpyw(d, q); }
 static volatile LONG c_cata, c_catw;
 static char* WINAPI w_cata(char* d, const char* q){ _InterlockedIncrement(&c_cata); return wia_lstrcata(d, q); }
+static volatile LONG c_unes;
+static long WINAPI w_unes(const wchar_t* u, wchar_t* d, DWORD* pc, DWORD f){
+    _InterlockedIncrement(&c_unes); return wia_urlunescapew((wchar_t*)u, d, (unsigned long*)pc, f);
+}
 static volatile LONG c_hash;
 static long WINAPI w_hash(const BYTE* s, DWORD n, BYTE* d, DWORD m){
     _InterlockedIncrement(&c_hash); return wia_hashdata(s, n, d, m);
@@ -1394,6 +1400,219 @@ int main(void){
             }
         }
     }
+
+    // ===================== 245 UrlUnescapeW =====================
+    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlUnescapeW is a
+    // jmp thunk through api-ms-win-core-url-l1-1-0 into this body.
+    //
+    // WHAT THE CORPUS HAS TO REACH, and none of it is the happy path:
+    //
+    //   * BOTH FAILURE PATHS MUST LEAVE THE DESTINATION UNTOUCHED -- %00 anywhere in the input, and a
+    //     buffer that is merely EQUAL to the result length rather than greater. So every case here
+    //     compares the WHOLE destination against a sentinel fill AND *pcchUnescaped, not the string.
+    //     Those two rules are also why the implementation has a measuring pass at all.
+    //   * THE %00 PATTERN SCAN. When the caller's buffer is larger than the input, the measuring pass
+    //     is replaced by a vector scan for the three characters '%','0','0' -- sound because a '%'
+    //     can never be swallowed by a preceding escape, its payload being hex digits. Both branches
+    //     are driven: capacities above the input length take the scan, capacities at or below it take
+    //     the full walk.
+    //   * THE IN-PLACE FORM, which is tested before all argument validation and never writes *pcch.
+    //   * EVERY 32-BYTE BLOCK BOUNDARY, because the scan is a 16-character block and the copy a
+    //     32-byte move: lengths 0..200 with an escape walked across every position.
+    //
+    // WHAT DOES NOT RUN UNDER THE PATCH, and why that is stated rather than hidden. Two input
+    // classes are DELEGATED by the implementation to the original body: any flag outside
+    // {INPLACE, DONT_UNESCAPE_EXTRA_INFO}, and an overlap with the destination ABOVE the source. Both
+    // leave through a tail jump to the address installed by wia_uue_set_fallback -- and once this
+    // export is patched, that address IS our code, so delegating under the patch would be an
+    // infinite loop rather than a fallback. kernelbase!UrlUnescapeW is not a jmp thunk; the export IS
+    // the body, so there is no surviving original to jump to. Exactly change 242's situation, and the
+    // same answer: the delegated classes are proved in the VALIDATE-FIRST pass, where the fallback is
+    // the untouched export, and the patched pass runs only the implemented domain.
+    printf("[245 UrlUnescapeW]  kernelbase (both failure paths, both %%00 branches, in place)\n");
+    {
+        typedef long (WINAPI *funes)(const wchar_t*, wchar_t*, DWORD*, DWORD);
+        void* p_unes = (void*)GetProcAddress(hk, "UrlUnescapeW");
+        OK(p_unes != NULL, "resolve UrlUnescapeW");
+        if (p_unes) {
+            funes sysunes = (funes)p_unes;
+            static wchar_t uin[2048], umine[2048], ulive[2048];
+            static wchar_t uipa[2048], uipb[2048];
+            patch_t unes_patch;
+            long cases = 0, fastp = 0, measp = 0, eptr = 0, refused = 0, inplace = 0, deleg = 0;
+            int vpre = 0;
+            wia_uue_set_fallback(p_unes);          /* installed BEFORE the patch, on purpose */
+            for (int pass = 0; pass < 2; ++pass) {
+                int mism = 0;
+                cases = fastp = measp = eptr = refused = inplace = deleg = 0;
+
+                /* the pinned shapes, at every capacity from 1 to result+3 */
+                static const wchar_t* T[] = {
+                    L"", L"a", L"%", L"%%", L"%4", L"a%", L"a%4", L"a%zz", L"a%4z", L"a%z4",
+                    L"%41", L"%41%42", L"%414243", L"%2541", L"%41x", L"a%41b%42c",
+                    L"a%00b", L"%00", L"a%00", L"%00b", L"%0", L"%000",
+                    L"a%41b?c%42d", L"a%41b#c%42d", L"?%41", L"#%41", L"a%3Fb%41", L"#", L"?",
+                    L"%C3%A9", L"%FF%FE", L"%C3",
+                };
+                static const DWORD FL[] = { 0, 0x02000000 };
+                for (int i = 0; i < (int)(sizeof T / sizeof T[0]); ++i) {
+                    size_t n = wcslen(T[i]);
+                    for (int f = 0; f < 2; ++f) {
+                        for (DWORD cap = 1; cap <= (DWORD)n + 3; ++cap) {
+                            DWORD ca = cap, cc = cap;
+                            for (DWORD k = 0; k < cap + 16; ++k) { umine[k] = 0xBEEF;
+                                                                   ulive[k] = 0xBEEF; }
+                            wcscpy(uin, T[i]);
+                            long ra = wia_urlunescapew(uin, umine, &ca, FL[f]);
+                            long rb = sysunes(uin, ulive, &cc, FL[f]);
+                            if (ra != rb) ++mism;
+                            if (ca != cc) ++mism;
+                            if (memcmp(umine, ulive, (cap + 16) * sizeof(wchar_t)) != 0) ++mism;
+                            ++cases;
+                            if (cap > (DWORD)n) ++fastp; else ++measp;
+                            if (ra == (long)0x80004003) ++eptr;
+                            if (ra == (long)0x80070057) ++refused;
+                        }
+                        /* in place */
+                        for (size_t k = 0; k < n + 16; ++k) { uipa[k] = 0xBEEF; uipb[k] = 0xBEEF; }
+                        wcscpy(uipa, T[i]); wcscpy(uipb, T[i]);
+                        DWORD ia = 0xABCD, ib = 0xABCD;
+                        long ra2 = wia_urlunescapew(uipa, 0, &ia, FL[f] | 0x00100000);
+                        long rb2 = sysunes(uipb, 0, &ib, FL[f] | 0x00100000);
+                        if (ra2 != rb2) ++mism;
+                        if (ia != ib) ++mism;
+                        if (memcmp(uipa, uipb, (n + 16) * sizeof(wchar_t)) != 0) ++mism;
+                        ++cases; ++inplace;
+                    }
+                }
+
+                /* every length across the 32-byte block boundary, with one escape walked along it */
+                for (int n = 0; n <= 200; ++n) {
+                    for (int k = 0; k < n; ++k) uin[k] = (wchar_t)(0x61 + k % 26);
+                    uin[n] = 0;
+                    DWORD ca = 300, cc = 300;
+                    for (int k = 0; k < 320; ++k) { umine[k] = 0xBEEF; ulive[k] = 0xBEEF; }
+                    long ra = wia_urlunescapew(uin, umine, &ca, 0);
+                    long rb = sysunes(uin, ulive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(umine, ulive, 320 * sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++fastp;
+                    if (n >= 3) {
+                        for (int p = 0; p + 3 <= n; p += (n > 40 ? 11 : 1)) {
+                            for (int k = 0; k < n; ++k) uin[k] = (wchar_t)(0x61 + k % 26);
+                            uin[p] = L'%'; uin[p+1] = L'4'; uin[p+2] = L'1';
+                            uin[n] = 0;
+                            ca = 300; cc = 300;
+                            for (int k = 0; k < 320; ++k) { umine[k] = 0xBEEF; ulive[k] = 0xBEEF; }
+                            ra = wia_urlunescapew(uin, umine, &ca, 0);
+                            rb = sysunes(uin, ulive, &cc, 0);
+                            if (ra != rb || ca != cc) ++mism;
+                            if (memcmp(umine, ulive, 320 * sizeof(wchar_t)) != 0) ++mism;
+                            ++cases; ++fastp;
+                        }
+                    }
+                }
+
+                /* escape-dense, which is the tight inner loop rather than the vector scan */
+                for (int e = 1; e <= 80; ++e) {
+                    int k = 0;
+                    for (int i = 0; i < e; ++i) { uin[k++] = L'%'; uin[k++] = L'4';
+                                                  uin[k++] = (wchar_t)(0x31 + i % 9); }
+                    uin[k] = 0;
+                    DWORD ca = 300, cc = 300;
+                    for (int q = 0; q < 320; ++q) { umine[q] = 0xBEEF; ulive[q] = 0xBEEF; }
+                    long ra = wia_urlunescapew(uin, umine, &ca, 0);
+                    long rb = sysunes(uin, ulive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(umine, ulive, 320 * sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++fastp;
+                    /* and the same at a capacity that forces the measuring pass */
+                    ca = (DWORD)e; cc = (DWORD)e;
+                    for (int q = 0; q < 320; ++q) { umine[q] = 0xBEEF; ulive[q] = 0xBEEF; }
+                    ra = wia_urlunescapew(uin, umine, &ca, 0);
+                    rb = sysunes(uin, ulive, &cc, 0);
+                    if (ra != rb || ca != cc) ++mism;
+                    if (memcmp(umine, ulive, 320 * sizeof(wchar_t)) != 0) ++mism;
+                    ++cases; ++measp;
+                }
+
+                /* every NULL combination */
+                {
+                    DWORD ca = 64, cc = 64;
+                    if (wia_urlunescapew(0, umine, &ca, 0) != sysunes(0, ulive, &cc, 0)) ++mism;
+                    ca = cc = 64;
+                    if (wia_urlunescapew(uin, 0, &ca, 0) != sysunes(uin, 0, &cc, 0)) ++mism;
+                    if (wia_urlunescapew(uin, umine, 0, 0) != sysunes(uin, ulive, 0, 0)) ++mism;
+                    ca = cc = 0;
+                    if (wia_urlunescapew(uin, umine, &ca, 0) != sysunes(uin, ulive, &cc, 0)) ++mism;
+                    cases += 4;
+                }
+
+                /* THE DELEGATED CLASSES, and only while the export is still the real one. Under the
+                   patch the fallback address is our own code, so these would not fall back at all. */
+                if (pass == 0) {
+                    static const DWORD DF[] = { 0x00040000, 0x02040000 };
+                    static const wchar_t* DT[] = { L"%C3%A9", L"a%C3%A9b", L"%FF%FE", L"%E2%82%AC",
+                                                   L"a%41b?c%C3%A9d" };
+                    for (int f = 0; f < 2; ++f)
+                        for (int i = 0; i < 5; ++i)
+                            for (DWORD cap = 1; cap <= 12; ++cap) {
+                                DWORD ca = cap, cc = cap;
+                                for (DWORD k = 0; k < cap + 16; ++k) { umine[k] = 0xBEEF;
+                                                                       ulive[k] = 0xBEEF; }
+                                wcscpy(uin, DT[i]);
+                                long ra = wia_urlunescapew(uin, umine, &ca, DF[f]);
+                                long rb = sysunes(uin, ulive, &cc, DF[f]);
+                                if (ra != rb || ca != cc) ++mism;
+                                if (memcmp(umine, ulive, (cap + 16) * sizeof(wchar_t)) != 0) ++mism;
+                                ++cases; ++deleg;
+                            }
+                    /* and the unsafe-overlap class, also delegated */
+                    for (int hoff = 1; hoff <= 8; ++hoff) {
+                        static wchar_t ba[256], bb[256];
+                        for (int k = 0; k < 256; ++k) { ba[k] = 0xBEEF; bb[k] = 0xBEEF; }
+                        wcscpy(ba, L"a%41b%42c"); wcscpy(bb, L"a%41b%42c");
+                        DWORD ca = 64, cc = 64;
+                        long ra = wia_urlunescapew(ba, ba + hoff, &ca, 0);
+                        long rb = sysunes(bb, bb + hoff, &cc, 0);
+                        if (ra != rb || ca != cc) ++mism;
+                        if (memcmp(ba, bb, 256 * sizeof(wchar_t)) != 0) ++mism;
+                        ++cases; ++deleg;
+                    }
+                }
+
+                if (pass == 0) {
+                    vpre = mism;
+                    OK(vpre == 0, "validate-first vs the LIVE export (incl. the delegated classes)");
+                    if (vpre) { printf("  UNPROVEN -> NOT patching\n\n"); break; }
+                    OK(patch_on(&unes_patch, p_unes, (void*)w_unes), "install patch");
+                    printf("  patched prologue: %02X %02X (expect FF 25)\n",
+                           ((unsigned char*)p_unes)[0], ((unsigned char*)p_unes)[1]);
+                } else {
+                    OK(mism == 0, "identical under live patch");
+                    OK(c_unes > 0, "counter proves OUR code executed");
+                    printf("  under live patch: %s;  our-code calls = %ld\n",
+                           mism ? "MISMATCH" : "all match", (long)c_unes);
+                    printf("  of %ld cases: %ld took the %%00 PATTERN SCAN (buffer bigger than the\n"
+                           "  input), %ld took the full MEASURING pass (buffer at or below it), %ld\n"
+                           "  returned E_POINTER and %ld E_INVALIDARG -- both of which must leave the\n"
+                           "  destination untouched, which is why every case compares the whole\n"
+                           "  buffer against a sentinel fill -- and %ld ran IN PLACE. The %ld\n"
+                           "  DELEGATED cases (AS_UTF8, and overlap with the destination above the\n"
+                           "  source) ran in the validate-first pass only: their fallback is the\n"
+                           "  original body, which a patched export no longer is.\n",
+                           cases, fastp, measp, eptr, refused, inplace, deleg);
+                    OK(fastp >= 500, "the pattern-scan branch ran in full");
+                    OK(measp >= 100, "the measuring branch ran in full");
+                    OK(eptr  >= 40,  "E_POINTER was reached");
+                    OK(refused >= 8, "the %00 refusal was reached");
+                    OK(inplace >= 60, "the in-place path ran");
+                    OK(patch_off(&unes_patch), "unpatch verified byte-identical");
+                    printf("  unpatched cleanly.\n\n");
+                }
+            }
+        }
+    }
     // ===================== 240 PathCchRemoveFileSpec =====================
     // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
     // separately measured facts make anything less insufficient here:
@@ -2132,7 +2351,16 @@ int main(void){
                "that is valid ONLY while the two are disjoint -- the shipped inner loop re-reads the\n"
                "source byte for every lane, so a digest write landing on it changes what the\n"
                "remaining lanes consume, and the grouped shape is measurably wrong on all 1641\n"
-               "overlapping placements probes/overlap.c enumerated. All fifteen\n"
+               "overlapping placements probes/overlap.c enumerated. For 245 the two FAILURE paths are\n"
+               "the point -- %00 anywhere in the input, and a buffer merely EQUAL to the result\n"
+               "length -- because both must leave the destination completely untouched, which is why\n"
+               "every case compares the whole buffer against a sentinel fill rather than the string.\n"
+               "Both of its %00 branches are driven: a buffer bigger than the input takes a vector\n"
+               "scan for the three characters of an escaped zero, a smaller one the full measuring\n"
+               "walk. Its DELEGATED classes -- URL_UNESCAPE_AS_UTF8, and an overlap with the\n"
+               "destination above the source -- run in the validate-first pass ONLY, because they\n"
+               "leave through a tail jump to the original body and a patched export is no longer\n"
+               "that. All sixteen\n"
                "prologues restored byte-for-byte. Zero system processes touched, nothing on disk\n"
                "modified.\n");
         return 0;
