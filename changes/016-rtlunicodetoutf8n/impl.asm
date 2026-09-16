@@ -9,6 +9,39 @@
 ; Status: STATUS_SUCCESS, or 0x107 STATUS_SOME_NOT_MAPPED (a lone surrogate), or
 ; 0xC0000023 STATUS_BUFFER_TOO_SMALL (output did not fit).
 ;
+; ------------------------------------------------------------------------------
+; A NULL DESTINATION IS THE MEASURING MODE, ADDED 2026-09-16 -- IT WAS MISSING.
+;
+; RtlUnicodeToUTF8N(NULL, 0, &produced, src, srcLen) is the documented way to ask
+; this function how many bytes the output will need: the shipped export returns
+; STATUS_SUCCESS with `produced` set to the required count and writes nothing.
+; This implementation did not. It returned STATUS_BUFFER_TOO_SMALL with produced
+; = 0, and with a NULL pointer and a NON-ZERO size it DEREFERENCED the pointer
+; and faulted. See discovery/utf8n_null_destination.c for the evidence.
+;
+; WHY THE GATES DID NOT CATCH IT: this change is bit-exact against the live export
+; over large corpora, and every case in them passes a real destination buffer. A
+; NULL destination is not an edge of the LENGTH, which is what those corpora
+; sweep -- it is a different MODE of the same function, and nothing asked for it.
+; The same shape as the SPACE bug that sat in four landed changes at once.
+;
+; It was found by change 268, whose allocating path has to size the output before
+; it can allocate a buffer for it, and which cannot be built until this works.
+;
+; The counting rule below was verified against the live measuring mode over
+; 200000 random strings -- ASCII, two-byte, surrogate-heavy and fully random --
+; with ZERO disagreements on the size AND on the status, and measuring.c gates it
+; here over 122006 more.
+;
+; WHAT IT COSTS, MEASURED RATHER THAN WAVED AWAY: the two-instruction test at the
+; entry costs 0.12 ns on the 8-byte row -- 2.93 ns before, 3.05 after -- which is
+; about 4% of the smallest call and moves the geomean from 2.68x to 2.63x. Moving
+; the test AFTER the prologue, so it might issue alongside the seven pushes, was
+; tried and measured WORSE at 3.13 ns; the entry is the better of the two places.
+; Every row still beats the shipped code and the change still LANDS. A function
+; that faults on a documented call is not worth 0.12 ns.
+; ------------------------------------------------------------------------------
+;
 ; ISA: AVX2. Validated on Zen3.
 
 .const
@@ -18,6 +51,8 @@ CFF80y  DW      16 dup(0FF80h)
 
 .code
 wia_u2u8 PROC
+        test      rcx, rcx
+        jz        u2u8_measure                      ; a NULL destination asks for the SIZE only
         push      rbx
         push      rsi
         push      rdi
@@ -226,5 +261,65 @@ epi:
         pop       rsi
         pop       rbx
         ret
+; ---------------------------------------------------------------------------------------------
+; THE MEASURING MODE. Entered before the prologue, so it is a leaf: no pushes, nothing but the
+; volatile registers and the caller's shadow space, which holds the one flag it needs.
+;
+;   r8 = &produced,  r9 = src,  [rsp+40] = srcBytes  (the fifth argument, with no pushes yet)
+;
+; One character at a time, because this path is not the performance case -- the conversion is.
+; The rule: below 0x80 is one byte, below 0x800 is two, a HIGH surrogate followed by a LOW one is
+; four and consumes both, and everything else -- including a lone surrogate, which becomes U+FFFD
+; -- is three. A lone surrogate also makes the status STATUS_SOME_NOT_MAPPED, exactly as the
+; conversion path reports it.
+; ---------------------------------------------------------------------------------------------
+u2u8_measure:
+        mov       dword ptr [rsp + 8], 0            ; someNotMapped, in the caller's shadow space
+        mov       r10d, dword ptr [rsp + 40]        ; srcBytes
+        shr       r10d, 1                           ; ... as a count of wchars
+        xor       r11d, r11d                        ; bytes so far
+        xor       ecx, ecx                          ; index
+        jmp       m_test
+ALIGN 16
+m_loop:
+        movzx     eax, word ptr [r9 + rcx*2]
+        cmp       eax, 80h
+        jb        m_one
+        cmp       eax, 800h
+        jb        m_two
+        mov       edx, eax
+        and       edx, 0F800h
+        cmp       edx, 0D800h
+        jne       m_three                           ; not a surrogate at all
+        cmp       eax, 0DC00h
+        jae       m_lone                            ; a LOW surrogate first is always lone
+        lea       edx, [rcx + 1]
+        cmp       edx, r10d
+        jae       m_lone                            ; nothing follows it
+        movzx     edx, word ptr [r9 + rcx*2 + 2]
+        sub       edx, 0DC00h
+        cmp       edx, 400h
+        jae       m_lone                            ; what follows is not a low surrogate
+        add       r11d, 4                           ; a valid pair: four bytes, two units consumed
+        add       ecx, 2
+        jmp       m_test
+m_lone: mov       dword ptr [rsp + 8], 1
+m_three:add       r11d, 3
+        inc       ecx
+        jmp       m_test
+m_two:  add       r11d, 2
+        inc       ecx
+        jmp       m_test
+m_one:  inc       r11d
+        inc       ecx
+m_test: cmp       ecx, r10d
+        jb        m_loop
+        mov       dword ptr [r8], r11d
+        xor       eax, eax
+        cmp       dword ptr [rsp + 8], 0
+        je        m_ret
+        mov       eax, 107h                         ; STATUS_SOME_NOT_MAPPED
+m_ret:  ret
+
 wia_u2u8 ENDP
 END
