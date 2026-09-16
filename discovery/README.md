@@ -28,38 +28,70 @@ semantics rather than sloppiness.
 
 The earlier shlwapi sweeps all went after the string primitives and the path *editors*, which is
 where changes 131–239 came from. Three families had never been timed at all. Ranked by the long
-row's cost per byte, the survey's answer is:
+row's cost per byte:
 
-| routine | ns per source byte (1000-char subject) | note |
+| routine | ns per byte, long row | note |
 |---|---|---|
-| `StrCSpnIW` | **69.97** | the case-**insensitive** family, and all of it is a known negative — `strchri_is_linguistic.c` already established that these fold through the locale machinery, not an ordinal table |
-| `StrChrNIW`, `StrRChrIW`, `StrStrNIW`, `StrRStrIW` | 33.6–35.0 | same family, same reason |
-| `UrlCreateFromPathW` | 59.55 | |
-| `UrlEscapeW` / `UrlEscapeA` | 31.96 / 33.24 | 140–270 cycles per character for a transform that escaped nothing on this subject |
-| `HashData` | **6.37** (0.157 GB/s) | **became change 244** — pure bytes in, bytes out |
-| `UrlHashW` | 6.25 | |
-| `PathIsSameRootW` | 5.77 | |
-| `StrCmpLogicalW` | 4.68 | natural sort order; the grammar is not pinned |
-| `UrlCanonicalizeA` / `UrlCanonicalizeW` | 3.67 / 2.10 | |
-| `UrlCompareW` | 2.61 | |
-| `PathAppendW`, `PathCombineW` | 1.56, 1.54 | both are a join followed by `PathCanonicalizeW` |
-| `PathRelativePathToW` | 1.84 | |
-| `UrlUnescapeW` / `UrlUnescapeA` | 1.57 / 1.59 | |
-| `PathCompactPathExW` | 1.28 | |
-| `IntlStrEqWorkerW` | 1.63 | |
-| `PathAddExtensionW` | 0.67 | and its long row REFUSES — 670 ns to decide the result will not fit |
-| `PathCanonicalizeW` | 0.63 | |
-| `PathParseIconLocationW` | 0.56 | |
-| `PathMatchSpecW` / `PathMatchSpecExW` | 0.44 / 0.40 | the grammar that parked change 239 |
-| `StrStrNW` | 0.40 | the case-**sensitive** bounded search, i.e. ordinal and therefore a live target |
-| `StrFormatByteSizeW` | 1533 ns for one number | locale formatting; the cost is semantics |
-| `PathIsNetworkPathW` | 511 ns, flat in the input | answers from the head; the cost is elsewhere |
-| `PathIsRootW`, `PathIsUNCW`, `PathIsRelativeW`, `PathSkipRootW`, `PathGetDriveNumberW`, `UrlIsW`, `PathUnquoteSpacesW`, `PathStripToRootW`, `PathBuildRootW` | 1.4–7.3 ns **total**, flat in the input | nothing to win: their ceiling is call overhead, not throughput |
+| `StrCSpnIW` | **71.09** | the case-**insensitive** family, and all of it is a known negative — `strchri_is_linguistic.c` already established that these fold through the locale machinery, not an ordinal table |
+| `StrChrNIW`, `StrRChrIW`, `StrStrNIW`, `StrRStrIW` | 33.8–35.1 | same family, same reason |
+| `UrlCreateFromPathW` | 119.12 | |
+| `UrlEscapeW` / `UrlEscapeA`, **escaping** | 159.76 / 161.65 | |
+| `UrlEscapeW` / `UrlEscapeA`, **no-op** | 32.81 / 33.92 | the cost of deciding there is nothing to escape |
+| `StrFormatByteSizeW` | 1591 ns for one number | locale formatting; the cost is semantics |
+| `PathIsNetworkPathW` | 530 ns, **flat in the input** | answers from the head; the cost is elsewhere |
+| `HashData` | **6.53** (0.157 GB/s) | **became change 244**, landed at 2.58× |
+| `PathIsSameRootW` | 5.73 | |
+| `StrCmpLogicalW` | 4.78 | natural sort order; the grammar is not pinned |
+| `UrlCanonicalizeW` / `UrlCanonicalizeA` | 4.26 / 3.74 | |
+| `UrlCompareW` | 4.75 | |
+| `UrlHashW` | 8.63 | |
+| `UrlGetPartW` | 2.33 | |
+| `PathRelativePathToW` | 1.85 | |
+| `UrlUnescapeA` / `UrlUnescapeW` | 1.85 / 1.24 | **the next target** — see below |
+| `PathAppendW`, `PathCombineW` | 1.58, 1.57 | and they are **already covered** — see below |
+| `IntlStrEqWorkerW` | 1.65 | |
+| `PathCompactPathExW` | 1.31 | |
+| `PathCanonicalizeW` | 0.65 | |
+| `PathParseIconLocationW` | 0.57 | |
+| `PathAddExtensionW` | 0.52 | and its long row REFUSES — 518 ns to decide the result will not fit |
+| `PathMatchSpecW` / `PathMatchSpecExW` | 0.45 / 0.40 | the grammar that parked change 239 |
+| `StrStrNW` | 0.40 | the case-**sensitive** bounded search |
+| `PathIsRootW`, `PathIsUNCW`, `PathIsRelativeW`, `PathIsURLW`, `PathIsUNCServerW`, `PathIsUNCServerShareW`, `PathIsLFNFileSpecW`, `PathSkipRootW`, `PathGetDriveNumberW`, `PathGetCharTypeW`, `UrlIsW`, `PathUnquoteSpacesW`, `PathStripToRootW`, `PathBuildRootW` | 1.4–14 ns **total**, flat in the input | nothing to win: their ceiling is call overhead, not throughput |
 
-Two corrections the survey needed before it could be trusted, both crashes rather than wrong numbers:
-`IntlStrEqWorkerW` takes **four** arguments (a leading `BOOL fCaseSens`), and `StrRStrIW`/`StrRChrIW`
-take **three** (a `lpLast`/`lpEnd` bound in the middle). Calling them with the obvious signature
-faults immediately, which is the good kind of mistake.
+#### Three mistakes this survey made, all caught and all worth keeping
+
+1. **Two crashes before they were numbers.** `IntlStrEqWorkerW` takes **four** arguments (a leading
+   `BOOL fCaseSens`) and `StrRStrIW`/`StrRChrIW` take **three** (a `lpLast`/`lpEnd` bound in the
+   middle). The obvious signature faults immediately, which is the good kind of mistake.
+2. **The `UrlEscape` subject escaped nothing.** The first version put the characters that need
+   escaping in the URL's **query**, on the assumption that safe characters would time only the fast
+   path. `UrlEscape` leaves the query alone by default, so the row measured a scan that copies its
+   input out unchanged — and the file printed the evidence, "escaping the long URL grew it 1000 ->
+   1000 chars", which was not read. Both subjects are kept now and both are timed; the difference
+   between them is the cost of the escaping itself.
+3. **A 16 KB local moved the numbers by 2×.** Adding a `wchar_t chk[8192]` to check point 2 put
+   sixteen kilobytes on `main`'s frame and shifted every local declared after it. The `HashData` row
+   — twelve sections further down, a 16-byte digest on the **stack** read against a 4096-byte static
+   source — went 26 115 → 50 266 ns. Change 244's own benchmark, run immediately afterwards, was
+   unmoved at 25 801 ns, which is what ruled out the machine and pointed back here. Same 4K-aliasing
+   family as the restore hazard that parked changes 142, 228, 230 and 241. A survey that measures its
+   own stack layout is not measuring the functions.
+
+### What a disassembly fan-out over the survey's candidates then established
+
+Eight candidates were read at the machine-code level and the four that looked worth building were
+put through an adversarial second pass. What came out:
+
+| candidate | verdict | why |
+|---|---|---|
+| `UrlUnescapeW` / `UrlUnescapeA` | **TAKE IT** | The cost is bookkeeping, not the transform. The non-in-place path makes **five sequential O(n) walks plus a heap round trip**: `ntdll!wcslen`, a `LocalAlloc(LMEM_ZEROINIT)` when the input exceeds 64 chars (quadrupling capacity in a loop), a copy-in at one WCHAR per five instructions, the unescape walk, a scalar result-`strlen`, and a copy-out. The same string through `URL_UNESCAPE_INPLACE` — the state machine alone — costs 529 ns against 1575 for the full call, so **two thirds is the scaffolding**, and `memcpy` of the same buffer is 0.2 ns. No NLS anywhere: the hex-digit test is a static kernelbase table at RVA 0x2A2B70 whose set is exactly `0123456789ABCDEFabcdef`, 22 entries, no locale input |
+| `PathCanonicalizeW` | GOOD | 18 instructions of envelope around a body that is **the same body change 243 already modelled** |
+| `PathAddExtensionW` | GOOD | Not semantics. The refuting agent built a C prototype and measured 1.34×–5.74× on change 132's own size classes — but also found a **reproducible regression at an empty path** (0.87–0.94×) and marginal rows at 2–6 chars, so the class set has to be chosen deliberately |
+| `UrlHashW` / `UrlHashA` | GOOD, smaller than it looked | Its worker calls a **second, inlined copy** of `HashData`'s body at RVA 0xC0A10 — byte-identical to the export at 0xBB750 down to the same permutation table at RVA 0x2A6010 — so change 244's landed patch does **nothing** for it. The refutation also measured that inlined copy 1.15–1.45× *faster* than the export change 244 beat, which pulls the projection down to ~1.6× geomean (`UrlHashA` alone, ~2.0–2.5×, is the better half). Its `lstrlenA` call carries an SEH handler: an unterminated URL ending at a `PAGE_NOACCESS` boundary returns S_OK with the identity seed, i.e. it **swallows the fault** |
+| `PathCombineW` / `PathAppendW` | **ALREADY COVERED** | Refuted as a target, which is the best possible outcome: `PathCombineW` is 21 instructions — `mov edx, 0x104` then `call PathCchCombineEx` — and **that export is change 242**. Verified directly: the call at RVA 0xF9E63 targets 0x010530, and 0x010530 is `PathCchCombineEx` in kernelbase's export table. Both shlwapi names are bare IAT thunks, so patching 242's export already redirects `PathCombineW`, and its 1.57 ns/byte is 242's number, not a new one |
+| `UrlEscapeW` | **BAD** | The two per-character loops are already table-driven and call-free, roughly 2 ns of a ~282 ns call. Everything else is a URL parse and re-serialisation — semantics |
+| `StrStrNW` | **BAD** | Marginal on the first pass, refuted on the second: the per-character part is already an ordinal scalar scan at 0.315 ns/char via `StrChrNW`, leaving too little to win against the no-regression gate |
+| `PathIsSameRootW` | **not NLS — parked for a different reason** | The fan-out called it BAD for calling `CompareStringW` per path segment. That is the wrong reason. Its worker at RVA 0xCBD10 is `PathCommonPrefixW`, which is **change 167** — and 167's probe established that this fold *is* bit-exactly reproducible: over all 65534 code-unit pairs it is exactly `CharUpperW` and exactly `RtlUpcaseUnicodeChar`, 0 differences each, against 947 for a plain ASCII fold. Unlike `StrChrIW`, it is reachable with the OS-built upcase table change 008 already builds. 167 is parked at **99.3 %** on leading-separator residuals — which is precisely the shape change 243 cracked by reading the disassembly instead of probing harder, so this family is revivable rather than dead |
 
 ## What the surveys ruled out, and why
 
