@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (71)
+# ntdll.dll — reimplemented exports (75)
 
 | export | speedup | source |
 |---|---|---|
@@ -52,7 +52,11 @@
 | `RtlLargeIntegerToChar` | 1.43x | [changes/100-rtllargeintegertochar](../../../../../changes/100-rtllargeintegertochar/) |
 | `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
 | `RtlNumberOfClearBits` | 1.33x | [changes/124-rtlnumberofclearbits](../../../../../changes/124-rtlnumberofclearbits/) |
+| `RtlNumberOfClearBits` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
+| `RtlNumberOfClearBitsInRange` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
 | `RtlNumberOfSetBits` | 1.32x | [changes/023-rtlnumberofsetbits](../../../../../changes/023-rtlnumberofsetbits/) |
+| `RtlNumberOfSetBits` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
+| `RtlNumberOfSetBitsInRange` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
 | `RtlOemStringToUnicodeString` | 5.50x | [changes/025-rtloemstringtounicodestring](../../../../../changes/025-rtloemstringtounicodestring/) |
 | `RtlOemToUnicodeN` | 4.51x | [changes/029-rtloemtounicoden](../../../../../changes/029-rtloemtounicoden/) |
 | `RtlPrefixString` | 2.88x | [changes/014-rtlprefixstring](../../../../../changes/014-rtlprefixstring/) |
