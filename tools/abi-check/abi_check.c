@@ -1255,6 +1255,38 @@ static void thunk(void){
     wia_pathremoveexta(0);
 }
 
+#elif defined(T_244)
+#define NAME "244-hashdata"
+extern long wia_hashdata(const unsigned char*, unsigned long, unsigned char*, unsigned long);
+static void thunk(void){
+    /* every path this implementation has, because they use different register sets: the four LEAF
+       kernels (cbHash 1..4, which save nothing at all), the framed twelve-lane kernel, its
+       four-lane last group, a digest long enough to need many passes, the seed-only path with both
+       its vector blocks and its byte tail, the OVERLAP fallback -- which is the only path that
+       writes the digest through memory -- and every NULL combination. */
+    static unsigned char s[5000];
+    static unsigned char d[1100];
+    static unsigned char both[512];
+    int i;
+    for (i = 0; i < 5000; ++i) s[i] = (unsigned char)(i * 31 + 7);
+    sink += wia_hashdata(s, 137, d, 1);      sink += d[0];   /* leaf, one lane */
+    sink += wia_hashdata(s, 137, d, 2);      sink += d[1];   /* leaf, two lanes */
+    sink += wia_hashdata(s, 137, d, 3);      sink += d[2];   /* leaf, three lanes */
+    sink += wia_hashdata(s, 137, d, 4);      sink += d[3];   /* leaf, four lanes */
+    sink += wia_hashdata(s, 137, d, 5);      sink += d[4];   /* framed, one partial group */
+    sink += wia_hashdata(s, 137, d, 12);     sink += d[11];  /* framed, exactly one group */
+    sink += wia_hashdata(s, 4000, d, 16);    sink += d[15];  /* twelve lanes then four */
+    sink += wia_hashdata(s, 37, d, 1000);    sink += d[999]; /* many passes */
+    sink += wia_hashdata(s, 0, d, 1000);     sink += d[999]; /* the seed alone: vector + tail */
+    sink += wia_hashdata(s, 137, d, 0);                      /* writes nothing */
+    for (i = 0; i < 512; ++i) both[i] = (unsigned char)(i * 37 + 11);
+    sink += wia_hashdata(both + 8, 24, both, 20);            /* OVERLAPPING: the fallback */
+    sink += both[0];
+    sink += wia_hashdata(0, 4, d, 4);
+    sink += wia_hashdata(s, 4, 0, 4);
+    sink += wia_hashdata(0, 0, 0, 0);
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
