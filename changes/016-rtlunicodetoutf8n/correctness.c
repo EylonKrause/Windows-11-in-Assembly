@@ -32,6 +32,7 @@ extern const unsigned char* wia_u2u8_pack_table(void);
 extern const unsigned char* wia_u2u8_pack_len(void);
 extern const unsigned char* wia_u2u8_lat_table(void);
 extern const unsigned char* wia_u2u8_lat_len(void);
+extern const unsigned char* wia_u2u8_shift_table(void);
 NTSTATUS ref_u2u8(unsigned char*, unsigned long, unsigned long*, const unsigned short*, unsigned long);
 typedef NTSTATUS (WINAPI *fn)(void*, ULONG, PULONG, const wchar_t*, ULONG);
 static int failures=0;
@@ -69,10 +70,26 @@ static int one(fn sys, const wchar_t* src, int n, ULONG dstMax){
     s2=wia_u2u8(d2,dstMax,&l2,src,n*2);
     sr=ref_u2u8(dr,dstMax,&lr,(const unsigned short*)src,n*2);
     bad=(s1!=s2)||(s2!=sr)||(l1!=l2)||(l2!=lr);
-    cmp = l1<dstMax? l1: dstMax;   /* compare only bytes that were written */
+    /* THE WHOLE CAPACITY IS COMPARED, not just the bytes that were produced.
+     *
+     * This used to stop at min(len, dstMax), which sounds right and is not: a vector block that
+     * writes a full sixteen bytes and then advances by however many of them were WANTED leaves
+     * zeros in the caller's buffer past the end of the string, and ntdll leaves those bytes
+     * untouched. Inside the capacity that is not memory corruption, but it is a difference a
+     * caller can see -- and it is exactly what change 268's gate found, because that one compares
+     * its whole destination and this one did not. Every byte the caller lent us, up to dstMax, has
+     * to look the way ntdll left it. */
+    cmp = dstMax < DBUF ? dstMax : DBUF;
     for(i=0;i<cmp && !bad;i++) if(d1[i]!=d2[i]||d2[i]!=dr[i]) bad=1;
-    if(bad){ printf("FAIL n=%d dstMax=%lu: ntdll st=%lx len=%lu | ours st=%lx len=%lu | ref st=%lx len=%lu\n",
-                    n,dstMax,s1,l1,s2,l2,sr,lr); ++failures; }
+    if(bad){ ULONG k;
+             printf("FAIL n=%d dstMax=%lu: ntdll st=%lx len=%lu | ours st=%lx len=%lu | ref st=%lx len=%lu",
+                    n,dstMax,s1,l1,s2,l2,sr,lr);
+             for(k=0;k<cmp;k++) if(d1[k]!=d2[k]||d2[k]!=dr[k]){
+                 printf("   first differing byte [%lu]: ntdll=%02X ours=%02X ref=%02X",
+                        k,d1[k],d2[k],dr[k]); break; }
+             printf("   src:");
+             for(k=0;k<(ULONG)n && k<20;k++) printf(" %04X",(unsigned)src[k]);
+             printf("\n"); ++failures; }
     if(spill("ours",d2,dstMax,n)) { ++failures; bad=1; }
     if(spill("the reference",dr,dstMax,n)) { ++failures; bad=1; }
     if(spill("ntdll",d1,dstMax,n)) { ++failures; bad=1; }
@@ -140,7 +157,17 @@ static int tables(void){
             if(++bad<=6) printf("  LAT2L[%d] = %u, the rule says %d\n",idx,LL[idx],wlen);
         }
     }
-    printf("  the two assembler-generated packing tables: %d disagreements with the rule in C\n",bad);
+    {   /* and the shift table the exact store uses: entry k brings byte k+i down to position i */
+        const unsigned char* S=wia_u2u8_shift_table();
+        int k,j;
+        for(k=0;k<=16;k++) for(j=0;j<16;j++){
+            unsigned char want=(unsigned char)((k+j<16)?(k+j):0x80);
+            if(S[k*16+j]!=want){
+                if(++bad<=6) printf("  SHIFTR[%d][%d] = %02X, the rule says %02X\n",k,j,S[k*16+j],want);
+            }
+        }
+    }
+    printf("  the three assembler-generated tables: %d disagreements with the rule in C\n",bad);
     return bad;
 }
 
