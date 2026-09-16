@@ -26,6 +26,8 @@ semantics rather than sloppiness.
 | [`ntdll_rtl_uncovered.c`](ntdll_rtl_uncovered.c) | ntdll carries 69 landed changes and still has **191 uncovered `Rtl*` exports** whose names suggest string, buffer or bitmap work. This measures the subset that is plausibly byte-wise with a pinnable contract — no locale, no code page, no grammar. This is where **change 252** came from |
 | [`ucrt_uncovered2.c`](ucrt_uncovered2.c) | the ucrtbase exports that are plainly byte loops and are still uncovered, found mechanically: enumerate the exports, subtract `image/tree`’s filenames, drop the `_o__` ordinal aliases, the `_l` locale variants and the `_mbs` code-page family. This is where **change 253** came from |
 | [`kernelbase_path2.c`](kernelbase_path2.c) | the kernelbase path and string exports still uncovered, measured after change 251 landed the `PathCchSkipRoot` root parser. Two **negative results** and a family of already-cheap predicates |
+| [`utf8n_null_destination.c`](utf8n_null_destination.c) | **audit** — changes 016 and 034 did not implement the MEASURING MODE of the functions they replace, and faulted on a documented call. Fixed in `417f31f` and `18d692e` |
+| [`utf8_nonascii_rows.c`](utf8_nonascii_rows.c) | **audit** — changes 016 and 034 are benched on ASCII only, and ASCII is the one case their fast paths exist for. Across the input classes UTF-8 exists for they are **0.21×–0.94×** |
 
 ### What `shlwapi_url_str.c` found
 
@@ -282,6 +284,44 @@ A table fold gives tiny classes. A class of 3236 is the **ignorable/unassigned**
 points collate as nothing, so single-character strings containing any two of them compare equal. That
 is a linguistic comparison per character, which is both why it costs 34.7 ns each and why it cannot be
 reimplemented without the NLS tables.
+
+### What `utf8_nonascii_rows.c` found: two landed changes measured only on the input their fast path handles
+
+Changes 016 (`RtlUnicodeToUTF8N`) and 034 (`RtlUTF8ToUnicodeN`) are the two UTF-8 conversions, they
+both LAND, and every row of both published tables is **ASCII**. For a UTF-8 converter that is not a
+small omission — the entire reason UTF-8 exists is the bytes above `0x7F`, and a caller converting
+Hebrew, Greek, Cyrillic, CJK or emoji never runs the path those tables measure.
+
+It surfaced sideways. Change 268's tight-destination row has to size the output before converting,
+and `probes/twopass.c` split that row into its parts to find out which pass was costing the time.
+The sizing pass was not the problem: the **conversion** was, at 6585.9 ns against the shipped
+N-form's 2138.3 ns on the same 4000 bytes of two-byte sequences.
+
+Asked properly, at 32000 characters:
+
+| class | 016 (UTF-16 → UTF-8) | 034 (UTF-8 → UTF-16) |
+|---|---:|---:|
+| ASCII | **3.35×** | **5.09×** |
+| 2-byte (U+00A0–U+00DF) | 0.34× | 0.35× |
+| 3-byte (U+20A0–U+20AF) | 0.55× | 0.33× |
+| 4-byte (surrogate pairs) | 0.81× | 0.48× |
+| mixed ASCII + 2-byte | **0.21×** | 0.33× |
+| lone surrogates / malformed | 1.71× | 0.33× |
+
+Geomean over all 24 rows: **0.798×** for 016 and **0.552×** for 034. Both would be PARKED on this
+table, and both are published as LANDED on the ASCII one.
+
+The shape of the numbers names the cause. `mixed` is the WORST row for 016 at 0.21× and is the one
+class where the input alternates between the fast path and the slow one — which is
+[change 263's lesson](../changes/263-rtlcompareunicodestrings/RESULTS.md) exactly: **a scalar walk
+must not re-enter a vector loop.** Both mainloops try a 16-wide block, then an 8-wide block, then
+decode ONE character, and then jump back to the top and try both blocks again. On alternating input
+that is two vector loads and two tests per character, and on a pure non-ASCII run it is two vector
+loads and two tests per character for the whole string. The vectorised fast path is not just
+missing on this input — it is being paid for and thrown away, once per character.
+
+Being right about the bytes is not the same as being fast on them, and a table that only contains
+the input a fast path was written for is a table that cannot say which of the two it is.
 
 ## The lesson
 
