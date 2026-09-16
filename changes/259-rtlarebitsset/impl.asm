@@ -1,7 +1,3 @@
-; ntdll.dll!RtlAreBitsSet  --  hand-written x86-64 reimplementation (12.32x vs shipped)
-; source of truth: changes/259-rtlarebitsset/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/259-rtlarebitsset/impl.asm
 ;   BOOLEAN wia_arebitsset  (RTL_BITMAP* bm, ULONG StartingIndex, ULONG Length)
 ;   BOOLEAN wia_arebitsclear(RTL_BITMAP* bm, ULONG StartingIndex, ULONG Length)
