@@ -1920,6 +1920,51 @@ static void thunk(void){
     sink += wia_numberofsetbits(0);
 }
 
+#elif defined(T_259)
+#define NAME "259-rtlarebitsset"
+typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
+extern unsigned char wia_arebitsset(void*, unsigned long, unsigned long);
+extern unsigned char wia_arebitsclear(void*, unsigned long, unsigned long);
+static void thunk(void){
+    /* A LEAF -- no prologue, no saved registers, no unwind data -- which is the point: it must
+       therefore not touch a non-volatile register at all, and the only way to be sure is to drive
+       every path and look. Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for
+       its own loop hides an implementation that destroys r15, as change 258 demonstrated.
+       Driven: both exports; the one-word and two-word masked compares; the general path with its
+       vector loop, its scalar remainder and both masked ends; the early exit on the first word,
+       which returns without ever touching a ymm register and therefore without VZEROUPPER; and
+       every refusal. */
+    static unsigned long b[512];
+    ABI_RBM bm;
+    int i, k;
+    bm.Buffer = b;
+    for (k = 0; k < 3; ++k) {
+        for (i = 0; i < 512; ++i)
+            b[i] = (k == 0) ? 0xFFFFFFFFul : (k == 1) ? 0ul : 0xA5A5A5A5ul;
+        bm.SizeOfBitMap = 16384;
+        for (i = 0; i < 40; ++i) {
+            unsigned long s = (unsigned long)(i * 397);      /* on and off every boundary */
+            CALL4(wia_arebitsset,   &bm, s, 1, 0);           /* one word */
+            CALL4(wia_arebitsclear, &bm, s, 1, 0);
+            CALL4(wia_arebitsset,   &bm, s, 40, 0);          /* two words */
+            CALL4(wia_arebitsclear, &bm, s, 40, 0);
+            CALL4(wia_arebitsset,   &bm, s, 500, 0);         /* the general path, no vector step */
+            CALL4(wia_arebitsset,   &bm, s, 8000, 0);        /* ... and with many of them */
+            CALL4(wia_arebitsclear, &bm, s, 8000, 0);
+        }
+        bm.SizeOfBitMap = 33;                                /* an odd trailing ULONG */
+        CALL4(wia_arebitsset,   &bm, 0, 33, 0);
+        CALL4(wia_arebitsclear, &bm, 1, 32, 0);
+    }
+    /* the refusals: every one returns before a vector register exists */
+    bm.SizeOfBitMap = 100;
+    CALL4(wia_arebitsset,   &bm, 0, 0, 0);                   /* length zero */
+    CALL4(wia_arebitsclear, &bm, 0, 0, 0);
+    CALL4(wia_arebitsset,   &bm, 100, 1, 0);                 /* a start at the end */
+    CALL4(wia_arebitsset,   &bm, 0, 101, 0);                 /* one bit too long */
+    CALL4(wia_arebitsset,   &bm, 0, 0xFFFFFFFFul, 0);        /* an absurd length */
+}
+
 #elif defined(T_256)
 #define NAME "256-rtlfindsetbits"
 typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;

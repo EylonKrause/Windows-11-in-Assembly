@@ -1,10 +1,12 @@
-# ntdll.dll — reimplemented exports (78)
+# ntdll.dll — reimplemented exports (80)
 
 | export | speedup | source |
 |---|---|---|
 | `RtlAnsiStringToUnicodeString` | 11.58x | [changes/019-rtlansistringtounicodestring](../../../../../changes/019-rtlansistringtounicodestring/) |
 | `RtlAppendUnicodeToString` | 1.42x | [changes/101-rtlappendunicodetostring](../../../../../changes/101-rtlappendunicodetostring/) |
+| `RtlAreBitsClear` | 12.32x | [changes/259-rtlarebitsset](../../../../../changes/259-rtlarebitsset/) |
 | `RtlAreBitsClear` | 3.45x | [changes/192-rtlarebitsclear](../../../../../changes/192-rtlarebitsclear/) |
+| `RtlAreBitsSet` | 12.32x | [changes/259-rtlarebitsset](../../../../../changes/259-rtlarebitsset/) |
 | `RtlAreBitsSet` | 3.17x | [changes/030-rtlarebitsset](../../../../../changes/030-rtlarebitsset/) |
 | `RtlCompareMemory` | 4.42x | [changes/007-rtlcomparememory](../../../../../changes/007-rtlcomparememory/) |
 | `RtlCompareMemoryUlong` | 5.04x | [changes/026-rtlcomparememoryulong](../../../../../changes/026-rtlcomparememoryulong/) |
