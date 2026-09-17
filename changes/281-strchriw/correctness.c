@@ -31,8 +31,28 @@ typedef PCWSTR (WINAPI *F_chr)(PCWSTR, WCHAR);
 extern const wchar_t* wia_strchriw(const wchar_t*, wchar_t);
 const wchar_t* ref_strchriw(const wchar_t*, wchar_t);
 int wia_sci_init(void);
-extern unsigned short wia_sci_up[65536];
-extern unsigned short wia_sci_dn[65536];
+extern unsigned short wia_sci_fold[65536];
+extern unsigned short wia_sci_cls[65536];
+
+/* the first and second code unit of each class, built in one O(65536) pass, so that every needle
+   can be tested against a REAL partner rather than against something a case function suggested.
+   Building the corpus from the case functions is exactly what made probes/contract.c wrong. */
+static unsigned short firstof[65536], secondof[65536];
+static void build_partners(void)
+{
+    unsigned c;
+    for (c = 1; c <= 0xFFFF; ++c) {
+        unsigned f = wia_sci_fold[c];
+        if (!firstof[f]) firstof[f] = (unsigned short)c;
+        else if (!secondof[f]) secondof[f] = (unsigned short)c;
+    }
+}
+static unsigned short partner_of(unsigned c)
+{
+    unsigned f = wia_sci_fold[c];
+    if (firstof[f] != c) return firstof[f];
+    return secondof[f] ? secondof[f] : (unsigned short)c;
+}
 
 static F_chr sys;
 static int failures = 0;
@@ -72,25 +92,36 @@ int main(void)
     printf("== CORRECTNESS: shlwapi!StrChrIW ==\n");
     {
         int rc = wia_sci_init();
-        if (rc) { printf("  the case tables failed their own checks: %d\n", rc); return 1; }
-        printf("  0. the case tables were built from the live exports and satisfy the three rules\n"
-               "     the vector loop rests on (class size <= 2, partner == downcase(upcase(c)),\n"
-               "     downcase(U) != 0 for U != 0)\n");
+        if (rc) { printf("  the fold table failed its own checks against the live export: %d\n", rc);
+                  return 1; }
+        printf("  0. the fold table was rebuilt from foldpairs.c and CHECKED against live\n"
+               "     StrChrIW: every member of every non-singleton class found at the first\n"
+               "     member, 8192 sampled cross-class pairs rejected, and the four facts that\n"
+               "     separate this relation from its neighbours\n");
     }
 
-    /* 1. EVERY needle, searched for in a string holding its case partner */
+    /* 1. EVERY needle, searched for in a string holding a REAL member of its class.
+     *
+     * The partner comes from the measured fold, not from a case function. probes/contract.c built
+     * its pairs from CharUpperW/CharLowerW/RtlUpcase/RtlDowncase and therefore could never ask
+     * about (U+1D2C, 'a') -- a pair none of those four relates -- which is exactly the pair that
+     * was wrong. A corpus that cannot express a case cannot fail on it.
+     */
     {
         long before = cases;
         static wchar_t buf[8];
+        build_partners();
         for (c = 1; c <= 0xFFFF; ++c) {
-            wchar_t partner = (wchar_t)wia_sci_dn[wia_sci_up[c]];
-            buf[0] = L'a'; buf[1] = L'b'; buf[2] = partner ? partner : L'x';
-            buf[3] = L'c'; buf[4] = 0;
-            one(buf, (wchar_t)c);
-            buf[2] = (wchar_t)wia_sci_up[c];
-            one(buf, (wchar_t)c);
+            wchar_t p = (wchar_t)partner_of(c);
+            buf[0] = L'\x2461'; buf[1] = L'\x2462'; buf[2] = p;
+            buf[3] = L'\x2463'; buf[4] = 0;
+            one(buf, (wchar_t)c);                 /* must find the partner at offset 2 */
+            buf[2] = (wchar_t)c;
+            one(buf, (wchar_t)c);                 /* and must find itself */
+            buf[2] = L'\x2464';
+            one(buf, (wchar_t)c);                 /* and must MISS when no member is present */
         }
-        printf("  1. every needle 1..65535 against its case partner and its upcase: %ld\n",
+        printf("  1. every needle 1..65535: its class partner, itself, and a miss: %ld\n",
                cases - before);
     }
 
