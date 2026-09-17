@@ -3004,6 +3004,64 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_280)
+#define NAME "280-rtllargeintegertochar"
+typedef struct { long long q; } LI280;
+extern long wia_lint2char(const LI280*, unsigned long, long, char*);
+#define SETUP() ((void)0)
+static void thunk(void){
+    /* A LEAF WITH NO FRAME, NO PUSHES AND NO CALLS -- the shape whose unwind data nobody checks
+       because nothing ever unwinds through it, until something does.
+
+       FIVE PATHS ARE UNDER TEST, not one:
+         * base 10 above 2^32, which peels EIGHT digits at a time through the 64-bit reciprocal;
+         * base 10 below 2^32, which never enters that peel;
+         * the ONE-DIGIT decimal path, which writes its character and returns without touching a
+           table, a dispatch or the room rule;
+         * bases 2, 8 and 16, which emit several digits per store from three different tables --
+           base 2 running to SIXTY-FOUR characters, twice what change 279 could produce;
+         * the ZERO-PADDED FIELD FILL, which is the only place this change touches an XMM register.
+
+       Every padding size class is driven -- 1, 2, 3, 4..7, 8..15, 16..31 and the 32-byte loop --
+       because they are separate blocks with separate register use, and the wide ones write through
+       an index the small ones do not.
+
+       Both refusals are driven, because they return before any converter runs, and INT_MIN is
+       driven because it is the one negative length that refuses.
+
+       Armed PER CALL (CALL4). */
+    static char buf[512];
+    static const unsigned long BASES[] = { 0, 2, 8, 10, 16, 7, 36 };
+    static const long long VALUES[] = {
+        0ll, 1ll, 9ll, 10ll, 255ll, 65536ll,
+        4294967295ll, 4294967296ll,                    /* either side of the peel boundary */
+        99999999ll, 100000000ll,                       /* either side of 10^8 itself */
+        1234567890123456789ll,
+        (long long)0x8000000000000000ull,
+        (long long)0xFFFFFFFFFFFFFFFFull
+    };
+    LI280 v;
+    unsigned long long sink = 0;
+    int i, j;
+    long k;
+
+    for (i = 0; i < (int)(sizeof BASES / sizeof BASES[0]); ++i)
+        for (j = 0; j < (int)(sizeof VALUES / sizeof VALUES[0]); ++j) {
+            v.q = VALUES[j];
+            sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], 400, buf);
+            /* every length from none at all to past the longest answer, positive and negative, so
+               that each padding size class and each refusal is armed in turn */
+            for (k = 0; k <= 100; ++k) {
+                sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], k, buf);
+                sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], -k, buf);
+            }
+            sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], -300, buf);
+            sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], -500, buf);
+            sink += (unsigned)CALL4(wia_lint2char, &v, BASES[i], (long)0x80000000ul, buf);
+        }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

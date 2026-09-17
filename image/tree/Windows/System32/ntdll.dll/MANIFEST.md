@@ -62,7 +62,7 @@
 | `RtlIpv6StringToAddressW` | 3.62x | [changes/166-rtlipv6stringtoaddressw](../../../../../changes/166-rtlipv6stringtoaddressw/) |
 | `RtlIsTextUnicode` | 5.71x | [changes/193-rtlistextunicode](../../../../../changes/193-rtlistextunicode/) |
 | `RtlIsZeroMemory` | 12.38x | [changes/266-rtliszeromemory](../../../../../changes/266-rtliszeromemory/) |
-| `RtlLargeIntegerToChar` | 1.43x | [changes/100-rtllargeintegertochar](../../../../../changes/100-rtllargeintegertochar/) |
+| `RtlLargeIntegerToChar` | 3.25x | [changes/280-rtllargeintegertochar](../../../../../changes/280-rtllargeintegertochar/) |
 | `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
 | `RtlNumberOfClearBits` | 1.33x | [changes/124-rtlnumberofclearbits](../../../../../changes/124-rtlnumberofclearbits/) |
 | `RtlNumberOfClearBits` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
