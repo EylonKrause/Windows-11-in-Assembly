@@ -1,7 +1,3 @@
-; ntdll.dll!RtlLargeIntegerToChar  --  hand-written x86-64 reimplementation (3.25x vs shipped)
-; source of truth: changes/280-rtllargeintegertochar/  (reference.c + correctness.c + bench.c)
-; validated bit-exact vs the live export; see that dir's RESULTS.md.
-;----------------------------------------------------------------------
 ; changes/280-rtllargeintegertochar/impl.asm
 ;   NTSTATUS wia_lint2char(const LARGE_INTEGER* value, ULONG base, LONG length, char* out)
 ;       [Win64: rcx, edx, r8d, r9 -> eax]
