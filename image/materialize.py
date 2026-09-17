@@ -61,8 +61,22 @@ def main():
             for export in exports:
                 entries.append(dict(num=num, cdir=cdir, dll=dll, export=export,
                                     landed=landed, spd=spd, verdict=verdict))
-    per_dll = {}
-    copied = 0
+    # ONE EXPORT CAN HAVE MORE THAN ONE LANDED CHANGE, AND THIS USED TO LOSE ALL BUT ONE OF THEM.
+    #
+    # The loop below used to write one file per ENTRY, so when several landed changes named the same
+    # export it wrote the same path several times and whichever README row came LAST silently won.
+    # Ten exports were in that state. Six were genuine supersessions and are now marked as such in
+    # the README (see audits/superseded-duplicates/); the remaining four are the crypt32 pairs,
+    # where the "duplicates" are not duplicates at all but four FORMATS of one export -- base64,
+    # hexraw, hexfmt and base64header -- each implemented by its own change. Dropping three of the
+    # four was never right.
+    #
+    # Entries are now grouped by (dll, export). A group with one contributor materialises exactly as
+    # before. A group with several materialises ALL of them into one file, under banners naming the
+    # change each body came from, and the file says plainly that it is a concatenation of
+    # independently built sources rather than something that assembles as a unit.
+    groups = {}
+    order = []
     for e in entries:
         if not e['landed']:
             continue
@@ -73,11 +87,24 @@ def main():
         if e['export'] in MSVCRT_ALSO and e['dll'] == 'ucrtbase.dll':
             hosts.append('msvcrt.dll')
         for dll in hosts:
-            d = os.path.join(TREE, dll)
-            os.makedirs(d, exist_ok=True)
-            safe = e['export'].replace('/', '_')
-            dst = os.path.join(d, safe + '.asm')
-            hdr = (f"; {dll}!{e['export']}  --  hand-written x86-64 reimplementation ({e['spd']} vs shipped)\n"
+            key = (dll, e['export'])
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append((e, src))
+
+    per_dll = {}
+    copied = 0
+    multi = []
+    for key in order:
+        dll, export = key
+        members = groups[key]
+        d = os.path.join(TREE, dll)
+        os.makedirs(d, exist_ok=True)
+        dst = os.path.join(d, export.replace('/', '_') + '.asm')
+        if len(members) == 1:
+            e, src = members[0]
+            hdr = (f"; {dll}!{export}  --  hand-written x86-64 reimplementation ({e['spd']} vs shipped)\n"
                    f"; source of truth: changes/{e['cdir']}/  (reference.c + correctness.c + bench.c)\n"
                    f"; validated bit-exact vs the live export; see that dir's RESULTS.md.\n"
                    f";----------------------------------------------------------------------\n")
@@ -85,15 +112,48 @@ def main():
                 body = sf.read()
             with open(dst, 'w', encoding='utf-8', newline='\n') as df:
                 df.write(hdr + body)
-            per_dll.setdefault(dll, []).append((e['export'], e['spd'], e['cdir']))
-            copied += 1
+            per_dll.setdefault(dll, []).append((export, e['spd'], e['cdir']))
+        else:
+            multi.append((dll, export, [m[0]['cdir'] for m in members]))
+            names = ', '.join(f"changes/{m[0]['cdir']}" for m in members)
+            hdr = (f"; {dll}!{export}  --  hand-written x86-64, {len(members)} CONTRIBUTING CHANGES\n"
+                   f";\n"
+                   f"; This export is covered by more than one change because it takes a FORMAT\n"
+                   f"; selector and each format is its own implementation. All of them are here:\n"
+                   f";   {names}\n"
+                   f";\n"
+                   f"; THIS FILE IS A CONCATENATION OF INDEPENDENTLY BUILT SOURCES. It is the map\n"
+                   f"; from one export to every implementation behind it, not a translation unit --\n"
+                   f"; each body is assembled, gated and benched in its own change directory, and\n"
+                   f"; they are not intended to assemble together. Earlier versions of this script\n"
+                   f"; wrote only whichever change came last in the README and silently lost the\n"
+                   f"; rest; see audits/superseded-duplicates/.\n"
+                   f";----------------------------------------------------------------------\n")
+            parts = [hdr]
+            for e, src in members:
+                with open(src, encoding='utf-8') as sf:
+                    body = sf.read()
+                parts.append(f"\n;======================================================================\n"
+                             f"; from changes/{e['cdir']}/impl.asm   ({e['spd']} vs shipped)\n"
+                             f";======================================================================\n")
+                parts.append(body)
+            with open(dst, 'w', encoding='utf-8', newline='\n') as df:
+                df.write(''.join(parts))
+            best = next((m[0]['spd'] for m in members if m[0]['spd']), '')
+            per_dll.setdefault(dll, []).append(
+                (export, best, ' + '.join(m[0]['cdir'] for m in members)))
+        copied += 1
     # per-DLL manifests
     for dll, fns in sorted(per_dll.items()):
         with open(os.path.join(TREE, dll, 'MANIFEST.md'), 'w', encoding='utf-8', newline='\n') as f:
             f.write(f"# {dll} — reimplemented exports ({len(fns)})\n\n")
             f.write("| export | speedup | source |\n|---|---|---|\n")
             for ex, sp, cd in sorted(fns):
-                f.write(f"| `{ex}` | {sp} | [changes/{cd}](../../../../../changes/{cd}/) |\n")
+                if ' + ' in cd:
+                    links = ', '.join(f"[{c}](../../../../../changes/{c}/)" for c in cd.split(' + '))
+                    f.write(f"| `{ex}` | {sp} | {links} |\n")
+                else:
+                    f.write(f"| `{ex}` | {sp} | [changes/{cd}](../../../../../changes/{cd}/) |\n")
     # top manifest
     with open(os.path.join(OUT, 'MANIFEST.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write("# Image manifest — hand-ASM reimplementations mapped to the Win11 System32 tree\n\n")
@@ -103,6 +163,11 @@ def main():
             exports = ', '.join(f"`{ex}`" for ex, _, _ in sorted(fns))
             f.write(f"## Windows/System32/{dll} — {len(fns)} functions\n{exports}\n\n")
     print(f"materialized {copied} .asm files across {len(per_dll)} DLL folders")
+    if multi:
+        print(f"  {len(multi)} export(s) with MORE THAN ONE contributing change "
+              f"(all bodies written, none dropped):")
+        for dll, export, cdirs in multi:
+            print(f"    {dll}!{export}  <- {', '.join(cdirs)}")
     for dll, fns in sorted(per_dll.items(), key=lambda kv: -len(kv[1])):
         print(f"  {dll:16s} {len(fns)}")
 

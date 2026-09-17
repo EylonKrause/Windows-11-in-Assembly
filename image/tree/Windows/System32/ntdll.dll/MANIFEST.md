@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (90)
+# ntdll.dll — reimplemented exports (84)
 
 | export | speedup | source |
 |---|---|---|
@@ -6,9 +6,7 @@
 | `RtlAppendAsciizToString` | 6.99x | [changes/265-rtlappendasciiztostring](../../../../../changes/265-rtlappendasciiztostring/) |
 | `RtlAppendUnicodeToString` | 1.42x | [changes/101-rtlappendunicodetostring](../../../../../changes/101-rtlappendunicodetostring/) |
 | `RtlAreBitsClear` | 12.32x | [changes/259-rtlarebitsset](../../../../../changes/259-rtlarebitsset/) |
-| `RtlAreBitsClear` | 3.45x | [changes/192-rtlarebitsclear](../../../../../changes/192-rtlarebitsclear/) |
 | `RtlAreBitsSet` | 12.32x | [changes/259-rtlarebitsset](../../../../../changes/259-rtlarebitsset/) |
-| `RtlAreBitsSet` | 3.17x | [changes/030-rtlarebitsset](../../../../../changes/030-rtlarebitsset/) |
 | `RtlCompareMemory` | 4.42x | [changes/007-rtlcomparememory](../../../../../changes/007-rtlcomparememory/) |
 | `RtlCompareMemoryUlong` | 5.04x | [changes/026-rtlcomparememoryulong](../../../../../changes/026-rtlcomparememoryulong/) |
 | `RtlCompareString` | 4.47x | [changes/012-rtlcomparestring](../../../../../changes/012-rtlcomparestring/) |
@@ -28,7 +26,6 @@
 | `RtlFindClearBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
 | `RtlFindClearRuns` | 13.26x | [changes/258-rtlfindclearruns](../../../../../changes/258-rtlfindclearruns/) |
 | `RtlFindLastBackwardRunClear` | 12.17x | [changes/261-rtlfindnextforwardrunclear](../../../../../changes/261-rtlfindnextforwardrunclear/) |
-| `RtlFindLongestRunClear` | 4.79x | [changes/123-rtlfindlongestrunclear](../../../../../changes/123-rtlfindlongestrunclear/) |
 | `RtlFindLongestRunClear` | 40.5x | [changes/255-rtlfindlongestrunclear](../../../../../changes/255-rtlfindlongestrunclear/) |
 | `RtlFindNextForwardRunClear` | 12.17x | [changes/261-rtlfindnextforwardrunclear](../../../../../changes/261-rtlfindnextforwardrunclear/) |
 | `RtlFindSetBits` | 13.08x | [changes/256-rtlfindsetbits](../../../../../changes/256-rtlfindsetbits/) |
@@ -42,7 +39,6 @@
 | `RtlInitUnicodeStringEx` | 1.40x | [changes/096-rtlinitunicodestringex](../../../../../changes/096-rtlinitunicodestringex/) |
 | `RtlInt64ToUnicodeString` | 3.10x | [changes/053-rtlint64tounicodestring](../../../../../changes/053-rtlint64tounicodestring/) |
 | `RtlIntegerToChar` | 2.57x | [changes/279-rtlintegertochar](../../../../../changes/279-rtlintegertochar/) |
-| `RtlIntegerToUnicodeString` | 2.94x | [changes/052-rtlintegertounicodestring](../../../../../changes/052-rtlintegertounicodestring/) |
 | `RtlIntegerToUnicodeString` | 5.38x | [changes/278-rtlintegertounicodestring](../../../../../changes/278-rtlintegertounicodestring/) |
 | `RtlIpv4AddressToStringA` | 16.6x | [changes/059-rtlipv4addresstostringa](../../../../../changes/059-rtlipv4addresstostringa/) |
 | `RtlIpv4AddressToStringExA` | 9.78x | [changes/065-rtlipv4addresstostringexa](../../../../../changes/065-rtlipv4addresstostringexa/) |
@@ -64,10 +60,8 @@
 | `RtlIsZeroMemory` | 12.38x | [changes/266-rtliszeromemory](../../../../../changes/266-rtliszeromemory/) |
 | `RtlLargeIntegerToChar` | 3.25x | [changes/280-rtllargeintegertochar](../../../../../changes/280-rtllargeintegertochar/) |
 | `RtlMultiByteToUnicodeN` | 4.05x | [changes/022-rtlmultibytetounicoden](../../../../../changes/022-rtlmultibytetounicoden/) |
-| `RtlNumberOfClearBits` | 1.33x | [changes/124-rtlnumberofclearbits](../../../../../changes/124-rtlnumberofclearbits/) |
 | `RtlNumberOfClearBits` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
 | `RtlNumberOfClearBitsInRange` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
-| `RtlNumberOfSetBits` | 1.32x | [changes/023-rtlnumberofsetbits](../../../../../changes/023-rtlnumberofsetbits/) |
 | `RtlNumberOfSetBits` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
 | `RtlNumberOfSetBitsInRange` | 3.50x | [changes/257-rtlnumberofsetbits](../../../../../changes/257-rtlnumberofsetbits/) |
 | `RtlOemStringToUnicodeString` | 5.50x | [changes/025-rtloemstringtounicodestring](../../../../../changes/025-rtloemstringtounicodestring/) |
