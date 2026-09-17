@@ -9,24 +9,23 @@
  * this very change: the first model here was written against the belief that equality was the
  * ordinal upcase table, and the gate rejected it in 8 cases out of 140561.
  *
- * This model deliberately does NOT use the class-member shortcut impl.asm is built on. It folds
- * every haystack character and compares representatives, which is the definition probes/foldtable.c
- * measured. If the shortcut were ever wrong -- a fifth member appearing in a class the pool holds
- * as four -- the two would disagree and the gate would say so.
+ * This model deliberately does NOT use the three dispatch paths impl.asm picks between. It asks one
+ * question per haystack character through a single shared predicate, so a bug in the path SELECTION
+ * -- a needle routed to the vector path that should have used a bitmap -- shows up as a
+ * disagreement rather than being reproduced identically on both sides.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-extern unsigned short wia_sci_fold[65536];
+int wia_sci_match(unsigned needle, unsigned w);
 
 const wchar_t* ref_strchriw(const wchar_t* s, wchar_t c)
 {
-    unsigned f;
     if (!s) return 0;                       /* measured: a null source returns null, not a fault */
-    if (!c) return 0;                       /* measured: the terminator is never found */
-    f = wia_sci_fold[(unsigned short)c];
+    /* needle 0 is NOT special: NUL has zero collation weight and matches every other zero-weight
+       code unit. probes/contract.c got this wrong because its test string had no ignorables. */
     for (; *s; ++s)
-        if (wia_sci_fold[(unsigned short)*s] == f)
+        if (wia_sci_match((unsigned short)c, (unsigned short)*s))
             return s;
     return 0;
 }

@@ -31,28 +31,8 @@ typedef PCWSTR (WINAPI *F_chr)(PCWSTR, WCHAR);
 extern const wchar_t* wia_strchriw(const wchar_t*, wchar_t);
 const wchar_t* ref_strchriw(const wchar_t*, wchar_t);
 int wia_sci_init(void);
-extern unsigned short wia_sci_fold[65536];
-extern unsigned short wia_sci_cls[65536];
-
-/* the first and second code unit of each class, built in one O(65536) pass, so that every needle
-   can be tested against a REAL partner rather than against something a case function suggested.
-   Building the corpus from the case functions is exactly what made probes/contract.c wrong. */
-static unsigned short firstof[65536], secondof[65536];
-static void build_partners(void)
-{
-    unsigned c;
-    for (c = 1; c <= 0xFFFF; ++c) {
-        unsigned f = wia_sci_fold[c];
-        if (!firstof[f]) firstof[f] = (unsigned short)c;
-        else if (!secondof[f]) secondof[f] = (unsigned short)c;
-    }
-}
-static unsigned short partner_of(unsigned c)
-{
-    unsigned f = wia_sci_fold[c];
-    if (firstof[f] != c) return firstof[f];
-    return secondof[f] ? secondof[f] : (unsigned short)c;
-}
+unsigned wia_sci_partner(unsigned c);
+int wia_sci_match(unsigned needle, unsigned w);
 
 static F_chr sys;
 static int failures = 0;
@@ -110,9 +90,9 @@ int main(void)
     {
         long before = cases;
         static wchar_t buf[8];
-        build_partners();
-        for (c = 1; c <= 0xFFFF; ++c) {
-            wchar_t p = (wchar_t)partner_of(c);
+        for (c = 0; c <= 0xFFFF; ++c) {
+            wchar_t p = (wchar_t)wia_sci_partner(c);
+            if (!c && !p) continue;               /* needle 0 with no partner cannot be planted */
             buf[0] = L'\x2461'; buf[1] = L'\x2462'; buf[2] = p;
             buf[3] = L'\x2463'; buf[4] = 0;
             one(buf, (wchar_t)c);                 /* must find the partner at offset 2 */
@@ -121,14 +101,18 @@ int main(void)
             buf[2] = L'\x2464';
             one(buf, (wchar_t)c);                 /* and must MISS when no member is present */
         }
-        printf("  1. every needle 1..65535: its class partner, itself, and a miss: %ld\n",
+        printf("  1. every needle 0..65535: its class partner, itself, and a miss: %ld\n",
                cases - before);
     }
 
     /* 2. the needle that is never found, and the empty string */
     {
         long before = cases;
-        one(L"abc", 0);
+        one(L"abc", 0);                       /* no ignorable present: NULL */
+        one(L"ab\x00ADc", 0);                 /* AN IGNORABLE IS PRESENT: the export FINDS it.
+                                                 probes/contract.c concluded "the terminator is
+                                                 never found" from the line above alone. */
+        one(L"ab\x00ADc", 0x200B);
         one(L"", L'a');
         one(L"", 0);
         {

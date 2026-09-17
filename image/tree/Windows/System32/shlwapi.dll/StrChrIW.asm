@@ -1,3 +1,7 @@
+; shlwapi.dll!StrChrIW  --  hand-written x86-64 reimplementation (145.36x vs shipped)
+; source of truth: changes/281-strchriw/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/281-strchriw/impl.asm
 ;   PCWSTR wia_strchriw(PCWSTR s, WCHAR c)        [Win64: rcx, dx -> rax]
 ;

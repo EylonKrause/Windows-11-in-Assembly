@@ -3062,6 +3062,59 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_281)
+#define NAME "281-strchriw"
+extern const wchar_t* wia_strchriw(const wchar_t*, wchar_t);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* A LEAF WITH NO FRAME AND NO CALLS, and the one in this repository with the most to lose from
+       a register slip: it is the first change to use FOUR YMM registers for live data across a
+       loop. Win64 makes xmm6-xmm15 non-volatile, and the first draft of impl.asm used ymm6 and
+       ymm7 as scratch -- which is exactly what this gate exists to catch.
+
+       ALL THREE DISPATCH PATHS ARE DRIVEN, because they use different registers:
+         * a needle matching only itself      -> one broadcast replicated four times
+         * a needle with 2..4 partners        -> four broadcasts loaded from the pool
+         * a needle with 5..8 partners        -> the inline scalar list, no YMM at all
+         * a needle with more than eight      -> the bitmap path, no YMM at all
+       and both exits that touched a YMM register, which must VZEROUPPER, plus the two refusals
+       that return before any YMM is touched and must NOT.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t buf[600];
+    unsigned long long sink = 0;
+    int i, k;
+    unsigned selfonly = 0, small = 0, mid = 0, big = 0;
+
+    for (i = 0; i < 599; ++i) buf[i] = (wchar_t)(L'a' + (i % 8));
+    buf[599] = 0;
+
+    /* pick one needle of each shape from the same table the implementation dispatches on */
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned n = wia_sci_n[i];
+        if (!selfonly && n == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!small && n >= 2 && n <= 4) small = (unsigned)i;
+        if (!mid && n >= 5 && n <= 8) mid = (unsigned)i;
+        if (!big && n == 255) big = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = buf + k;              /* every alignment class of the aligned prologue */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, (wchar_t)selfonly, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, (wchar_t)small, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, (wchar_t)mid, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, (wchar_t)big, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, L'c', 0, 0);   /* a hit */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, L'#', 0, 0);   /* a miss */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, p, 0, 0, 0);      /* refusal */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, 0, L'a', 0, 0);   /* refusal */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchriw, L"", L'a', 0, 0);
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
