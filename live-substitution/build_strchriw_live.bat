@@ -24,7 +24,7 @@ set H=%~dp0
 set C=%H%..\changes\281-strchriw
 cd /d "%H%"
 ml64 /nologo /c /Fostrchriw.obj "%C%\impl.asm" >nul || goto :err
-cl /nologo /O2 live_subst_strchriw.c strchriw.obj "%C%\tables.c" "%C%\foldsets.c" "%C%\foldbig.c" /Fe:live_subst_strchriw.exe >nul || goto :err
+cl /nologo /O2 live_subst_strchriw.c strchriw.obj "%C%\tables.c" "%C%\foldsets.c" "%C%\foldbig.c" "%C%\foldnul.c" /Fe:live_subst_strchriw.exe >nul || goto :err
 "%H%live_subst_strchriw.exe"
 endlocal & exit /b %errorlevel%
 :err
