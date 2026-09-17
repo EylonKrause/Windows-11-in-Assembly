@@ -43,6 +43,8 @@ extern const unsigned wia_sci_bigcount[];
 extern const unsigned short* const wia_sci_big[];
 extern const unsigned short wia_sci_bigof[];
 extern const unsigned wia_sci_nbigof;
+extern const unsigned short wia_sci_nulhit[];
+extern const unsigned wia_sci_nnulhit;
 
 #define NSLOT 8192
 #define NBMAP 16
@@ -141,6 +143,39 @@ int wia_sci_init(void)
         wia_sci_bidx[needle] = (unsigned char)idx;
     }
 
+    /* 2b. THE COLUMN THIS RELATION WAS EXTRACTED WITHOUT.
+     *
+     * probes/gentable3.c searched a haystack holding every code unit 1..65535. It could not hold a
+     * NUL, because StrChrIW stops at the terminator -- so WHAT MATCHES CODE UNIT ZERO was
+     * unreachable by construction, and the tables above say nothing about it. That is the same
+     * failure as changes 097 and 100 and as this change's own probes/contract.c: a corpus that
+     * could not express the case. The difference is where it sat -- in the EXTRACTION METHOD rather
+     * than in a test.
+     *
+     * Change 282's StrRChrIW has no terminator, so it can be asked, and its gate found the gap
+     * immediately: 21 mismatches, every one a planted NUL the live export found and both our sides
+     * missed. changes/282-strrchriw/probes/nulchar.c then asked every needle and wrote foldnul.c:
+     * 3238 of them match a NUL, exactly the 3237 ignorables plus NUL itself, and symmetrically.
+     *
+     * All 3238 share one bitmap, so the fix is one bit -- but that is a property of this data, not
+     * a law, so it is CHECKED: every needle sharing a bitmap that gains bit 0 must itself be in the
+     * list, and no needle outside the bitmap path may be in it. */
+    {
+        static unsigned char nul_bmap[NBMAP];
+        static unsigned char in_list[65536];
+        for (i = 0; i < wia_sci_nnulhit; ++i) {
+            unsigned needle = wia_sci_nulhit[i];
+            in_list[needle] = 1;
+            if (wia_sci_n[needle] != 255) return 20;    /* not on the bitmap path: unhandled shape */
+            nul_bmap[wia_sci_bidx[needle] - 1] = 1;
+        }
+        for (i = 1; i <= 0xFFFF; ++i)
+            if (wia_sci_n[i] == 255 && nul_bmap[wia_sci_bidx[i] - 1] && !in_list[i])
+                return 21;                              /* a bitmap shared across the boundary */
+        for (i = 0; i < NBMAP; ++i)
+            if (nul_bmap[i]) wia_sci_bmap[i][0] |= 1u;  /* code unit 0 joins the set */
+    }
+
     /* ---- and now ask the export whether any of that is true -------------------------------- */
 
     /* 3. every stored partner must really be a partner, both ways, since the relation is symmetric */
@@ -180,5 +215,9 @@ int wia_sci_init(void)
     if (wia_sci_n[0] == 0) return 17;
     if (!wia_sci_match(0, 0x00AD)) return 18;            /* NUL matches the ignorables */
     if (wia_sci_match(0, L'a')) return 19;               /* and not ordinary characters */
+    if (!wia_sci_match(0, 0)) return 22;                 /* AND A NUL MATCHES A NUL -- the column
+                                                            change 281 could not reach */
+    if (!wia_sci_match(0x00AD, 0)) return 23;            /* symmetrically */
+    if (wia_sci_match(L'a', 0)) return 24;               /* but an ordinary needle does not */
     return 0;
 }

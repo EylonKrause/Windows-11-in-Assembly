@@ -3115,6 +3115,63 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_282)
+#define NAME "282-strrchriw"
+extern const wchar_t* wia_strrchriw(const wchar_t*, const wchar_t*, wchar_t);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* A LEAF WITH NO FRAME AND NO CALLS that keeps FOUR YMM registers live across a loop. Win64
+       makes xmm6-xmm15 non-volatile; change 281's first draft used ymm6 and ymm7 as scratch, which
+       is what this gate exists to catch, and this change inherits that register budget.
+
+       ALL FOUR DISPATCH SHAPES ARE DRIVEN, because they use different registers: one broadcast
+       replicated, four broadcasts loaded from the pool, an inline scalar list, and a bitmap -- the
+       last two touching no YMM at all.
+
+       BOTH EDGE MASKS ARE DRIVEN, including the case where the whole range lives inside ONE 32-byte
+       block and both masks apply at once, which is the shape a mask written for two separate blocks
+       gets wrong.
+
+       And the exits: two that touched a YMM register and must VZEROUPPER, and the refusals that
+       return before any YMM is touched and must not.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t buf[600];
+    unsigned long long sink = 0;
+    int i, k, n;
+    unsigned selfonly = 0, small = 0, mid = 0, big = 0;
+
+    for (i = 0; i < 600; ++i) buf[i] = (wchar_t)(L'a' + (i % 8));
+
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned q = wia_sci_n[i];
+        if (!selfonly && q == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!small && q >= 2 && q <= 4) small = (unsigned)i;
+        if (!mid && q >= 5 && q <= 8) mid = (unsigned)i;
+        if (!big && q == 255) big = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {                    /* every start alignment class */
+        const wchar_t* p = buf + k;
+        for (n = 1; n <= 40; n += 13) {          /* ranges inside one block and across several */
+            const wchar_t* e = p + n;
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, (wchar_t)selfonly, 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, (wchar_t)small, 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, (wchar_t)mid, 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, (wchar_t)big, 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, L'c', 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, L'#', 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, e, 0, 0);
+        }
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p, p, L'a', 0);      /* empty */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, 0, 0, L'a', 0);      /* null */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrchriw, p + 8, p, L'a', 0);  /* inverted */
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
