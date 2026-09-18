@@ -3411,6 +3411,55 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_287)
+#define NAME "287-getstringtypew"
+extern int wia_getstringtypew(unsigned long, const wchar_t*, int, unsigned short*);
+int wia_gst_init(void);
+#define SETUP() do { if (wia_gst_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* The first change in this project that WRITES a caller-supplied buffer, so the gate is checking
+       that a store loop leaves the non-volatile registers and the stack alone as well as the scans do.
+       A frame with seven saved registers and one internal routine (the length scan for cch = -1).
+
+       ALL THE PATHS ARE DRIVEN: all three info types, an invalid info type (which returns before any
+       table base is computed), cch positive and cch = -1 (which calls the length scan), a NULL source
+       and a NULL destination, a count of zero, counts that are and are not multiples of the unroll, and
+       strings of ASCII, Latin-1, CJK and surrogates so the table is read at both ends.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t s[600];
+    static unsigned short out[700];
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (i = 0; i < 599; ++i) s[i] = (wchar_t)(L'a' + (i % 26));
+    s[599] = 0;
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = s + k;
+        static const int counts[] = { 1, 2, 3, 7, 8, 9, 16, 17, 64, 511, 595, -1 };
+        static const unsigned long kinds[] = { 1, 2, 4, 0, 3, 8 };
+        int c, q;
+        for (q = 0; q < (int)(sizeof(kinds) / sizeof(kinds[0])); ++q)
+            for (c = 0; c < (int)(sizeof(counts) / sizeof(counts[0])); ++c)
+                sink += (unsigned long long)CALL4(wia_getstringtypew, kinds[q], p, counts[c], out);
+        sink += (unsigned long long)CALL4(wia_getstringtypew, 1, p, 0, out);
+        sink += (unsigned long long)CALL4(wia_getstringtypew, 1, 0, 8, out);
+        sink += (unsigned long long)CALL4(wia_getstringtypew, 1, p, 8, 0);
+    }
+
+    /* the far side of the table, and the surrogate range */
+    for (i = 0; i < 511; ++i) s[i] = (wchar_t)(0x4E00 + i);
+    s[511] = 0;
+    sink += (unsigned long long)CALL4(wia_getstringtypew, 1, s, 511, out);
+    sink += (unsigned long long)CALL4(wia_getstringtypew, 4, s, -1, out);
+    for (i = 0; i < 511; ++i) s[i] = (wchar_t)(0xD800 + (i % 0x800));
+    s[511] = 0;
+    sink += (unsigned long long)CALL4(wia_getstringtypew, 1, s, 511, out);
+    sink += (unsigned long long)CALL4(wia_getstringtypew, 2, s, 511, out);
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

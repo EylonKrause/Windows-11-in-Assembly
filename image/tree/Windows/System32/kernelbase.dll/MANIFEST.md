@@ -1,9 +1,10 @@
-# kernelbase.dll — reimplemented exports (27)
+# kernelbase.dll — reimplemented exports (28)
 
 | export | speedup | source |
 |---|---|---|
 | `CompareStringOrdinal` | 3.19x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
 | `FindStringOrdinal` | 24.8x | [changes/254-findstringordinal](../../../../../changes/254-findstringordinal/) |
+| `GetStringTypeW` | 3.79x | [changes/287-getstringtypew](../../../../../changes/287-getstringtypew/) |
 | `HashData` | 2.58x | [changes/244-hashdata](../../../../../changes/244-hashdata/) |
 | `PathAddExtensionW` | 7.25x | [changes/247-pathaddextensionw](../../../../../changes/247-pathaddextensionw/) |
 | `PathCanonicalizeW` | 22.11x | [changes/246-pathcanonicalizew](../../../../../changes/246-pathcanonicalizew/) |
