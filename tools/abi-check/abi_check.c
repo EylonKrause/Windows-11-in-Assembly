@@ -3515,6 +3515,42 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_129)
+#define NAME "129-rtlchartointeger"
+extern long wia_char2int(const char*, unsigned long, unsigned long*);
+static void thunk(void){
+    /* Three arguments, so CALL4 arms a fourth register with poison the callee must simply ignore --
+       which is itself worth checking, because r9 is volatile and nothing may depend on it.
+
+       This change was PARKED before gate 3 existed and is being landed now, so the whole contract gets
+       driven here for the first time: every valid base, invalid bases on both sides of 16, the three
+       lowercase-only prefixes and their uppercase non-prefixes, the signed-char whitespace skip that
+       also eats 0x80-0xFF, both signs, the silent mod-2^32 wrap, the no-digits-is-still-success case,
+       and the refusal that must leave the caller's value untouched.
+
+       The value pointer is deliberately a real writable ULONG rather than NULL: the refusal path must
+       not write it, and a gate that passed NULL could not tell "did not write" from "wrote and
+       faulted". */
+    static unsigned long v;
+    static const char* strs[] = {
+        "1234567890", "42", "1", "", "abc", "4294967295", "4294967296",
+        "18446744073709551615", "0xDEADBEEF", "0x7f", "0X10", "0b1011", "0B11", "0o777", "0O7",
+        "0777", "00", "0x", "0b", "0o", "0xg", "  -2147483648", "\x80\x81\xFF 42", "+42", "-42",
+        "- 42", "--5", "\t\n\v\f\r 9", "7FFFFFFF", "DEADBEEF", "z", "9",
+    };
+    static const unsigned long bases[] = { 0, 2, 8, 10, 16, 1, 3, 9, 15, 17, 32, 36, 255, 0xFFFFFFFFul };
+    int i, k;
+    unsigned long long sunk = 0;
+
+    for (i = 0; i < (int)(sizeof(strs) / sizeof(strs[0])); ++i)
+        for (k = 0; k < (int)(sizeof(bases) / sizeof(bases[0])); ++k) {
+            v = 0xA5A5A5A5ul;
+            sunk += (unsigned long long)CALL4(wia_char2int, strs[i], bases[k], &v, 0xDEADBEEFDEADBEEFull);
+            sunk += v;
+        }
+    sink += (long long)sunk;
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

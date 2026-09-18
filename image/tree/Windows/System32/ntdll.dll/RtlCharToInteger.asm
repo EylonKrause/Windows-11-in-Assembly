@@ -1,3 +1,7 @@
+; ntdll.dll!RtlCharToInteger  --  hand-written x86-64 reimplementation (1.25x vs shipped)
+; source of truth: changes/129-rtlchartointeger/  (reference.c + correctness.c + bench.c)
+; validated bit-exact vs the live export; see that dir's RESULTS.md.
+;----------------------------------------------------------------------
 ; changes/129-rtlchartointeger/impl.asm
 ; NTSTATUS wia_char2int(PCSZ String, ULONG Base, PULONG Value)   [Win64: rcx, edx, r8 -> eax]
 ;
