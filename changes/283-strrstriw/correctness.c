@@ -142,10 +142,13 @@ int main(void)
         static wchar_t n1[] = { L'x', 0xD7B0, L'y', 0 };
         static wchar_t n2[] = { L'x', 0xD7B1, L'y', 0 };
         static wchar_t n3[] = { L'a', L'b', 0x200B, L'c', 0 };
+        static wchar_t n4[] = { L'a', L'b', 0x034F, L'c', 0 };
         one(h1, h1 + 5, L"abc");                   /* must NOT be found: no span collation */
         one(h1, h1 + 5, L"ab");
         one(h1, h1 + 5, L"cd");
-        one(h1, h1 + 5, n3);                       /* ignorable vs ignorable: must match */
+        one(h1, h1 + 5, n3);                       /* 0x200B matches only ITSELF: not a
+                                                      match, and change 285 measured why */
+        one(h1, h1 + 5, n4);                       /* 0x034F IS a partner of 0x00AD */
         one(h2, h2 + 3, n1);
         one(h2, h2 + 3, n2);
         one(h3, h3 + 3, n2);                       /* the third leg: must NOT match */
@@ -250,14 +253,22 @@ int main(void)
         }
 
         /* The same family on the WIDE path: a first character with more than four partners
-         * bypasses the vector filter entirely, so a different dispatch verifies these. 0x00AD and
-         * 0x200B are both ignorable and match each other, so every position is a candidate. */
+         * bypasses the vector filter entirely, so a different dispatch verifies these.
+         *
+         * THE FILLER IS 0x034F, NOT 0x200B, AND THAT WAS A REAL MISTAKE. This block was first written
+         * with a 0x200B filler and a comment claiming that it and 0x00AD "are both ignorable and match
+         * each other, so every position is a candidate". Change 285's relation probe measured the
+         * truth: n[0x200B] is 0 -- the ZERO WIDTH SPACE matches ONLY ITSELF and is not one of the 3237
+         * ignorables at all, while match(0x00AD, 0x034F) is 1. So the filler matched nothing, NO
+         * position was a candidate, and this family was quietly testing the empty case while its
+         * comment claimed the opposite. The cases still passed, because all three sides agreed on the
+         * answer -- which is exactly what makes a test that measures nothing hard to notice. */
         for (j = 3; j <= 6; ++j) {
             n[0] = 0x00AD;
             for (m = 1; m < j; ++m) n[m] = (wchar_t)(L'a' + m);
             n[j] = 0;
             for (p = 1; p <= j - 2; ++p) {
-                for (k = 0; k < 48; ++k) h[k] = 0x200B;
+                for (k = 0; k < 48; ++k) h[k] = 0x034F;
                 h[48] = 0;
                 for (k = 0; k < j; ++k) h[20 + k] = n[k];
                 h[20 + p] = (wchar_t)(L'a' + j + 1);

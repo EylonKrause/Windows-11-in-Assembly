@@ -152,10 +152,12 @@ int main(void)
         static wchar_t n1[] = { L'x', 0xD7B0, L'y', 0 };
         static wchar_t n2[] = { L'x', 0xD7B1, L'y', 0 };
         static wchar_t n3[] = { L'a', L'b', 0x200B, L'c', 0 };
+        static wchar_t n4[] = { L'a', L'b', 0x034F, L'c', 0 };
         one(h1, L"abc");                         /* must NOT be found: no span collation */
         one(h1, L"ab");
         one(h1, L"cd");
-        one(h1, n3);
+        one(h1, n3);                             /* 0x200B matches only ITSELF */
+        one(h1, n4);                             /* 0x034F IS a partner of 0x00AD */
         one(h2, n1);
         one(h2, n2);
         one(h3, n2);                             /* the third leg: must NOT match */
@@ -242,7 +244,7 @@ int main(void)
             for (m = 1; m < j; ++m) n[m] = (wchar_t)(L'a' + m);
             n[j] = 0;
             for (p = 1; p <= j - 2; ++p) {
-                for (k = 0; k < 48; ++k) h[k] = 0x200B;
+                for (k = 0; k < 48; ++k) h[k] = 0x034F;
                 h[48] = 0;
                 for (k = 0; k < j; ++k) h[20 + k] = n[k];
                 h[20 + p] = (wchar_t)(L'a' + j + 1);
