@@ -3229,6 +3229,66 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_284)
+#define NAME "284-strstriw"
+extern const wchar_t* wia_strstriw(const wchar_t*, const wchar_t*);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* The FORWARD substring search. Like change 283 this has a real frame with seven saved
+       registers and internal calls, but it has one more of them: a vectorised terminator scan
+       (wterm) that runs before the filter is set up, on top of match_pair and vscan. Three internal
+       routines, all of which must leave the seven saved registers alone.
+
+       ALL THE PATHS ARE DRIVEN: the vector filter (a first character with 1..4 partners), the WIDE
+       filter (more than four, bypassing the vector scan), the last-character early reject, region B
+       (a needle whose TAIL matches a NUL, so the match runs past the terminator), a needle longer
+       than the whole string, an empty needle, an empty string, and both NULL arguments.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t hay[600];
+    static wchar_t need[16];
+    unsigned long long sink = 0;
+    int i, k, n;
+    unsigned selfonly = 0, wide = 0;
+
+    for (i = 0; i < 599; ++i) hay[i] = (wchar_t)(L'a' + (i % 8));
+    hay[599] = 0;
+
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned q = wia_sci_n[i];
+        if (!selfonly && q == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!wide && q == 255) wide = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = hay + k;
+        for (n = 1; n <= 6; ++n) {
+            int j;
+            for (j = 0; j < n; ++j) need[j] = (wchar_t)(L'a' + (j % 8));
+            need[n] = 0;
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, need, 0, 0);
+        }
+        /* the WIDE path, and a first character that matches only itself */
+        need[0] = (wchar_t)wide;  need[1] = L'b'; need[2] = 0;
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, need, 0, 0);
+        need[0] = (wchar_t)selfonly;
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, need, 0, 0);
+        /* REGION B: a tail of soft hyphens, every one of which matches a NUL, so the match runs
+           past the terminator and the scalar clamped path runs */
+        need[0] = L'H'; need[1] = 0x00AD; need[2] = 0x00AD; need[3] = 0;
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, need, 0, 0);
+        /* degenerate shapes */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, L"", 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, L"", L"a", 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, 0, L"a", 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, p, 0, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strstriw, L"ab", L"abcdefghij", 0, 0);
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
