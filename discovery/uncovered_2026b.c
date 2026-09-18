@@ -169,8 +169,16 @@ s4:
     }
 s5:
     {
+        /* NOT REIMPLEMENTABLE -- do not pick this row up again. The 24x gap against RtlUniform below
+           is real and it is not a target: RtlRandomEx's RETURN VALUE IS NOT A FUNCTION OF ITS SEED.
+           The same seed gives different answers in one process, calls on an unrelated seed change the
+           answers (the 128-entry shuffle table is process-global), and the FIRST call of a fresh
+           process gives a different value on every run, so the table is seeded unpredictably. Only the
+           seed UPDATE is reproducible, and it is exactly one RtlUniform step over 20012 seeds tried --
+           which is why RtlUniform is 24x faster for the same seed advance. Measured in
+           discovery/rtlrandomex_is_not_a_function_of_its_seed.c. */
         F_uniform g = (F_uniform)R(nt, "RtlRandomEx");
-        name = "ntdll!RtlRandomEx";
+        name = "ntdll!RtlRandomEx (NOT REIMPLEMENTABLE: no fn of its seed)";
         if (!g) { printf("  %-40s not exported\n", name); goto s6; }
         {
             ULONG seed = 12345, a, b;
