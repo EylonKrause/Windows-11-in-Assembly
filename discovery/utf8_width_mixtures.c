@@ -24,6 +24,33 @@
  * does not contain. It is evidence, not a fix. Every row prints what it converted and how many units came
  * out, because a row that silently converted nothing would otherwise look like the fastest row here.
  *
+ * ------------------------------------------------------------------------------------------------------
+ * WHAT CAUSES IT -- AND A CORRECTION TO MY FIRST EXPLANATION.
+ *
+ * The commit that added this file said the cost was "about six vector probes per character": the ASCII16,
+ * ASCII8, mix16, mix8 and kernel probes all failing, then one scalar character, then the ladder again.
+ * THAT IS WRONG, and reading further into impl.asm is what shows it. `scalar_win` sets a watermark:
+ *
+ *      scalar_win:
+ *              lea       eax, [r14 + 32]
+ *              mov       dword ptr [rsp + 8], eax      ; decode this far before probing again
+ *
+ * and `scalar_next` honours it, staying in the scalar decoder until the source index passes that mark
+ * before returning to `mainloop`. So the ladder is paid roughly ONCE PER 32 BYTES, not once per
+ * character, and repeated probing is not where the time goes.
+ *
+ * The time goes into THE SCALAR DECODER ITSELF, which on mixed-width input handles essentially every
+ * character. Per character it derives the expected length with a cascade of compares, then sets up the
+ * byte-2 lo/hi range with another cascade (E0 raises lo to A0, ED lowers hi to 9F, F0 raises lo to 90,
+ * F4 lowers hi to 8F), then walks the continuation bytes in a loop, then assembles the code point and
+ * branches on whether it needs a surrogate pair. Measured, that is about 2.17 ns per output unit on the
+ * ASCII+3-byte row -- roughly ten cycles a character -- against ntdll's 0.95.
+ *
+ * So the homogeneous kernels are not the problem and neither is the probe ladder: the general case is
+ * simply scalar, and mixed-width text is all general case. A fix has to make the general case fast --
+ * either a table-driven scalar decoder (one load for the length and both range bounds instead of two
+ * compare cascades) or a genuinely vectorised mixed-width transcoder. Neither is attempted here.
+ *
  * build:  cl /nologo /O2 utf8_width_mixtures.c ..\changes\034-rtlutf8tounicoden\impl.asm.obj
  *         (see the bottom of this comment for the exact commands)
  *
@@ -154,6 +181,10 @@ int main(void)
     row("2-byte, 1 bad byte every 64", buf, 4000);
 
     printf("\n== %d row(s) came in SLOWER than the shipped export ==\n", worst_seen);
+    printf("   The cause is the SCALAR DECODER, not the probe ladder: scalar_win sets a 32-byte\n");
+    printf("   watermark, so the blocks are probed about once per 32 bytes, and mixed-width input\n");
+    printf("   then spends all its time in the per-character compare cascades. (The commit that\n");
+    printf("   added this file blamed the probe ladder; that was wrong.)\n");
     printf("   Change 034's published geomean is 3.986x with every row BETTER, over five homogeneous\n");
     printf("   classes plus ASCII-alternating-with-2-byte. The rows above are the classes that corpus\n");
     printf("   cannot express. This file is evidence, not a fix.\n");
