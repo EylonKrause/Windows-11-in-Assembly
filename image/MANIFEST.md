@@ -1,6 +1,6 @@
 # Image manifest — hand-ASM reimplementations mapped to the Win11 System32 tree
 
-293 `.asm` files across 12 System32 DLL folders (materialized under `tree/Windows/System32/`).
+294 `.asm` files across 12 System32 DLL folders (materialized under `tree/Windows/System32/`).
 
 ## Windows/System32/ntdll.dll — 84 functions
 `RtlAnsiStringToUnicodeString`, `RtlAppendAsciizToString`, `RtlAppendUnicodeToString`, `RtlAreBitsClear`, `RtlAreBitsSet`, `RtlCompareMemory`, `RtlCompareMemoryUlong`, `RtlCompareString`, `RtlCompareUnicodeString`, `RtlCompareUnicodeStrings`, `RtlConvertSidToUnicodeString`, `RtlCrc32`, `RtlCrc64`, `RtlDowncaseUnicodeString`, `RtlEqualString`, `RtlEqualUnicodeString`, `RtlEthernetAddressToStringA`, `RtlEthernetAddressToStringW`, `RtlEthernetStringToAddressA`, `RtlEthernetStringToAddressW`, `RtlFindCharInUnicodeString`, `RtlFindClearBits`, `RtlFindClearRuns`, `RtlFindLastBackwardRunClear`, `RtlFindLongestRunClear`, `RtlFindNextForwardRunClear`, `RtlFindSetBits`, `RtlFindUnicodeSubstring`, `RtlGUIDFromString`, `RtlHashUnicodeString`, `RtlInitString`, `RtlInitStringEx`, `RtlInitUTF8String`, `RtlInitUnicodeString`, `RtlInitUnicodeStringEx`, `RtlInt64ToUnicodeString`, `RtlIntegerToChar`, `RtlIntegerToUnicodeString`, `RtlIpv4AddressToStringA`, `RtlIpv4AddressToStringExA`, `RtlIpv4AddressToStringExW`, `RtlIpv4AddressToStringW`, `RtlIpv4StringToAddressA`, `RtlIpv4StringToAddressExA`, `RtlIpv4StringToAddressExW`, `RtlIpv4StringToAddressW`, `RtlIpv6AddressToStringA`, `RtlIpv6AddressToStringExA`, `RtlIpv6AddressToStringExW`, `RtlIpv6AddressToStringW`, `RtlIpv6StringToAddressA`, `RtlIpv6StringToAddressExA`, `RtlIpv6StringToAddressExW`, `RtlIpv6StringToAddressW`, `RtlIsTextUnicode`, `RtlIsZeroMemory`, `RtlLargeIntegerToChar`, `RtlMultiByteToUnicodeN`, `RtlNumberOfClearBits`, `RtlNumberOfClearBitsInRange`, `RtlNumberOfSetBits`, `RtlNumberOfSetBitsInRange`, `RtlOemStringToUnicodeString`, `RtlOemToUnicodeN`, `RtlPrefixString`, `RtlPrefixUnicodeString`, `RtlSecondsSince1970ToTime`, `RtlStringFromGUIDEx`, `RtlTimeFieldsToTime`, `RtlTimeToTimeFields`, `RtlUTF8StringToUnicodeString`, `RtlUTF8ToUnicodeN`, `RtlUdiv128`, `RtlUnicodeStringToAnsiString`, `RtlUnicodeStringToOemString`, `RtlUnicodeStringToUTF8String`, `RtlUnicodeToMultiByteN`, `RtlUnicodeToOemN`, `RtlUnicodeToUTF8N`, `RtlUpcaseUnicodeString`, `RtlUpcaseUnicodeStringToAnsiString`, `RtlUpcaseUnicodeToMultiByteN`, `RtlUpcaseUnicodeToOemN`, `RtlUpperString`
@@ -14,8 +14,8 @@
 ## Windows/System32/msvcrt.dll — 34 functions
 `_i64toa`, `_i64tow`, `_itoa`, `_itow`, `_memicmp`, `_stricmp`, `_strnicmp`, `_strnset`, `_strrev`, `_strset`, `_strupr`, `_ui64toa`, `_ui64tow`, `_ultoa`, `_ultow`, `_wcsicmp`, `_wcsnicmp`, `_wcsnset`, `_wcsrev`, `_wcsset`, `_wcsupr`, `memchr`, `strcmp`, `strcspn`, `strlen`, `strpbrk`, `strspn`, `wcschr`, `wcscmp`, `wcscspn`, `wcslen`, `wcsncmp`, `wcspbrk`, `wcsspn`
 
-## Windows/System32/kernelbase.dll — 28 functions
-`CompareStringOrdinal`, `FindStringOrdinal`, `GetStringTypeW`, `HashData`, `PathAddExtensionW`, `PathCanonicalizeW`, `PathCchAddBackslash`, `PathCchAddBackslashEx`, `PathCchAddExtension`, `PathCchAppendEx`, `PathCchCanonicalizeEx`, `PathCchCombineEx`, `PathCchFindExtension`, `PathCchRemoveBackslash`, `PathCchRemoveBackslashEx`, `PathCchRemoveExtension`, `PathCchRemoveFileSpec`, `PathCchRenameExtension`, `UrlHashA`, `UrlUnescapeA`, `UrlUnescapeW`, `lstrcatA`, `lstrcatW`, `lstrcpyA`, `lstrcpyW`, `lstrcpynA`, `lstrcpynW`, `lstrlenA`
+## Windows/System32/kernelbase.dll — 29 functions
+`CompareStringOrdinal`, `FindStringOrdinal`, `FoldStringW`†, `GetStringTypeW`, `HashData`, `PathAddExtensionW`, `PathCanonicalizeW`, `PathCchAddBackslash`, `PathCchAddBackslashEx`, `PathCchAddExtension`, `PathCchAppendEx`, `PathCchCanonicalizeEx`, `PathCchCombineEx`, `PathCchFindExtension`, `PathCchRemoveBackslash`, `PathCchRemoveBackslashEx`, `PathCchRemoveExtension`, `PathCchRemoveFileSpec`, `PathCchRenameExtension`, `UrlHashA`, `UrlUnescapeA`, `UrlUnescapeW`, `lstrcatA`, `lstrcatW`, `lstrcpyA`, `lstrcpyW`, `lstrcpynA`, `lstrcpynW`, `lstrlenA`
 
 ## Windows/System32/crypt32.dll — 4 functions
 `CryptBinaryToStringA`, `CryptBinaryToStringW`, `CryptStringToBinaryA`, `CryptStringToBinaryW`
@@ -38,3 +38,13 @@
 ## Windows/System32/user32.dll — 2 functions
 `CharLowerBuffW`, `CharUpperBuffW`
 
+
+## † Partial coverage
+
+These exports are reimplemented for part of their contract only. The change refuses
+the rest rather than pretending, so the file is NOT a drop-in replacement for the
+shipped export and carries no live-substitution gate.
+
+| export | covered | source |
+|---|---|---|
+| `kernelbase.dll!FoldStringW` | the MAP_FOLDDIGITS flag only, 1 of the export's 5 flag paths | [changes/288-foldstringw-digits](../changes/288-foldstringw-digits/) |

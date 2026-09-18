@@ -3460,6 +3460,61 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_288)
+#define NAME "288-foldstringw-digits"
+extern int wia_foldstringw_digits(unsigned long, const wchar_t*, int, wchar_t*, int);
+int wia_fold_init(void);
+#define SETUP() do { if (wia_fold_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* FIVE arguments, so the fifth arrives on the STACK above the shadow space -- at [rsp+40] on entry
+       and [rsp+96] after this function's seven pushes. That is the part of the ABI no earlier change in
+       this project has exercised: everything so far took four arguments or fewer, all in registers. A
+       frame with seven saved registers and one internal routine (the length scan).
+
+       ALL THE PATHS ARE DRIVEN: the accepted flag and five rejected ones, cchSrc positive and -1,
+       cchDest zero (the length query, which writes nothing), cchDest exactly enough, cchDest one too
+       small, a NULL source, dest == src (refused) and dest = src+1 (accepted, and taking the
+       one-at-a-time loop because the buffers overlap), counts on and off the unroll boundary, and
+       strings that change every unit as well as none.
+
+       Armed PER CALL (CALL5). */
+    static wchar_t s[600];
+    static wchar_t out[700];
+    unsigned long long sink = 0;
+    int i, k;
+
+    for (i = 0; i < 599; ++i) s[i] = (wchar_t)(0x0660 + (i % 10));   /* all fold to ASCII */
+    s[599] = 0;
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = s + k;
+        static const int counts[] = { 1, 2, 3, 7, 8, 9, 16, 17, 64, 511, 595, -1 };
+        static const unsigned long flags[] = { 0x0080, 0x0010, 0x0020, 0x0040, 0x2000, 0 };
+        int c, q;
+        for (q = 0; q < (int)(sizeof(flags) / sizeof(flags[0])); ++q)
+            for (c = 0; c < (int)(sizeof(counts) / sizeof(counts[0])); ++c) {
+                sink += (unsigned long long)CALL5(wia_foldstringw_digits,
+                                                 flags[q], p, counts[c], out, 700);
+                sink += (unsigned long long)CALL5(wia_foldstringw_digits,
+                                                 flags[q], p, counts[c], 0, 0);
+            }
+        /* the too-small destination, the refusals, and the overlapping case */
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, p, 64, out, 63);
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, p, 64, out, 64);
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, p, 0, out, 700);
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, 0, 8, out, 700);
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, out, 8, out, 700);
+        sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, out, 8, out + 1, 699);
+    }
+
+    /* a string where nothing changes, so the identity path of the table is read too */
+    for (i = 0; i < 511; ++i) s[i] = (wchar_t)(L'a' + (i % 26));
+    s[511] = 0;
+    sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, s, 511, out, 700);
+    sink += (unsigned long long)CALL5(wia_foldstringw_digits, 0x0080, s, -1, out, 700);
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
