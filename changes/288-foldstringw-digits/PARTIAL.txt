@@ -1,0 +1,11 @@
+the MAP_FOLDDIGITS flag only, 1 of the export's 5 flag paths
+The other four flags are DECLINED with ERROR_INVALID_FLAGS, and the scope was measured rather
+than chosen: probes/contract.c folded every code unit under every flag and MAP_FOLDDIGITS is the
+only strictly 1:1 one. MAP_FOLDCZONE turns one input unit into as many as EIGHTEEN, MAP_COMPOSITE
+grows 12197 of them, MAP_PRECOMPOSED 79 and MAP_EXPAND_LIGATURES 710 -- a mapping that changes the
+length is not a per-character table at any width, and composition additionally depends on
+neighbouring characters, which is the wall changes 274 and 276 died on. Each of those flags is a
+separate change with a different algorithm, not a different table.
+Within MAP_FOLDDIGITS the coverage is total and exact: all 65535 non-zero code units, cchSrc
+positive and -1, the length query, the buffer boundary, every refusal in the order the export
+applies them, overlapping buffers in both directions, and a guard page. 66656 cases, 0 mismatches.

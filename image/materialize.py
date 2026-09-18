@@ -39,6 +39,29 @@ first_exp = re.compile(r'`([^!`]+)!([^`]+)`')
 more_exp = re.compile(r'`([^`!]+)`')
 speed = re.compile(r'\*\*([\d.]+)[x×]\*\*')
 
+# An export can be covered only PARTIALLY by a change, and the manifest must not claim otherwise.
+#
+# crypt32!CryptBinaryToStringA is covered by four changes which TOGETHER cover the whole export, and
+# that case is handled below by the multi-change path. A different case appeared with change 288:
+# kernelbase!FoldStringW takes a FLAG selector with five paths, and 288 implements ONE of them
+# (MAP_FOLDDIGITS) and declines the other four, because the other four are length-changing and are not
+# per-character tables at all. Written as a bare row, `FoldStringW | 4.88x` claims the export is
+# reimplemented when four fifths of it is not -- and the image is the one place where that claim is made
+# without the surrounding RESULTS.md to qualify it.
+#
+# So a change may drop a PARTIAL.txt in its directory: the first line names what IS covered, and the rest
+# is free text explaining the limit. This script then marks the .asm header, the per-DLL manifest row and
+# the top manifest, and prints a summary. Nothing here is keyed to a function name, so the next partial
+# change gets the same treatment by adding the file.
+def read_partial(cdir_abs):
+    fp = os.path.join(cdir_abs, 'PARTIAL.txt')
+    if not os.path.isfile(fp):
+        return None
+    with open(fp, encoding="utf-8") as f:
+        lines = [l.rstrip('\n') for l in f if l.strip()]
+    return (lines[0].strip(), lines[1:]) if lines else None
+
+
 def main():
     if os.path.isdir(TREE):
         shutil.rmtree(os.path.join(OUT, 'tree'))
@@ -96,6 +119,7 @@ def main():
     per_dll = {}
     copied = 0
     multi = []
+    partials = []
     for key in order:
         dll, export = key
         members = groups[key]
@@ -104,10 +128,27 @@ def main():
         dst = os.path.join(d, export.replace('/', '_') + '.asm')
         if len(members) == 1:
             e, src = members[0]
-            hdr = (f"; {dll}!{export}  --  hand-written x86-64 reimplementation ({e['spd']} vs shipped)\n"
-                   f"; source of truth: changes/{e['cdir']}/  (reference.c + correctness.c + bench.c)\n"
-                   f"; validated bit-exact vs the live export; see that dir's RESULTS.md.\n"
-                   f";----------------------------------------------------------------------\n")
+            part = read_partial(os.path.join(ROOT, 'changes', e['cdir']))
+            if part:
+                partials.append((dll, export, e['cdir'], part[0]))
+                extra = ''.join(f"; {l}\n" for l in part[1])
+                hdr = (f"; {dll}!{export}  --  hand-written x86-64, PARTIAL COVERAGE ({e['spd']} vs shipped)\n"
+                       f";\n"
+                       f"; THIS IS NOT A DROP-IN REPLACEMENT FOR THE WHOLE EXPORT. It covers:\n"
+                       f";   {part[0]}\n"
+                       f"; and refuses the rest rather than pretending. Substituting it for the shipped\n"
+                       f"; export would break callers using the paths it does not implement, which is why\n"
+                       f"; the change carries no live-substitution gate -- see its RESULTS.md.\n"
+                       f"{extra}"
+                       f";\n"
+                       f"; source of truth: changes/{e['cdir']}/  (reference.c + correctness.c + bench.c)\n"
+                       f"; validated bit-exact vs the live export WITHIN that coverage.\n"
+                       f";----------------------------------------------------------------------\n")
+            else:
+                hdr = (f"; {dll}!{export}  --  hand-written x86-64 reimplementation ({e['spd']} vs shipped)\n"
+                       f"; source of truth: changes/{e['cdir']}/  (reference.c + correctness.c + bench.c)\n"
+                       f"; validated bit-exact vs the live export; see that dir's RESULTS.md.\n"
+                       f";----------------------------------------------------------------------\n")
             with open(src, encoding='utf-8') as sf:
                 body = sf.read()
             with open(dst, 'w', encoding='utf-8', newline='\n') as df:
@@ -148,7 +189,13 @@ def main():
         with open(os.path.join(TREE, dll, 'MANIFEST.md'), 'w', encoding='utf-8', newline='\n') as f:
             f.write(f"# {dll} — reimplemented exports ({len(fns)})\n\n")
             f.write("| export | speedup | source |\n|---|---|---|\n")
+            pmap = {(d2, e2): note for d2, e2, _, note in partials}
             for ex, sp, cd in sorted(fns):
+                note = pmap.get((dll, ex))
+                if note:
+                    f.write(f"| `{ex}` | {sp} | [changes/{cd}](../../../../../changes/{cd}/) "
+                            f"— **PARTIAL**: {note} |\n")
+                    continue
                 if ' + ' in cd:
                     links = ', '.join(f"[{c}](../../../../../changes/{c}/)" for c in cd.split(' + '))
                     f.write(f"| `{ex}` | {sp} | {links} |\n")
@@ -160,14 +207,29 @@ def main():
         f.write(f"{copied} `.asm` files across {len(per_dll)} System32 DLL folders "
                 f"(materialized under `tree/Windows/System32/`).\n\n")
         for dll, fns in sorted(per_dll.items(), key=lambda kv: -len(kv[1])):
-            exports = ', '.join(f"`{ex}`" for ex, _, _ in sorted(fns))
+            pset = {(d2, e2) for d2, e2, _, _ in partials}
+            exports = ', '.join(f"`{ex}`" + ('\u2020' if (dll, ex) in pset else '')
+                                for ex, _, _ in sorted(fns))
             f.write(f"## Windows/System32/{dll} — {len(fns)} functions\n{exports}\n\n")
+        if partials:
+            f.write("\n## \u2020 Partial coverage\n\n")
+            f.write("These exports are reimplemented for part of their contract only. The change refuses\n"
+                    "the rest rather than pretending, so the file is NOT a drop-in replacement for the\n"
+                    "shipped export and carries no live-substitution gate.\n\n")
+            f.write("| export | covered | source |\n|---|---|---|\n")
+            for dll, export, cdir, note in sorted(partials):
+                f.write(f"| `{dll}!{export}` | {note} | [changes/{cdir}](../changes/{cdir}/) |\n")
     print(f"materialized {copied} .asm files across {len(per_dll)} DLL folders")
     if multi:
         print(f"  {len(multi)} export(s) with MORE THAN ONE contributing change "
               f"(all bodies written, none dropped):")
         for dll, export, cdirs in multi:
             print(f"    {dll}!{export}  <- {', '.join(cdirs)}")
+    if partials:
+        print(f"  {len(partials)} export(s) with PARTIAL coverage (marked in every manifest, and "
+              f"NOT drop-in replacements):")
+        for dll, export, cdir, note in sorted(partials):
+            print(f"    {dll}!{export}  <- {cdir}  covers: {note}")
     for dll, fns in sorted(per_dll.items(), key=lambda kv: -len(kv[1])):
         print(f"  {dll:16s} {len(fns)}")
 
