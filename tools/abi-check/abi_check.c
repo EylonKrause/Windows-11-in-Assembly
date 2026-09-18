@@ -3172,6 +3172,63 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_283)
+#define NAME "283-strrstriw"
+extern const wchar_t* wia_strrstriw(const wchar_t*, const wchar_t*, const wchar_t*);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* THE FIRST CHANGE IN THIS REPOSITORY WITH A REAL FRAME AND SEVEN SAVED REGISTERS.
+       The character searches were leaves that saved nothing; this one pushes r15, r14, r13, r12,
+       rbx, rsi and rdi, declares them with .pushreg, and calls two internal routines. Every one of
+       those has to come back unchanged, and the two internal calls must not disturb them either.
+
+       ALL THE PATHS ARE DRIVEN: the vector filter (a needle whose first character has 1..4
+       partners), the WIDE filter (first character with more than four, which bypasses the vector
+       scan entirely), the last-character early reject, needles of one character and of many, a
+       needle longer than the haystack, an empty needle, an empty range, and every NULL argument.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t hay[600];
+    static wchar_t need[16];
+    unsigned long long sink = 0;
+    int i, k, n;
+    unsigned selfonly = 0, wide = 0;
+
+    for (i = 0; i < 599; ++i) hay[i] = (wchar_t)(L'a' + (i % 8));
+    hay[599] = 0;
+
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned q = wia_sci_n[i];
+        if (!selfonly && q == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!wide && q == 255) wide = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = hay + k;
+        for (n = 1; n <= 6; ++n) {
+            int j;
+            for (j = 0; j < n; ++j) need[j] = (wchar_t)(L'a' + (j % 8));
+            need[n] = 0;
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 100, need, 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 3, need, 0);
+        }
+        /* a needle whose first character takes the WIDE path, and one that matches only itself */
+        need[0] = (wchar_t)wide;  need[1] = L'b'; need[2] = 0;
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 100, need, 0);
+        need[0] = (wchar_t)selfonly;
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 100, need, 0);
+        /* degenerate shapes */
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p, L"a", 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 100, L"", 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, 0, 0, L"a", 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 100, 0, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strrstriw, p, p + 2, L"abcdefghij", 0);
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif

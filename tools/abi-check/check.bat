@@ -30,7 +30,7 @@ set LIST=%LIST% 105-cryptstringtobinaryw-base64header 107-cryptstringtobinaryw-b
 set LIST=%LIST% 125-rtlfindclearbits 132-pathfindextensionw 140-pathremoveextensionw 143-pathcchfindextension 144-pathcchremoveextension 158-pathrenameextensionw 159-pathcchrenameextension 160-pathcchaddextension 161-pathfindfilenamew 162-pathstrippathw 174-pathundecoratew
 set LIST=%LIST% 202-convertguidtostringw 203-convertguidtostringa 204-rtludiv128
 set LIST=%LIST% 205-uuidfromstringa 206-stringfromguid2 207-iidfromstring 208-uuidfromstringw
-set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string 027-rtlupcaseunicodetomultibyten 031-rtlupcaseunicodetooemn 269-convertstringsidtosid 067-rtlconvertsidtounicodestring 270-convertsidtostringsid 271-convertsidtostringsida 272-convertstringsidtosida 273-inet-addr 275-inet-ntoa 277-charupperbuffw 278-rtlintegertounicodestring 279-rtlintegertochar 280-rtllargeintegertochar 281-strchriw 282-strrchriw
+set LIST=%LIST% 142-pathaddbackslashw 228-lstrcata 230-lstrcatw 209-lstrcpynw 210-comparestringordinal 211-lstrcpyna 212-pathfindfilenamea 213-strrchra 214-strcspna 215-strpbrka 216-strspna 217-pathfindextensiona 218-strtrima 219-pathstrippatha 220-strchra 221-pathremoveblanksa 222-pathremoveextensiona 223-pathundecoratea 224-pathrenameextensiona 225-lstrlena 226-pathremoveargsa 227-lstrcpya 229-lstrcpyw 231-strcatbuffa 232-pathremovebackslasha 233-pathquotespacesa 234-pathfindnextcomponenta 235-pathisfilespeca 236-pathcommonprefixa 237-pathisprefixa 238-pathmakeprettya 240-pathcchremovefilespec 241-pathcchaddbackslashex 242-pathcchappendex 243-pathcchcanonicalizeex 244-hashdata 245-urlunescapew 246-pathcanonicalizew 247-pathaddextensionw 248-urlunescapea 249-urlhasha 250-rtlipv6stringtoaddressexw 167-pathcommonprefixw 177-pathisprefixw 251-pathissamerootw 252-rtlfindunicodesubstring 254-findstringordinal 255-rtlfindlongestrunclear 256-rtlfindsetbits 257-rtlnumberofsetbits 258-rtlfindclearruns 259-rtlarebitsset 261-rtlfindnextforwardrunclear 262-rtlfindsetbitsandclear 263-rtlcompareunicodestrings 264-rtlinitutf8string 265-rtlappendasciiztostring 266-rtliszeromemory 267-rtlcrc32 268-rtlunicodestringtoutf8string 027-rtlupcaseunicodetomultibyten 031-rtlupcaseunicodetooemn 269-convertstringsidtosid 067-rtlconvertsidtounicodestring 270-convertsidtostringsid 271-convertsidtostringsida 272-convertstringsidtosida 273-inet-addr 275-inet-ntoa 277-charupperbuffw 278-rtlintegertounicodestring 279-rtlintegertochar 280-rtllargeintegertochar 281-strchriw 282-strrchriw 283-strrstriw
 
 set FAILED=0
 set RAN=0
@@ -268,6 +268,14 @@ if "%ID%"=="254" (
 rem  281 (StrChrIW) needs its generated match-relation tables and the init that checks them
 rem  against the live export before the thunk runs.
 rem  282 (StrRChrIW) links change 281's generated match-relation tables unchanged.
+rem  283 (StrRStrIW) links change 281's generated match-relation tables unchanged.
+if "%ID%"=="283" (
+  cl /nologo /O2 /c /Fo"%H%dep281t.obj" "%H%..\..\changes\281-strchriw\tables.c" >nul 2>&1
+  cl /nologo /O2 /c /Fo"%H%dep281s.obj" "%H%..\..\changes\281-strchriw\foldsets.c" >nul 2>&1
+  cl /nologo /O2 /c /Fo"%H%dep281b.obj" "%H%..\..\changes\281-strchriw\foldbig.c" >nul 2>&1
+  cl /nologo /O2 /c /Fo"%H%dep281n.obj" "%H%..\..\changes\281-strchriw\foldnul.c" >nul 2>&1
+  set EXTRA=!EXTRA! "%H%dep281t.obj" "%H%dep281s.obj" "%H%dep281b.obj" "%H%dep281n.obj"
+)
 if "%ID%"=="282" (
   cl /nologo /O2 /c /Fo"%H%dep281t.obj" "%H%..\..\changes\281-strchriw\tables.c" >nul 2>&1
   cl /nologo /O2 /c /Fo"%H%dep281s.obj" "%H%..\..\changes\281-strchriw\foldsets.c" >nul 2>&1
