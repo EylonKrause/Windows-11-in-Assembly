@@ -3289,6 +3289,76 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_285)
+#define NAME "285-strcspniw"
+extern int wia_strcspniw(const wchar_t*, const wchar_t*);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* The SET span. This is the first change here to combine a real frame, seven saved registers, a
+       576-BYTE STACK ALLOCATION declared with .allocstack, and THREE internal routines -- so the gate
+       is checking that the stack pointer comes back exactly as well as the registers.
+
+       ALL THE PATHS ARE DRIVEN: a one-character set (a single unbounded pass, no windowing), a set
+       that expands past four accept entries (the doubling windows), a set large enough to need many
+       chunks, a set whose member carries the 255 bitmap sentinel (the call-free scalar path, bitmap
+       loop), a set member with no partners (the self loop) and one with 2..8 (the pool loop), an
+       empty set, an empty string, and both NULL arguments.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t str[600];
+    static wchar_t set[40];
+    unsigned long long sink = 0;
+    int i, k, n;
+    unsigned selfonly = 0, big = 0, mid = 0;
+
+    for (i = 0; i < 599; ++i) str[i] = (wchar_t)(L'a' + (i % 8));
+    str[599] = 0;
+
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned q = wia_sci_n[i];
+        if (!selfonly && q == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!big && q == 255) big = (unsigned)i;
+        if (!mid && q >= 5 && q <= 8) mid = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = str + k;
+
+        /* one character: the single-pass path */
+        set[0] = L'Q'; set[1] = 0;
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+        set[0] = L'C';
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+
+        /* growing sets: four accept entries, then past them into the windows and many chunks */
+        for (n = 1; n <= 20; ++n) {
+            for (i = 0; i < n; ++i) set[i] = (wchar_t)(L'M' + i);
+            set[n] = 0;
+            sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+        }
+
+        /* the scalar path: the 255 bitmap sentinel, alone and mixed with ordinary members */
+        set[0] = (wchar_t)big; set[1] = 0;
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+        set[0] = L'M'; set[1] = (wchar_t)big; set[2] = L'N'; set[3] = 0;
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+        /* the self loop and the pool loop of the scalar path */
+        set[0] = (wchar_t)selfonly; set[1] = (wchar_t)big; set[2] = 0;
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+        set[0] = (wchar_t)mid; set[1] = (wchar_t)big; set[2] = 0;
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, set, 0, 0);
+
+        /* degenerate shapes */
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, L"", 0, 0);
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, L"", L"a", 0, 0);
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, 0, L"a", 0, 0);
+        sink += (unsigned long long)(unsigned)CALL4(wia_strcspniw, p, 0, 0, 0);
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
