@@ -3359,6 +3359,58 @@ static void thunk(void){
     if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
 }
 
+#elif defined(T_286)
+#define NAME "286-strchrniw"
+extern const wchar_t* wia_strchrniw(const wchar_t*, wchar_t, unsigned);
+int wia_sci_init(void);
+extern unsigned char wia_sci_n[65536];
+#define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
+static void thunk(void){
+    /* The count-bounded character search: a frame with seven saved registers and one internal routine.
+       Fewer moving parts than 285, but the count makes the bound arithmetic new.
+
+       ALL THE PATHS ARE DRIVEN: a character with no partners (the single-broadcast path), one with two
+       to four (the four-register path), one with five to eight and one with the 255 sentinel (the two
+       call-free wide loops), counts of zero, one, exactly the length, one short of a match, far past the
+       terminator and 0xFFFFFFFF, an empty string and a NULL start.
+
+       Armed PER CALL (CALL4). */
+    static wchar_t str[600];
+    unsigned long long sink = 0;
+    int i, k;
+    unsigned selfonly = 0, big = 0, mid = 0, small = 0;
+
+    for (i = 0; i < 599; ++i) str[i] = (wchar_t)(L'a' + (i % 8));
+    str[599] = 0;
+
+    for (i = 1; i < 0xFFFF; ++i) {
+        unsigned q = wia_sci_n[i];
+        if (!selfonly && q == 0 && i > 0x3000) selfonly = (unsigned)i;
+        if (!big && q == 255) big = (unsigned)i;
+        if (!mid && q >= 5 && q <= 8) mid = (unsigned)i;
+        if (!small && q >= 2 && q <= 4) small = (unsigned)i;
+    }
+
+    for (k = 0; k < 4; ++k) {
+        const wchar_t* p = str + k;
+        static const unsigned counts[] = { 0, 1, 2, 7, 16, 63, 64, 65, 511, 599, 600, 4096,
+                                           0xFFFFFFFFu };
+        int c;
+        for (c = 0; c < (int)(sizeof(counts) / sizeof(counts[0])); ++c) {
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)L'C', counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)L'#', counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)selfonly, counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)small, counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)mid, counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)big, counts[c], 0);
+            sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, p, (wchar_t)0, counts[c], 0);
+        }
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, L"", (wchar_t)L'a', 5, 0);
+        sink += (unsigned long long)(uintptr_t)CALL4(wia_strchrniw, 0, (wchar_t)L'a', 5, 0);
+    }
+    if (sink == 0xFFFFFFFFFFFFFFFFull) printf("");
+}
+
 #else
 #error "define exactly one of T_0xx"
 #endif
