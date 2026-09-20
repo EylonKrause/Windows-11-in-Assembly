@@ -184,7 +184,7 @@ py tools/live-coverage.py
   landed changes           277
   with a live gate         277   (100%)
   WITHOUT a live gate        0
-  harnesses                 73
+  harnesses                 74
 ```
 
 [`tools/live-coverage.py`](tools/live-coverage.py) answers that mechanically rather than in prose
@@ -268,7 +268,7 @@ evalidate-here.ps1 -Only __none__`: `-Only` filters change directories by
 substring and `__none__` matches none of them, so the change loop does nothing and the run goes
 straight to the ABI audit and the live harnesses.
 
-**Seventy-three harnesses** now cover the landed exports across `ucrtbase`, `ntdll`, `combase`,
+**Seventy-four harnesses** now cover the landed exports across `ucrtbase`, `ntdll`, `combase`,
 `rpcrt4`, `iphlpapi`, `shlwapi`, `kernelbase`, `kernel32` and `crypt32` — the shlwapi driver proves **33 functions** in a single run and
 the kernelbase driver **eighteen**, each one patched, validated against the live export and reverted
 byte-for-byte before the next begins. Between them:
