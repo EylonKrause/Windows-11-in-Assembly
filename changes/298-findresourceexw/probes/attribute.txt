@@ -1,0 +1,43 @@
+== [1] ABSENT INTEGER TYPE: ntdll returns at level 1, so the rest is the normaliser ==
+type #5000 (absent) / name #1            [the floor]          64.91 ns  miss
+type #5000 / name "#45"   (decimal-string path)               70.41 ns  miss
+type #5000 / name "#0000000045"                               82.59 ns  miss
+type #5000 / name =    1 lowercase ASCII chars               105.66 ns  miss
+type #5000 / name =    2 lowercase ASCII chars               112.95 ns  miss
+type #5000 / name =    4 lowercase ASCII chars               114.10 ns  miss
+type #5000 / name =    8 lowercase ASCII chars               208.81 ns  miss
+type #5000 / name =   16 lowercase ASCII chars               154.90 ns  miss
+type #5000 / name =   24 lowercase ASCII chars               158.45 ns  miss
+type #5000 / name =   32 lowercase ASCII chars               174.68 ns  miss
+type #5000 / name =   48 lowercase ASCII chars               201.36 ns  miss
+type #5000 / name =   64 lowercase ASCII chars               224.77 ns  miss
+type #5000 / name =   96 lowercase ASCII chars               298.93 ns  miss
+type #5000 / name =  128 lowercase ASCII chars               320.31 ns  miss
+type #5000 / name =  256 lowercase ASCII chars               510.25 ns  miss
+type #5000 / name =  512 lowercase ASCII chars              1003.41 ns  miss
+type #5000 / name = 1024 lowercase ASCII chars              1700.90 ns  miss
+type #5000 / name = 2048 lowercase ASCII chars              3396.88 ns  miss
+   floor 64.9 ns | 1 char 105.7 (heap+call cost = 40.8) | 2048 chars 3396.9
+   ==> slope 1..2048 = 1.608 ns/char
+
+== [2] the pieces, timed directly ==
+RtlAllocateHeap(66)+RtlFreeHeap                               40.05 ns
+RtlAllocateHeap(4098)+RtlFreeHeap                             58.14 ns
+RtlUpcaseUnicodeChar x1                                        2.73 ns
+RtlUpcaseUnicodeChar x32                                      39.53 ns  (1.236/char)
+RtlUpcaseUnicodeChar x2048                                  2440.62 ns  (1.191/char)
+
+== [3] LdrFindResource_U called DIRECTLY (kernelbase wrapper removed) ==
+Ldr: absent type in shell32                                   54.20 ns
+Ldr: shell32 RT_ICON #1 (found)                              610.17 ns
+Ldr: user32(real image) RT_STRING #45                        369.44 ns
+Ldr: user32(real) RT_STRING #45 lang=0x409                   340.36 ns
+
+== [4] real image handle vs datafile handle vs NULL ==
+user32 REAL image  RT_STRING #45 lang 0                      374.23 ns  FOUND
+user32 DATAFILE    RT_STRING #45 lang 0                      379.00 ns  FOUND
+user32 REAL image  RT_STRING #45 lang 0x409                  353.10 ns  FOUND
+user32 REAL image  RT_STRING #45 lang 0x0409|SORT            354.63 ns  FOUND
+hModule NULL (the .exe itself), absent type                   65.06 ns  miss
+
+sink=9761

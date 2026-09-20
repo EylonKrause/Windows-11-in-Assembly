@@ -1,0 +1,300 @@
+
+Dump of file impl.obj
+
+File Type: COFF OBJECT
+
+wia_resname_upcase:
+  0000000000000000: push        rdi
+  0000000000000001: push        rsi
+  0000000000000002: push        rbx
+  0000000000000003: sub         rsp,40h
+  0000000000000007: mov         rdi,rcx
+  000000000000000A: mov         rsi,r8
+  000000000000000D: mov         rbx,rdx
+  0000000000000010: mov         qword ptr [rsp+20h],rcx
+  0000000000000015: mov         qword ptr [rsp+28h],r8
+  000000000000001A: mov         eax,esi
+  000000000000001C: and         eax,0FFFh
+  0000000000000021: cmp         eax,0FE0h
+  0000000000000026: ja          000000000000010C
+  000000000000002C: vmovdqu     ymm0,ymmword ptr [rsi]
+  0000000000000030: vpcmpeqw    ymm1,ymm0,ymmword ptr [k_zero]
+  0000000000000038: vpmovmskb   r10d,ymm1
+  000000000000003C: vpminuw     ymm1,ymm0,ymmword ptr [k_7f]
+  0000000000000045: vpcmpeqw    ymm1,ymm1,ymm0
+  0000000000000049: vpmovmskb   r11d,ymm1
+  000000000000004D: not         r11d
+  0000000000000050: vpcmpgtw    ymm1,ymm0,ymmword ptr [k_60]
+  0000000000000058: vpcmpgtw    ymm2,ymm0,ymmword ptr [k_7a]
+  0000000000000060: vpandn      ymm1,ymm2,ymm1
+  0000000000000064: vpand       ymm1,ymm1,ymmword ptr [k_20]
+  000000000000006C: vpsubw      ymm0,ymm0,ymm1
+  0000000000000070: vmovdqu     ymmword ptr [rdi],ymm0
+  0000000000000074: test        r10d,r10d
+  0000000000000077: jne         000000000000016C
+  000000000000007D: test        r11d,r11d
+  0000000000000080: jne         00000000000001AA
+  0000000000000086: mov         eax,esi
+  0000000000000088: and         eax,1Fh
+  000000000000008B: mov         ecx,20h
+  0000000000000090: sub         ecx,eax
+  0000000000000092: add         rsi,rcx
+  0000000000000095: add         rdi,rcx
+  0000000000000098: mov         rax,rsi
+  000000000000009B: sub         rax,qword ptr [rsp+28h]
+  00000000000000A0: shr         rax,1
+  00000000000000A3: cmp         rax,rbx
+  00000000000000A6: jae         0000000000000198
+  00000000000000AC: vmovdqa     ymm0,ymmword ptr [rsi]
+  00000000000000B0: vpcmpeqw    ymm1,ymm0,ymmword ptr [k_zero]
+  00000000000000B8: vpmovmskb   r10d,ymm1
+  00000000000000BC: vpminuw     ymm1,ymm0,ymmword ptr [k_7f]
+  00000000000000C5: vpcmpeqw    ymm1,ymm1,ymm0
+  00000000000000C9: vpmovmskb   r11d,ymm1
+  00000000000000CD: not         r11d
+  00000000000000D0: vpcmpgtw    ymm1,ymm0,ymmword ptr [k_60]
+  00000000000000D8: vpcmpgtw    ymm2,ymm0,ymmword ptr [k_7a]
+  00000000000000E0: vpandn      ymm1,ymm2,ymm1
+  00000000000000E4: vpand       ymm1,ymm1,ymmword ptr [k_20]
+  00000000000000EC: vpsubw      ymm0,ymm0,ymm1
+  00000000000000F0: vmovdqu     ymmword ptr [rdi],ymm0
+  00000000000000F4: test        r10d,r10d
+  00000000000000F7: jne         000000000000016C
+  00000000000000F9: test        r11d,r11d
+  00000000000000FC: jne         00000000000001AA
+  0000000000000102: add         rsi,20h
+  0000000000000106: add         rdi,20h
+  000000000000010A: jmp         0000000000000098
+  000000000000010C: movzx       eax,word ptr [rsi]
+  000000000000010F: test        ax,ax
+  0000000000000112: je          0000000000000151
+  0000000000000114: cmp         ax,80h
+  0000000000000118: jae         00000000000001AA
+  000000000000011E: lea         ecx,[rax-61h]
+  0000000000000121: cmp         ecx,19h
+  0000000000000124: ja          0000000000000129
+  0000000000000126: sub         eax,20h
+  0000000000000129: mov         rdx,rsi
+  000000000000012C: sub         rdx,qword ptr [rsp+28h]
+  0000000000000131: shr         rdx,1
+  0000000000000134: cmp         rdx,rbx
+  0000000000000137: jae         0000000000000198
+  0000000000000139: mov         word ptr [rdi],ax
+  000000000000013C: add         rsi,2
+  0000000000000140: add         rdi,2
+  0000000000000144: test        esi,1Fh
+  000000000000014A: jne         000000000000010C
+  000000000000014C: jmp         0000000000000098
+  0000000000000151: mov         word ptr [rdi],ax
+  0000000000000154: mov         rax,rsi
+  0000000000000157: sub         rax,qword ptr [rsp+28h]
+  000000000000015C: shr         rax,1
+  000000000000015F: cmp         rax,rbx
+  0000000000000162: jae         0000000000000198
+  0000000000000164: add         rsp,40h
+  0000000000000168: pop         rbx
+  0000000000000169: pop         rsi
+  000000000000016A: pop         rdi
+  000000000000016B: ret
+  000000000000016C: tzcnt       ecx,r10d
+  0000000000000171: bzhi        eax,r11d,ecx
+  0000000000000176: test        eax,eax
+  0000000000000178: jne         00000000000001AA
+  000000000000017A: mov         rax,rsi
+  000000000000017D: sub         rax,qword ptr [rsp+28h]
+  0000000000000182: add         rax,rcx
+  0000000000000185: shr         rax,1
+  0000000000000188: cmp         rax,rbx
+  000000000000018B: jae         0000000000000198
+  000000000000018D: vzeroupper
+  0000000000000190: add         rsp,40h
+  0000000000000194: pop         rbx
+  0000000000000195: pop         rsi
+  0000000000000196: pop         rdi
+  0000000000000197: ret
+  0000000000000198: vzeroupper
+  000000000000019B: mov         rax,0FFFFFFFFFFFFFFFFh
+  00000000000001A2: add         rsp,40h
+  00000000000001A6: pop         rbx
+  00000000000001A7: pop         rsi
+  00000000000001A8: pop         rdi
+  00000000000001A9: ret
+  00000000000001AA: vzeroupper
+  00000000000001AD: mov         rsi,qword ptr [rsp+28h]
+  00000000000001B2: mov         rdi,qword ptr [rsp+20h]
+  00000000000001B7: movzx       ecx,word ptr [rsi]
+  00000000000001BA: test        cx,cx
+  00000000000001BD: je          00000000000001E2
+  00000000000001BF: mov         rax,rsi
+  00000000000001C2: sub         rax,qword ptr [rsp+28h]
+  00000000000001C7: shr         rax,1
+  00000000000001CA: cmp         rax,rbx
+  00000000000001CD: jae         00000000000001FD
+  00000000000001CF: call        qword ptr [__imp_RtlUpcaseUnicodeChar]
+  00000000000001D5: mov         word ptr [rdi],ax
+  00000000000001D8: add         rsi,2
+  00000000000001DC: add         rdi,2
+  00000000000001E0: jmp         00000000000001B7
+  00000000000001E2: mov         word ptr [rdi],cx
+  00000000000001E5: mov         rax,rsi
+  00000000000001E8: sub         rax,qword ptr [rsp+28h]
+  00000000000001ED: shr         rax,1
+  00000000000001F0: cmp         rax,rbx
+  00000000000001F3: jae         00000000000001FD
+  00000000000001F5: add         rsp,40h
+  00000000000001F9: pop         rbx
+  00000000000001FA: pop         rsi
+  00000000000001FB: pop         rdi
+  00000000000001FC: ret
+  00000000000001FD: mov         rax,0FFFFFFFFFFFFFFFFh
+  0000000000000204: add         rsp,40h
+  0000000000000208: pop         rbx
+  0000000000000209: pop         rsi
+  000000000000020A: pop         rdi
+  000000000000020B: ret
+f_norm:
+  000000000000020C: push        rdi
+  000000000000020D: push        rsi
+  000000000000020E: sub         rsp,40h
+  0000000000000212: mov         rsi,rcx
+  0000000000000215: mov         rdi,rdx
+  0000000000000218: mov         qword ptr [rsp+38h],r8
+  000000000000021D: cmp         rsi,10000h
+  0000000000000224: jb          0000000000000249
+  0000000000000226: cmp         word ptr [rsi],23h
+  000000000000022A: je          0000000000000251
+  000000000000022C: mov         rcx,rdi
+  000000000000022F: mov         edx,300h
+  0000000000000234: mov         r8,rsi
+  0000000000000237: call        wia_resname_upcase
+  000000000000023C: test        rax,rax
+  000000000000023F: js          0000000000000299
+  0000000000000241: mov         rax,rdi
+  0000000000000244: jmp         00000000000002E9
+  0000000000000249: mov         rax,rsi
+  000000000000024C: jmp         00000000000002E9
+  0000000000000251: lea         rdx,[rsi+2]
+  0000000000000255: lea         rcx,[rsp+20h]
+  000000000000025A: call        qword ptr [__imp_RtlInitUnicodeString]
+  0000000000000260: mov         dword ptr [rsp+30h],0
+  0000000000000268: lea         r8,[rsp+30h]
+  000000000000026D: mov         edx,0Ah
+  0000000000000272: lea         rcx,[rsp+20h]
+  0000000000000277: call        qword ptr [__imp_RtlUnicodeStringToInteger]
+  000000000000027D: test        eax,eax
+  000000000000027F: js          0000000000000290
+  0000000000000281: mov         eax,dword ptr [rsp+30h]
+  0000000000000285: test        eax,0FFFF0000h
+  000000000000028A: jne         0000000000000290
+  000000000000028C: mov         eax,eax
+  000000000000028E: jmp         00000000000002E9
+  0000000000000290: mov         rax,0FFFFFFFFFFFFFFFFh
+  0000000000000297: jmp         00000000000002E9
+  0000000000000299: mov         rdx,rsi
+  000000000000029C: cmp         word ptr [rdx],0
+  00000000000002A0: je          00000000000002A8
+  00000000000002A2: add         rdx,2
+  00000000000002A6: jmp         000000000000029C
+  00000000000002A8: sub         rdx,rsi
+  00000000000002AB: lea         r8,[rdx+22h]
+  00000000000002AF: mov         rcx,qword ptr gs:[60h]
+  00000000000002B8: mov         rcx,qword ptr [rcx+30h]
+  00000000000002BC: xor         edx,edx
+  00000000000002BE: call        qword ptr [__imp_RtlAllocateHeap]
+  00000000000002C4: test        rax,rax
+  00000000000002C7: je          0000000000000290
+  00000000000002C9: mov         rcx,qword ptr [rsp+38h]
+  00000000000002CE: mov         qword ptr [rcx],rax
+  00000000000002D1: mov         rdi,rax
+  00000000000002D4: mov         rcx,rdi
+  00000000000002D7: mov         rdx,7FFFFFFFh
+  00000000000002DE: mov         r8,rsi
+  00000000000002E1: call        wia_resname_upcase
+  00000000000002E6: mov         rax,rdi
+  00000000000002E9: add         rsp,40h
+  00000000000002ED: pop         rsi
+  00000000000002EE: pop         rdi
+  00000000000002EF: ret
+wia_findresourceexw:
+  00000000000002F0: push        rbx
+  00000000000002F1: push        rsi
+  00000000000002F2: push        rdi
+  00000000000002F3: sub         rsp,0CA0h
+  00000000000002FA: mov         qword ptr [rsp+50h],rcx
+  00000000000002FF: mov         qword ptr [rsp+58h],r8
+  0000000000000304: movzx       eax,r9w
+  0000000000000308: mov         qword ptr [rsp+30h],rax
+  000000000000030D: xor         eax,eax
+  000000000000030F: mov         qword ptr [rsp+38h],rax
+  0000000000000314: mov         qword ptr [rsp+40h],rax
+  0000000000000319: mov         qword ptr [rsp+48h],rax
+  000000000000031E: xor         ebx,ebx
+  0000000000000320: mov         rcx,rdx
+  0000000000000323: lea         rdx,[rsp+60h]
+  0000000000000328: lea         r8,[rsp+40h]
+  000000000000032D: call        f_norm
+  0000000000000332: cmp         rax,0FFFFFFFFFFFFFFFFh
+  0000000000000336: je          0000000000000390
+  0000000000000338: mov         qword ptr [rsp+20h],rax
+  000000000000033D: mov         rcx,qword ptr [rsp+58h]
+  0000000000000342: lea         rdx,[rsp+680h]
+  000000000000034A: lea         r8,[rsp+48h]
+  000000000000034F: call        f_norm
+  0000000000000354: cmp         rax,0FFFFFFFFFFFFFFFFh
+  0000000000000358: je          0000000000000390
+  000000000000035A: mov         qword ptr [rsp+28h],rax
+  000000000000035F: mov         rcx,qword ptr [rsp+50h]
+  0000000000000364: test        rcx,rcx
+  0000000000000367: jne         0000000000000376
+  0000000000000369: mov         rcx,qword ptr gs:[60h]
+  0000000000000372: mov         rcx,qword ptr [rcx+10h]
+  0000000000000376: lea         rdx,[rsp+20h]
+  000000000000037B: mov         r8d,3
+  0000000000000381: lea         r9,[rsp+38h]
+  0000000000000386: call        qword ptr [__imp_LdrFindResource_U]
+  000000000000038C: mov         ebx,eax
+  000000000000038E: jmp         0000000000000395
+  0000000000000390: mov         ebx,0C000000Dh
+  0000000000000395: mov         rdx,qword ptr [rsp+40h]
+  000000000000039A: test        rdx,rdx
+  000000000000039D: je          00000000000003B7
+  000000000000039F: mov         r8,rdx
+  00000000000003A2: mov         rcx,qword ptr gs:[60h]
+  00000000000003AB: mov         rcx,qword ptr [rcx+30h]
+  00000000000003AF: xor         edx,edx
+  00000000000003B1: call        qword ptr [__imp_RtlFreeHeap]
+  00000000000003B7: mov         rdx,qword ptr [rsp+48h]
+  00000000000003BC: test        rdx,rdx
+  00000000000003BF: je          00000000000003D9
+  00000000000003C1: mov         r8,rdx
+  00000000000003C4: mov         rcx,qword ptr gs:[60h]
+  00000000000003CD: mov         rcx,qword ptr [rcx+30h]
+  00000000000003D1: xor         edx,edx
+  00000000000003D3: call        qword ptr [__imp_RtlFreeHeap]
+  00000000000003D9: test        ebx,ebx
+  00000000000003DB: js          00000000000003ED
+  00000000000003DD: mov         rax,qword ptr [rsp+38h]
+  00000000000003E2: add         rsp,0CA0h
+  00000000000003E9: pop         rdi
+  00000000000003EA: pop         rsi
+  00000000000003EB: pop         rbx
+  00000000000003EC: ret
+  00000000000003ED: mov         ecx,ebx
+  00000000000003EF: call        qword ptr [__imp_RtlNtStatusToDosError]
+  00000000000003F5: mov         ecx,eax
+  00000000000003F7: call        qword ptr [__imp_RtlSetLastWin32Error]
+  00000000000003FD: xor         eax,eax
+  00000000000003FF: add         rsp,0CA0h
+  0000000000000406: pop         rdi
+  0000000000000407: pop         rsi
+  0000000000000408: pop         rbx
+  0000000000000409: ret
+
+  Summary
+
+           0 .data
+          A8 .debug$S
+          24 .pdata
+          A0 .rdata
+         40A .text$mn
+          28 .xdata

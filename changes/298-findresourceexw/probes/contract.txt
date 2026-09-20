@@ -1,0 +1,55 @@
+== [Q1] RtlUpcaseUnicodeChar over the whole UTF-16 code unit space ==
+   code units 0x00-0x7F that differ from the plain a-z fold: 0
+   code units 0x00-0x7F that the upcase changes at all:      26 (expect 26)
+   code units in 0x0000-0xFFFF that change:                  973
+   first changing code unit at or above 0x80:                U+00E0
+
+== [Q2] the '#' decimal form ==
+  type #6 name "#45"            (exists)               -> HRSRC  err=3735928559
+  type "#6" name "#45"          (both decimal)         -> HRSRC  err=3735928559
+  type "#0006" name "#0000045"  (leading zeros)        -> HRSRC  err=3735928559
+  type "#6" name "#65535"       (max 16-bit)           -> NULL   err=1814
+  type "#6" name "#65536"       (overflows 16 bits)    -> NULL   err=87
+  type "#6" name "#4294967296"  (overflows 32 bits)    -> NULL   err=1814
+  type "#6" name "#"            (nothing after the hash) -> NULL   err=87
+  type "#6" name "#abc"         (not a number)         -> NULL   err=1814
+  type "#6" name "# 45"         (space)                -> HRSRC  err=3735928559
+  type "#6" name "#+45"         (plus)                 -> HRSRC  err=3735928559
+  type "#6" name "#-45"         (minus)                -> NULL   err=87
+  type "#6" name "#45x"         (trailing junk)        -> HRSRC  err=3735928559
+  type "#6" name "#0x2d"        (hex-looking)          -> NULL   err=1814
+  type "#6" name "#45 "         (trailing space)       -> HRSRC  err=3735928559
+
+== [Q3] NULL arguments ==
+  hModule NULL, type #6 name #45 (this .exe)           -> NULL   err=1812
+  type NULL (== ID 0)                                  -> NULL   err=1813
+  name NULL (== ID 0)                                  -> NULL   err=1814
+  type ID 0, name ID 0                                 -> NULL   err=1813
+  hModule NULL + type NULL                             -> NULL   err=1812
+
+== [Q4] does SUCCESS disturb the last error? ==
+  after a successful call, GetLastError() = 12345 (PRESERVED), r=000002052B900850
+
+== [Q5] failure at each level ==
+  shell32 type absent                                  -> NULL   err=1813
+  shell32 name absent (type exists)                    -> NULL   err=1813
+  shell32 lang absurd (0x0C0C)                         -> HRSRC  err=3735928559
+  shell32 lang 0xFFFF                                  -> HRSRC  err=3735928559
+  absent string type in shell32                        -> NULL   err=1813
+  bad hModule (0x30000)                                -> NULL   err=1812
+
+== [Q6] case folding of the query, on a real module ==
+  mfc "PNG"/"AQUA_IDB_OFFICE2007_GRIPPER"              -> HRSRC  err=3735928559
+  mfc "png"/"aqua_idb_office2007_gripper"              -> HRSRC  err=3735928559
+  mfc "PnG"/"AqUa_IdB_OfFiCe2007_GrIpPeR"              -> HRSRC  err=3735928559
+
+== [Q7] a very long name, and one with non-ASCII ==
+  shell32 absent name of 199999 chars                  -> NULL   err=1813
+  shell32 absent name with Greek/sharp-s/dotless/surrogates -> NULL   err=1813
+  empty string name L""                                -> NULL   err=1813
+  empty string TYPE L""                                -> NULL   err=1813
+
+== [Q8] what the wLanguage word does with its high bits ==
+  user32 RT_STRING #45 lang 0x0409                     -> HRSRC  err=3735928559
+  user32 RT_STRING #45 lang 0x0809                     -> NULL   err=15100
+  user32 RT_STRING #45 lang 0x0000                     -> HRSRC  err=3735928559

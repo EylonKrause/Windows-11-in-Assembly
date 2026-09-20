@@ -1,0 +1,48 @@
+
+== BENCH: [1] ID path -- MAKEINTRESOURCE only: no string, so nothing to vectorise ==
+size               ours ns     system ns     ratio   ours GB/s  verdict
+--------------------------------------------------------------------------------
+gdi32 #16/#1 (1 name)        257.95        272.11     1.05x        0.00  BETTER
+user32 #6/#45 (223)        466.89        477.28     1.02x        0.00  ~tie
+shell32 #3/#1 (3570)        619.23        647.72     1.05x        0.00  BETTER
+imageres #3/#1 (3234)        613.38        568.47     0.93x        0.00  WORSE
+shell32 #14/#4 grp-icon        556.23        568.03     1.02x        0.00  ~tie
+user32 #6/#45 lang 0x409        322.38        332.51     1.03x        0.00  BETTER
+shell32 absent type         63.93         68.03     1.06x        0.00  BETTER
+shell32 absent name       1881.37       1884.62     1.00x        0.00  ~tie
+--------------------------------------------------------------------------------
+overall speed ratio (geomean, >1 = ours faster): 1.020x  => PARKED (a size class regressed)
+sink=1819601737880
+
+== BENCH: [2] NAME path -- string type and/or string name that EXISTS ==
+size               ours ns     system ns     ratio   ours GB/s  verdict
+--------------------------------------------------------------------------------
+mfc PNG/27ch found        463.79        634.66     1.37x        0.12  BETTER
+mfc PNG/30ch found        479.04        615.31     1.28x        0.13  BETTER
+mfc PNG/38ch found        488.91        634.62     1.30x        0.16  BETTER
+mfc PNG/38ch lower        502.74        671.11     1.33x        0.15  BETTER
+twinui UIFILE/23ch        631.02        790.40     1.25x        0.07  BETTER
+shell32 #2/16ch        572.88        650.55     1.14x        0.06  BETTER
+user32 "#6"/"#45"        376.88        392.05     1.04x        0.00  BETTER
+--------------------------------------------------------------------------------
+overall speed ratio (geomean, >1 = ours faster): 1.240x  => LANDS (no size class regressed)
+sink=1819552278136
+
+== BENCH: [3] NAME path isolated -- absent integer type, so the rest is the normaliser ==
+size               ours ns     system ns     ratio   ours GB/s  verdict
+--------------------------------------------------------------------------------
+name    1 ch         69.36        111.01     1.60x        0.03  BETTER
+name    8 ch         67.70        126.57     1.87x        0.24  BETTER
+name   16 ch         72.44        136.40     1.88x        0.44  BETTER
+name   32 ch         71.47        159.70     2.23x        0.90  BETTER
+name   48 ch         75.52        180.70     2.39x        1.27  BETTER
+name   64 ch         77.26        206.31     2.67x        1.66  BETTER
+name  128 ch         83.17        314.71     3.78x        3.08  BETTER
+name  256 ch         92.35        493.76     5.35x        5.54  BETTER
+name  768 ch        550.00       1035.00     1.88x        2.79  BETTER
+name 1024 ch        662.55       1345.90     2.03x        3.09  BETTER
+name   16 ch NON-ASCII        121.26        159.35     1.31x        0.26  BETTER
+name   64 ch NON-ASCII        245.60        283.85     1.16x        0.52  BETTER
+--------------------------------------------------------------------------------
+overall speed ratio (geomean, >1 = ours faster): 2.144x  => LANDS (no size class regressed)
+sink=0

@@ -1,0 +1,49 @@
+
+== [A] ID type + ID name, PRESENT ==
+gdi32   RT_VERSION #1        (1 type, 1 name)                  290.91 ns   FOUND0
+user32  RT_STRING  #45       (13 types, 223 names)             361.71 ns   FOUND0
+shell32 RT_ICON    #1        (19 types, 3570 names)            575.49 ns   FOUND0
+shell32 RT_ICON    #16000    (deep in the table)              2004.76 ns   miss err=1813
+shell32 RT_GROUP_ICON #4                                       589.61 ns   FOUND0
+
+== [B] ID lookup that FAILS, per level ==
+shell32 type absent   (#5000)                                   70.47 ns   miss err=1813
+shell32 name absent   (RT_ICON #60000)                        2009.80 ns   miss err=1813
+shell32 lang absent   (RT_ICON #1, lang 0x0C0C)                614.54 ns   FOUND0
+
+== [C] STRING type + STRING name, PRESENT (mfc140u) ==
+mfc  "PNG" / "AQUA_IDB_OFFICE2007_GRIPPER" (27ch)             1122.73 ns   FOUND0
+mfc  "PNG" / "AQUA_IDB_OFFICE2007_MENU_BTN" (28ch)            1120.38 ns   FOUND0
+mfc  "PNG" / "AQUA_IDB_OFFICE2007_MENU_ITEM_MARKER_C" (38ch)    1157.91 ns   FOUND0
+mfc  "PNG" / lowercase spelling of the 38ch name              1175.00 ns   FOUND0
+mfc  ID type #2 / ID name (control: no string at all)          589.52 ns   miss err=1814
+
+== [D] STRING name ABSENT, length swept -- the length-driven test ==
+mfc  "PNG" / absent name of    1 chars                         925.76 ns   miss err=1814
+mfc  "PNG" / absent name of    2 chars                         933.13 ns   miss err=1814
+mfc  "PNG" / absent name of    4 chars                         942.95 ns   miss err=1814
+mfc  "PNG" / absent name of    8 chars                         955.86 ns   miss err=1814
+mfc  "PNG" / absent name of   16 chars                         663.71 ns   miss err=1814
+mfc  "PNG" / absent name of   32 chars                         593.69 ns   miss err=1814
+mfc  "PNG" / absent name of   64 chars                         638.89 ns   miss err=1814
+mfc  "PNG" / absent name of  128 chars                         708.13 ns   miss err=1814
+mfc  "PNG" / absent name of  256 chars                         905.44 ns   miss err=1814
+mfc  "PNG" / absent name of  512 chars                        1389.58 ns   miss err=1814
+mfc  "PNG" / absent name of 1024 chars                        2066.67 ns   miss err=1814
+    ---> slope over 1..1024 chars: 1.115 ns per character
+mfc  absent TYPE of 1024 chars + absent name of 1024          3496.88 ns   miss err=1813
+
+== [E] the "#123" decimal form vs MAKEINTRESOURCE ==
+user32 type "#6" / name "#45"      (decimal strings)           421.04 ns   FOUND0
+user32 type #6   / name #45         (integers)                 371.85 ns   FOUND0
+user32 type "#6" / name "#0000000045" (padded)                 432.07 ns   FOUND0
+
+== [F] cold: FIRST call on a freshly mapped module ==
+  cold call #0:   57000.00 ns  (miss)
+  second call :    1200.00 ns
+  cold call #1:   29500.00 ns  (miss)
+  second call :     800.00 ns
+  cold call #2:   21300.00 ns  (miss)
+  second call :     700.00 ns
+
+sink=2588567070224

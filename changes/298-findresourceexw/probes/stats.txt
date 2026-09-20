@@ -1,0 +1,64 @@
+
+######## CONTROL (the live export vs ITSELF) -- 20 runs ########
+
+== CONTROL -- the live export measured against ITSELF ==
+class                           min    p25    med    max   n<=0.97
+gdi32 #16/#1 (1 name)          0.92   1.03   1.06   1.20         1
+user32 #6/#45 (223)            0.87   1.00   1.00   1.05         2
+shell32 #3/#1 (3570)           0.97   0.98   1.00   1.06         5
+imageres #3/#1 (3234)          0.94   0.99   1.00   1.07         3
+shell32 #14/#4 grp-icon        0.96   1.00   1.00   1.03         4
+user32 #6/#45 lang 0x409       0.94   1.00   1.00   1.52         1
+shell32 absent type            0.95   0.99   1.00   1.05         2
+shell32 absent name            0.89   0.99   1.00   1.27         3
+mfc PNG/27ch found             0.71   1.00   1.02   1.69         2
+  ALL 180 measurements: min 0.71 med 1.00 max 1.69 | 23 scored WORSE | 44 scored BETTER
+  geomean across runs: min 0.984 med 1.010 max 1.062
+  runs in which NO class scored WORSE: 8 of 20
+
+######## BENCH (our assembly vs the live export) -- 20 runs ########
+
+== [1] ID path -- MAKEINTRESOURCE only: no string, so nothing to vectorise ==
+class                           min    p25    med    max   n<=0.97
+gdi32 #16/#1 (1 name)          0.95   1.00   1.02   1.07         2
+user32 #6/#45 (223)            0.97   1.02   1.04   1.17         1
+shell32 #3/#1 (3570)           0.92   1.01   1.02   1.50         1
+imageres #3/#1 (3234)          0.93   0.98   1.00   1.13         5
+shell32 #14/#4 grp-icon        0.94   1.00   1.02   1.66         2
+user32 #6/#45 lang 0x409       0.99   1.02   1.02   1.08         0
+shell32 absent type            1.00   1.04   1.06   1.15         0
+shell32 absent name            0.95   1.00   1.01   1.08         1
+  ALL 160 measurements: min 0.92 med 1.02 max 1.66 | 12 scored WORSE | 74 scored BETTER
+  geomean across runs: min 1.009 med 1.030 max 1.083
+  runs in which NO class scored WORSE: 11 of 20
+
+== [2] NAME path -- string type and/or string name that EXISTS ==
+class                           min    p25    med    max   n<=0.97
+mfc PNG/27ch found             1.25   1.33   1.33   1.59         0
+mfc PNG/30ch found             1.26   1.29   1.31   1.43         0
+mfc PNG/38ch found             1.22   1.26   1.30   1.36         0
+mfc PNG/38ch lower             1.27   1.32   1.33   1.42         0
+twinui UIFILE/23ch             1.21   1.22   1.23   1.27         0
+shell32 #2/16ch                1.06   1.15   1.17   1.20         0
+user32 "#6"/"#45"              0.90   1.02   1.04   1.10         1
+  ALL 140 measurements: min 0.90 med 1.27 max 1.59 | 1 scored WORSE | 133 scored BETTER
+  geomean across runs: min 1.204 med 1.243 max 1.263
+  runs in which NO class scored WORSE: 19 of 20
+
+== [3] NAME path isolated -- absent integer type, so the rest is the normaliser ==
+class                           min    p25    med    max   n<=0.97
+name    1 ch                   1.51   1.55   1.57   1.63         0
+name    8 ch                   1.65   1.74   1.76   2.05         0
+name   16 ch                   1.63   1.81   1.87   2.15         0
+name   32 ch                   2.01   2.14   2.17   2.25         0
+name   48 ch                   2.28   2.38   2.42   2.58         0
+name   64 ch                   2.57   2.63   2.69   4.71         0
+name  128 ch                   3.43   3.63   3.71   3.80         0
+name  256 ch                   4.86   5.15   5.25   5.46         0
+name  768 ch                   1.85   1.91   1.96   2.27         0
+name 1024 ch                   1.84   2.00   2.01   3.51         0
+name   16 ch NON-ASCII         1.31   1.35   1.37   1.44         0
+name   64 ch NON-ASCII         1.09   1.16   1.19   1.26         0
+  ALL 240 measurements: min 1.09 med 2.01 max 5.46 | 0 scored WORSE | 240 scored BETTER
+  geomean across runs: min 2.089 med 2.146 max 2.250
+  runs in which NO class scored WORSE: 20 of 20

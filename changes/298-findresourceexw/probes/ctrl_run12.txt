@@ -1,0 +1,16 @@
+
+== BENCH: CONTROL -- the live export measured against ITSELF ==
+size               ours ns     system ns     ratio   ours GB/s  verdict
+--------------------------------------------------------------------------------
+gdi32 #16/#1 (1 name)        276.04        283.89     1.03x        0.00  ~tie
+user32 #6/#45 (223)        364.94        374.85     1.03x        0.00  ~tie
+shell32 #3/#1 (3570)        580.77        565.70     0.97x        0.00  ~tie
+imageres #3/#1 (3234)        560.85        564.23     1.01x        0.00  ~tie
+shell32 #14/#4 grp-icon        570.82        580.31     1.02x        0.00  ~tie
+user32 #6/#45 lang 0x409        345.87        346.10     1.00x        0.00  ~tie
+shell32 absent type         67.46         67.19     1.00x        0.00  ~tie
+shell32 absent name       1885.11       1892.58     1.00x        0.00  ~tie
+mfc PNG/27ch found        637.98        642.24     1.01x        0.00  ~tie
+--------------------------------------------------------------------------------
+overall speed ratio (geomean, >1 = ours faster): 1.007x  => LANDS (no size class regressed)
+sink=140707354148248

@@ -1,0 +1,57 @@
+== resource directory shape, live modules on this machine ==
+user32.dll               types=13   (named 2  )  names=223    (string 0    , longest 0  )  lang-leaves=247
+kernel32.dll             types=3    (named 1  )  names=3      (string 0    , longest 0  )  lang-leaves=3
+kernelbase.dll           types=4    (named 2  )  names=4      (string 1    , longest 15 )  lang-leaves=4
+ntdll.dll                types=3    (named 1  )  names=3      (string 0    , longest 0  )  lang-leaves=3
+shell32.dll              types=19   (named 8  )  names=3570   (string 1    , longest 16 )  lang-leaves=4198
+imageres.dll             types=8    (named 4  )  names=3234   (string 2    , longest 8  )  lang-leaves=3236
+shlwapi.dll              types=6    (named 1  )  names=9      (string 0    , longest 0  )  lang-leaves=15
+comctl32.dll             types=9    (named 1  )  names=92     (string 0    , longest 0  )  lang-leaves=109
+gdi32.dll                types=1    (named 0  )  names=1      (string 0    , longest 0  )  lang-leaves=1
+advapi32.dll             types=4    (named 1  )  names=4      (string 0    , longest 0  )  lang-leaves=4
+mfc140u.dll              types=14   (named 2  )  names=801    (string 558  , longest 55 )  lang-leaves=801
+explorer.exe             types=8    (named 1  )  names=226    (string 1    , longest 14 )  lang-leaves=247
+twinui.dll               types=10   (named 4  )  names=228    (string 1    , longest 23 )  lang-leaves=340
+windows.ui.xaml.dll      types=5    (named 2  )  names=39     (string 0    , longest 0  )  lang-leaves=3421
+
+== string-named resources found (candidates for a NAME-path subject) ==
+  user32.dll:
+    (none -- every name is an integer ID)
+  kernel32.dll:
+    (none -- every name is an integer ID)
+  kernelbase.dll:
+    type "MOFDATA"  name "MOFRESOURCENAME" (15 chars)
+  ntdll.dll:
+    (none -- every name is an integer ID)
+  shell32.dll:
+    type #2  name "IDB_TB_SH_DEF_16" (16 chars)
+  imageres.dll:
+    type #14  name ""BLANK0"" (8 chars)
+    type #14  name ""BLANK1"" (8 chars)
+  shlwapi.dll:
+    (none -- every name is an integer ID)
+  comctl32.dll:
+    (none -- every name is an integer ID)
+  gdi32.dll:
+    (none -- every name is an integer ID)
+  advapi32.dll:
+    (none -- every name is an integer ID)
+  mfc140u.dll:
+    type "PNG"  name "AQUA_IDB_OFFICE2007_GRIPPER" (27 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MAINBORDER" (30 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MAINBORDER_CAPTION" (38 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MDICHILDBORDER" (34 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENUBAR_BTN" (31 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_BTN" (28 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_BTN_DISABLED" (37 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_BTN_SCROLL_T" (37 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_ITEM_BACK" (34 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_ITEM_MARKER_C" (38 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_MENU_ITEM_MARKER_R" (38 chars)
+    type "PNG"  name "AQUA_IDB_OFFICE2007_POPUPMENU_BORDER" (36 chars)
+  explorer.exe:
+    type #14  name "ICO_MYCOMPUTER" (14 chars)
+  twinui.dll:
+    type "UIFILE"  name "IMMERSIVESETTINGSSTYLES" (23 chars)
+  windows.ui.xaml.dll:
+    (none -- every name is an integer ID)
