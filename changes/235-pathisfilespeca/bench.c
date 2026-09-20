@@ -3,7 +3,7 @@
 // Read-only, so neither side pays a per-iteration restore.
 // Lengths are COMPUTED, never hardcoded.
 //
-// THE CASE MIX. The cost is "how far to the first separator, or to the end if there is none", so
+// The case mix. The cost is "how far to the first separator, or to the end if there is none", so
 // the rows vary that distance. The clean rows -- a real file name with no separator -- are the ones
 // a caller actually asks about most, and they are the ones that scan the whole string.
 #define WIN32_LEAN_AND_MEAN

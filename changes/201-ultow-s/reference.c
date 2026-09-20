@@ -8,13 +8,13 @@
 // instruction that worker is the 64-bit one from change 194 with `mov r10d, ecx` where it has
 // `mov r10, rcx`, and `div eax, edi` where it has `div rax, rdi`.
 //
-// THAT ONE DIFFERENCE IS THE WHOLE CONTRACT DIFFERENCE: the magnitude is 32 bits, so for any radix
+// That one difference is the whole contract difference: the magnitude is 32 bits, so for any radix
 // other than 10 the value is formatted as an UNSIGNED 32-BIT quantity -- _itoa_s(-1, buf, n, 16)
 // gives "ffffffff", eight f's, not the sixteen change 194 produces.
 //
 // Everything else is change 194's contract, which was READ out of the shipped disassembly because
 // the ERANGE path could not be fitted from probing:
-//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), NOTHING written;
+//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
 //   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation;
 //   * SizeInChars <= negative + 1 -> ERANGE (34) before a single digit is emitted;
 //   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0;

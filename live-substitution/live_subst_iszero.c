@@ -1,25 +1,25 @@
 // live-substitution/live_subst_iszero.c
 // LIVE-RUN PROOF for change 266 (ntdll!RtlIsZeroMemory).
 //
-// A PREDICATE HAS ONLY TWO ANSWERS, WHICH MAKES A CARELESS CORPUS VERY EASY TO PASS -- the lesson
+// a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
 // change 259 wrote down. An implementation that always answered "not zero" would agree with the
-// shipped export on nearly every random buffer, so this corpus is built to produce BOTH answers in
+// shipped export on nearly every random buffer, so this corpus is built to produce both answers in
 // quantity and the run REPORTS the split, failing if either side is thin.
 //
-// AND IT IS BUILT TO PUT THE FIRST NON-ZERO BYTE EVERYWHERE, not merely somewhere. The shipped
+// And it is built to put the first non-zero byte everywhere, not merely somewhere. The shipped
 // export stops at the first non-zero byte, and so does this implementation: a corpus whose
 // non-zero byte was always near the front would never reach the 128-byte block loop, the 32-byte
 // remainder loop, or the overlapping final vector, while looking thorough.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is not used by the loader or heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_iszero_live.bat
@@ -91,7 +91,7 @@ static void build_case(long i)
     memset(buf, 0, CAP);
     if ((i % 3) == 0 || cur_n == 0) cur_pos = -1;                  /* all zero */
     else {
-        /* the position is drawn across the WHOLE range, so the front, the block loop, the
+        /* the position is drawn across the whole range, so the front, the block loop, the
            remainder and the very last byte all come up */
         cur_pos = (long)(rnd() % (unsigned)cur_n);
         if ((i % 11) == 0) cur_pos = (long)cur_n - 1;              /* ... and the last byte often */

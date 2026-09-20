@@ -9,7 +9,7 @@ REM  dec2.c is linked ONCE: changes 061 and 066 ship the same file (identical
 REM  md5) and it defines wia_dec2/wia_dec2_init, so linking both copies is a
 REM  duplicate-symbol error rather than a choice.
 REM
-REM  THE IPv6 FORMATTERS ARE NOT IN THIS HARNESS. Change 063's tables.c and
+Rem  the IPv6 formatters are not in this harness. Change 063's tables.c and
 REM  change 059's dec2b.c both define wia_dec2b, so they cannot share an image;
 REM  063/064/068/069 also carry v6core/v6ref objects of their own and want a
 REM  harness of their own.

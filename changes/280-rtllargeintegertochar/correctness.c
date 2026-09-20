@@ -1,9 +1,9 @@
 /* changes/280-rtllargeintegertochar/correctness.c
  *
- * Gate 1 for ntdll!RtlLargeIntegerToChar: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the
+ * Gate 1 for ntdll!RtlLargeIntegerToChar: Ours vs the scalar model vs the live export, on the
  * NTSTATUS and every byte of a poison-filled buffer.
  *
- * THE WHOLE BUFFER IS COMPARED, on failing calls as well, because probes/contract.c measured that a
+ * The whole buffer is compared, on failing calls as well, because probes/contract.c measured that a
  * refusal leaves it untouched -- and because the two success shapes differ in what they leave
  * BEHIND the answer:
  *
@@ -15,20 +15,20 @@
  * wrong on every single negative length, and it is invisible to any check that compares only the
  * status. Six of change 279's eleven mutants had identical statuses on both sides.
  *
- * THE CORPUS IS BUILT WHERE A 64-BIT LENGTH-FIRST CONVERTER GOES WRONG:
+ * The corpus is built where a 64-BIT length-first converter goes wrong:
  *
- *   * EVERY POWER OF TWO, all sixty-four, one either side -- the bit lengths where the digit count
+ *   * Every power of two, all sixty-four, one either side -- the bit lengths where the digit count
  *     from BSR changes, in every base.
- *   * EVERY POWER OF TEN, all twenty, one either side -- where the decimal correction fires.
+ *   * Every power of ten, all twenty, one either side -- where the decimal correction fires.
  *   * THE 2^32 BOUNDARY, because the eight-digit peel is what separates the 64-bit reciprocal from
  *     067's 32-bit one, and a value just above it takes one more trip through the peel than a
  *     value just below.
- *   * EVERY MULTIPLE-OF-10^8 BOUNDARY REACHABLE BY THE PEEL, because that divisor is the whole
+ *   * Every MULTIPLE-OF-10^8 boundary reachable by the peel, because that divisor is the whole
  *     64-bit division and its remainder must be zero-padded to exactly eight characters. A chunk
  *     that dropped a leading zero would be right for most values and wrong for 10^8 itself.
- *   * EVERY LENGTH from -80 to +80 at those boundaries. Base 2 runs to sixty-four characters, so a
+ *   * every LENGTH from -80 to +80 at those boundaries. Base 2 runs to sixty-four characters, so a
  *     sweep to 40 would never reach its room rule at all.
- *   * EVERY BASE 0..40, because only five are legal.
+ *   * every BASE 0..40, because only five are legal.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -143,7 +143,7 @@ static int check_tables(void)
         if (gtab[i] != n) { printf("  the digit-count table is wrong at %d: %u vs %d\n",
                                    i, gtab[i], n); bad = 1; }
     }
-    /* THE THRESHOLD TABLE, recomputed the slow way for every one of the sixty-four bit lengths.
+    /* The threshold table, recomputed the slow way for every one of the sixty-four bit lengths.
        It is indexed by the BIT LENGTH rather than by the digit count so that its load does not
        depend on GTAB's, and its last four entries are 10^19, which the assembler cannot compute
        in a signed 64-bit expression. Both of those are places a table can go quietly wrong. */
@@ -235,7 +235,7 @@ int main(void)
         printf("  1. every base 0..40, seven lengths each: %ld\n", cases - before);
     }
 
-    /* 2. EVERY POWER OF TWO, all sixty-four, one either side, every length -80..+80 */
+    /* 2. Every power of two, all sixty-four, one either side, every length -80..+80 */
     {
         long before = cases;
         for (k = 0; k < 64; ++k) {
@@ -250,7 +250,7 @@ int main(void)
                cases - before);
     }
 
-    /* 3. EVERY POWER OF TEN, all twenty, one either side, every length -80..+80 */
+    /* 3. Every power of ten, all twenty, one either side, every length -80..+80 */
     {
         long before = cases;
         unsigned long long p = 1;
@@ -266,7 +266,7 @@ int main(void)
                cases - before);
     }
 
-    /* 4. THE 2^32 BOUNDARY AND THE 10^8 PEEL, which is what makes this change 64-bit at all */
+    /* 4. The 2^32 boundary and the 10^8 peel, which is what makes this change 64-bit at all */
     {
         long before = cases;
         static const unsigned long long SPECIAL[] = {
@@ -292,7 +292,7 @@ int main(void)
     /* 5. the lengths that cannot be negated.
      *
      * INT_MIN is the only negative length that is a REFUSAL rather than a field width, and it is
-     * here. ITS NEIGHBOUR IS NOT, AND THAT IS DELIBERATE: INT_MIN+1 is a field width of
+     * here. Its neighbour is not, and that is deliberate: INT_MIN+1 is a field width of
      * 2147483647, and probes/contract.c measured that a width longer than the buffer runs off the
      * end -- change 279's first corpus died of an access violation for exactly that reason. The
      * buffer here is 320 bytes and nothing asks for more than 200.

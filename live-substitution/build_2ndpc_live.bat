@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  2ND PC LIVE-RUN PROOF -- AMD Ryzen 9 8940HX (Zen 4), Win11 26200.9445
+Rem  2ND PC live-run proof -- amd Ryzen 9 8940HX (Zen 4), Win11 26200.9445
 REM  Builds the five 2nd-PC variants (impl_2ndpc.asm) and hot-patches the real
 REM  ucrtbase / ntdll / shlwapi exports in THIS process's own copy-on-write copy,
 REM  proving Windows executes our assembly, then reverts.

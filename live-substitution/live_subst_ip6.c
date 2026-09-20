@@ -1,22 +1,22 @@
 // live-substitution/live_subst_ip6.c
 // LIVE-RUN PROOF for changes 166 (RtlIpv6StringToAddressW) and 250 (RtlIpv6StringToAddressExW).
 //
-// THE TWO ARE PROVED TOGETHER ON PURPOSE, because the relationship between them IS change 250: the
-// shipped ExW is an envelope whose address body is a DIRECT CALL to the W export's own RVA
+// The two are proved together on purpose, because the relationship between them is change 250: the
+// shipped ExW is an envelope whose address body is a direct call to the W export's own rva
 // (0x0C318E -> 0x0C33F0). So this harness does something no other section in this repository does
 // with two exports at once:
 //
-//   * it patches W ALONE, and then checks that the SHIPPED, UNPATCHED ExW starts running our
+//   * it patches W alone, and then checks that the shipped, unpatched ExW starts running our
 //     assembly -- proved by a counter, not asserted. That is the composition, demonstrated on the
 //     real binary rather than argued from a disassembly listing.
 //   * it then patches ExW ALONE and checks the whole envelope.
 //
-// AND IT IS ALSO THE FIRST LIVE PROOF THIS FAMILY HAS EVER HAD. Changes 121, 122 and 166 landed with
+// And it is also the first live proof this family has ever had. Changes 121, 122 and 166 landed with
 // correctness, speed and ABI gates but no live substitution; the IPv6 parsers were never hot-patched
 // until now.
 //
-// WHAT IS COMPARED, AND THE ONE THING THAT IS NOT. The NTSTATUS, *Terminator (for W), *ScopeId and
-// *Port (for ExW) on EVERY case -- and the sixteen address bytes on every case the export SUCCEEDED.
+// What is compared, and the one thing that is not. The NTSTATUS, *Terminator (for W), *ScopeId and
+// *Port (for ExW) on every case -- and the sixteen address bytes on every case the export SUCCEEDED.
 // The failure-path address region is counted and reported rather than compared, because the shipped
 // parser fills the destination as it goes while change 166 accumulates in a stack scratch and copies
 // out once: measured at 17268 of 55987 enumerated strings, every one a call the shipped export
@@ -26,10 +26,10 @@
 // 166's impl.asm rather than buried.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither routine is used by the loader or heap.
+//   (1) Validate first against the live export before any patch.
+//   (2) Patch only when idle: single-threaded, and neither routine is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.
 //
 // Build: build_ip6_live.bat
@@ -230,7 +230,7 @@ int main(void)
             printf("  under live patch: %s;  our-code calls = %ld\n",
                    mism ? "MISMATCH" : "all match", (long)(c_w - before_w));
 
-            /* THE COMPOSITION, DEMONSTRATED: ExW is NOT patched, and never will be in this block.
+            /* The composition, demonstrated: ExW is not patched, and never will be in this block.
                It reaches the address body by a direct internal call to the very address the W export
                names, so with W patched the SHIPPED ExW must now be running our assembly. */
             before_ex_calls = c_w;

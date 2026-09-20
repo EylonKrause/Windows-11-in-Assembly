@@ -5,16 +5,16 @@
 //   131 StrChrW      133 StrStrW     134 StrRChrW   136 StrCSpnW
 //   137 StrPBrkW     138 PathIsFileSpecW           139 StrTrimW
 //
-// WHY THESE SEVEN TOGETHER. They are the whole of the uncovered `shlwapi` search family, they share
+// Why these seven together. They are the whole of the uncovered `shlwapi` search family, they share
 // one input shape -- a wide string and, for five of them, a small character set -- and six of the
 // seven are pure functions of it. The seventh, StrTrimW, edits in place, which is the only reason
 // this harness needs a working copy per case and is also the reason it is the interesting one: its
 // own header records that the export **terminates first and then moves the remainder down**, so the
 // bytes left past the new terminator are an observable, and an implementation that moves first and
 // terminates after produces the same string and a different buffer. That is precisely the class of
-// defect this directory has now found eight times, so the trim comparison here is the WHOLE buffer.
+// defect this directory has now found eight times, so the trim comparison here is the whole buffer.
 //
-// THREE CONTRACTS THAT ARE NOT THE C LIBRARY'S, each driven deliberately:
+// Three contracts that are not the C library's, each driven deliberately:
 //   * StrChrW with wMatch == 0 returns NULL, where wcschr returns the terminator.
 //   * StrStrW with an EMPTY needle returns NULL, where wcsstr returns the haystack.
 //   * StrRChrW with pszEnd != NULL searches the RAW range [pszStart, pszEnd) -- embedded NULs are
@@ -22,22 +22,22 @@
 //     ranges that stop short of the terminator, land exactly on it, and deliberately overrun it
 //     into the poisoned tail, which is real committed memory for exactly this reason.
 //
-// AND ONE THAT IS NOT EVEN CONSISTENT INSIDE THE DLL: PathIsFileSpecW rejects ':' and '\' but NOT
+// And one that is not even consistent inside the DLL: PathIsFileSpecW rejects ':' and '\' but not
 // '/', while PathFindExtensionW (132) stops only at '\' and PathFindFileNameW (161) treats all
 // three as separators. Three separator conventions in one library. The corpus feeds all three
 // characters to all seven entries rather than assuming any of them agree.
 //
-// ALIGNMENT IS PART OF THE CORPUS. Every one of these is an AVX2 block scan with a masked aligned
+// Alignment is part of the corpus. Every one of these is an AVX2 block scan with a masked aligned
 // prologue -- the first load is aligned DOWN and the leading characters are shifted out of the mask
 // -- so the prologue is a different code path at each of the sixteen possible start alignments. The
 // subject of each case therefore begins at a rotating offset inside a 64-byte-aligned buffer, and
 // lengths cluster around the 16-wchar block boundary rather than being drawn uniformly.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copy of shlwapi -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these seven is used by the loader, the heap or the CRT; the
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these seven is used by the loader, the heap or the CRT; the
 //       process loads shlwapi itself and nothing else in it is running.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the whole corpus is
 //       re-run through the restored exports.
@@ -254,7 +254,7 @@ static void run_all(ans_t* out){
         o->pbrk = offof(s, ((fnPBRK)liveP[F_PBRK])(s, r->set));
         o->spec =          ((fnSPEC)liveP[F_SPEC])(s);
 
-        /* StrTrimW edits in place, so it gets a pristine copy of the WHOLE buffer -- poison and
+        /* StrTrimW edits in place, so it gets a pristine copy of the whole buffer -- poison and
          * all -- and the whole buffer is what gets compared afterwards. */
         memcpy(work, r->s, sizeof work);
         o->trim = ((fnTRIM)liveP[F_TRIM])(&work[r->off], r->set);

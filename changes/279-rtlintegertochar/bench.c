@@ -2,13 +2,13 @@
  *
  * Gate 2: time wia_int2char against the live ntdll!RtlIntegerToChar.
  *
- * THE ROWS ARE THE BASES, THE DIGIT COUNTS AND THE TWO LENGTH RULES, because those are what the
+ * The rows are the bases, the digit counts and the two length rules, because those are what the
  * implementation distinguishes:
  *
  *   * base 10 goes through a length-first, two-digits-at-a-time converter;
- *   * bases 2, 8 and 16 emit MORE THAN ONE DIGIT PER STORE from wide tables;
+ *   * bases 2, 8 and 16 emit more than one digit per store from wide tables;
  *   * a POSITIVE length writes the digits and a terminator only if one fits;
- *   * a NEGATIVE length is a ZERO-PADDED FIELD WIDTH -- probes/negative.c found it, and it runs a
+ *   * a negative length is a zero-padded field width -- probes/negative.c found it, and it runs a
  *     second loop that nothing else in this bench reaches. A bench without a padded row would
  *     measure two of the three write paths and report them as the function.
  *
@@ -19,7 +19,7 @@
  * The three refusals are rows for the same reason they are in every bench in this project: a caller
  * hits them as often as the succeeding case, and no "how fast does it format" row measures them.
  *
- * THE PRE-FLIGHT IS THE POINT OF THE TABLE. Every row is run once through the LIVE export before
+ * The pre-flight is the point of the table. Every row is run once through the live export before
  * anything is timed, and the status and the bytes it actually wrote are printed. Change 269 shipped
  * a row called "Unicode digits" that the parser refused, and reported the refusal as a 30x win.
  * A row whose outcome does not match its name stops the bench.

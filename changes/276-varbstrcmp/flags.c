@@ -1,6 +1,6 @@
 /* changes/276-varbstrcmp/flags.c
  *
- * THE ACCEPTED FLAG BITS, DERIVED FROM THE OS, AND THE VALIDATION THE FAST PATH MUST NOT SKIP.
+ * The accepted flag bits, derived from the OS, and the validation the fast path must not skip.
  *
  * probes/errors.c established the rule that shapes this whole change:
  *
@@ -15,13 +15,13 @@
  * the OS accepts. A fast path that skipped that would turn E_INVALIDARG into VARCMP_EQ on every bad
  * argument, which is a wrong answer that looks like a right one.
  *
- * THE MASK IS DERIVED, NOT LISTED. probes/errors.c asked CompareStringW bit by bit and got twelve
+ * The mask is derived, not listed. probes/errors.c asked CompareStringW bit by bit and got twelve
  * accepted bits, mask 0x5803103F on this machine -- and VarBstrCmp agreed with it on every one of
  * the thirty-two. Writing 0x5803103F into the source would be a constant nobody can check by reading
  * it and one that a future Windows could move; asking the OS costs thirty-two calls, once. It is the
  * same decision change 269 made for its alias table and change 210 for its upcase table.
  *
- * THE LOCALE CANNOT BE MASKED, so it is validated by asking CompareStringW to compare one character
+ * The locale cannot be masked, so it is validated by asking CompareStringW to compare one character
  * -- which probes/gap.c measured at 25.75 ns. That is why the fast path has a LENGTH THRESHOLD: at
  * sixteen characters the collation the OS would otherwise do already costs more than the validation,
  * and below it the implementation simply delegates and is a lean wrapper instead.

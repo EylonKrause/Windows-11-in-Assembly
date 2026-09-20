@@ -1,6 +1,6 @@
 /* changes/244-hashdata/probes/cost.c
  *
- * WHERE THE SHIPPED COST ACTUALLY LIVES, per source byte and per digest byte.
+ * Where the shipped cost actually lives, per source byte and per digest byte.
  *
  * The discovery sweep timed one shape only -- 4096 source bytes into a 16-byte digest, 6.37 ns per
  * source byte. That single number cannot say whether the cost is proportional to cbData x cbHash

@@ -3,7 +3,7 @@
 //
 // The contract, measured in probes/blanks.c against the live export:
 //   * a BLANK is 0x20 and nothing else -- every byte value was tried at both ends and exactly one
-//     qualifies. A TAB IS NOT A BLANK: "\ta\t" comes back unchanged;
+//     qualifies. a tab is not a blank: "\ta\t" comes back unchanged;
 //   * both ends are stripped, blanks in the middle survive;
 //   * a string made entirely of blanks becomes empty; an EMPTY string is left completely untouched,
 //     which is a different thing;
@@ -11,11 +11,11 @@
 //   * byte-wise, confirmed with the stronger screen that StrStrA failed: every byte value varied
 //     where the function actually looks, 0 of 254 behaving unexpectedly.
 //
-// AND THE WRITE ORDER IS THE OPPOSITE OF StrTrimA's (change 218). This one MOVES the leading end
+// And the write order is the opposite of StrTrimA's (change 218). This one moves the leading end
 // down first and cuts the trailing end afterwards, so "  abc  " leaves
 //     a b c \0 <space> \0 <space> \0
 // where cutting first would have left a 'c' at index 4. Nothing is ever padded or cleared, so
-// correctness.c compares the WHOLE buffer.
+// correctness.c compares the whole buffer.
 #include <windows.h>
 
 void ref_pathremoveblanksa(char* s)

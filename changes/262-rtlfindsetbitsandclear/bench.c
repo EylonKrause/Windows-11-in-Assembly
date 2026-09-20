@@ -3,7 +3,7 @@
  * OURS vs the LIVE ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet.
  *
  * ------------------------------------------------------------------------------------------------
- * THESE CALLS MUTATE, WHICH MEANS A NAIVE ROW MEASURES A DIFFERENT BITMAP EVERY ITERATION.
+ * These calls mutate, which means a naive row measures a different bitmap every iteration.
  *
  * The harness calls the op tens of thousands of times in a tight loop. A call that consumes a run
  * leaves a different bitmap behind, so iteration two does different work from iteration one and by
@@ -11,9 +11,9 @@
  * report an average over a subject that changed underneath it, and the two sides would not even be
  * averaging over the same sequence of states.
  *
- * RESTORING THE BUFFER INSIDE THE OP IS NOT THE FIX, and change 142 is the reason this is spelled
+ * Restoring the buffer inside the op is not the fix, and change 142 is the reason this is spelled
  * out: its bench undid an in-place edit with a memcpy of the whole path, which at 16 characters
- * cost as much as the function -- THE RESTORE WAS REPLACING THE MEASUREMENT -- and the row read
+ * cost as much as the function -- the restore was replacing the measurement -- and the row read
  * 0.85x for code that was actually 2.13x. Any restore here lands on both sides equally, which is
  * worse than it sounds: it is a constant added to both, and change 261 measured exactly what a
  * shared constant does to a ratio (it drags it to 1.00x and lets the timer quantisation pick the
@@ -22,24 +22,24 @@
  * So every row is built to be SELF-RESTORING, in one of two ways, and neither costs a single
  * instruction of restore:
  *
- *   NOT FOUND -- the call scans the whole bitmap and, by contract, writes NOTHING. It is perfectly
+ *   Not found -- the call scans the whole bitmap and, by contract, writes nothing. It is perfectly
  *       repeatable. This is also the survey's own subject: discovery/ntdll_bitmap2.c measured
  *       1237.00 ns and 410.05 ns on exactly this shape, so the headline rows and the rows that
  *       justified the change are the same rows.
  *
- *   A PAIR THAT IS ITS OWN INVERSE -- over an all-ones bitmap, RtlFindSetBitsAndClear(N, 0) clears
+ *   a pair that is its own inverse -- over an all-ones bitmap, RtlFindSetBitsAndClear(N, 0) clears
  *       bits 0..N-1, and RtlFindClearBitsAndSet(N, 0) then finds exactly those N clear bits and
  *       sets them again. The bitmap is identical afterwards, both halves do a real search AND a
  *       real mutation, and the op is exactly repeatable. This is how the MUTATION gets measured at
  *       all, including at sizes where the fill is the dominant cost.
  *
- * THE SUBJECT TABLE CHECKS BOTH PROPERTIES rather than asserting them: every not-found row is
+ * The subject table checks both properties rather than asserting them: every not-found row is
  * verified to return 0xFFFFFFFF and to leave the buffer bit-identical, and every pair row is
  * verified to leave the buffer bit-identical after the pair. A row that did not restore itself
  * would still produce a plausible time.
  *
  * ------------------------------------------------------------------------------------------------
- * AND THE SMALL ROWS CALL SIXTEEN TIMES, for the reason change 261 established by measuring it:
+ * And the small rows call sixteen times, for the reason change 261 established by measuring it:
  * an empty call through this harness costs 2.32 ns, which is eighty per cent of what a small call
  * measures, so a row that small compares the harness against itself. Rows of 32 words or less are
  * timed as sixteen calls (or sixteen pairs) and their labels say so.

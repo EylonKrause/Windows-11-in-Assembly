@@ -1,12 +1,12 @@
 /* changes/275-inet-ntoa/probes/contract.c
  *
- * WHERE DOES inet_ntoa PUT ITS ANSWER, AND WHOSE BUFFER IS IT?
+ * Where does inet_ntoa put its answer, and whose buffer is it?
  *
  * discovery/sid_inet_bstr.c measured it at 7.56 ns for a four-byte address. That is four numbers, at
  * most three digits each, and three dots -- change 067's rewrite formats a 32-bit number in 3.76 ns,
  * so 7.56 ns for four small ones is not obviously beatable and the contract had better be cheap.
  *
- * THE CONTRACT IS THE BUFFER. inet_ntoa returns `char*` and the documentation says the storage is
+ * The contract is the buffer. inet_ntoa returns `char*` and the documentation says the storage is
  * allocated by Winsock and is per-thread, freed when the thread ends -- which is the only reason
  * this function is convertible at all where SysAllocString was not (change 274 is parked because its
  * allocator is private and cannot be imitated). If the buffer is a plain thread-local array, an
@@ -15,7 +15,7 @@
  * then a replacement that keeps its own would be observably different to a caller that holds the
  * pointer across other Winsock calls.
  *
- * SO THE QUESTIONS ARE ABOUT THE POINTER, NOT THE TEXT:
+ * So the questions are about the pointer, not the text:
  *
  *   1. Is the returned pointer the SAME on every call from one thread?
  *   2. Is it DIFFERENT between threads?

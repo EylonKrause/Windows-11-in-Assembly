@@ -17,14 +17,14 @@
 ;     would swallow the character after it: 0 of 254 misbehave for StrCSpnA, StrPBrkA and StrSpnA
 ;     alike. The SET string is byte-wise too -- 0 of 252 values cannot be a member -- so any byte can
 ;     belong to the set and a 256-bit membership test reproduces all of it exactly.
-;   * A NULL SET IS NOT THE EMPTY SET. StrCSpnA("abc", NULL) is 0, while StrCSpnA("abc", "") is 3.
+;   * a NULL set is not the empty set. StrCSpnA("abc", NULL) is 0, while StrCSpnA("abc", "") is 3.
 ;     A reimplementation that treated NULL as "no members" would return 3 and be wrong.
 ;   * NULL subject -> 0. Empty subject -> 0. Duplicates in the set are harmless. No length cap.
 ;
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
 ; terminator is never a member -- which means it is a NON-member, which means the inverted mask
-; STOPS THERE ON ITS OWN. StrSpnA is therefore exactly:
+; Stops there on its own. StrSpnA is therefore exactly:
 ;
 ;     the index of the first NON-member
 ;
@@ -38,7 +38,7 @@
 ; exactly as it does for 214 where 0 means "no stop" directly.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT BITMAP in THE CALLER'S SHADOW SPACE -- which is 32 bytes, exactly the
+; The set becomes a 256-BIT bitmap in the caller's shadow space -- which is 32 bytes, exactly the
 ; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
 ; character sets bit b of that region: byte b>>3, bit b&7.
 ;
@@ -60,7 +60,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shrx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .const
 ALIGN 16

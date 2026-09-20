@@ -1,8 +1,8 @@
 /* changes/281-strchriw/probes/classes.c
  *
- * HOW MANY CODE UNITS CAN SHARE ONE UPCASE? THE WHOLE IMPLEMENTATION HANGS ON THE ANSWER.
+ * How many code units can share one upcase? The whole implementation hangs on the answer.
  *
- * probes/contract.c settled that StrChrIW's notion of equality is EXACTLY the ordinal upcase table:
+ * probes/contract.c settled that StrChrIW's notion of equality is exactly the ordinal upcase table:
  * `upcase(haystack_char) == upcase(needle)`. The obvious way to vectorise that is to upcase every
  * character of the haystack and compare -- which means a table lookup per character, or an AVX2
  * gather per eight, and gathers are slow enough to throw the win away.

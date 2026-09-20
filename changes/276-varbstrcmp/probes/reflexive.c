@@ -1,6 +1,6 @@
 /* changes/276-varbstrcmp/probes/reflexive.c
  *
- * THE WHOLE CHANGE RESTS ON ONE CLAIM: IDENTICAL STRINGS COMPARE EQUAL. SO MEASURE IT.
+ * The whole change rests on one claim: Identical strings compare equal. So measure it.
  *
  * probes/contract.c established that VarBstrCmp IS CompareStringW -- nine hand-picked pairs where a
  * linguistic comparison and an ordinal one disagree, and the export tracked the linguistic answer
@@ -12,7 +12,7 @@
  *     the SAME pointer twice        3145.00 ns     <-- comparing a BSTR with ITSELF
  *     equal, 4000 characters        3224.00 ns
  *     4000 vs 1 character             31.50 ns     CompareStringW exits early on its own
- *     differ at character 0           33.50 ns     ... at EVERY length, 4 to 8000
+ *     differ at character 0           33.50 ns     ... at every length, 4 to 8000
  *
  * There is no identity check and no equal-content check. Two strings that are byte-for-byte the
  * same cost 0.8 ns per character to discover that, and the same POINTER twice costs it too.
@@ -33,7 +33,7 @@
  *   4. under every documented flag and several locales;
  *   5. and the empty and NULL forms, which the fast path also has to get right.
  *
- * THE SECOND HALF OF THIS FILE IS THE FLAGS, because the fallback has to reproduce them. VarBstrCmp
+ * The second half of this file is the flags, because the fallback has to reproduce them. VarBstrCmp
  * takes a ULONG of flags and passes some subset to CompareStringW; which bits, and what it does with
  * the rest, decides what the fallback can call.
  */

@@ -1,10 +1,10 @@
 ; changes/202-convertguidtostringw/impl.asm
-; DWORD wia_ConvertGuidToStringW(const GUID* Guid, PWSTR String, DWORD StringLenInChars)
+; Dword wia_ConvertGuidToStringW(const guid* Guid, PWSTR String, dword StringLenInChars)
 ;   [rcx, rdx, r8d -> eax]
 ;
 ; Reimplements iphlpapi!ConvertGuidToStringW -- 315 ns per call in the shipped build, the most
 ; expensive routine found in this project's System32 survey after RtlIsTextUnicode, and expensive
-; for an almost comic reason: IT DOES NOT FORMAT THE GUID. The disassembly at RVA 0x3F60 spills the
+; for an almost comic reason: It does not format the GUID. The disassembly at rva 0x3F60 spills the
 ; eleven GUID fields to the stack as varargs, loads the literal format string
 ;     "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}"
 ; and calls a StringCchPrintfW clone that re-parses that format on every call and dispatches each
@@ -21,7 +21,7 @@
 ;     (cch-1) > 0x7FFFFFFE and the wrapper maps its E_INVALIDARG to 122 like any other failure.
 ;     A reimplementation that treats an absurd length as a bad parameter returns the wrong code.
 ;
-; THE PERMUTATION IS THE WHOLE TRICK. Data1/Data2/Data3 are little-endian integers printed
+; The permutation is the whole trick. Data1/Data2/Data3 are little-endian integers printed
 ; most-significant-nibble first, while Data4 prints in memory order. So the sixteen GUID bytes
 ; appear in print order
 ;       3,2,1,0,  5,4,  7,6,  8,9,10,11,12,13,14,15
@@ -106,7 +106,7 @@ render:
 
         vpmovzxbw ymm1, xmm3                   ; 16 characters -> 16 UTF-16 cells
         vpmovzxbw ymm2, xmm4
-        ; ONLY xmm0-xmm5 MAY BE TOUCHED. xmm6-xmm15 are callee-saved under Win64, and clobbering
+        ; Only xmm0-xmm5 may be touched. xmm6-xmm15 are callee-saved under Win64, and clobbering
         ; them is invisible to a correctness test that compares integers while silently destroying
         ; a caller's live doubles -- which is exactly how this was found: the benchmark harness
         ; keeps its timing accumulators in xmm6/xmm7, so an earlier cut of this function reported

@@ -2,18 +2,18 @@
 // Gate 1: wia_lstrcatw must be indistinguishable from kernelbase!lstrcatW.
 // Three-way: our ASM + wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// FOUR GUARD-PAGE SWEEPS, because this function can fail on three pointers and at two granularities:
+// Four guard-page sweeps, because this function can fail on three pointers and at two granularities:
 //
-//   * an UNTERMINATED DESTINATION -- the failure lstrcpy does not have at all, since lstrcat READS
+//   * an unterminated destination -- the failure lstrcpy does not have at all, since lstrcat reads
 //     the destination before writing it. An implementation borrowed from lstrcpy would never think
 //     to bound that scan.
 //   * an unterminated SOURCE.
-//   * a DESTINATION TOO SMALL for the append.
-//   * THE SPLIT CHARACTER: every destination width in BYTES, odd and even. The export writes WHOLE
-//     CHARACTERS ONLY, so a clamp that rounds in bytes leaves one extra byte behind -- invisible to
+//   * a destination too small for the append.
+//   * The split character: every destination width in bytes, odd and even. The export writes whole
+//     CHARACTERS only, so a clamp that rounds in bytes leaves one extra byte behind -- invisible to
 //     every other test here, because nothing crashes and no return value differs.
 //
-// ODD-ALIGNED DESTINATIONS ARE DRIVEN THROUGHOUT, not only at the guard. The destination scan uses
+// Odd-aligned destinations are driven throughout, not only at the guard. The destination scan uses
 // the page clamp rather than an align-down trick precisely because this function accepts them, and
 // an align-down scan would put its 16-bit lanes out of step with the string's characters.
 #define WIN32_LEAN_AND_MEAN
@@ -112,7 +112,7 @@ int main(void){
             chk(ds, L"", 3, oddbyte, "empty source");
         }
 
-    // ---- EVERY code unit value, in BOTH strings ---------------------------------------------------
+    // ---- every code unit value, in both strings ---------------------------------------------------
     {
         static wchar_t b[64];
         for (int v = 1; v < 65536; ++v) {
@@ -144,7 +144,7 @@ int main(void){
         CHECK(sys(0, 0) == 0,               "both NULL return NULL (live)");
     }
 
-    // ---- GUARD PAGE ON THE DESTINATION SCAN -------------------------------------------------------
+    // ---- Guard page on the destination scan -------------------------------------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -181,7 +181,7 @@ int main(void){
         VirtualFree(bc, 0, MEM_RELEASE);
     }
 
-    // ---- GUARD PAGE ON THE SOURCE -----------------------------------------------------------------
+    // ---- Guard page on the source -----------------------------------------------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -206,7 +206,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- THE SPLIT CHARACTER: every destination width in BYTES, odd and even ----------------------
+    // ---- The split character: every destination width in bytes, odd and even ----------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

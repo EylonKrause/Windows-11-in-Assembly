@@ -3,7 +3,7 @@
  * The scalar model for advapi32!ConvertStringSidToSidA. It exists so that the assembly is compared
  * against something OTHER than the export it is imitating.
  *
- * THE MODEL IS THE MEASUREMENT: probes/codepage.c established that
+ * The model is the measurement: probes/codepage.c established that
  *
  *     ConvertStringSidToSidA(s) == ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...))
  *

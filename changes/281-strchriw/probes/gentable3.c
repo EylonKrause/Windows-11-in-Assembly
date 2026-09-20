@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/gentable3.c
  *
- * THE COMPLETE RELATION: small match sets inline, large ones deduplicated.
+ * The complete relation: small match sets inline, large ones deduplicated.
  *
  * probes/gentable2.c enumerated the full relation and settled its shape:
  *
@@ -60,7 +60,7 @@ int main(void)
     for (c = 1; c <= 0xFFFF; ++c) hay[c - 1] = (wchar_t)c;
     hay[0xFFFF] = 0;
 
-    /* NEEDLE 0 IS ENUMERATED TOO, and that is not a formality.
+    /* Needle 0 Is enumerated too, and that is not a formality.
        probes/contract.c measured StrChrIW("abcXYZabc", 0) as NULL and wrote down "the terminator is
        never found" as a contract fact. It is not: that string simply contains no ignorable
        character. In a 275-character random string the live export returns offset 28 for needle 0,

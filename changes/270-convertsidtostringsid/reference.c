@@ -6,33 +6,33 @@
  *
  * THE CONTRACT, measured by four probes rather than read:
  *
- *   1. THE TEXT IS EXACTLY ntdll!RtlConvertSidToUnicodeString's. probes/contract.c formats every
- *      shape of SID with BOTH and compares the strings: the ordinary counts, every revision, every
+ *   1. The text is exactly ntdll!RtlConvertSidToUnicodeString's. probes/contract.c formats every
+ *      shape of SID with both and compares the strings: the ordinary counts, every revision, every
  *      sub-authority count from 0 to 255, and the identifier authority at every decimal and
  *      hexadecimal boundary. They agree on all of it, including on what they REFUSE -- a revision
  *      other than 1 and a count above 15. So this change is an ENVELOPE over change 067, the way
  *      change 268 is an envelope over 016 and 034, and not a second copy of a formatter.
  *
- *   2. THE FAILURE CODES ARE Win32, NOT NTSTATUS, and there are only two of them:
+ *   2. The failure codes are Win32, not NTSTATUS, and there are only two of them:
  *
  *          a NULL SID or a NULL out-pointer   ERROR_INVALID_PARAMETER  (87)
  *          anything the formatter refuses     ERROR_INVALID_SID        (1337)
  *
  *      That is the whole set. STATUS_INVALID_SID maps to ERROR_INVALID_SID and nothing else does.
  *
- *   3. ON FAILURE THE OUTPUT POINTER IS LEFT ALONE. Not cleared -- left exactly as the caller had
+ *   3. On failure the output pointer is left alone. Not cleared -- left exactly as the caller had
  *      it, which probes/contract.c measured with a poison value. (Its sibling
  *      ConvertStringSidToSidW, change 269, does clear it for three characters out of 65535; this
  *      one never does.)
  *
- *   4. ON SUCCESS THE LAST ERROR IS ZERO, whatever it was before. probes/validate.c asked with five
+ *   4. On success the last error is zero, whatever it was before. probes/validate.c asked with five
  *      starting values at four lengths: twenty out of twenty came back 0.
  *
- *   5. THE BLOCK IS A LocalAlloc BLOCK OF EXACTLY (characters + 1) * 2 BYTES, with LocalFlags 0 --
+ *   5. The block is a LocalAlloc block of exactly (characters + 1) * 2 Bytes, with LocalFlags 0 --
  *      LMEM_FIXED. Measured at counts 0, 1, 5 and 15; the longest possible result is 183 characters
  *      and therefore a 368-byte block.
  *
- *   6. A SID THAT IS NOT FULLY READABLE is a REFUSAL when its sub-authority array runs off the end
+ *   6. a SID that is not fully readable is a refusal when its sub-authority array runs off the end
  *      and a FAULT when only its six identifier-authority bytes do (probes/truncated.c). That is
  *      change 067's rule, inherited here because it is the same formatter underneath -- and it is
  *      why this model cannot express it: a scalar model cannot fault on demand. The correctness

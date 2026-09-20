@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/probes/grammar.c
  *
- * WHAT DOES advapi32!ConvertStringSidToSidW ACTUALLY ACCEPT?
+ * What does advapi32!ConvertStringSidToSidW actually accept?
  *
  * discovery/sid_inet_bstr.c measured it at 275.78 ns, about 45 ns per decimal number, and that is
  * the reason to build it. What it ACCEPTS is a separate question, and it cannot be answered from
@@ -16,7 +16,7 @@
  *
  *   1. the GRAMMAR -- which prefixes, separators, and counts are legal
  *   2. the NUMBER FORMATS -- decimal, hexadecimal, leading zeros, leading signs, overflow
- *   3. the IDENTIFIER AUTHORITY, which is 48 bits and therefore not a DWORD
+ *   3. the identifier authority, which is 48 bits and therefore not a dword
  *   4. CASE and WHITESPACE
  *   5. the FAILURE CODES, which a caller switches on
  *   6. the ALIASES, one of which resolves through the local machine and so cannot be a constant

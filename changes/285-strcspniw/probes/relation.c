@@ -1,10 +1,10 @@
 /* changes/285-strcspniw/probes/relation.c
  *
- * IS StrCSpnIW's RELATION CHANGE 281's RELATION?  EXTRACT IT AND DIFF IT.
+ * Is StrCSpnIW's relation change 281's relation?  Extract it and diff it.
  *
  * probes/contract.c turned up a contradiction that cannot be left as an impression:
  *
- *     str {a,b,ZERO WIDTH SPACE,c},  set {SOFT HYPHEN}   ->  4   (no match at all)
+ *     str {a,b,ZERO width SPACE,c},  set {soft hyphen}   ->  4   (no match at all)
  *
  * Change 281 measured the soft hyphen and the zero width space as matching each other -- they are two
  * of the 3237 ignorables, which form the largest set in that relation, and change 283's corpus 4

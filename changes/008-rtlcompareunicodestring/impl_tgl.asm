@@ -5,7 +5,7 @@
 ; Tiger Lake / Willow Cove variant of change 008. Same contract, same oracle, same gates. Only the
 ; SHORT CASE-INSENSITIVE path differs; every other path below is the parent's, spliced in unchanged.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every class on Zen 3. Here the 8-wchar case-insensitive class measures 0.94x
 ; against ntdll while the change still wins 3.2x overall. Below 16 wchars the parent takes
@@ -14,7 +14,7 @@
 ; of each pair cannot issue until the first retires, and at eight characters there is nothing else
 ; in flight to hide sixteen such latencies behind.
 ;
-; THE FIRST ATTEMPT AT THIS WAS WORSE, AND WHY THAT IS WORTH RECORDING
+; The first attempt at this was worse, and why that is worth recording
 ; --------------------------------------------------------------------
 ; The obvious fix is to compare the two RAW wchars first and consult the table only when they
 ; differ. That is sound -- upcase is a function, so bit-identical inputs have bit-identical folds.
@@ -31,7 +31,7 @@
 ; character branch at all. Raw-equal implies fold-equal, so an identical block needs no case table,
 ; no ASCII test and no folding. Only a block that DIFFERS pays for any of that.
 ;
-; WHY 128-BIT AND NOT 256
+; Why 128-BIT and not 256
 ; -----------------------
 ; The parent's vector path is 256-bit and needs five ymm constants, which forces it to spill
 ; ymm6/ymm7 -- 64 bytes of stack -- because Win64 preserves the low 128 bits of xmm6-xmm15. At
@@ -41,18 +41,18 @@
 ;
 ; The fold itself is where this machine pays off. On AVX-512 a compare writes a MASK REGISTER, and
 ; the subtract can be predicated on it -- so `islower` costs two compares, one `kandw` and a masked
-; `vpsubw` IN PLACE, with no AND of two 128-bit compare results and no temporary vector register to
+; `vpsubw` In place, with no and of two 128-bit compare results and no temporary vector register to
 ; hold them. The parent needs five vector operations per side and a spare register for each; this
 ; needs four and none. k0-k7 are volatile under Win64, so again nothing is saved.
 ;
 ; (An earlier draft tried to keep the parent's shape and put the two compare results in xmm16/xmm17.
-; MASM rejects it, correctly: VPCMPGTW has no EVEX form that writes a vector -- the EVEX encoding
+; MASM rejects it, correctly: Vpcmpgtw has no evex form that writes a vector -- the evex encoding
 ; IS the mask-writing one, and the VEX form cannot reach xmm16-31. The instruction set was pointing
 ; at the better sequence.)
 ;
-; EXACTNESS IS UNCHANGED. A differing block is still resolved through `wia_upcase`, the table built
+; Exactness is unchanged. a differing block is still resolved through `wia_upcase`, the table built
 ; once from the OS, so the answer is bit-exact rather than an ASCII approximation. The vectorized
-; ASCII fold runs only after `vptest` has proved every wchar in BOTH blocks is < 0x80 -- the same
+; ASCII fold runs only after `vptest` has proved every wchar in both blocks is < 0x80 -- the same
 ; guard the parent's 256-bit path uses -- and a pair that survives the fold as different is
 ; resolved through the table, so the returned magnitude comes from the source it always did.
 ;

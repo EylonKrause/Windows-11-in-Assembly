@@ -66,7 +66,7 @@ int main(void){
         }
     }
 
-    // EVERY code unit as the middle character -- pins "space" to exactly U+0020
+    // every code unit as the middle character -- pins "space" to exactly U+0020
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=(wchar_t)c; s[2]=L'b'; s[3]=0;
         CHECK(one(s), "space-set sweep");
@@ -82,7 +82,7 @@ int main(void){
         }
     }
 
-    // the space at EVERY position, for many lengths, and 16 unaligned starts
+    // the space at every position, for many lengths, and 16 unaligned starts
     {
         static wchar_t buf[700];
         for(int off=0; off<16; ++off){

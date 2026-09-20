@@ -75,7 +75,7 @@ typedef struct {
 } wia_case;
 
 // Print the table + per-row and overall verdict. Returns 0 iff OURS did not
-// regress (>= 0.97x) on EVERY size class.
+// regress (>= 0.97x) on every size class.
 static int wia_bench_compare(const char* title, wia_case* cases, int n, int trials) {
     volatile uint64_t sink = 0;
     wia_pin(2);

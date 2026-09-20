@@ -2,16 +2,16 @@
  *
  * Gate 2: time wia_sid2stra against the live advapi32!ConvertSidToStringSidA.
  *
- * EVERY ROW ALLOCATES AND FREES on both sides, because the contract returns a LocalAlloc block the
+ * Every row allocates and frees on both sides, because the contract returns a LocalAlloc block the
  * caller frees and discovery/sid_inet_bstr.c measured that pair at 40.41 ns.
  *
- * THE ROWS ARE THE SHAPES THE IMPLEMENTATION DISTINGUISHES -- the counts that set how many numbers
+ * The rows are the shapes the implementation distinguishes -- the counts that set how many numbers
  * there are, the hexadecimal authority that is a different converter, and the two refusals a caller
  * hits as often as the succeeding case. The count rows also walk the 16-character pack boundary: 5
  * characters takes the byte loop, 44 takes two full iterations and an overlapping tail, and 152
  * takes nine.
  *
- * EVERY ROW IS PRE-FLIGHTED against a per-row table of what the live export must return.
+ * Every row is pre-flighted against a per-row table of what the live export must return.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

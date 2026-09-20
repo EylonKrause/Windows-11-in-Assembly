@@ -5,13 +5,13 @@
    EVERY COMPARISON CHECKS THE HRESULT AND THE WHOLE BUFFER AGAINST A POISON FILL. That is not
    belt-and-braces here; three separately measured facts make anything less insufficient:
 
-     * IT CLEARS A SLOT PER REMOVED SEPARATOR, not one terminator at the cut. An implementation that
+     * It clears a slot per removed separator, not one terminator at the cut. An implementation that
        wrote a single terminator produces the SAME STRING and a different BUFFER, and the only reason
        this project knows the rule at all is that probes/pcrfs3.c started reporting WHICH INDEX
        differed instead of comparing a window and saying "mismatch".
-     * S_FALSE WRITES NOTHING AT ALL, which a string comparison cannot tell from writing the same
+     * S_FALSE writes nothing at all, which a string comparison cannot tell from writing the same
        terminator back.
-     * cch BOUNDS THE HIGHEST INDEX WRITTEN -- including writes that land on the existing terminator
+     * cch bounds the highest index written -- including writes that land on the existing terminator
        and are invisible in the buffer. 567 UNC cases differ from "result+1" for exactly that reason.
 
    THE CORPUS IS BUILT AROUND THE FOUR RULES AND THE THREE TRAPS.
@@ -126,7 +126,7 @@ int main(void){
         printf("  exhaustive {a,backslash,colon,?,U,N,C,u} to length 6: %ld strings\n", cases);
     }
 
-    /* ---- THE DRIVE LETTER OVER ALL 65536 WCHAR VALUES ---------------------------------------- */
+    /* ---- The drive letter over all 65536 WCHAR values ---------------------------------------- */
     {
         wchar_t s[16];
         long cases = 0;
@@ -171,7 +171,7 @@ int main(void){
                (int)(sizeof V / sizeof V[0]) - 1, cases);
     }
 
-    /* ---- LENGTH AS A DIMENSION, four root shapes, and every alignment ------------------------- */
+    /* ---- Length as a dimension, four root shapes, and every alignment ------------------------- */
     {
         static wchar_t pool[4400];
         long cases = 0;

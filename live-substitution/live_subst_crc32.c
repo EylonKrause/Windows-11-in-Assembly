@@ -1,25 +1,25 @@
 // live-substitution/live_subst_crc32.c
 // LIVE-RUN PROOF for change 267 (ntdll!RtlCrc32).
 //
-// A CHECKSUM IS THE EASIEST THING IN THIS PROJECT TO GET SUBTLY WRONG AND THE HARDEST TO NOTICE:
+// a checksum is the easiest thing in this project to get subtly wrong and the hardest to notice:
 // one wrong constant gives a perfectly plausible 32-bit number at a perfectly plausible speed. So
 // every case compares the exact value, and the corpus is built around the two block boundaries the
 // implementation has -- 192 bytes, where the short three-way split begins, and 3072, where the
 // long one does -- rather than around round numbers.
 //
-// THE INITIAL CRC IS NON-ZERO IN MOST CASES, because it only enters the FIRST of the three parallel
+// The initial crc is non-zero in most cases, because it only enters the first of the three parallel
 // chains. An implementation that seeded the wrong chain, or seeded all three, would pass every case
 // that started from zero and fail here.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is not used by the loader or heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_crc32_live.bat

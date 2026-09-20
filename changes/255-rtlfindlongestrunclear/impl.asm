@@ -3,13 +3,13 @@
 ;
 ; ntdll!RtlFindLongestRunClear, RVA 0x0E3240 -- which is nine instructions around
 ; RtlFindClearRuns(bitmap, buf, 1, TRUE), so all of the cost is in FindClearRuns with SortByLength
-; set. discovery/ntdll_bitmap.c measured it at roughly ONE BIT PER CYCLE:
+; set. discovery/ntdll_bitmap.c measured it at roughly one bit per cycle:
 ;
 ;       RtlFindLongestRunClear, sparse (16K runs)   13323.00 ns   1.626 ns/byte
 ;         ... REALISTIC alloc bitmap (~200 runs)     8689.40 ns   1.061
 ;         ... dense (8 runs)                         8423.20 ns   1.028
 ;
-; THE DECISIVE OBSERVATION IS THAT THE COST IS NOT PER-RUN. Eight clear runs cost 8423 ns and two
+; The decisive observation is that the cost is not per-run. Eight clear runs cost 8423 ns and two
 ; hundred cost 8689, so the ~1 ns/byte is the SCAN, not the bookkeeping -- 65536 bits examined one
 ; at a time. That is twice the per-byte cost of change 252's target and the most expensive thing
 ; left in ntdll.
@@ -22,28 +22,28 @@
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c). Three things decide the code:
 ;
-;   * THE FIRST RUN WINS A TIE. Two runs of length two at bits 10 and 50 report bit 10; three at
+;   * The first run wins a tie. Two runs of length two at bits 10 and 50 report bit 10; three at
 ;     20, 300 and 700 report 20. So the best is updated on a STRICT improvement only, and the order
 ;     in which candidates are considered inside a word has to be first-to-last as well. An
 ;     implementation updating on ">=" would be wrong on every tie and would still pass any test
 ;     whose bitmap had a unique longest run.
-;   * WITH NO CLEAR BITS the result is 0 and *StartingIndex is WRITTEN, as 0 -- not left untouched.
+;   * With no clear bits the result is 0 and *StartingIndex is written, as 0 -- not left untouched.
 ;     Same for SizeOfBitMap = 0.
-;   * THE SLACK PAST SizeOfBitMap IS MASKED. Declaring 40 bits with bits 36..63 clear reports a run
+;   * The slack past SizeOfBitMap is masked. Declaring 40 bits with bits 36..63 clear reports a run
 ;     of FOUR, not twenty-eight, and a 100-bit run beyond a declared size of 64 does not win. An
 ;     implementation reading 64 bits at a time must force the out-of-range high bits to ONE so they
 ;     terminate a run rather than extend it.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. Sixty-four bits per step, with three candidates per word:
+; How it works. Sixty-four bits per step, with three candidates per word:
 ;
-;   A. THE RUN ENDING AT THE WORD'S LOW END -- the carry from previous words plus TZCNT(w). This is
+;   a. The run ending at the word's low end -- the carry from previous words plus TZCNT(w). This is
 ;      the only candidate that can span words, and it is considered FIRST because its start is
 ;      earlier than any other in this word, which is what makes ties resolve to the first run.
-;   B. THE RUNS WHOLLY INSIDE THE WORD, found without looping over them (see below).
-;   C. THE RUN AT THE WORD'S HIGH END -- LZCNT(w) -- which becomes the carry for the next word.
+;   B. The runs wholly inside the word, found without looping over them (see below).
+;   C. The run at the word's high end -- LZCNT(w) -- which becomes the carry for the next word.
 ;
-; B IS THE PART WORTH EXPLAINING, because the obvious way to do it is a loop per run and that is
+; B is the part worth explaining, because the obvious way to do it is a loop per run and that is
 ; exactly the trap. A bitmap of 0xA5A5A5A5 has a clear run every two bits: sixteen thousand of them,
 ; so a per-run loop would do sixteen thousand iterations and finish no faster than the bit-at-a-time
 ; code it replaces. Instead:
@@ -56,13 +56,13 @@
 ; tie-break the contract requires. The loop runs k+1 times, NOT once per run: on 0xA5A5A5A5 that is
 ; three iterations per word regardless of how many runs it contains.
 ;
-; AND IT IS SKIPPED ENTIRELY when it cannot win. The longest clear run in a word is at most
+; And it is skipped entirely when it cannot win. The longest clear run in a word is at most
 ; 64 - POPCNT(w), so one POPCNT decides whether the word is worth examining at all. Once a long run
 ; has been found, almost every subsequent word fails that test and costs a load, a compare and two
 ; bit-scans. An all-ones word -- the overwhelming majority in a real allocation bitmap -- is rejected
 ; by a single CMP against -1 before any of this.
 ;
-; READING PAST THE BUFFER IS THE ONE REAL HAZARD, and it is not the bitmap's declared size that
+; Reading past the buffer is the one real hazard, and it is not the bitmap's declared size that
 ; bounds it. An RTL_BITMAP's buffer is an array of ULONG, so a bitmap of 96 bits occupies THREE
 ; 32-bit words -- twelve bytes -- and reading the second 64-bit word would touch four bytes the
 ; caller never allocated. So the loop reads 64-bit words only while two ULONGs remain, and a final
@@ -77,7 +77,7 @@ PUBLIC wia_findlongestrunclear
 
 ; ---------------------------------------------------------------------------------------------
 ; flr_word -- fold one 64-bit word into the running best.
-; A LEAF with no prologue and no unwind data, deliberately: an internal `call` inside a PROC FRAME
+; a leaf with no prologue and no unwind data, deliberately: an internal `call` inside a proc frame
 ; would push eight bytes the parent's unwind info does not describe.
 ;
 ; In:   rdx = the word (out-of-range bits already forced to 1), rdi = its base bit index.
@@ -213,7 +213,7 @@ wia_findlongestrunclear PROC FRAME
         mov       dword ptr [rsp + 32], eax   ; nw64 = how many may be read as 64-bit PAIRS
         xor       edi, edi                    ; base bit = 0
         xor       ebp, ebp                    ; i = 0
-; THE TWO TRIVIAL WORD SHAPES ARE INLINED, and they are the overwhelming majority. A real allocation
+; The two trivial word shapes are inlined, and they are the overwhelming majority. a real allocation
 ; bitmap is nearly full, so almost every word is all-ones; a bitmap with a long free extent is all
 ; zeros through the middle of it. Handing either to a called helper costs more than the work it does
 ; -- measured at 1393 ns for a 64 Kbit all-ones bitmap purely in call overhead and masking arithmetic
@@ -222,7 +222,7 @@ wia_findlongestrunclear PROC FRAME
 flr_loop:
         cmp       ebp, dword ptr [rsp + 32]
         jae       flr_tail
-        ; FOUR ALL-ONES WORDS REJECTED IN ONE COMPARE. A live allocation bitmap is nearly full, so
+        ; Four all-ones words rejected in one compare. a live allocation bitmap is nearly full, so
         ; this is the shape that dominates: 256 bits of "nothing here" costs a load, a compare and a
         ; mask extract instead of four trips round the scalar loop. Taken only when four FULL words
         ; remain and none of them can need masking, so the slack logic below is untouched.
@@ -247,7 +247,7 @@ flr_s4:
         add       rdi, 256
         jmp       flr_loop
 
-; AND THE MIRROR CASE, on data that is already loaded. A long free extent is as common in a live
+; And the mirror case, on data that is already loaded. a long free extent is as common in a live
 ; bitmap as a full one -- a freshly created bitmap is entirely clear -- and four all-zero words
 ; extend the carry by 256 without examining anything. Reusing ymm0 makes this one compare and one
 ; mask extract, which is why it is worth doing on the path where the all-ones test just failed.

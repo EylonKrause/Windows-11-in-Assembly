@@ -1,6 +1,6 @@
 /* changes/129-rtlchartointeger/probes/nodigits.c
  *
- * WHY THIS PROBE EXISTS: the live-substitution gate refused to pass, and it was right.
+ * Why this probe exists: the live-substitution gate refused to pass, and it was right.
  *
  * RESULTS.md has recorded, since the change was first written, that
  *
@@ -14,9 +14,9 @@
  * Those look like values left behind by earlier calls, which would mean the export writes an
  * UNINITIALISED local when it has no digits to report -- and that the recorded contract is wrong.
  *
- * AND IT WOULD EXPLAIN WHY THE CORRECTNESS GATE COULD NOT SEE IT. That gate compares three ULONGs after
+ * And it would explain why the correctness gate could not see it. That gate compares three ULONGs after
  * three calls; if its own were zero-initialised, then "the export left the caller's word alone" and "the
- * export wrote 0" are the same observation. THE SENTINEL WAS THE VALUE UNDER TEST -- the vacuous-corpus
+ * export wrote 0" are the same observation. The sentinel was the value under test -- the vacuous-corpus
  * defect this project keeps meeting, in its purest form: a filler indistinguishable from a result.
  *
  * So this probe asks the question three ways that cannot be confused:

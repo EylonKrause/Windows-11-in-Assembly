@@ -6,7 +6,7 @@
 // size-2 case, where nothing but Buffer[0] is touched. The shipped code settled it --
 // dumpbin /disasm ucrtbase.dll, RVA 0x00079D60 with its shared worker at 0x00076F10:
 //
-//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), and NOTHING is written;
+//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), and nothing is written;
 //   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation, which is
 //     why an invalid radix still empties the buffer while size 0 leaves it untouched;
 //   * there is no sign at all here -- ucrtbase's _ui64toa_s passes a hard zero to the same

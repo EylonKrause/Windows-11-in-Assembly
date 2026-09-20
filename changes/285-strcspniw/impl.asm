@@ -9,18 +9,18 @@
 ; code units -- the most expensive of the remaining StrXxxIW family.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE RELATION IS CHANGE 281's, AND THAT WAS MEASURED, NOT ASSUMED.
+; 2. The relation is change 281's, and that was measured, not assumed.
 ;
 ; probes/contract.c turned up what looked like a contradiction: a set of {SOFT HYPHEN} does not match
-; a ZERO WIDTH SPACE in the string, although both are ignorable-looking and change 283's corpus called
+; a zero width space in the string, although both are ignorable-looking and change 283's corpus called
 ; such a pair a match. probes/relation.c settled it by EXTRACTING StrCSpnIW's own relation --
 ; StrCSpnIW({c},{m}) == 0 is a direct membership oracle, so a full row costs 65535 calls -- and
 ; diffing twelve rows against change 281's tables:
 ;
 ;     786420 pairs, ZERO disagreements. Symmetric in the export itself. And a four-member set is
-;     EXACTLY the union of its members' rows, checked over all 65535 code units.
+;     exactly the union of its members' rows, checked over all 65535 code units.
 ;
-; The apparent contradiction was mine: n[0x200B] is 0. The ZERO WIDTH SPACE matches ONLY ITSELF and is
+; The apparent contradiction was mine: n[0x200B] is 0. The zero width space matches only itself and is
 ; not one of the 3237 ignorables at all, while match(0x00AD, 0x034F) is 1. Two landed changes had a
 ; corpus filler built on that wrong assumption and were quietly testing the empty case; both are fixed.
 ;
@@ -29,7 +29,7 @@
 ; union is all there is -- a set of k characters can accept far more than k code units.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. THE ONE SIMPLIFICATION THAT MAKES THIS CHANGE SMALL.
+; 3. The one simplification that makes this change small.
 ;
 ; Changes 283 and 284 both had to model a VIRTUAL NUL run past the terminator, because 3320 code units
 ; match a NUL and a needle could match across the end. Here that is UNOBSERVABLE:
@@ -39,7 +39,7 @@
 ;
 ; Both give the same number, for every string and every set. So the terminator is folded into the
 ; accept set unconditionally -- the answer is the index of the first character that is NUL or in the
-; set -- and this implementation NEVER MEASURES THE STRING'S LENGTH AT ALL. Change 284 learned what
+; set -- and this implementation never measures the string's length at all. Change 284 learned what
 ; that costs: measuring the string first turned one of its bench rows into a dead tie.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@
 ;       partners contributes itself, a member with 2..8 contributes its whole pool slot. A member with
 ;       the 255 bitmap sentinel -- any of the 3320 ignorables -- would contribute thousands, so it
 ;       sends the whole call to the scalar path instead. So does a list that overflows 16 entries.
-;   (b) scan the string for the accept list in CHUNKS OF FOUR, sixteen code units at a time, with the
+;   (b) scan the string for the accept list in chunks of four, sixteen code units at a time, with the
 ;       terminator tested in every pass by comparing against a zeroed register. Only ymm0..ymm5 are
 ;       touched, so nothing has to be saved: ymm0 holds the data, ymm1..ymm4 the four broadcasts, ymm5
 ;       the compare result.
@@ -60,7 +60,7 @@
 ; A one-character set is one pass, which is optimal. A set whose expansion needs k chunks costs k
 ; passes, each bounded by the best answer so far, so a set that matches early is cheap however large.
 ;
-; ISA: AVX2 + BMI1 (TZCNT) + BMI2 (BZHI). VZEROUPPER on every exit that touched a YMM register.
+; Isa: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi). Vzeroupper on every exit that touched a ymm register.
 ; --------------------------------------------------------------------------------------------------
 
 OPTION PROC:PRIVATE
@@ -75,7 +75,7 @@ EXTERN wia_sci_bmap:DWORD
 
 ; ---------------------------------------------------------------------------------------------
 ; match_pair -- ZF=1 if the set member in r14w accepts the string code unit in r15w.
-; Clobbers EXACTLY rax, r12, r13.
+; Clobbers exactly rax, r12, r13.
 ; ---------------------------------------------------------------------------------------------
 match_pair PROC PRIVATE
         movzx     eax, r14w
@@ -121,9 +121,9 @@ match_pair ENDP
 
 ; ---------------------------------------------------------------------------------------------
 ; spnscan -- the LOWEST address in [rsi, rbx] whose code unit matches one of the broadcasts in
-; ymm1..ymm4 OR IS ZERO. Returns that address in rax, or 0 if the bound was reached first.
+; ymm1..ymm4 or is zero. Returns that address in rax, or 0 if the bound was reached first.
 ;
-; THE ZERO COMPARE IS WHAT MAKES THE FIRST PASS SAFE WITHOUT A BOUND. The terminator is tested in
+; The zero compare is what makes the first pass safe without a bound. The terminator is tested in
 ; every pass, so a pass can be given a bound of -1 and still stop: it will hit the NUL first. That is
 ; why this implementation never measures the string.
 ;
@@ -252,7 +252,7 @@ wia_strcspniw PROC FRAME
         ; [rsp .. rsp+511] is the accept list, 256 words. The seven pushes leave rsp 16-byte aligned
         ; and 576 keeps it so, which the internal calls rely on.
         ;
-        ; THE CAP IS 256 ENTRIES, NOT 16, AND THE BENCH IS WHY. A set member contributes at most eight
+        ; The cap is 256 Entries, not 16, and the bench is why. a set member contributes at most eight
         ; entries, so sixteen ran out at a four-character set and sent everything past that to the
         ; scalar path -- a twelve-character set then cost 12462 ns for 511 code units, only 16.8x the
         ; shipped export, because the scalar path is one match_pair call per (character, member) pair.
@@ -313,7 +313,7 @@ set_done:
         mov       r14d, 1
 have_list:
 
-        ; ---- (b) and (c): DISJOINT DOUBLING WINDOWS, four accept entries per pass.
+        ; ---- (b) and (c): Disjoint doubling windows, four accept entries per pass.
         ;
         ; The obvious structure is one full pass per chunk, and it was measured: a twelve-character set
         ; whose match is at index 3 of a 511-code-unit string cost 231 ns, only 5.99x the shipped
@@ -336,7 +336,7 @@ have_list:
         mov       r10, rsi                        ; the string base, for the final count
         mov       r15, -1                         ; the best hit so far, none yet
 
-        ; ONE CHUNK NEEDS NO WINDOWS. With four or fewer accept entries there is a single pass to make,
+        ; One chunk needs no windows. With four or fewer accept entries there is a single pass to make,
         ; and that pass already stops at its first hit, so dividing the string into windows only adds
         ; per-window setup -- measured at 49.2 ns rising to 55.1 ns on the one-character-set rows.
         cmp       r14d, 4
@@ -392,7 +392,7 @@ win_found:
         vzeroupper
         jmp       cs_ret
 
-; ---- THE SCALAR PATH, MEMBER-MAJOR AND WITHOUT A SINGLE CALL.
+; ---- The scalar path, member-major and without a single call.
 ;
 ; Reached when a set member carries the 255 bitmap sentinel -- any of the 3320 ignorables, which would
 ; contribute thousands of accept entries -- or when the expansion overflows 256 entries.

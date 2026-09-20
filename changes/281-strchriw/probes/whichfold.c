@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/whichfold.c
  *
- * WHICH WINDOWS FUNCTION PRODUCES StrChrIW's FOLD?
+ * Which windows function produces StrChrIW's fold?
  *
  * probes/widerfold.c settled what it is NOT. It is not linguistic: e-acute does not find 'e',
  * n-tilde does not find 'n', fullwidth 'a' does not find 'a', and sharp s does not expand to "ss".

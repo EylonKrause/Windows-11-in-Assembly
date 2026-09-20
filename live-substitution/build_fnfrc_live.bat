@@ -1,14 +1,14 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 261 (ntdll!RtlFindNextForwardRunClear,
+Rem  live-run proof for change 261 (ntdll!RtlFindNextForwardRunClear,
 REM  ntdll!RtlFindLastBackwardRunClear).
 REM
-REM  Both exports are patched ONE AT A TIME, each with its own counter: they
+Rem  Both exports are patched one at a time, each with its own counter: they
 REM  scan in OPPOSITE directions and clip the run at opposite ends, so an
 REM  implementation that routed one through the other would answer wrongly
 REM  rather than merely go unnoticed.
 REM
-REM  Both the returned LENGTH and the WRITTEN START are compared, and the start
+Rem  Both the returned length and the written start are compared, and the start
 REM  is poisoned before every call -- "nothing found" still writes it, and the
 REM  two forms write different values there.
 REM

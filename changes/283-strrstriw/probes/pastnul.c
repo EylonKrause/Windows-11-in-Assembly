@@ -1,6 +1,6 @@
 /* changes/283-strrstriw/probes/pastnul.c
  *
- * DOES THE MATCH STOP AT THE TERMINATOR?  IT DOES NOT.
+ * Does the match stop at the terminator?  It does not.
  *
  * This probe exists because change 283 shipped its first draft with a bug, and the corpus written to
  * catch a MUTANT found it instead. The mutant was "the haystack length is not clamped by the needle

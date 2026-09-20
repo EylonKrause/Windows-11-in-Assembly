@@ -5,7 +5,7 @@
 ; SizeOfBitMap bits of the bitmap, returns its length, and writes its start bit index to *StartingIndex.
 ; Tie-break is the EARLIEST longest run; an all-set or empty bitmap returns length 0 with *StartingIndex
 ; = 0; bits at index >= SizeOfBitMap are ignored (they bound the run at SizeOfBitMap). RTL_BITMAP =
-; { ULONG SizeOfBitMap @0; PULONG Buffer @8 } (bit i lives in Buffer[i/32], LSB = lowest index).
+; { Ulong SizeOfBitMap @0; pulong Buffer @8 } (bit i lives in Buffer[i/32], lsb = lowest index).
 ;
 ; ntdll's routine scans bit-by-bit (~0.87 cyc/bit). This walks 64-bit words: an all-clear word extends
 ; the running clear-run; a mixed word contributes its low run (tzcnt), any interior gaps (loop over set

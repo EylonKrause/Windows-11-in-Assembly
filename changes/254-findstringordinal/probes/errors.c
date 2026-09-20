@@ -1,6 +1,6 @@
 /* changes/254-findstringordinal/probes/errors.c
  *
- * THE REFUSAL CONTRACT. FindStringOrdinal is a Win32 API, so unlike RtlFindUnicodeSubstring it does
+ * The refusal contract. FindStringOrdinal is a Win32 API, so unlike RtlFindUnicodeSubstring it does
  * not merely compute -- it VALIDATES, sets a last-error, and returns -1. Every one of those refusals
  * is observable and has to be reproduced exactly, and the disassembly shows several that no
  * documentation would lead you to guess:
@@ -14,7 +14,7 @@
  *     000A1EF8  cmp r10d, -1 / jl                   <- cchValue   < -1
  *     000A1F04  bts edx, 0x16                       <- default to FIND_FROMSTART when no
  *     000A1F08  test esi, 0xf00000 / cmovne         <-   FIND_* bit is set at all
- *     000A1F13  and eax, 0xfff00000 / dec / and     <- EXACTLY ONE FIND_* bit may be set
+ *     000A1F13  and eax, 0xfff00000 / dec / and     <- exactly ONE FIND_* bit may be set
  *     000A1F24  test edx, 0xff0fffff / sete         <- and NO other bit may be set
  *     000A215E  mov ecx, 0x3ec / call               <- 1004 = ERROR_INVALID_FLAGS
  *

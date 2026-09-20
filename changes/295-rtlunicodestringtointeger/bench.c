@@ -1,6 +1,6 @@
 // changes/295-rtlunicodestringtointeger/bench.c -- wia_ustr2int vs the LIVE ntdll export.
 //
-// THE ROW LIST IS THE GATE. Change 129 was parked for years on a four-row bench that could not
+// The row list is the gate. Change 129 was parked for years on a four-row bench that could not
 // express four of its own regressions, and the same trap is wide open here: this export has five
 // bases, three lowercase-only prefixes, an unsigned whitespace skip, a sign, a silent mod-2^32 wrap,
 // a no-digits-is-still-success case, and two distinct INVALID_PARAMETER mechanisms that both write
@@ -79,7 +79,7 @@ int main(void)
     row("dec 64 digits",       d64,                     10);
     row("dec 256 digits",      d256,                    10);
 
-    /* --- base 0 and its three LOWERCASE-ONLY prefixes ----------------------------------------- */
+    /* --- base 0 and its three LOWERCASE-only prefixes ----------------------------------------- */
     row("base0 0xDEADBEEF [t3]", L"0xDEADBEEF",         0);
     row("base0 0x7f (short)",    L"0x7f",               0);
     row("base0 0b16bits",        L"0b1011011110110111", 0);

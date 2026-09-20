@@ -125,7 +125,7 @@ int main(void){
                 for (int i = 0; i < len; ++i) { s[i] = AL[v % 5]; v /= 5; }
                 s[len] = 0;
                 int r = pifs(s);
-                /* THE MODEL, CORRECTED. The first version required a non-empty string, on the
+                /* The model, corrected. The first version required a non-empty string, on the
                    assumption that a file spec with no characters could not be one. It cannot:
                    the EMPTY STRING RETURNS TRUE -- it trivially contains no separator -- and that
                    single case was the only mismatch in 488281. */

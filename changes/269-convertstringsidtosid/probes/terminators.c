@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/probes/terminators.c
  *
- * THREE CHARACTERS MAKE THE EXPORT FAIL *AND* WRITE THE OUTPUT POINTER.
+ * Three characters make the export fail *and* write the output pointer.
  *
  * With the assembly in place, the correctness gate was down to THREE disagreements out of 429776,
  * and all three had the same shape:
@@ -12,7 +12,7 @@
  * Every other trailing character -- and there are 65532 of them -- leaves the pointer alone, which
  * probes/bounds.c had established and which this implementation reproduced.
  *
- * `)`, `,` and `;` are not arbitrary: they are the SDDL ACE terminators. A SID appears inside an ACE
+ * `)`, `,` and `;` are not arbitrary: they are the sddl ace terminators. a SID appears inside an ace
  * as `(A;;FA;;;S-1-5-18)`, so the parser underneath this export plainly has a mode that stops at
  * them and reports where it stopped -- and the public wrapper, which does not accept trailing text,
  * rejects the result AFTER the inner call has already stored its answer.

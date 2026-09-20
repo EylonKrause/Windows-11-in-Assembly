@@ -1,7 +1,7 @@
 // changes/225-lstrlena/seh.c
 // The exception wrapper for kernelbase!lstrlenA, and the NULL check.
 //
-// WHY THIS FILE EXISTS. probes/lena.c measured the shipped export against an unterminated string
+// Why this file exists. probes/lena.c measured the shipped export against an unterminated string
 // running into a PAGE_NOACCESS page, at every distance from 1 to 80 readable bytes:
 //
 //     over tails 1..80 with no terminator: 80 returned, 0 faulted
@@ -15,11 +15,11 @@
 //     no fault);
 //   * a __try/__except that converts an access violation into 0.
 //
-// THIS COSTS NOTHING ON THE FAST PATH. x64 structured exception handling is table-driven: the
+// This costs nothing on the fast path. x64 structured exception handling is table-driven: the
 // unwind data lives in .pdata/.xdata and no prologue instruction, register or stack slot is spent
 // unless an exception actually fires. The wrapper compiles to one test and a tail call.
 //
-// THE ZEROUPPER ON THE FAULT PATH IS NOT COSMETIC. The core runs a 256-bit loop, so when the fault
+// The zeroupper on the fault path is not cosmetic. The core runs a 256-bit loop, so when the fault
 // arrives mid-scan the upper halves of ymm0-ymm15 are dirty. Unwinding out of assembly skips the
 // core's own vzeroupper, and leaving the CPU in that state makes every subsequent legacy-SSE
 // instruction in the caller pay an AVX-SSE transition penalty -- a performance bug planted in

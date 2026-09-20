@@ -15,7 +15,7 @@
  *    3  lpWideCharStr == NULL                  -> 0, ERROR_INVALID_PARAMETER
  *    4  cbMultiByte != 0 and lpMultiByteStr == NULL            -> 0, ERROR_INVALID_PARAMETER
  *    5  cbMultiByte != 0 and lpMultiByteStr == lpWideCharStr   -> 0, ERROR_INVALID_PARAMETER
- *       (EXACT POINTER EQUALITY. A merely OVERLAPPING destination is accepted -- proved.)
+ *       (Exact pointer equality. a merely overlapping destination is accepted -- proved.)
  *    6  cchWideChar < 0  -> scan for U+0000; the count becomes length+1, so the terminator is
  *       CONVERTED and counted. ANY negative value does this, not only -1 -- proved for -2,
  *       -1000 and INT_MIN.
@@ -26,7 +26,7 @@
  *                                  lpWideCharStr, (ULONG)(cchWideChar * 2))
  *       -- so cbMultiByte == 0 is the MEASURING MODE and the destination pointer is not read.
  *    9  status < 0   -> 0, and ERROR_INSUFFICIENT_BUFFER (122) if it was STATUS_BUFFER_TOO_SMALL,
- *                      else ERROR_INVALID_PARAMETER. THE PARTIAL OUTPUT STAYS IN THE BUFFER.
+ *                      else ERROR_INVALID_PARAMETER. The partial output stays in the buffer.
  *   10  produced == 0 -> the last error is SET TO 0. (Unreachable for CP_UTF8: cchWideChar != 0,
  *       so at least one character is converted and every character produces at least one byte.
  *       Modelled anyway because the shipped code has the branch.)
@@ -37,7 +37,7 @@
  *                    -> 0, ERROR_NO_UNICODE_TRANSLATION (1113) -- AFTER the conversion has already
  *                       written its U+FFFD bytes into the buffer. Proved.
  *   13  produced > INT_MAX -> 0, ERROR_INVALID_PARAMETER.
- *   14  otherwise -> (int)produced, AND THE LAST ERROR IS LEFT EXACTLY AS THE CALLER HAD IT.
+ *   14  otherwise -> (int)produced, and the last error is left exactly as the caller had it.
  *
  * lpDefaultChar is IGNORED for CP_UTF8 (again, checked only for CP_UTF7) -- proved.
  *

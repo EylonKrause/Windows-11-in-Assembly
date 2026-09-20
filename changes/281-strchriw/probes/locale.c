@@ -1,11 +1,11 @@
 /* changes/281-strchriw/probes/locale.c
  *
- * THE DECIDING QUESTION: IS StrChrIW's FOLD LOCALE-DEPENDENT?
+ * The deciding question: Is StrChrIW's fold locale-dependent?
  *
  * probes/foldtable.c took the relation straight from the export and it is far richer than any of
- * the earlier hypotheses: 59321 distinct classes, and a LARGEST CLASS OF 3237. Classes like
+ * the earlier hypotheses: 59321 distinct classes, and a largest class of 3237. Classes like
  *
- *     rep 0041 <- 0041 0061 1D2C 1D43        A, a, MODIFIER CAPITAL A, MODIFIER SMALL A
+ *     rep 0041 <- 0041 0061 1D2C 1D43        a, a, modifier capital a, modifier small a
  *     rep 004B <- 004B 006B 1D37 1D4F 212A   K, k, superscripts, KELVIN SIGN
  *
  * plus a single bucket of 3237 members, are the signature of CompareStringW with NORM_IGNORECASE

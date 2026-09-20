@@ -5,8 +5,8 @@
 //   032 strlen     033 strcmp     036 wcsspn    037 wcscspn   039 strspn
 //   040 strcspn    041 wcsncmp    044 _wcsnicmp 045 _strnicmp
 //
-// NOTHING IS PRINTED WHILE THE PATCH IS ON, and that is a safety requirement rather than tidiness.
-// Unlike every other harness here, this one patches primitives THE C RUNTIME ITSELF USES: `printf`
+// Nothing is printed while the patch is on, and that is a safety requirement rather than tidiness.
+// Unlike every other harness here, this one patches primitives the C runtime itself uses: `printf`
 // formats through code that calls `strlen`, so a printf between patch_on and patch_off would run
 // our assembly inside the CRT's own formatting path, on strings this corpus never chose, while the
 // process is mid-patch. The results of the patched pass are therefore accumulated in memory and
@@ -17,16 +17,16 @@
 // count must be AT LEAST the corpus size -- a smaller number would mean the corpus did not go
 // through us -- and for the eight functions the CRT does not call internally it must be exact.
 //
-// WHY THIS BATCH. An audit of live coverage found 135 of 270 LANDED changes with their export
+// Why this batch. An audit of live coverage found 135 of 270 Landed changes with their export
 // hot-patched and 135 without. These nine are the cleanest block in the uncovered half: pure
 // functions, no allocation, no tables, no locale state, and signatures the C library defines -- so
 // the oracle is the shipped export itself and the corpus needs no model.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ucrtbase -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE, and emit nothing while patched (see above).
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle, and emit nothing while patched (see above).
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_crtstr_live.bat
@@ -226,7 +226,7 @@ int main(void){
     printf("  [pre-patch]  %d cases x 9 primitives recorded from the SHIPPED exports\n", NCASE);
     fflush(stdout);
 
-    /* ---------- NOTHING IS PRINTED FROM HERE UNTIL THE RESTORE ---------- */
+    /* ---------- Nothing is printed from here until the restore ---------- */
     for(i=0;i<NFN;++i)
         if(!patch_on(&p[i], liveP[i], ours[i])){
             for(--i;i>=0;--i) patch_off(&p[i]);

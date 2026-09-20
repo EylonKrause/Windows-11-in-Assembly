@@ -1,6 +1,6 @@
 /* changes/272-convertstringsidtosida/probes/lasterror.c
  *
- * DOES A SUCCESSFUL PARSE ZERO THE LAST ERROR? AND DID CHANGE 269's GATE EVER ASK?
+ * Does a successful parse zero the last error? And did change 269's gate ever ask?
  *
  * This change's correctness gate reported 1106 mismatches on its first run, every one of them the
  * same shape:
@@ -12,7 +12,7 @@
  * concluded the opposite for ConvertStringSidToSidW, because its implementation does not touch the
  * last error on success and its gate agreed with the live export over 429776 cases.
  *
- * THE REASON THAT PROVES NOTHING IS THAT ITS GATE SET THE LAST ERROR TO ZERO BEFORE EVERY CALL:
+ * The reason that proves nothing is that its gate set the last error to zero before every call:
  *
  *     SetLastError(0); rb = wia_str2sid(s, &b); eb = GetLastError();
  *

@@ -8,13 +8,13 @@
 ; 2,000,000 cases):
 ;   * An EMPTY string returns NULL. That is the only NULL.
 ;   * Find the FIRST backslash. If the character after it is ALSO a backslash, advance exactly
-;     ONE more -- and only one. "a\\b" and "a\\\b" BOTH return index 3, which is 'b' in the
+;     ONE more -- and only one. "a\\b" and "a\\\b" both return index 3, which is 'b' in the
 ;     first case and a third backslash in the second. It is not "skip the whole run".
 ;   * Return one past that backslash.
 ;   * If there is NO backslash anywhere, return a pointer to the TERMINATOR -- not NULL.
 ;     ("abc" returns +3, "C:dir" returns +5.)
-;   * THE SEPARATOR IS EXACTLY U+005C. Swept over all 65535 code units, exactly one acts as a
-;     separator: a FORWARD SLASH DOES NOT. ("a/b" returns +3, the terminator.) That is the
+;   * The separator is exactly U+005C. Swept over all 65535 code units, exactly one acts as a
+;     separator: a forward slash does not. ("a/b" returns +3, the terminator.) That is the
 ;     sixth separator convention catalogued in this DLL, after changes 132, 138, 161, 167
 ;     and 171.
 ;

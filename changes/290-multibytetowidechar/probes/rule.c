@@ -1,6 +1,6 @@
 /* changes/290-multibytetowidechar/probes/rule.c
  *
- * STEP 4 OF THE PROCEDURE, RUN BEFORE A LINE OF ASSEMBLY EXISTED: reference.c against the LIVE
+ * Step 4 Of the procedure, run before a line of assembly existed: reference.c against the live
  * kernel32!MultiByteToWideChar, with no implementation in the picture at all.
  *
  * A reference that disagrees with the live export means the contract is wrong, and finding that

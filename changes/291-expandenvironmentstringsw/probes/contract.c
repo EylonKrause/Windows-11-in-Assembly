@@ -1,6 +1,6 @@
 /* changes/291-expandenvironmentstringsw/probes/contract.c
  *
- * THE CONTRACT PROBE. This ran BEFORE reference.c was written, and reference.c is a transcription
+ * The contract probe. This ran before reference.c was written, and reference.c is a transcription
  * of what it printed plus the disassembly it was checking. It exists because every one of the six
  * questions the task named is documented badly or not at all:
  *

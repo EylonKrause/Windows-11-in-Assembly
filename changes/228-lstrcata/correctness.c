@@ -2,8 +2,8 @@
 // Gate 1: wia_lstrcata must be indistinguishable from kernelbase!lstrcatA.
 // Three-way: our ASM + wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// THERE ARE THREE WAYS THIS FUNCTION CAN FAIL, NOT TWO, and each gets its own guard-page sweep.
-// lstrcat READS the destination before it writes it, so an UNTERMINATED DESTINATION is a distinct
+// There are three ways this function can fail, not two, and each gets its own guard-page sweep.
+// lstrcat reads the destination before it writes it, so an unterminated destination is a distinct
 // failure from a bad source or a short one -- and it is the one an implementation borrowed from
 // lstrcpy would never think to handle, because lstrcpy does not read its destination at all.
 //
@@ -41,7 +41,7 @@ static int same_ret(char* ra, char* da, char* rc, char* dc)
     return ra == da && rc == dc;
 }
 
-/* one ordinary three-way case: the return and the WHOLE destination */
+/* one ordinary three-way case: the return and the whole destination */
 static int chk(const char* dinit, const char* src, int dstoff, const char* what)
 {
     static char a[DSZ], b[DSZ], c[DSZ];
@@ -111,7 +111,7 @@ int main(void){
         }
     }
 
-    // ---- every byte value, in BOTH strings --------------------------------------------------------
+    // ---- every byte value, in both strings --------------------------------------------------------
     for (int v = 1; v < 256; ++v) {
         ds[0]='a'; ds[1]=(char)v; ds[2]='c'; ds[3]=0;
         chk(ds, "XY", 0, "byte value in the destination");
@@ -141,7 +141,7 @@ int main(void){
         CHECK(sys(0, 0) == 0,              "both NULL return NULL (live)");
     }
 
-    // ---- GUARD PAGE ON THE DESTINATION SCAN: unterminated, at every distance ----------------------
+    // ---- Guard page on the destination scan: unterminated, at every distance ----------------------
     // The failure lstrcpy does not have. An implementation whose scan reads one block too far comes
     // back NULL for a perfectly ordinary destination that happens to end near a page edge.
     {
@@ -177,7 +177,7 @@ int main(void){
         VirtualFree(bc, 0, MEM_RELEASE);
     }
 
-    // ---- GUARD PAGE ON THE SOURCE: unterminated, at every distance --------------------------------
+    // ---- Guard page on the source: unterminated, at every distance --------------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -202,7 +202,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- GUARD PAGE ON THE DESTINATION WRITE: too small for the append ----------------------------
+    // ---- Guard page on the destination write: too small for the append ----------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

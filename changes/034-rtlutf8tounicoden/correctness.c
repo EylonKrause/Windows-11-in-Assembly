@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours vs a scalar reference vs the LIVE ntdll export.
  *
- * THE RANDOM FUZZ BELOW IS NOT ENOUGH ON ITS OWN, and the five vector blocks added on 2026-09-16
+ * The random fuzz below is not enough on its own, and the five vector blocks added on 2026-09-16
  * are why. It draws each BYTE's class independently, so a run of sixteen bytes that is eight clean
  * two-byte sequences, or twenty-four bytes that are eight clean three-byte ones, happens by
  * accident or not at all -- eight consecutive well-formed two-byte sequences has a probability of
@@ -11,9 +11,9 @@
  *
  *   1. the original randomised fuzz, unchanged -- 200000 cases, every byte class mixed;
  *   2. RUNS: pure ASCII, pure two-byte, pure three-byte, pure four-byte, ASCII alternating with
- *      two-byte, and the U+FFFD sequence repeated, at EVERY length from 0 to 200, so that every
+ *      two-byte, and the U+FFFD sequence repeated, at every length from 0 to 200, so that every
  *      block boundary falls inside every run at some length;
- *   3. the same runs at EVERY destination capacity from 0 to 2x the length, because a block's room
+ *   3. the same runs at every destination capacity from 0 to 2x the length, because a block's room
  *      guard and the scalar overflow rule have to agree about where the output stops;
  *   4. each run with a MALFORMED byte planted in it -- a stray continuation, a truncated lead, an
  *      overlong form, an encoded surrogate -- which is what every block must refuse;
@@ -22,7 +22,7 @@
  *   6. the assembler-generated compaction table, checked against the same rule written in C.
  *   7. LONG subjects with malformed bytes in them -- added 2026-09-20, and the reason is below.
  *
- * WHAT (1) TO (6) COULD NOT EXPRESS, and why a variant passed all 327758 of them while being
+ * What (1) To (6) Could not express, and why a variant passed all 327758 of them while being
  * wrong. Every malformed subject above is at most 200 bytes and carries ONE planted byte, at
  * src[n/2]. A 64-byte block is a FULL block only when at least 64 source bytes still remain when
  * it is entered -- and with the spoil byte at the midpoint of a <=200-byte subject, the decoder
@@ -37,7 +37,7 @@
  * periods in subjects up to 800 bytes. This is change 288's lesson again: a corpus that cannot
  * express a case cannot fail on it, and passing it proves only its own reach.
  *
- * AND NOTHING MAY BE WRITTEN AT OR PAST THE CAPACITY. The old comparison stopped at
+ * And nothing may be written at or past the capacity. The old comparison stopped at
  * min(len, dstBytes) and the destination was a fixed array, so an implementation that wrote past
  * the capacity it was given wrote into slack that no assertion looked at -- an out-of-bounds write
  * into a caller's memory, which is the most serious kind of defect a converter can have and the
@@ -78,7 +78,7 @@ static void one(fn sys, const unsigned char* s, int n, ULONG dbytes){
     s2=wia_u82u(d2,dbytes,&l2,s,n);
     sr=ref_u82u(dr,dbytes,&lr,s,n);
     bad=(s1!=s2)||(s2!=sr)||(l1!=l2)||(l2!=lr);
-    /* THE WHOLE CAPACITY IS COMPARED, not just the units that were produced -- see the note in
+    /* The whole capacity is compared, not just the units that were produced -- see the note in
        change 016's correctness.c: a block that stores sixteen bytes and advances by fewer leaves
        zeros past the end of the string where ntdll leaves the caller's bytes alone. */
     cmp=dbytes<DB?dbytes:DB;
@@ -104,7 +104,7 @@ static int build(int kind, unsigned char* s, int n){
                            s[i++]=(unsigned char)(0x80+(i%0x40)); }
                 else s[i++]='z';
                 break;                                                            /* three-byte */
-        /* THE LEAD IS VARIED ACROSS F0..F3 ON PURPOSE. A run built only from 0xF0 leaves the
+        /* The lead is varied across F0..F3 on purpose. a run built only from 0xF0 leaves the
            lead's three payload bits at ZERO in every lane, so the shift that places them is
            unobservable -- the mutation that shifts by 17 instead of 18 passed a corpus that used
            0xF0 for every four-byte sequence. 0xF0's second byte must be 0x90 or above, because
@@ -208,7 +208,7 @@ int main(void){
                cases-before);
     }
 
-    /* LONG SUBJECTS WITH MALFORMED BYTES -- the shape sections 2 to 5 cannot express.
+    /* Long subjects with malformed bytes -- the shape sections 2 to 5 cannot express.
      *
      * A block is a FULL 64-byte block only when 64 or more source bytes still remain. Above, the
      * one planted byte always sits at the midpoint of a subject of at most 200 bytes, so the block
@@ -222,7 +222,7 @@ int main(void){
         static const int LEN[7]={65,100,128,200,300,512,800};
         int sp,pi,li,k,kd;
 
-        /* one bad byte at EVERY offset of a 300-byte subject, for each malformed class */
+        /* one bad byte at every offset of a 300-byte subject, for each malformed class */
         for(sp=0;sp<7 && failures<10;sp++){
             for(k=0;k<300;k++){
                 build(0,lsrc,300);
@@ -249,12 +249,12 @@ int main(void){
                "      at seven periods in lengths to 800: %ld cases\n", cases-before);
     }
 
-    /* THE SOURCE AT THE END OF A PAGE: no block may read past the bytes it was given.
+    /* The source at the end of a page: no block may read past the bytes it was given.
      *
      * A vector block reads more than it consumes -- the three-byte block reads 28 bytes to consume
      * 24, because its second half is loaded twelve bytes along and a 128-bit load is sixteen -- and
      * its guard is the only thing keeping that read inside the caller's buffer. With the source in
-     * a static array an over-read lands in slack and NOTHING notices: the mutation that changes
+     * a static array an over-read lands in slack and nothing notices: the mutation that changes
      * that guard from 28 to 24 produced identical output and passed every case above.
      *
      * So the source is placed so that its last byte is the last byte of a committed page, with the

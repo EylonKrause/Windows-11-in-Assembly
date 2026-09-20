@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # tools/vector-reentry-audit.py
 #
-# A STATIC SCREEN FOR CHANGE 263'S RULE, the way tools/abi-audit.py is one for the Win64 register
+# a static screen for change 263'S rule, the way tools/abi-audit.py is one for the Win64 register
 # contract:
 #
-#       A SCALAR WALK MUST NOT RE-ENTER A VECTOR LOOP.
+#       a scalar walk must not re-enter a vector loop.
 #
 # The shape is easy to write by accident and invisible to every other gate. A function with a vector
 # fast path and a scalar fallback is bit-exact either way and looks fine on a benchmark built from
@@ -22,9 +22,9 @@
 # hard part is remembering to look.
 #
 # ------------------------------------------------------------------------------------------------
-# WHAT IT LOOKS FOR, and what it deliberately does not report.
+# What it looks for, and what it deliberately does not report.
 #
-# A site is a `jmp L` where L is a VECTOR LOOP HEAD (a vector load or test within a dozen
+# a site is a `jmp L` where L is a vector loop head (a vector load or test within a dozen
 # instructions of the label) and the instruction immediately before the jump is a SINGLE-ELEMENT
 # ADVANCE (`inc r`, `add r, 1`, `add r, 2`) with no label in between.
 #
@@ -40,7 +40,7 @@
 #                returning to the vector path after one character IS the point -- it happens at most
 #                sixteen times per 4096 bytes. Recognised by a `and ..., 4095` / `cmp ..., 4064`
 #                guard near the loop head or the jump.
-#   SET-BUILD    the walk is over a DELIMITER SET -- strspn, strpbrk, strtok and their siblings --
+#   Set-build    the walk is over a delimiter set -- strspn, strpbrk, strtok and their siblings --
 #                one VPBROADCAST per set character into an accumulating mask. The step advances the
 #                set, not the subject string.
 #

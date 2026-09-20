@@ -6,7 +6,7 @@
  * corruption, not a missing write, and this locates it.
  *
  * The destination is placed in the middle of a large region pre-filled with a sentinel. After the
- * call every touched 8-byte word in the WHOLE region is reported, so a store below the buffer or
+ * call every touched 8-byte word in the whole region is reported, so a store below the buffer or
  * past its end shows up as an offset relative to dst.
  */
 #include <stdint.h>

@@ -1,6 +1,6 @@
 /* changes/280-rtllargeintegertochar/probes/contract.c
  *
- * THE 64-BIT FORMATTER'S CONTRACT, MEASURED ONE BYTE AT A TIME.
+ * The 64-BIT formatter's contract, measured one byte at a time.
  *
  * Change 279 established that RtlIntegerToChar's `length` is room in bytes with the terminator
  * written only if it fits, and that a NEGATIVE length is a zero-padded field width. Change 100 --
@@ -12,23 +12,23 @@
  * are different exports with different signatures and, as changes 067, 278 and 279 between them
  * showed, three formatters in one DLL can carry two different room rules.
  *
- *     NTSTATUS RtlLargeIntegerToChar(PLARGE_INTEGER value, ULONG base, LONG length, PSZ string)
+ *     NTSTATUS RtlLargeIntegerToChar(PLARGE_INTEGER value, ulong base, long length, psz string)
  *
  * THE QUESTIONS:
  *
- *   1. THE ROOM RULE, swept one byte at a time, AND WHETHER A TERMINATOR IS WRITTEN at exactly
+ *   1. The room rule, swept one byte at a time, and whether a terminator is written at exactly
  *      `length == digits`. 279's contract probe printed only twelve bytes and could not see the
  *      end of a nineteen-digit answer, so it could not answer this at all.
- *   2. IS A NEGATIVE LENGTH THE SAME ZERO-PADDED FIELD WIDTH? Every negative length, against a
+ *   2. Is a negative length the same zero-padded field width? Every negative length, against a
  *      guard page, exactly as 279's probes/negative.c did for the 32-bit form.
  *   3. IS INT_MIN the one negative length that refuses here too?
  *   4. SIGNEDNESS. `LARGE_INTEGER` is signed and 279's probe already says -1 prints as
  *      18446744073709551615, but the boundary at 2^63 is asked again here explicitly.
  *   5. THE BASES, and the longest answer in each -- which is what the digit-count tables must span.
- *   6. IS THE VALUE READ THROUGH THE POINTER MORE THAN ONCE? It is passed BY POINTER, unlike the
+ *   6. Is the value read through the pointer more than once? It is passed by pointer, unlike the
  *      32-bit form, so a caller could in principle observe a double read. This decides whether the
  *      implementation may re-read it.
- *   7. WHAT DOES A REFUSAL LEAVE in the buffer?
+ *   7. What does a refusal leave in the buffer?
  *
  * Nothing is asserted. Every line prints what the live export returned.
  */
@@ -44,7 +44,7 @@ static char buf[512];
 
 #define POISON '#'
 
-/* print the status and EVERY byte up to the first poison, plus the two bytes after it, so that the
+/* print the status and every byte up to the first poison, plus the two bytes after it, so that the
    presence or absence of a terminator at the end of a long answer is visible */
 static void show(const char* what, LONG st)
 {

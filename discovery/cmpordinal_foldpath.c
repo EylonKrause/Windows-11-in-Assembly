@@ -1,6 +1,6 @@
 /* discovery/cmpordinal_foldpath.c
  *
- * A ROW CAN BE NAMED FOR A PATH IT DOES NOT REACH.
+ * a row can be named for a path it does not reach.
  *
  * Change 210 (kernelbase!CompareStringOrdinal) benches its ignore-case mode in four rows, one of
  * them labelled "4000 Cyrillic, ci (table path)", and its bench.c says in as many words:
@@ -17,7 +17,7 @@
  * one on Cyrillic input, not the table path, and the fallback it exists to keep honest has never
  * been timed.
  *
- * THIS FILE TIMES IT, by comparing strings that differ. The classes are chosen so that each one
+ * This file times it, by comparing strings that differ. The classes are chosen so that each one
  * reaches a different tier, and the identical-string rows are kept alongside as the control that
  * reproduces the published figures:
  *

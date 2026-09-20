@@ -16,13 +16,13 @@
 ; permutation does not exist as work at all.
 ;
 ; ---------------------------------------------------------------------------------------------
-; WHERE THE BOUNDARY IS between "validate here" and "hand it to the engine" -- the whole design of
+; Where the boundary is between "validate here" and "hand it to the engine" -- the whole design of
 ; a Win32 wrapper over an NT routine, and the reason this file is not simply a call:
 ;
 ;     The engine's domain is Time >= 0. Change 126 (ntdll!RtlTimeToTimeFields, landed 1.73x)
 ;     records that ntdll's own output for a NEGATIVE Time is internally-overflowed garbage -- -1 day
 ;     comes back as year 29878 with a non-monotonic Weekday -- and deliberately does not reproduce
-;     it. The Win32 wrapper NEVER LETS THAT CASE REACH THE ENGINE: it tests the sign first and
+;     it. The Win32 wrapper never lets that case reach the engine: it tests the sign first and
 ;     fails. The one input class 126 left undefined is exactly the class this layer rejects, so the
 ;     two fit together with no gap and no overlap.
 ;
@@ -43,7 +43,7 @@
 ; the Hinnant port of this same wrapper ran 10.4-11.0 ns and this runs 8.3-8.7 ns on the same bench,
 ; against 37-45 ns for the shipped export. Both passed the same exhaustive gate.
 ;
-; EVERY CONSTANT DIVIDE IS A MULTIPLY-HIGH, and every magic number below was verified by
+; Every constant divide is a multiply-high, and every magic number below was verified by
 ; probes/magics.c over its operand's FULL natural range -- exhaustively where the range is
 ; enumerable, and at every quotient boundary (u = q*d and q*d-1, which is a proof and not a sample
 ; because floor(u/d) only steps at multiples of d) where it is not. The first version of that probe
@@ -55,14 +55,14 @@
 ;     SYSTEMTIME   wYear 0  wMonth 2  wDayOfWeek 4  wDay 6  wHour 8  wMinute 10  wSecond 12  wMs 14
 ;     TIME_FIELDS  Year  0  Month  2  Day        4  Hour 6  Minute 8  Second 10  Ms      12  Wkday 14
 ;
-; PAGE SAFETY: the only read is one 8-byte load of the caller's 8-byte FILETIME, so it touches
+; Page safety: the only read is one 8-byte load of the caller's 8-byte filetime, so it touches
 ; exactly the bytes the caller declared and cannot reach a page the structure does not occupy. The
 ; only writes are eight 2-byte stores inside the caller's 16-byte SYSTEMTIME -- deliberately not one
 ; 16-byte store -- so nothing is written past the logical end even when the structure ends at a page
 ; boundary, and nothing at all is written on the reject path. correctness.c proves both with a
 ; PAGE_NOACCESS page immediately after each.
 ;
-; REGISTERS: rax rcx rdx r8 r9 r10 r11 only. NOT ONE non-volatile register is touched, so there is
+; Registers: rax rcx rdx r8 r9 r10 r11 only. Not one non-volatile register is touched, so there is
 ; no prologue, no push and no pop on the fast path. Change 126 spilled rsi/rdi/r12/r13 for the same
 ; job; the four were recovered by emitting the calendar and the time-of-day blocks sequentially and
 ; letting them share five scratch registers -- register renaming removes the write-after-read

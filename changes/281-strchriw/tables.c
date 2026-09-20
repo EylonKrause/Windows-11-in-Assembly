@@ -1,29 +1,29 @@
 /* changes/281-strchriw/tables.c
  *
- * THE MATCH RELATION, INDEXED BY NEEDLE, AND CHECKED AGAINST THE LIVE EXPORT.
+ * The match relation, indexed by needle, and checked against the live export.
  *
  * shlwapi!StrChrIW's equality relation was characterised by six probes in this directory, and the
  * property that shapes this file is the one that took longest to find:
  *
  *     U+D7B0 matches U+D7A2.  U+D7B1 matches U+D7A2.  U+D7B0 does NOT match U+D7B1.
  *
- * THE RELATION IS SYMMETRIC BUT NOT TRANSITIVE. It is a tolerance relation, not an equivalence
+ * The relation is symmetric but not transitive. It is a tolerance relation, not an equivalence
  * relation, so it has NO CLASSES -- 168 intransitive triples -- and the earlier version of this
  * file, which grouped code units into classes, was wrong in a way the gate caught: 66 mismatches in
- * 206096, every one of them a case where OURS AGREED WITH LIVE and only the class model disagreed.
+ * 206096, every one of them a case where ours agreed with live and only the class model disagreed.
  *
- * What is well defined is the MATCH SET OF A FIXED NEEDLE, and that is all the implementation ever
+ * What is well defined is the match set of a fixed needle, and that is all the implementation ever
  * needs. probes/gentable3.c enumerated it for all 65535 needles -- scan, record, resume past the
  * hit, repeat -- and split it by size:
  *
  *     10549933 matching pairs in total
- *     56825 needles match ONLY THEMSELVES              -> nothing to store
+ *     56825 needles match only THEMSELVES              -> nothing to store
  *     5390 needles have 2..8 partners                  -> foldsets.c, inline
  *     3320 needles have more than 8, between them
- *       sharing only ELEVEN DISTINCT SETS              -> foldbig.c, as bitmaps
+ *       sharing only eleven distinct sets              -> foldbig.c, as bitmaps
  *         3237 members (the ignorables, headed by U+00AD), 238, and nine of 12..25
  *
- * THREE SHAPES COME OUT OF IT, matching the three paths in impl.asm:
+ * Three shapes come out of it, matching the three paths in impl.asm:
  *
  *   n[c] == 0     c matches only itself -- one broadcast, one compare per 16 code units
  *   n[c] <= 4     the members are in the pool -- four broadcasts, four compares
@@ -143,10 +143,10 @@ int wia_sci_init(void)
         wia_sci_bidx[needle] = (unsigned char)idx;
     }
 
-    /* 2b. THE COLUMN THIS RELATION WAS EXTRACTED WITHOUT.
+    /* 2b. The column this relation was extracted without.
      *
      * probes/gentable3.c searched a haystack holding every code unit 1..65535. It could not hold a
-     * NUL, because StrChrIW stops at the terminator -- so WHAT MATCHES CODE UNIT ZERO was
+     * NUL, because StrChrIW stops at the terminator -- so what matches code unit zero was
      * unreachable by construction, and the tables above say nothing about it. That is the same
      * failure as changes 097 and 100 and as this change's own probes/contract.c: a corpus that
      * could not express the case. The difference is where it sat -- in the EXTRACTION METHOD rather
@@ -189,7 +189,7 @@ int wia_sci_init(void)
         }
     }
 
-    /* 4. a deterministic spread of pairs, checked against the export in BOTH directions. This is
+    /* 4. a deterministic spread of pairs, checked against the export in both directions. This is
           the check that would catch a table claiming a match the export does not make -- the exact
           failure the class-based version had. */
     for (i = 0; i < 30000; ++i) {
@@ -208,7 +208,7 @@ int wia_sci_init(void)
     if (!wia_sci_match(0xD7B1, 0xD7A2)) return 14;
     if (wia_sci_match(0xD7B0, 0xD7B1)) return 15;           /* ...and its third leg must NOT hold */
     if (wia_sci_n[0x00AD] != 255) return 16;             /* the ignorables use a bitmap */
-    /* NEEDLE 0 MUST NOT REACH THE SINGLETON PATH. If it ever had a match set of one it would
+    /* Needle 0 Must not reach the singleton path. If it ever had a match set of one it would
        broadcast zero into the vector path and match the terminator, reporting the end of the string
        as a hit. It carries the ignorable set, so it takes the bitmap path -- but the implementation
        depends on that, so it is checked rather than assumed. */

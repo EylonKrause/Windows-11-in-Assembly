@@ -90,7 +90,7 @@ int main(void){
         CHECK(one(s,(size_t)len+1), "mixed-case sweep");
     }
 
-    // EVERY code unit, one character at a time -- pins the fold set to exactly a-z
+    // every code unit, one character at a time -- pins the fold set to exactly a-z
     for(int c=1;c<65536;c++){
         s[0]=(wchar_t)c; s[1]=0;
         CHECK(one(s,4), "fold-set sweep");

@@ -1,6 +1,6 @@
 /* changes/280-rtllargeintegertochar/probes/overrun.c
  *
- * WHAT HAPPENS WHEN A FIELD WIDTH IS LONGER THAN THE CALLER'S BUFFER.
+ * What happens when a field width is longer than the caller's buffer.
  *
  * probes/contract.c turned up something that needs pinning down before it can be written up. With
  * the buffer ending exactly at a guard page:
@@ -15,7 +15,7 @@
  * implementation that faults instead would differ from it in a way a caller could see.
  *
  * So: sweep the overrun distance from one byte to far past, printing for each whether the call
- * RETURNED a status or RAISED, and compare the shipped export against BOTH implementations -- the
+ * Returned a status or raised, and compare the shipped export against both implementations -- the
  * landed change 100 and this change's -- on identical setups.
  *
  * This regime is OUTSIDE the domain any gate here tests, because a field width longer than the

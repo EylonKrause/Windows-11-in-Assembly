@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/aliases.c
  *
- * THE TWO-LETTER ALIAS TABLE, BUILT FROM THE OS AND NEVER TRANSCRIBED.
+ * The two-letter alias table, built from the OS and never transcribed.
  *
  * `ConvertStringSidToSid` accepts two-character SDDL abbreviations as well as `S-R-I-S…` strings.
  * probes/limits.c enumerated every two-letter combination against the live export and found 66 of
@@ -15,7 +15,7 @@
  * it is built at run time by asking the export itself, the same way change 210 builds its upcase
  * table from `RtlUpcaseUnicodeChar` and change 267 builds its shift tables from the polynomial.
  *
- * IT IS ENUMERATED OVER PRINTABLE ASCII rather than over A-Z, because "the aliases are two letters"
+ * It is enumerated over printable ASCII rather than over a-z, because "the aliases are two letters"
  * is a claim about the documentation, not a measurement. 95 x 95 = 9025 combinations are asked; on
  * this machine exactly 66 answer, all of them alphabetic, and if a future Windows adds one with a
  * digit in it this table will have it without anyone noticing it needed to.
@@ -31,7 +31,7 @@
 
 #define ALO   0x20                 /* the first printable ASCII character */
 #define ALN   95                   /* how many of them */
-/* ALMAX WAS 255 AND THAT WAS NOT ENOUGH, which the self-check below caught on its first run.
+/* Almax was 255 And that was not enough, which the self-check below caught on its first run.
    There are 66 aliases, but they are matched CASE-INSENSITIVELY, so enumerating over printable
    ASCII finds each of them four times -- "BA", "Ba", "bA", "ba" -- and the table needs 264 entries,
    not 66. The index is a `short` for the same reason. This is exactly the kind of arithmetic that
@@ -112,7 +112,7 @@ void* wia_sid_alloc(unsigned long n)
 
 /* The two error codes, set through the API rather than poked into the TEB, because the TEB layout
    is not part of any contract this project is allowed to rely on. */
-/* A SUCCESSFUL CALL ZEROES THE LAST ERROR, and this line was missing until change 272's gate
+/* a successful call zeroes the last error, and this line was missing until change 272's gate
    found it. All four exports of the SID text family do it -- probes/lasterror.c there asks
    each of them from six starting values -- and this one was believed not to, because THIS
    change's gate set the last error to ZERO before every call:

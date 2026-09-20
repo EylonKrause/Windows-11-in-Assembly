@@ -25,12 +25,12 @@
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
 ; terminator is never a member. One mask of "set member OR terminator" therefore finds the stop for
-; the whole family in a single scan -- and because a NUL can never be a member, ONE TEST OF THE BYTE
-; AT THE STOP separates the two outcomes: a NUL means no member exists and the answer is NULL,
+; the whole family in a single scan -- and because a NUL can never be a member, one test of the byte
+; At the stop separates the two outcomes: a NUL means no member exists and the answer is NULL,
 ; anything else is the member itself.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT BITMAP in THE CALLER'S SHADOW SPACE -- which is 32 bytes, exactly the
+; The set becomes a 256-BIT bitmap in the caller's shadow space -- which is 32 bytes, exactly the
 ; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
 ; character sets bit b of that region: byte b>>3, bit b&7.
 ;
@@ -52,7 +52,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shrx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .const
 ALIGN 16

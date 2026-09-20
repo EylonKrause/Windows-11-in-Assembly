@@ -10,7 +10,7 @@
 ; Contract: change 188's wide/base crossing with change 113's 64-bit UNSIGNED tail, re-measured in
 ; probes/../190-wcstoi64/probes/wcstoi64.c rather than inherited:
 ;
-;   * the limit is 2^64-1 and DOES NOT MOVE WITH THE SIGN -- the opposite of change 190, where the
+;   * the limit is 2^64-1 and does not move with the sign -- the opposite of change 190, where the
 ;     sign-dependent limit is the whole point;
 ;   * a leading '-' is accepted and NEGATES MODULO 2^64, so "-1" -> 18446744073709551615 with
 ;     errno 0, and "-18446744073709551615" -> 1;
@@ -154,7 +154,7 @@ have_base:
         add       rsi, 4
 no_prefix:
 
-        ;================ the limit -- the same for BOTH signs here ================
+        ;================ the limit -- the same for both signs here ================
         mov       r12, 0FFFFFFFFFFFFFFFFh        ; 2^64-1: unlike 190, the sign does not move it,
                                                  ; so the two mul/add carries alone detect overflow
 
@@ -257,7 +257,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. IN: r10d = code unit. OUT: eax = 1 if it is a decimal digit with VALUE 0
+; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; ---------------------------------------------------------------------------
 is_zero:

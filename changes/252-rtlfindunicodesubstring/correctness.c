@@ -4,15 +4,15 @@
  * must agree on every case, and the answer compared is the OFFSET of the hit (or -1), not a raw
  * pointer, so a correct answer cannot hide behind a pointer that happens to be equal.
  *
- * THE STRUCTURE OF THIS FILE IS A RESPONSE TO HOW CHANGE 248 FAILED. There, 1,085,965 enumerated
+ * The structure of this file is a response to how change 248 Failed. There, 1,085,965 enumerated
  * cases passed in silence while the vectorised path was broken, because a six-character string
  * never reaches the vector path at all -- the enumeration proved the scalar tail and nothing else.
- * So the corpora here are split by WHICH PATH THEY REACH, and each section says which:
+ * So the corpora here are split by which path they reach, and each section says which:
  *
- *   1. EXHAUSTIVE, short             -- reaches ONLY the scalar tail (n-m < 15)
- *   2. THE VECTOR-LOOP BOUNDARY      -- every n-m from 0 to 40, which is where the loop turns on
+ *   1. EXHAUSTIVE, short             -- reaches only the scalar tail (n-m < 15)
+ *   2. The vector-loop boundary      -- every n-m from 0 to 40, which is where the loop turns on
  *   3. RANDOMISED, long              -- reaches the vector loop, with planted and absent needles
- *   4. THE FOLD, at the hard pairs   -- non-ASCII partners no ASCII fold brings together, AND
+ *   4. The fold, at the hard pairs   -- non-ASCII partners no ASCII fold brings together, and
  *                                      pairs the NT ordinal table deliberately does NOT merge
  *                                      (U+017F, U+0130/U+0131, U+00DF all upcase to themselves --
  *                                      the ordinal table is much narrower than Unicode case
@@ -78,7 +78,7 @@ int main(void)
 
     printf("== CORRECTNESS: RtlFindUnicodeSubstring (ours vs oracle vs LIVE ntdll) ==\n");
 
-    /* ---- 0. THE ASSUMPTION THE VECTOR FILTER RESTS ON, CHECKED ON THIS MACHINE'S OS. ----
+    /* ---- 0. The assumption the vector filter rests on, checked on this machine's OS. ----
      * The insensitive filter compares each haystack unit against the anchor's case class, and is
      * exact only because that class never holds more than two members. That is a property of a
      * table this code does not own, so it is verified at run time rather than trusted: a Windows
@@ -94,7 +94,7 @@ int main(void)
         }
     }
 
-    /* ---- 1. EXHAUSTIVE over a four-letter alphabet. SCALAR TAIL ONLY -- see the header. ---- */
+    /* ---- 1. Exhaustive over a four-letter alphabet. Scalar tail only -- see the header. ---- */
     {
         static const wchar_t A[4] = { L'a', L'A', L'b', L'B' };
         int hl, nl;
@@ -124,7 +124,7 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 2. THE VECTOR-LOOP BOUNDARY. The loop turns on at n-m >= 15, so walk across it. ---- */
+    /* ---- 2. The vector-loop boundary. The loop turns on at n-m >= 15, so walk across it. ---- */
     {
         long before = cases;
         int span, m, pos;
@@ -219,7 +219,7 @@ int main(void)
                     nb[0] = L'x'; nb[1] = P[i].b; nb[2] = L'y';
                     one(h, n, nb, 3, 0, P[i].what);
                     one(h, n, nb, 3, 1, P[i].what);
-                    /* and the pair as the needle's FIRST and LAST character, i.e. as an ANCHOR --
+                    /* and the pair as the needle's first and last character, i.e. as an anchor --
                        this is the case the vector filter has to be a superset for */
                     nb[0] = P[i].b; nb[1] = L'y'; nb[2] = P[i].b;
                     h[pos] = P[i].a; h[pos + 1] = L'y'; h[pos + 2] = P[i].a;

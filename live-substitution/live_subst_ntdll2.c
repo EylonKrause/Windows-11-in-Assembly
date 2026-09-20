@@ -9,11 +9,11 @@
 // compares the BOOL *and* the rewritten *lpi, not just the return value.
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
-//   (1) VALIDATE FIRST against the LIVE export over a fuzz corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither routine is used by the loader or heap.
+//   (1) Validate first against the live export over a fuzz corpus before any patch.
+//   (2) Patch only when idle: single-threaded, and neither routine is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.
 //
 // Build: build_ntdll2_live.bat

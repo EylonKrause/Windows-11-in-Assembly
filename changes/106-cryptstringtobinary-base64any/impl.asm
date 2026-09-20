@@ -1,6 +1,6 @@
 ; changes/106-cryptstringtobinary-base64any/impl.asm
-; BOOL wia_s2b_any(LPCSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                  DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2b_any(LPCSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                  Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64_ANY (0x6): if the input has a

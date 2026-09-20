@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/probes/basecarry.c
  *
- * THE BASE IS NOT PER-FIELD.
+ * The base is not per-field.
  *
  * probes/model.c, with both number parsers in place, was down to 1420 disagreements out of 36508
  * and every one of them had a HEXADECIMAL REVISION:

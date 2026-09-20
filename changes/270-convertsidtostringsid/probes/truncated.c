@@ -1,6 +1,6 @@
 /* changes/270-convertsidtostringsid/probes/truncated.c
  *
- * EXACTLY HOW MUCH OF A SID MUST BE READABLE, AND WHO TURNS A FAULT INTO A REFUSAL?
+ * Exactly how much of a SID must be readable, and who turns a fault into a refusal?
  *
  * probes/reads.c and probes/validate.c disagreed, and the disagreement is worth settling rather
  * than averaging:

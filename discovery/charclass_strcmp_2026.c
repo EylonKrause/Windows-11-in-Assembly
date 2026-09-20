@@ -1,18 +1,18 @@
 /* discovery/charclass_strcmp_2026.c
  *
- * ROUND TWO OF THE COVERAGE SWEEP: the families ntdll does not own.
+ * Round two of the coverage sweep: the families ntdll does not own.
  *
  * discovery/ntdll_uncovered_2026.c found ntdll's remaining Rtl* surface largely exhausted -- the
  * bitmap writers already run at memory bandwidth (8 KB in 54 ns), the size calculators are O(1) and
  * never scan at all, and the memory primitives are forwarders to the optimised CRT. One outlier:
  * RtlUpperChar at 4.98 ns against RtlUpcaseUnicodeChar at 0.98.
  *
- * That outlier is the clue this file follows. A SINGLE-CHARACTER OPERATION THAT COSTS FIVE
+ * That outlier is the clue this file follows. a single-character operation that costs five
  * NANOSECONDS is not doing a table lookup; it is going somewhere -- a locale, a code page, a
  * conversion. So: time every single-character classifier and converter Windows exports, and the
  * ordinal string comparisons in shlwapi, and see which ones are paying for a journey.
  *
- * A number here is only a REASON TO LOOK. Changes 005, 006 and 129 all parked against incumbents
+ * a number here is only a reason to look. Changes 005, 006 and 129 all parked against incumbents
  * that were already lean, and changes 274 and 276 parked because the entire measured cost was an OS
  * call this project does not own. A slow-looking function may be slow for a reason that cannot be
  * removed.

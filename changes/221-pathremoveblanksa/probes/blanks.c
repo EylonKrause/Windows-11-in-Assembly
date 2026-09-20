@@ -9,13 +9,13 @@
    void PathRemoveBlanksA(PSTR pszPath)   -- in place, and it MOVES the string.
 
    What has to be settled:
-     * WHAT COUNTS AS A BLANK? "Blanks" could mean 0x20 alone, or whitespace generally. Every byte
+     * What counts as a blank? "Blanks" could mean 0x20 alone, or whitespace generally. Every byte
        value gets asked, at the front and at the back, rather than assuming either.
      * leading only, trailing only, or both;
-     * a string made ENTIRELY of blanks;
+     * a string made entirely of blanks;
      * the empty string and NULL;
      * blanks in the MIDDLE, which must survive;
-     * and WHAT IT WRITES. Change 218 established for StrTrimA that the export writes only what it
+     * and what it writes. Change 218 established for StrTrimA that the export writes only what it
        must and that the ORDER of its writes is observable -- trimming both ends leaves TWO
        terminators behind. The same question is asked here, with the buffer poisoned and read back,
        because no return-value comparison can see it and this function returns nothing at all.

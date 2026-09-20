@@ -1,7 +1,7 @@
 // changes/223-pathundecoratea/reference.c
 // Independent oracle for shlwapi!PathUndecorateA -- the narrow sibling of change 174.
 //
-// THE RULE IS CHANGE 174'S, WITH THE CORRECTION 174 NEEDED. Four conjuncts, all re-derived against
+// The rule is change 174'S, with the correction 174 Needed. Four conjuncts, all re-derived against
 // the NARROW export in probes/undec.c and probes/bytes.c rather than inherited on the strength of
 // the names matching. The decoration "[n]" is removed only when ALL of these hold:
 //
@@ -13,11 +13,11 @@
 //           "a[1].b[2].c"  -> "a[1].b.c"   (the group before the LAST dot, not the first one)
 //           "a[1]x[2]"     -> "a[1]x"      (no dot, so the group before the end)
 //           "file[1]x.txt" -> unchanged    (nothing hugs the dot)
-//   (c) the contents are DECIMAL DIGITS, and there may be NONE: "file[].txt" -> "file.txt".
+//   (c) the contents are decimal digits, and there may be none: "file[].txt" -> "file.txt".
 //   (d) the '[' is NOT the first character of the component: "[1].txt" and "x\[1].txt" are left
 //       alone, "file[1].txt" and "x\a[1].txt" are not.
 //
-// THE SPACE IN (b) IS THE WHOLE REASON THIS CHANGE EXISTS IN THIS SHAPE. Change 174 shipped without
+// The space in (b) Is the whole reason this change exists in this shape. Change 174 shipped without
 // it -- it derived its rule over an alphabet with no space in it, so neither its fuzz nor its
 // live-substitution driver could see the gap -- and probes/space2.c found it while enumerating this
 // narrow export. Over every string of {'[', ']', '.', '0', SPACE, 'z'} of length 0..7:
@@ -28,7 +28,7 @@
 //
 // so the wide export was carrying it too, and change 174 was corrected in the same session.
 //
-// NOTE THE ASYMMETRY, because it is easy to get wrong: the SPACE bounds the EXTENSION search in (b),
+// Note the asymmetry, because it is easy to get wrong: the space bounds the extension search in (b),
 // but it does NOT start a new component for (d). "a b[1].txt" -> "a b.txt": the '[' is not the
 // component's first character even though a space precedes the name.
 //

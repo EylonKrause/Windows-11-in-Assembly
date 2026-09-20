@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlCompareUnicodeStrings.
  *
- * THE EXACT VALUE IS COMPARED, NOT THE SIGN. probes/contract.c showed the export returns the
+ * The exact value is compared, not the sign. probes/contract.c showed the export returns the
  * DIFFERENCE of the two characters -- -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
  * and an implementation returning -1/0/1 would satisfy every caller that writes `< 0` and every
  * test that only checked the sign. So every case below compares the LONG itself.
@@ -11,12 +11,12 @@
  *      every interesting region of the table, both flags.
  *   2. EXHAUSTIVE over the ASCII quarter: all 128 x 128 ordered pairs, both flags. This is the
  *      range the in-vector fold claims to reproduce, so it is enumerated rather than sampled.
- *   3. EVERY LENGTH AND EVERY DIFFERENCE POSITION around the block boundary -- 0..40 characters,
+ *   3. Every length and every difference position around the block boundary -- 0..40 characters,
  *      with the difference planted at each position and past the end, which is where a vector tail
  *      or a block boundary goes wrong.
  *   4. UNEQUAL LENGTHS with a common prefix: the answer is len1 - len2 and not a sign, at lengths
  *      that straddle the sixteen-character block.
- *   5. THE NON-ASCII FALLBACK: strings whose differing block contains a character at or above
+ *   5. The non-ascii fallback: strings whose differing block contains a character at or above
  *      0x80, so the block leaves the in-vector fold and goes through the table.
  *   6. A GUARD PAGE: both strings ending exactly at an inaccessible page, at every length.
  *   7. RANDOMISED over a mixed alphabet, both flags, unequal lengths.
@@ -206,7 +206,7 @@ int main(void)
                      : (mode == 2) ? (wchar_t)(r % 128)               /* all of ASCII */
                                    : (wchar_t)r;                      /* anything at all */
             }
-            /* ONE TRIAL IN THREE IS A COPY THAT IS EQUAL ALL THE WAY TO THE END, because that is
+            /* One trial in three is a copy that is equal all the way to the end, because that is
                the case that scans the WHOLE string -- the one the vector loop exists for, the one
                the headline bench row measures, and the one a corpus of random strings almost never
                produces. The first version of this corpus left the live export answering EQUAL on

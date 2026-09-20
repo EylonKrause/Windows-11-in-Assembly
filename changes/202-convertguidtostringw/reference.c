@@ -1,7 +1,7 @@
 // changes/202-convertguidtostringw/reference.c
 // The correctness oracle for iphlpapi!ConvertGuidToStringW. Not fast; just correct.
 //
-// WHY THIS FUNCTION IS SLOW, which is the whole reason it is here: it does not format the GUID.
+// Why this function is slow, which is the whole reason it is here: it does not format the GUID.
 // The disassembly spills the eleven GUID fields to the stack as varargs, loads the literal format
 // string "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}" and calls a StringCchPrintfW clone
 // that re-parses that format on every call and dispatches each conversion through a per-character

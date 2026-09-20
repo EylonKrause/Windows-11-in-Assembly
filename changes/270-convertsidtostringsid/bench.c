@@ -2,12 +2,12 @@
  *
  * Gate 2: time wia_sid2str against the live advapi32!ConvertSidToStringSidW.
  *
- * EVERY ROW ALLOCATES AND FREES, on both sides, because the contract returns a LocalAlloc block the
+ * Every row allocates and frees, on both sides, because the contract returns a LocalAlloc block the
  * caller frees and discovery/sid_inet_bstr.c measured that pair at 40.41 ns -- about a quarter of
  * the shipped export's 181 ns for a five-sub-authority SID. A row that leaked would measure the
  * allocator warming up; a row that skipped the free would measure a different allocator entirely.
  *
- * THE ROWS ARE THE SHAPES THE IMPLEMENTATION DISTINGUISHES, because this function has no size in
+ * The rows are the shapes the implementation distinguishes, because this function has no size in
  * the usual sense -- it has a COUNT, and a handful of paths a count does not reach:
  *
  *   0, 1, 2, 5, 8, 15    the per-number cost, which is what change 067's rewrite changed
@@ -16,7 +16,7 @@
  *   two refusals         a bad revision and a count above 15, which a caller hits as often as the
  *                        succeeding case and which no "how fast does it format" row measures
  *
- * EVERY ROW IS PRE-FLIGHTED against a per-row table of what the live export must return. A row
+ * Every row is pre-flighted against a per-row table of what the live export must return. a row
  * named for a path it does not reach is timing something else under that name -- change 210 shipped
  * one, and so did change 269's first bench.
  */

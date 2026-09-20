@@ -5,7 +5,7 @@
  * RtlFindLongestRunClear (RVA 0x0E3240) is nine instructions around
  * RtlFindClearRuns(bitmap, buf, 1, TRUE).
  *
- * WHY IT IS WORTH ITS OWN CHANGE. discovery/ntdll_bitmap.c measured the same call EIGHTY TIMES APART
+ * Why it is worth its own change. discovery/ntdll_bitmap.c measured the same call eighty times apart
  * depending on one BOOLEAN:
  *
  *       RtlFindClearRuns 64, UNSORTED, sparse       144.83 ns   -- stops when the array fills
@@ -18,24 +18,24 @@
  * 255's, and change 255's machinery -- the per-word scan with the bounded `x &= x >> 1` search and
  * the two vector skips -- applies directly.
  *
- * WHAT HAS TO BE PINNED, because "up to N runs, optionally sorted" leaves a great deal unsaid:
+ * What has to be pinned, because "up to N runs, optionally sorted" leaves a great deal unsaid:
  *
- *   1. THE SHAPE OF THE ARRAY. RtlFindLongestRunClear reads [rsp+0x40] as the start and [rsp+0x44]
+ *   1. The shape of the array. RtlFindLongestRunClear reads [rsp+0x40] as the start and [rsp+0x44]
  *      as the length, so the entry is two ULONGs -- but which order, and is it really two?
- *   2. SORTED BY WHAT, AND WHICH WAY? Length descending is the obvious reading. What breaks a tie
+ *   2. Sorted by what, and which way? Length descending is the obvious reading. What breaks a tie
  *      between two runs of equal length -- the earlier one, or the later?
- *   3. WHEN THE ARRAY IS SMALLER THAN THE NUMBER OF RUNS, does the UNSORTED form return the FIRST
+ *   3. When the array is smaller than the number of runs, does the unsorted form return the first
  *      runs or an arbitrary subset? And does the sorted form return the longest N in order?
- *   4. THE DEGENERATE CASES: SizeOfRunArray = 0, a bitmap with no clear bits at all, and a bitmap
+ *   4. The degenerate cases: SizeOfRunArray = 0, a bitmap with no clear bits at all, and a bitmap
  *      that is entirely clear.
  *
  * ------------------------------------------------------------------------------------------------
  * A CORRECTION, 2026-09-16. This probe concluded from section 3 that the UNSORTED form "returns the
- * FIRST runs found, in order". The first half is right and THE SECOND HALF IS WRONG: the order runs
+ * First runs found, in order". The first half is right and the second half is wrong: the order runs
  * are found in is not left to right. Every run in section 3 sits in a byte of its own, which is the
  * one arrangement where the two orders agree, so the rows below are all true and the conclusion
  * drawn from them was not. The correctness corpus caught it; probes/enumorder.c pins the real rule
- * -- a byte at a time, the carried run first, then the byte's INTERIOR runs LONGEST FIRST -- against
+ * -- a byte at a time, the carried run first, then the byte's interior runs longest first -- against
  * the live export over 1,567,328 cases. The rows printed here are left exactly as they were.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -132,7 +132,7 @@ int main(void)
         show("entirely clear, cap 4", &bm, 4, TRUE);
         allset();
         crun(500, 6);
-        /* SizeOfRunArray = 0 WITH A RUN PRESENT CRASHES THE SHIPPED EXPORT. With no clear bits at
+        /* SizeOfRunArray = 0 With a run present crashes the shipped export. With no clear bits at
            all it returns 0 quite happily (the row above), so the zero capacity is not rejected --
            it is simply not survived once there is something to report. Verified by this probe
            faulting here with an access violation; the case is therefore excluded from every corpus,

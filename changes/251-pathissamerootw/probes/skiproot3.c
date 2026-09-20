@@ -9,7 +9,7 @@
  *   - s[0..1] separators, s[2] == '?' -> 0x2B4CD, a case-insensitive 5-character compare of
  *       s[3..7] against "\UNC\"; on a match, the UNC walk from index 8.
  *
- * What is not settled is what happens when that "\UNC\" compare FAILS. Empirically "\\?\C:" is 6,
+ * What is not settled is what happens when that "\unc\" compare fails. Empirically "\\?\c:" is 6,
  * "\\?\a" is an error, and "\\?\Volume{...}\" is 49 -- so it is neither "always the drive rule" nor
  * "fall back to the plain UNC walk". This dumps the family so the rule can be read.
  */

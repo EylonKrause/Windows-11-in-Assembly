@@ -1,6 +1,6 @@
-/* PathRemoveArgsW round 2 -- show EXACTLY which cells are written, and pin the quote rule.
+/* PathRemoveArgsW round 2 -- show exactly which cells are written, and pin the quote rule.
    Round 1 showed two things a simple "terminate at the first unquoted space" cannot explain:
-     * "prog.exe  arg" comes back with NULs at BOTH spaces, not one;
+     * "prog.exe  arg" comes back with NULs at both spaces, not one;
      * "\"a b.exe" (unterminated quote) is protected, but "\" " is not.
    Build: cl /nologo /O2 pra2.c && pra2.exe
 */

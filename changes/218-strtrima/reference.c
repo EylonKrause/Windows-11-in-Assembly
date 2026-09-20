@@ -4,16 +4,16 @@
 // The contract, measured in probes/trim.c against the live export:
 //   * byte-wise on this code page -- 0 of 254 byte values act as a DBCS lead byte after a trimmed
 //     prefix, and 0 of 255 fail when used AS the trim character (ACP is 1252);
-//   * BOTH ends are trimmed; trim characters in the MIDDLE are left alone;
+//   * both ends are trimmed; trim characters in the MIDDLE are left alone;
 //   * the return is TRUE exactly when something was stripped;
 //   * an all-trim string becomes empty and returns TRUE; an EMPTY source returns FALSE; an EMPTY set
 //     returns FALSE and touches nothing; a NULL set returns FALSE and touches nothing; a NULL source
 //     returns FALSE;
-//   * IT WRITES ONLY WHAT IT MUST. The probe poisoned the bytes past the terminator and read them
+//   * It writes only what it must. The probe poisoned the bytes past the terminator and read them
 //     back: "abc" trimmed of 'x' leaves the buffer completely untouched, "abcxx" gets exactly one
 //     byte written (the new terminator) with the old 'x' and old terminator still in place, and
 //     "xxabc" moves four bytes down and leaves the rest. Nothing is padded and nothing is cleared,
-//     which is why correctness.c compares the WHOLE buffer rather than the resulting string.
+//     which is why correctness.c compares the whole buffer rather than the resulting string.
 #include <windows.h>
 
 int ref_strtrima(char* s, const char* set)
@@ -42,7 +42,7 @@ int ref_strtrima(char* s, const char* set)
         if (!in) break;
     }
 
-    /* THE ORDER OF THE TWO WRITES IS OBSERVABLE, and probes/diag.c caught it. The export
+    /* The order of the two writes is observable, and probes/diag.c caught it. The export
        terminates the TRAILING end first and only then moves the leading end down, so on
        "xxabcxx" trimmed of 'x' the buffer ends up
            a b c \0 c \0 x \0

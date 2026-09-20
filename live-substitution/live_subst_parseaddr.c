@@ -7,28 +7,28 @@
 //   119 RtlEthernetStringToAddressA  120 RtlEthernetStringToAddressW
 //   121 RtlIpv6StringToAddressA      122 RtlIpv6StringToAddressExA
 //
-// THE TERMINATOR POINTER IS WHY THIS FAMILY IS WORTH A HARNESS. Five of these write a `Terminator`
+// The terminator pointer is why this family is worth a harness. Five of these write a `Terminator`
 // out-parameter pointing at the first character they did not consume, and a parser can return the
 // right NTSTATUS and the right address while stopping in the wrong place. That is the same shape as
 // the defect this directory found in 059/061 -- correct answer, correct return value, wrong byte --
 // and nothing but an explicit comparison catches it. It is compared as an OFFSET from the start of
 // the subject, because the same logical answer has different addresses in different runs.
 //
-// MALFORMED INPUT IS IN SCOPE HERE, unlike the crypt32 decoders. These changes document their
+// Malformed input is in scope here, unlike the crypt32 decoders. These changes document their
 // refusal behaviour rather than declining it -- change 119's header spells out a "terminator quirk"
 // for a separator where a hex digit was expected, and 121's cites a whole rule catalogue for
 // octal/overflow terminator quirks -- so the corpus damages inputs deliberately and those cases
 // count towards the verdict.
 //
-// EVERY OUTPUT BYTE IS COMPARED, not just the ones the call should have written: the address
+// Every output byte is compared, not just the ones the call should have written: the address
 // buffers are poisoned first, so a parser that fills sixteen bytes where the export fills four, or
 // that writes an address on a path that fails, is visible.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these eight is used by the loader or the heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these eight is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_parseaddr_live.bat
@@ -217,7 +217,7 @@ static void run_all(ans_t* out){
     }
 }
 
-/* AN UNRESOLVED FINDING, COUNTED APART AND PRINTED ON EVERY RUN.
+/* An unresolved finding, counted apart and printed on every run.
  *
  * On a FAILED parse the two IPv6 entries disagree about the caller's address buffer, in the
  * opposite direction to the Ethernet pair: the SHIPPED export writes partial data and these

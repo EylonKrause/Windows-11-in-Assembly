@@ -2,7 +2,7 @@
  *
  * TIME the top of the desktop and startup fan-in lists, so a candidate can become a target.
  *
- * WHY THIS FILE EXISTS
+ * Why this file exists
  * --------------------
  * tools/desktop-surface.py answers "what does the shell and the boot path actually bind, ranked by
  * how many of their own modules bind it". That is a pervasiveness signal, and pervasiveness is not
@@ -17,7 +17,7 @@
  * where the function is length-driven, ns per byte at a long row -- because a function that is flat
  * in its input is answering from its head and its ceiling is call overhead, not throughput.
  *
- * WHAT IS DELIBERATELY NOT HERE
+ * What is deliberately not here
  * -----------------------------
  *   memset / memcpy / memcmp / memmove  rank 36/38/42/44 by desktop fan-in and are already
  *                                       documented in image/KEEP-AS-IS.md or PARKED. The sweep

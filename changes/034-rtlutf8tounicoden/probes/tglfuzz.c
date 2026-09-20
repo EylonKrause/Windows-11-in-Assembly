@@ -1,16 +1,16 @@
 /* changes/034-rtlutf8tounicoden/probes/tglfuzz.c
  *
- * THE EXTRA GATE impl_tgl.asm NEEDS AND correctness.c DOES NOT PROVIDE.
+ * The extra gate impl_tgl.asm needs and correctness.c does not provide.
  *
  * correctness.c is the parent's gate and is used unmodified, which is the point of a variant. But
  * it was written for the AVX2 file, and two of its properties stop it from being a sufficient gate
  * for this one:
  *
- *   1. ITS LENGTHS ARE SHORT. The random fuzz draws n < 200 and the run corpora go to 200. The new
+ *   1. Its lengths are short. The random fuzz draws n < 200 and the run corpora go to 200. The new
  *      block reads 64 bytes at a time and loops its decoder over every sixteen subparts, so the
  *      second, third and fourth passes of that loop, and the case where one 64-byte block does not
  *      contain the whole string, barely occur. This file runs to 8192 bytes.
- *   2. ITS MALFORMED INPUT IS EITHER RANDOM OR A SINGLE PLANTED BYTE. The AVX2 file REFUSED every
+ *   2. Its malformed input is either random or a single planted byte. The AVX2 file refused every
  *      malformed block and let a scalar decoder handle it, so that was enough. This one implements
  *      the maximal-subpart rule itself, in mask arithmetic -- which byte a sequence swallows, where
  *      an out-of-range second byte stops it, and that an invalid lead swallows nothing. Every one
@@ -18,7 +18,7 @@
  *      offset relative to a 64-byte boundary, because the rule is computed with shifts across a
  *      64-bit mask and a bit that falls off the end of that word is a real failure mode.
  *
- * AND A DESTINATION GUARD PAGE. correctness.c proves nothing is written past the capacity, by
+ * And a destination guard page. correctness.c proves nothing is written past the capacity, by
  * filling and re-checking. It cannot prove nothing is ATTEMPTED past it, and this implementation
  * writes with 512-bit masked stores whose address is computed past the end of what they write.
  * Masked stores must not fault on their masked-off elements; if that reasoning is wrong, only a
@@ -152,7 +152,7 @@ int main(void)
     }
     printf("  well-formed mixtures of all four widths, to %d bytes: %lld cases\n", MAXN, cases);
 
-    /* 2. EVERY malformed class, planted at EVERY offset relative to a 64-byte boundary, in text
+    /* 2. every malformed class, planted at every offset relative to a 64-byte boundary, in text
           that is otherwise well formed. This is the one the mask shifts can get wrong. */
     {
         long long before = cases;
@@ -208,7 +208,7 @@ int main(void)
                cases - before);
     }
 
-    /* 5. THE DESTINATION AGAINST A NO-ACCESS PAGE. 512-bit masked stores compute an address past
+    /* 5. The destination against a no-access page. 512-bit masked stores compute an address past
           what they write; if a masked-off element could fault, this is where it shows. */
     {
         SYSTEM_INFO si;

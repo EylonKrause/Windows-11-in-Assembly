@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 287 (kernelbase!GetStringTypeW).
+Rem  live-run proof for change 287 (kernelbase!GetStringTypeW).
 REM
 REM  The shipped export costs 421.05 ns for 511 code units, measured by
 REM  discovery/uncovered_2026b.c -- the most expensive uncovered export in that
@@ -13,7 +13,7 @@ REM  alone, all three info types) and LOCALE-INVARIANT (the whole CT_CTYPE1 tabl
 REM  rebuilt under seven thread locales, 0 entries different). Either failing would
 REM  have killed the change the way collation killed changes 274 and 276.
 REM
-REM  ONE HAZARD IS SPECIFIC TO THIS CHANGE: our tables are DERIVED from the live
+Rem  one hazard is specific to this change: our tables are derived from the live
 REM  export, so the harness builds and asserts them BEFORE installing the patch.
 REM  Deriving them through our own replacement would make the gate compare us
 REM  against ourselves, which is the most comfortable way to pass and proves

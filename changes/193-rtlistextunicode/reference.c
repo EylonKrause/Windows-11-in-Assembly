@@ -24,7 +24,7 @@
 //   crlf  += 1 when lo==0x0D and the PREVIOUS unit's hi==0x0A (or 0x0A / 0x0D)
 //   hi_var += |hi - prev_hi| ; lo_var += |lo - prev_lo|    both prev's start at 0
 //
-//   after the loop, one MORE crlf test using the LAST unit's OWN bytes, then:
+//   after the loop, one more crlf test using the last unit's own bytes, then:
 //     if last_hi != 0 { zc = zero; if (last_hi == 0x1A) crlf++; } else zc = zero - 1;
 //   (the last HIGH byte -- the loop-exit block overwrites the prev_lo slot with the prev_hi one.
 //    Reading it as the low byte cost 84090 mismatches of 3 000 000, all in NULL_BYTES.)
@@ -42,7 +42,7 @@
 //                                                     minimised to 19 x 'a' followed by one 0x1A.
 //   ODD_LENGTH       iff len is odd
 //   NULL_BYTES       iff zc != 0
-//   SIGNATURE / REVERSE_SIGNATURE  from the FIRST unit being U+FEFF / U+FFFE
+//   Signature / REVERSE_SIGNATURE  from the first unit being u+feff / u+fffe
 //
 //   if (lpi) { *lpi &= flags; flags = *lpi; }      <- the BOOL is computed from the MASKED value
 //   BOOL: (f & 0xB08) == 8 -> TRUE

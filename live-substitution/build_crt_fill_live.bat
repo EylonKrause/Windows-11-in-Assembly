@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 182-185 (_strset_s, _wcsset_s, _strnset_s, _wcsnset_s).
-REM  /MD is REQUIRED: with the default static CRT this exe would carry its OWN
+Rem  live-run proof for changes 182-185 (_strset_s, _wcsset_s, _strnset_s, _wcsnset_s).
+Rem  /md is required: with the default static CRT this exe would carry its own
 REM  invalid-parameter handler state, so the live exports and our assembly (which
 REM  calls ucrtbase's _invalid_parameter_noinfo) would consult two different
 REM  handlers -- the static one is unset, so the live export __fastfails the

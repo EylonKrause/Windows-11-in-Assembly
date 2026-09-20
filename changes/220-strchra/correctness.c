@@ -3,10 +3,10 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// TWO THINGS DRIVE THE SHAPE.
+// Two things drive the shape.
 //
 // 1. The first load is aligned DOWN and the leading bits are cleared rather than shifted out, so
-//    every case runs at EVERY start offset within a 32-byte block -- and with COPIES OF THE TARGET
+//    every case runs at every start offset within a 32-byte block -- and with copies of the target
 //    planted in front of the string, since that is what a mis-cleared first mask would find.
 // 2. Every byte value has to be proved as the target, including 0x80..0xFF, which are ordinary
 //    characters on code page 1252 and which a signed compare would get wrong.

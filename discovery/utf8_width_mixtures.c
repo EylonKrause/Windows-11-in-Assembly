@@ -1,15 +1,15 @@
 /* discovery/utf8_width_mixtures.c
  *
- * CHANGE 034 IS FAST ONLY ON HOMOGENEOUS INPUT, AND ITS BENCH CANNOT SEE THAT.
+ * Change 034 Is fast only on homogeneous input, and its bench cannot see that.
  *
  * This is the same defect as discovery/utf8_nonascii_rows.c found, recurring one level deeper.
  *
- * That file established that changes 016 and 034 were benched on ASCII ONLY and published geomeans that
+ * That file established that changes 016 and 034 were benched on ASCII only and published geomeans that
  * did not hold for the bytes above 0x7F -- the entire reason UTF-8 exists. Both were fixed, and 034 now
  * benches six classes: ASCII, 2-byte, 3-byte, 4-byte, "mixed", and U+FFFD, at four lengths each, for a
  * published geomean of 3.986x with every row BETTER.
  *
- * FIVE OF THOSE SIX CLASSES ARE HOMOGENEOUS -- every character the same width -- and the sixth, "mixed",
+ * Five of those six classes are homogeneous -- every character the same width -- and the sixth, "mixed",
  * is documented in its own bench.c as "ASCII alternating with two-byte", which is exactly the case 034's
  * `mix16` block was written for. So the bench covers each width on its own, plus the one mixture that has
  * a kernel, and nothing else.
@@ -25,21 +25,21 @@
  * out, because a row that silently converted nothing would otherwise look like the fastest row here.
  *
  * ------------------------------------------------------------------------------------------------------
- * WHAT CAUSES IT -- AND A CORRECTION TO MY FIRST EXPLANATION.
+ * What causes it -- and a correction to my first explanation.
  *
  * The commit that added this file said the cost was "about six vector probes per character": the ASCII16,
  * ASCII8, mix16, mix8 and kernel probes all failing, then one scalar character, then the ladder again.
- * THAT IS WRONG, and reading further into impl.asm is what shows it. `scalar_win` sets a watermark:
+ * That is wrong, and reading further into impl.asm is what shows it. `scalar_win` sets a watermark:
  *
  *      scalar_win:
  *              lea       eax, [r14 + 32]
  *              mov       dword ptr [rsp + 8], eax      ; decode this far before probing again
  *
  * and `scalar_next` honours it, staying in the scalar decoder until the source index passes that mark
- * before returning to `mainloop`. So the ladder is paid roughly ONCE PER 32 BYTES, not once per
+ * before returning to `mainloop`. So the ladder is paid roughly once per 32 Bytes, not once per
  * character, and repeated probing is not where the time goes.
  *
- * The time goes into THE SCALAR DECODER ITSELF, which on mixed-width input handles essentially every
+ * The time goes into the scalar decoder itself, which on mixed-width input handles essentially every
  * character. Per character it derives the expected length with a cascade of compares, then sets up the
  * byte-2 lo/hi range with another cascade (E0 raises lo to A0, ED lowers hi to 9F, F0 raises lo to 90,
  * F4 lowers hi to 8F), then walks the continuation bytes in a loop, then assembles the code point and

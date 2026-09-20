@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlFindLongestRunClear.
  *
- * THE SUBJECT MATTERS MORE HERE THAN IN ANY OTHER BENCHMARK IN THIS PROJECT, because the cost of a
+ * The subject matters more here than in any other benchmark in this project, because the cost of a
  * run search depends on the bitmap's SHAPE and not only its size, and the two are easy to confuse.
  * discovery/ntdll_bitmap.c established that the shipped code's cost is NOT per-run -- eight runs
  * cost 8423 ns and two hundred cost 8689 -- so it is a fixed per-bit scan. Ours is not: it is
@@ -20,7 +20,7 @@
  *                     This is the worst case for the approach and it is measured.
  *   all clear      -- one run covering everything; every word takes the all-zero fast path.
  *
- * EVERY ROW STATES WHAT IT FOUND before the table -- the length and the start index ours and the
+ * Every row states what it found before the table -- the length and the start index ours and the
  * live export agreed on. A run search whose answer is not what the row's name implies would still
  * produce a plausible time.
  */

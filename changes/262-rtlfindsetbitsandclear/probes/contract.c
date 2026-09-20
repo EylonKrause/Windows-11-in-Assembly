@@ -1,8 +1,8 @@
 /* changes/262-rtlfindsetbitsandclear/probes/contract.c
  *
- * WHAT DO ntdll!RtlFindSetBitsAndClear AND ntdll!RtlFindClearBitsAndSet ACTUALLY DO?
+ * What do ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet actually do?
  *
- * They are a SEARCH AND A MUTATION in one call, and the mutation is the half that has no analogue
+ * They are a search and a mutation in one call, and the mutation is the half that has no analogue
  * anywhere else in this project so far. Change 256 established the search half for the pure
  * RtlFindSetBits / RtlFindClearBits pair -- it wraps, a run straddling the wrap point does not
  * count, a hint past the end is treated as zero, N = 0 returns the hint rounded down to a multiple
@@ -12,10 +12,10 @@
  *
  *   * does a NOT-FOUND call leave the bitmap completely alone?
  *   * does N = 0 mutate anything at the hint it returns?
- *   * are EXACTLY N bits changed, or the whole run the search found?
+ *   * are exactly N bits changed, or the whole run the search found?
  *   * is the mutation done even when the answer is the wrap-around one?
  *
- * EVERY QUESTION HERE IS ASKED AGAINST A POISONED, FULLY RECORDED BUFFER and answered by diffing
+ * Every question here is asked against a poisoned, fully recorded buffer and answered by diffing
  * the whole buffer afterwards, not by spot-checking the bits we expect to have changed. A function
  * that cleared one bit too many somewhere else in the bitmap would pass any check that only looked
  * where it was told to look.

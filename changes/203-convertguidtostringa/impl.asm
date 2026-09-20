@@ -1,5 +1,5 @@
 ; changes/203-convertguidtostringa/impl.asm
-; DWORD wia_ConvertGuidToStringA(const GUID* Guid, PSTR String, DWORD StringLenInChars)
+; Dword wia_ConvertGuidToStringA(const guid* Guid, pstr String, dword StringLenInChars)
 ;   [rcx, rdx, r8d -> eax]
 ;
 ; The narrow sibling of change 202, and it has the same cause: iphlpapi!ConvertGuidToStringA does
@@ -8,7 +8,7 @@
 ; and hands it to a StringCchPrintfA clone that re-parses that format on every call. Measured at
 ; 263 ns per call on this machine to write 38 characters.
 ;
-; CONTRACT -- MEASURED, NOT INHERITED FROM 202. This is a separate export, and this project has
+; Contract -- measured, not inherited from 202. This is a separate export, and this project has
 ; found A/W pairs carrying different conventions before, so probes/cgsa.c drove both exports over
 ; 200 000 random (GUID, length) pairs and compared character for character: 0 return-value
 ; differences, 0 buffer differences. The narrow contract is the wide one with byte cells:
@@ -31,7 +31,7 @@
 ; and the separators never take part: a 39-byte template is stored first and the five runs of hex
 ; are written over its placeholder digits.
 ;
-; ONLY xmm0-xmm5 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2 (VEX-encoded SSE would do; the ymm template store is the only 256-bit op).
 

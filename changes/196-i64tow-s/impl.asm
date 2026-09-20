@@ -7,11 +7,11 @@
 ;
 ; The contract is change 194's, and that is a MEASUREMENT rather than an inheritance: the probe in
 ; ../194-i64toa-s/probes/its.c ran the byte and wide forms side by side over 200 000 random
-; (value, size, radix) triples and compared them CHARACTER FOR CHARACTER, including the untouched
+; (value, size, radix) triples and compared them character for character, including the untouched
 ; cells past the terminator -- 0 differences. So every rule change 194 read out of the shipped
 ; disassembly holds here:
 ;
-;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), NOTHING written;
+;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
 ;   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation;
 ;   * SizeInChars <= negative + 1 -> ERANGE (34) before a single digit is emitted;
 ;   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0;

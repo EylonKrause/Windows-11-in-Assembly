@@ -6,12 +6,12 @@
 ; bytes), same Windows-lenient stop rules and idiosyncratic *Terminator, but over UTF-16 units --
 ; and one rule that has no ANSI counterpart at all.
 ;
-; THE STRUCTURE SCAN IS ASCII-ONLY. Every character test below compares the FULL 16-bit unit, and
+; The structure scan is ascii-only. Every character test below compares the full 16-bit unit, and
 ; the 256-entry hex table is indexed only after an explicit < 256 gate: there is no low-byte
 ; aliasing (U+0141 is not 'A', U+013A is not ':'). That reproduces the live export exactly for the
 ; separators, the group count `seen`, the octet digit count `nd` and *Terminator.
 ;
-; THE VALUE IS NOT WHAT THE SCAN ACCUMULATED. It is a RE-PARSE of the token from its start by a
+; The value is not what the scan accumulated. It is a re-parse of the token from its start by a
 ; number helper that is happy to run past where the scan gave up. That helper (shared with the ANSI
 ; routine -- see change 121, which this work corrected) honours a "0x"/"0X" prefix and accumulates
 ; in 32 bits, saturating to 0FFFFh the moment a shift would overflow. On the wide side it ALSO
@@ -335,7 +335,7 @@ al_tpover:
 al_colonp:
         test      r12, r12
         jz        al_check
-        ; --- NOTHING AFTER THE "::" IS THE WHOLE JOB ALREADY DONE. When tp == colonp there are no
+        ; --- Nothing after the "::" is the whole job already done. When tp == colonp there are no
         ;     groups to move, and the gap [colonp, endp) has never been written: the prologue zeroed
         ;     all sixteen bytes and the parse only ever writes [tmp, tp). So the entire shift -- the
         ;     copy out, the zero fill and the copy back -- is dead work on every address that ends in
@@ -358,9 +358,9 @@ sh_cp1:
         dec       r8
         jmp       sh_cp1
 sh_cp1d:
-; ZEROING THE GAP WAS A BYTE LOOP, AND IT PARKED CHANGE 250. The gap is at most sixteen bytes, so
+; Zeroing the gap was a byte loop, and it parked change 250. The gap is at most sixteen bytes, so
 ; this ran up to sixteen iterations of four instructions to clear memory the prologue had already
-; zeroed -- and the fully-compressed address "::" is the case where the gap is the WHOLE sixteen and
+; zeroed -- and the fully-compressed address "::" is the case where the gap is the whole sixteen and
 ; there is nothing else to do, so the loop WAS the function: 7.48 ns against the shipped 5.92, a
 ; 0.79x REGRESSION on the shortest valid IPv6 address there is.
 ;
@@ -422,25 +422,25 @@ al_check:
 al_tpne:
         mov       [r14], rsi
 err_ret:
-; ON FAILURE THE CALLER'S 16 BYTES ARE LEFT UNTOUCHED, AND THE SHIPPED EXPORT'S ARE NOT. Measured
+; On failure the caller's 16 Bytes are left untouched, and the shipped export's are not. Measured
 ; while building change 250, over 55987 enumerated strings on the alphabet ": . 0 1 a f" to length 6:
 ;
 ;     status differ ......... 0
 ;     *Terminator differ .... 0
 ;     address bytes differ .. 17268  -- ALL of them calls the shipped export FAILED, 0 on successes
 ;
-; The shipped parser fills the destination AS IT GOES, so a call that fails part-way leaves whatever
+; The shipped parser fills the destination as it goes, so a call that fails part-way leaves whatever
 ; it had committed: "f:" leaves 00 0F, "0:" leaves 00 00, "1." leaves 01, "::1." leaves 00 00 01. This
 ; implementation accumulates into a stack scratch and copies out once, on success.
 ;
-; THE OBVIOUS FIX IS WRONG, and it was tried and measured rather than assumed: copying [tmp, tp) here
+; The obvious fix is wrong, and it was tried and measured rather than assumed: copying [tmp, tp) here
 ; takes the divergence from 17268 to 18240 and INVERTS it -- we then write for bare groups like "0",
 ; "10", "a0" where the shipped one writes nothing at all. A group reaches the destination only when a
 ; ':' or '.' COMMITS it, not when the scan has merely accumulated it, and reproducing that write
 ; schedule means deriving it from the outside as its own enumerated study. It is left undone
 ; deliberately, and recorded here and in RESULTS.md rather than buried.
 ;
-; WHY IT IS ACCEPTABLE TO LEAVE: a caller that receives STATUS_INVALID_PARAMETER has no defined
+; Why it is acceptable to leave: a caller that receives STATUS_INVALID_PARAMETER has no defined
 ; address to read, the status and the *Terminator -- the two things such a caller acts on -- are
 ; identical in all 55987 cases, and every call that SUCCEEDS is byte-identical. Same shape of
 ; argument as change 243's documented dead region.

@@ -2,21 +2,21 @@
  *
  * OURS vs the LIVE ntdll!RtlAppendAsciizToString.
  *
- * THE WORK IS A SCAN AND A COPY, and the contract forces BOTH: nothing may be written until the
+ * The work is a scan and a copy, and the contract forces both: nothing may be written until the
  * length is known, because a source that does not fit must leave the buffer untouched. So the
  * source is read twice by construction and the subject of every row is its length.
  *
- * THE DESTINATION IS RESET TO EMPTY INSIDE THE OP, which sounds like the mistake change 142 made --
+ * The destination is reset to empty inside the op, which sounds like the mistake change 142 made --
  * its bench undid an in-place edit with a memcpy of the whole path and the restore REPLACED the
- * measurement. It is not the same thing here: the reset is TWO STORES to the STRING header
+ * measurement. It is not the same thing here: the reset is two stores to the string header
  * (Length = 0), not a copy of the buffer, and it is identical on both sides. Without it the
  * destination fills up and every call after the first few is a refusal -- the row would silently
  * stop measuring the copy at all.
  *
- * THE REFUSAL PATH GETS ITS OWN ROWS, because it is the cheap answer this function is expected to
+ * The refusal path gets its own rows, because it is the cheap answer this function is expected to
  * give quickly and it is where an implementation that scanned before checking would show up.
  *
- * THE SHORT ROWS CALL SIXTEEN TIMES PER TIMED OP, for the reason change 261 established by
+ * The short rows call sixteen times per timed op, for the reason change 261 established by
  * measuring it: an empty call through this harness costs 2.32 ns, which is most of what an 8-byte
  * append measures. Their labels say so.
  */

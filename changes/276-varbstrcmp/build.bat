@@ -1,7 +1,7 @@
 @echo off
 REM changes/276-varbstrcmp/build.bat -- assemble, gate on correctness, benchmark.
 REM
-REM  THE COLLATION IS THE OS'S. probes/contract.c established that VarBstrCmp IS CompareStringW, so
+Rem  the collation is the os's. probes/contract.c established that VarBstrCmp is CompareStringW, so
 REM  flags.c calls it and this change owns only the wrapper: the empty rules, the validation, and a
 REM  fast path for operands that are byte-identical -- which the export does not have, and which
 REM  probes/gap.c measured at 0.8 ns per character of pure waste.

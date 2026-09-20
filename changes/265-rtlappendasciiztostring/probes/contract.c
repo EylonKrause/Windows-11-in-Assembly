@@ -1,6 +1,6 @@
 /* changes/265-rtlappendasciiztostring/probes/contract.c
  *
- * WHAT DOES ntdll!RtlAppendAsciizToString ACTUALLY DO?
+ * What does ntdll!RtlAppendAsciizToString actually do?
  *
  *     NTSTATUS RtlAppendAsciizToString(PSTRING dest, PCSZ src)
  *
@@ -9,8 +9,8 @@
  * RtlAppendUnicodeStringToString both sit at 0.012 -- which is the signature of a function that
  * makes a real `call` into strlen and then copies a byte at a time.
  *
- * CHANGE 101 ALREADY LANDED THE WIDE ANALOGUE, RtlAppendUnicodeToString, and its contract is
- * written out in its header. NONE OF IT IS ASSUMED HERE. Changes 123 and 124 both found clear-side
+ * Change 101 Already landed the wide analogue, RtlAppendUnicodeToString, and its contract is
+ * written out in its header. None of it is assumed here. Changes 123 and 124 both found clear-side
  * routines carrying conventions their set-side twins did not, changes 214/215/216 found three
  * functions sharing one core and disagreeing about NULL and the empty set, and the SPACE bug got
  * into four landed changes at once by exactly this route. The narrow form counts BYTES where the
@@ -24,7 +24,7 @@
  *   * a zero-length source, and a dest with no room at all
  *   * a source longer than a USHORT can describe
  *
- * EVERY CASE PRINTS THE WHOLE DESTINATION BUFFER STATE -- status, Length, MaximumLength and the
+ * Every case prints the whole destination buffer state -- status, Length, MaximumLength and the
  * bytes -- against a poison fill, because "unchanged on failure" is a claim about bytes that no
  * return value can make for you.
  */

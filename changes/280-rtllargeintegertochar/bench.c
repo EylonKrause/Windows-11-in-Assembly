@@ -2,8 +2,8 @@
  *
  * Gate 2: time wia_lint2char against the live ntdll!RtlLargeIntegerToChar.
  *
- * THE ROWS ARE THE BASES, THE DIGIT COUNTS, THE TWO LENGTH RULES AND -- the one this change adds
- * over 279 -- WHETHER THE VALUE NEEDS THE 64-BIT DIVISION AT ALL:
+ * The rows are the bases, the digit counts, the two length rules and -- the one this change adds
+ * over 279 -- Whether the value needs the 64-BIT division at all:
  *
  *   * a decimal value BELOW 2^32 never enters the eight-digit peel: it goes straight to 067's
  *     proved 32-bit constant. A bench of nineteen-digit values alone would never measure that path,
@@ -19,7 +19,7 @@
  * Rows are timed x8, because change 261's probes/floor.c put an empty call through this harness at
  * 2.32 ns and the shortest row here is a single digit.
  *
- * THE PRE-FLIGHT IS THE POINT OF THE TABLE. Every row is run once through the LIVE export before
+ * The pre-flight is the point of the table. Every row is run once through the live export before
  * anything is timed, and the status and the bytes it actually wrote are printed. Change 269 shipped
  * a row called "Unicode digits" that the parser refused and reported the refusal as a 30x win, and
  * change 279's "a refusal: no room" row was not a refusal at all until the pre-flight said so.

@@ -1,26 +1,26 @@
 /* changes/283-strrstriw/correctness.c
  *
- * Gate 1 for shlwapi!StrRStrIW: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the returned
+ * Gate 1 for shlwapi!StrRStrIW: Ours vs the scalar model vs the live export, on the returned
  * pointer compared as a BYTE offset -- because change 282 found a mutant that returned a pointer
  * one byte into the middle of a wchar_t and survived both gates, since `p - base` on a wchar_t*
  * divides the odd byte away.
  *
- * THE CORPUS IS BUILT WHERE A BACKWARD SUBSTRING SEARCH GOES WRONG:
+ * The corpus is built where a backward substring search goes wrong:
  *
- *   * THE LAST MATCH, with the same needle present many times. A forward search returning the
+ *   * The last match, with the same needle present many times. a forward search returning the
  *     first hit passes any test with one occurrence in it.
- *   * `end` BOUNDS THE START, NOT THE MATCH. probes/bounds.c measured that over "abcXYZabc" the
+ *   * `end` Bounds the start, not the match. probes/bounds.c measured that over "abcXYZabc" the
  *     answer becomes 6 as soon as end reaches start+7, even though that match runs to index 8. So
  *     every end position from start to start+len is swept for every haystack.
- *   * THE TERMINATOR WINS OVER `end`. A NUL at index 4 hides a match at 9 even when end is far
+ *   * The terminator wins over `end`. a NUL at index 4 hides a match at 9 even when end is far
  *     past it, so NULs are planted at every position.
- *   * NEEDLES OF EVERY LENGTH from 1 up, including longer than the haystack.
- *   * THE INTRANSITIVE TRIPLE inside a substring, because that is what makes the relation not an
+ *   * Needles of every length from 1 up, including longer than the haystack.
+ *   * The intransitive triple inside a substring, because that is what makes the relation not an
  *     equivalence: "x<D7A2>y" matches both "x<D7B0>y" and "x<D7B1>y" while those two do not match
  *     each other.
- *   * IGNORABLE CHARACTERS, because a collation-based search would SKIP them and this one must
+ *   * Ignorable characters, because a collation-based search would skip them and this one must
  *     match them: "ab<SOFT HYPHEN>cd" does NOT contain "abc".
- *   * AND A GUARD PAGE, with the terminator as the last readable code unit -- the export reads to
+ *   * And a guard page, with the terminator as the last readable code unit -- the export reads to
  *     the terminator regardless of `end`, so that is where the scan must stop.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -206,7 +206,7 @@ int main(void)
         }
     }
 
-    /* 7. EVERY INTERIOR CHARACTER MUST BE VERIFIED.
+    /* 7. Every interior character must be verified.
      *
      * This corpus exists because the corpora above could not express its case. A verifier that
      * checks the first character, the last character, and then every SECOND one in between agreed
@@ -218,9 +218,9 @@ int main(void)
      * last characters match while its middle does not -- and that was an accident of a test written
      * for an entirely different purpose.
      *
-     * So the near-miss is now built on purpose: for every needle length and EVERY interior index, a
+     * So the near-miss is now built on purpose: for every needle length and every interior index, a
      * haystack holding the needle with exactly that one interior character changed, padded with a
-     * character that matches the needle's first one so the vector filter rejects NOTHING and the
+     * character that matches the needle's first one so the vector filter rejects nothing and the
      * verifier is the only defence. Each near-miss is paired with its repaired control, so the case
      * proves the verifier rejects for the right reason rather than rejecting always.
      */
@@ -255,10 +255,10 @@ int main(void)
         /* The same family on the WIDE path: a first character with more than four partners
          * bypasses the vector filter entirely, so a different dispatch verifies these.
          *
-         * THE FILLER IS 0x034F, NOT 0x200B, AND THAT WAS A REAL MISTAKE. This block was first written
+         * The filler is 0x034F, not 0x200B, and that was a real mistake. This block was first written
          * with a 0x200B filler and a comment claiming that it and 0x00AD "are both ignorable and match
          * each other, so every position is a candidate". Change 285's relation probe measured the
-         * truth: n[0x200B] is 0 -- the ZERO WIDTH SPACE matches ONLY ITSELF and is not one of the 3237
+         * truth: n[0x200B] is 0 -- the zero width space matches only itself and is not one of the 3237
          * ignorables at all, while match(0x00AD, 0x034F) is 1. So the filler matched nothing, NO
          * position was a candidate, and this family was quietly testing the empty case while its
          * comment claimed the opposite. The cases still passed, because all three sides agreed on the
@@ -284,12 +284,12 @@ int main(void)
                "     and the WIDE dispatch: %ld\n", cases - before);
     }
 
-    /* 8. THE NEEDLE-LENGTH CLAMP, AND THE EMPTY NEEDLE, EACH MADE OBSERVABLE.
+    /* 8. The needle-length clamp, and the empty needle, each made observable.
      *
      * Two mutants survived everything above and were caught only by the live-substitution gate,
      * which means this corpus could not express either case:
      *
-     *   - DROPPING THE CLAMP `hlen -= nlen`. The highest candidate start is
+     *   - Dropping the clamp `hlen -= nlen`. The highest candidate start is
      *     min(start + hlen - nlen, end - 1). Without the clamp it becomes min(start + hlen, end - 1),
      *     and in every corpus above `end - 1` was the smaller of the two, so the clamp never decided
      *     anything and its removal changed no answer. To make it decide, the needle must be able to
@@ -298,7 +298,7 @@ int main(void)
      *     character of the string matches at hlen-1 if and only if the candidate was never clamped.
      *     The live export and the model both stop at the terminator and answer "not found".
      *
-     *   - DROPPING THE EMPTY-NEEDLE REFUSAL. Corpus 5 asks for an empty needle exactly once, with
+     *   - Dropping the empty-needle refusal. Corpus 5 asks for an empty needle exactly once, with
      *     `end` inside the string, and the unguarded code happens to agree there: it looks for the
      *     needle's first code unit, which is the terminator, finds it above the candidate cap, and
      *     returns NULL for the wrong reason. Asked with `end` AT and PAST the terminator it does
@@ -343,7 +343,7 @@ int main(void)
         h[13] = 0;
         for (m = 0; m <= hlen + 8; m += 7) one(h, h + m, L"");
 
-        /* (c) THE EMPTY NEEDLE OVER A HAYSTACK THAT CONTAINS A NUL-MATCHING CODE UNIT.
+        /* (c) The empty needle over a haystack that contains a nul-matching code unit.
          *
          * Part (b) above still did not catch the mutant that drops the empty-needle refusal, which
          * is how it was found that (b) agrees for the wrong reason a second time: with the refusal
@@ -367,7 +367,7 @@ int main(void)
                "     the terminator: %ld\n", cases - before);
     }
 
-    /* 9. A MATCH PLANTED BELOW `start`, AT EVERY ALIGNMENT.
+    /* 9. a match planted below `start`, at every alignment.
      *
      * Dropping the bottom edge mask in the backward block scan -- the `and eax, edx` that clears the
      * bits for code units lying below `start` -- SURVIVED everything above. The scan reads aligned
@@ -402,7 +402,7 @@ int main(void)
                "     above `start`: %ld\n", cases - before);
     }
 
-    /* 10. EVERY DISPATCH CLASS OF THE FIRST-CHARACTER FILTER, AND EVERY MEMBER OF ITS SET.
+    /* 10. Every dispatch class of the first-character filter, and every member of its set.
      *
      * The filter dispatches on how many code units the needle's first character matches: none takes
      * a single-broadcast path, up to four takes a four-register path, and more takes a WIDE path
@@ -413,7 +413,7 @@ int main(void)
      *
      * probes/partners.c measured which counts actually occur: 0, 2, 3, 4, 5, 6, 7, 8 and the 255
      * sentinel, nine in all. The representatives below drive one needle per class, and the haystack
-     * is planted with EVERY member of the set in turn -- because a four-register path asked to hold
+     * is planted with every member of the set in turn -- because a four-register path asked to hold
      * a five-member set must drop a member, and only the dropped one exposes it.
      */
     {
@@ -449,7 +449,7 @@ int main(void)
                cases - before);
     }
 
-    /* 11. A GUARD PAGE WHERE CANDIDATES FAIL AND THE SCAN MUST CONTINUE.
+    /* 11. a guard page where candidates fail and the scan must continue.
      *
      * Corpus 6 puts the terminator as the last readable code unit, but its needles match on the
      * first try, so the scan never has to resume after a rejected candidate. A mutant that stopped
@@ -484,7 +484,7 @@ int main(void)
         }
     }
 
-    /* 12. NON-ZERO MEMORY AFTER THE TERMINATOR: THE VIRTUAL NUL, PROVED RATHER THAN ASSUMED.
+    /* 12. Non-zero memory after the terminator: The virtual NUL, proved rather than assumed.
      *
      * Every haystack above lives in a static, zero-filled array, so the code units after a
      * terminator are genuinely NUL -- and that makes two completely different rules indistinguishable:
@@ -560,7 +560,7 @@ int main(void)
                "      embedded NUL: %ld\n", cases - before);
     }
 
-    /* 13. A NEEDLE WHOSE FIRST CHARACTER MATCHES A NUL, WITH `end` PAST THE TERMINATOR.
+    /* 13. a needle whose first character matches a NUL, with `end` past the terminator.
      *
      * A match may start only at a REAL character: the highest candidate is hlen-1, never hlen. The
      * mutant that caps at hlen instead -- letting a match start AT the terminator -- survived

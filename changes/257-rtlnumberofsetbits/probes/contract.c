@@ -3,22 +3,22 @@
  * ntdll!RtlNumberOfSetBits / RtlNumberOfClearBits and their ...InRange forms.
  *
  * WHY. discovery/ntdll_bitmap.c measured the whole-bitmap forms at 413 ns over a 64 Kbit map --
- * 0.050 ns/byte, about TWO CYCLES PER 64-BIT WORD. The shipped code already uses the right
+ * 0.050 ns/byte, about two cycles per 64-BIT word. The shipped code already uses the right
  * instruction (`popcnt rax, rax` at RVA 0x0F2F33, with byte-table lookups for the ragged ends), so
  * this is not a case of a missing intrinsic; two cycles per word is what a SERIAL accumulator chain
  * costs, because POPCNT has about three cycles of latency and one per cycle of throughput. Breaking
  * that chain, or leaving the general-purpose registers entirely for a VPSHUFB nibble count, is
  * where the room is.
  *
- * WHAT HAS TO BE PINNED FIRST, because counting is only simple once the EDGES are settled:
+ * What has to be pinned first, because counting is only simple once the edges are settled:
  *
- *   1. IS THE RANGE (start, LENGTH) OR (start, END)? The survey called it with (100, 60000) on a
+ *   1. Is the range (start, length) or (start, end)? The survey called it with (100, 60000) on a
  *      half-set bitmap and got 30000, which is 60000/2 and not 59900/2 -- so LENGTH. That was one
  *      observation; this sweeps it.
- *   2. WHAT HAPPENS PAST SizeOfBitMap -- a range that runs off the end, a start at or past it, and
+ *   2. What happens past SizeOfBitMap -- a range that runs off the end, a start at or past it, and
  *      a length of zero. The slack in the final ULONG is set to 1 here deliberately, so any failure
  *      to mask shows up as a larger count.
- *   3. DOES ClearBits = SizeOfBitMap - SetBits EXACTLY, including for ranges? If so one core
+ *   3. DOES ClearBits = SizeOfBitMap - SetBits exactly, including for ranges? If so one core
  *      serves all four exports.
  */
 #define WIN32_LEAN_AND_MEAN

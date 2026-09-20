@@ -8,7 +8,7 @@
 ; 0.097 and 0.213 ns/byte.
 ;
 ; ------------------------------------------------------------------------------------------------
-; WHERE THEIR TIME GOES, MEASURED BEFORE ANYTHING WAS WRITTEN (probes/contract.c).
+; Where their time goes, measured before anything was written (probes/contract.c).
 ;
 ; These are wrappers around the N-forms this project already converted -- RtlUnicodeToUTF8N as
 ; change 016 and RtlUTF8ToUnicodeN as change 034 -- so the question was not whether the conversion
@@ -21,21 +21,21 @@
 ;
 ; A wrapper that were a few stores would add a handful of nanoseconds. 271 ns on top of a 508 ns
 ; conversion is a SECOND PASS over the input: the shipped code sizes the output first and converts
-; afterwards. THE WHOLE OF THIS CHANGE IS FINDING OUT WHEN THAT SECOND PASS IS NOT NECESSARY, and
+; afterwards. The whole of this change is finding out when that second pass is not necessary, and
 ; the answer is different for the two directions and different again per call.
 ;
 ; ------------------------------------------------------------------------------------------------
-; FOUR THINGS THE TWO DIRECTIONS DO DIFFERENTLY. A first draft of this file assumed they mirrored
+; Four things the two directions do differently. a first draft of this file assumed they mirrored
 ; each other, because they are documented as a pair and read like one. Every one of these was
 ; measured off the live exports after that draft failed its own correctness gate on 32784 of 84434
 ; cases -- with the status, Length AND MaximumLength matching live on every single one of them, so
 ; the only field left was the destination buffer.
 ;
-;   1. WHAT A FAILING CALL LEAVES IN THE BUFFER (probes/failwrite.c).
+;   1. What a failing call leaves in the buffer (probes/failwrite.c).
 ;
 ;        UTF-16 -> UTF-8 : PARTIALLY FILLS it with as much as fit. "abcdefgh" into MaximumLength 4
 ;                          leaves "abc" behind, and a caller that looks can see it.
-;        UTF-8 -> UTF-16 : WRITES NOTHING. The destination comes back untouched at every capacity
+;        UTF-8 -> UTF-16 : WRITES nothing. The destination comes back untouched at every capacity
 ;                          from 0 up to one word short of enough.
 ;
 ;      That single difference is the architecture of this file. The first direction can hand the
@@ -51,17 +51,17 @@
 ;                          plainly there in the buffer. The N-form on the same bytes returns
 ;                          0x00000107; the wrapper does not.
 ;
-;   3. WHICH FAILURE CODE A SHORTFALL GETS (probes/statuses.c).
+;   3. Which failure code a shortfall gets (probes/statuses.c).
 ;
 ;        UTF-16 -> UTF-8 : capacity 0 gives STATUS_BUFFER_OVERFLOW (0x80000005); every other
 ;                          shortfall gives STATUS_BUFFER_TOO_SMALL (0xC0000023).
-;        UTF-8 -> UTF-16 : EVERY shortfall, capacity 0 included, gives 0x80000005.
+;        UTF-8 -> UTF-16 : every shortfall, capacity 0 included, gives 0x80000005.
 ;
-;   4. WHERE THE TERMINATOR ROOM COMES FROM. One byte in the first direction, two in the second,
+;   4. Where the terminator room comes from. One byte in the first direction, two in the second,
 ;      and neither is counted in Length. "abc" needs MaximumLength 4 going out and 8 coming back.
 ;
 ; ------------------------------------------------------------------------------------------------
-; AND A LIMIT THAT IS NOT A SHORTFALL AT ALL (probes/limits.c).
+; And a limit that is not a shortfall at all (probes/limits.c).
 ;
 ; Length and MaximumLength are USHORTs, and a conversion can produce more than 65535 bytes: three
 ; bytes per character going out, two bytes per input byte coming back. There was no way to reason
@@ -72,14 +72,14 @@
 ;        UTF-8 -> UTF-16 : 65532 bytes of result succeed (MaximumLength 65534 when allocating);
 ;                          65534 bytes give 0xC00000F0.
 ;
-; In both directions the rule is the same one stated the same way: THE TERMINATED SIZE MUST FIT IN
-; THE FIELD. And 0xC00000F0 BEATS BOTH SHORTFALL CODES -- 90000 bytes of result into a four-byte
+; In both directions the rule is the same one stated the same way: The terminated size must fit in
+; The field. And 0xC00000F0 beats both shortfall codes -- 90000 bytes of result into a four-byte
 ; destination is 0xC00000F0, not STATUS_BUFFER_TOO_SMALL, with nothing written -- so the size test
 ; comes first. Letting that field wrap instead would allocate a small block and convert a large
 ; string into it, which is a heap overrun, which is why it was asked before the code was written.
 ;
 ; ------------------------------------------------------------------------------------------------
-; SO WHEN IS ONE PASS ENOUGH? Both directions take it on a BOUND, not on a measurement, which costs
+; So when is one pass enough? Both directions take it on a bound, not on a measurement, which costs
 ; two comparisons instead of a walk over the input:
 ;
 ;   UTF-16 -> UTF-8 : a character is at most THREE UTF-8 bytes (a surrogate pair is four bytes for
@@ -133,7 +133,7 @@ ONEPASS_SRC_MAX             EQU 43688           ; 21844 characters * 3 bytes + 1
 ;   [rsp+56..63]  the source STRING
 ;   [rsp+64..71]  the status across the final terminator store
 ;
-; NOTHING IS PUSHED INSIDE THE BODY. A push after .endprolog moves the stack pointer in a way the
+; Nothing is pushed inside the body. a push after .endprolog moves the stack pointer in a way the
 ; unwind data does not describe, so an exception raised in that window would unwind wrongly; the
 ; status is parked in the frame instead, which the frame already describes.
 ; ---------------------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ u8_toobig:
         ; and if the terminated size really does not fit, that beats every shortfall code and
         ; nothing at all is written. Otherwise fall into the ordinary one-pass conversion.
         ;
-        ; THE SIZING CALL IS WRITTEN OUT AT BOTH PLACES THAT NEED IT rather than factored into a
+        ; The sizing call is written out at both places that need it rather than factored into a
         ; local helper. A local CALL would put the helper's instructions inside this PROC's address
         ; range with rsp eight bytes below what .allocstack 72 describes, so an exception raised in
         ; that window would unwind wrongly -- the same reason nothing is pushed in the body.
@@ -324,7 +324,7 @@ wia_utf8stringtounicodestring PROC FRAME
         cmp       r9d, eax
         jb        w_overflow                    ; it does not fit: NOTHING is written
 
-        ; BOTH WAYS IN GUARANTEE THE CAPACITY. From the top, MaximumLength >= 2N + 2 and the
+        ; Both ways in guarantee the capacity. From the top, MaximumLength >= 2N + 2 and the
         ; conversion cannot produce more than 2N. From the sizing path, MaximumLength >= the
         ; measured size + 2. So the subtraction below is a GUARD, not a behaviour: the mutation
         ; that removes it is the one mutation of this file the correctness gate does not catch,

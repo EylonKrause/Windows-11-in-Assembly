@@ -1,31 +1,31 @@
 // live-substitution/live_subst_cmpus.c
 // LIVE-RUN PROOF for change 263 (ntdll!RtlCompareUnicodeStrings).
 //
-// THE EXACT LONG IS COMPARED, NOT ITS SIGN. probes/contract.c showed the export returns the
+// The exact long is compared, not its sign. probes/contract.c showed the export returns the
 // DIFFERENCE of the two characters -- -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
 // so an implementation returning -1/0/1 would satisfy every caller that writes `< 0` and every
 // check that only looked at the sign.
 //
-// THE CORPUS IS BUILT TO PRODUCE ALL THREE ANSWERS, and the run reports how many of each it got:
+// The corpus is built to produce all three answers, and the run reports how many of each it got:
 // equal, decided by a character, and decided by the LENGTHS. A corpus of random strings answers
 // "different at the first character" almost every time, which would exercise neither the vector
 // loop that scans to the end nor the length tie-break.
 //
-// AND IT IS BUILT TO REACH BOTH CASE-INSENSITIVE PATHS. Our implementation folds a disagreeing
+// And it is built to reach both case-insensitive paths. Our implementation folds a disagreeing
 // block in-vector when every character in it is ASCII and goes through the upcase table otherwise,
 // so a corpus of pure ASCII would leave the table path completely untested while looking thorough.
 // One case in four is drawn from a Latin-1 and beyond alphabet for that reason, and the run counts
 // how many cases contained a character at or above 0x80.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself -- and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is not used by the loader or heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_cmpus_live.bat

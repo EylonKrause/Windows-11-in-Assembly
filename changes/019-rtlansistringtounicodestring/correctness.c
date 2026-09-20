@@ -13,8 +13,8 @@
 //     outside it by construction.
 //
 // Now MaximumLength is swept across the whole interesting neighbourhood for every length, and the
-// WHOLE destination buffer is compared byte for byte against both the live export and the oracle,
-// poison included. The export needs 2n+2 bytes; on overflow it writes NOTHING and leaves Length as
+// whole destination buffer is compared byte for byte against both the live export and the oracle,
+// poison included. The export needs 2n+2 bytes; on overflow it writes nothing and leaves Length as
 // the caller had it.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

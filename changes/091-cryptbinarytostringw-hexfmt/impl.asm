@@ -1,9 +1,9 @@
 ; changes/091-cryptbinarytostringw-hexfmt/impl.asm
-; BOOL wia_b2shfw(const BYTE* pb, DWORD cb, DWORD flags, wchar_t* out, DWORD* pcch)
+; BOOL wia_b2shfw(const byte* pb, dword cb, dword flags, wchar_t* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; Wide sibling of 090 — crypt32!CryptBinaryToStringW for the formatted hex modes
-;   CRYPT_STRING_HEX (0x4), HEXASCII (0x5), HEXADDR (0xa), HEXASCIIADDR (0xb).
+;   CRYPT_STRING_HEX (0x4), hexascii (0x5), hexaddr (0xa), hexasciiaddr (0xb).
 ; The wide output is exactly the widened narrow output (each char zero-extended to a WCHAR),
 ; verified against the live export. So we reuse 090's SSSE3 formatter to lay the L narrow
 ; bytes into the LOW bytes of the caller's 2x-size buffer, then reverse-widen in place
@@ -292,7 +292,7 @@ ret_moredata:
         xor       eax, eax
         jmp       epi
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also

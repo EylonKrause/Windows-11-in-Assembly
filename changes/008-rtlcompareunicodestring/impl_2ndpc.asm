@@ -7,7 +7,7 @@
 ; PC. Same exported symbol (`wia_rtlcmpustr`), so this change's existing
 ; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured here, the Zen 3 implementation failed the gate on ONE of its
 ; twelve size classes -- the shortest case-insensitive compare:
@@ -44,7 +44,7 @@
 ; Anything that is not (case-insensitive AND common < 32 bytes) falls through to
 ; the original body, reproduced below completely unchanged.
 ;
-; CONTRACT PRESERVED EXACTLY
+; Contract preserved exactly
 ;   * Only the SIGN of the return is contractual (ntdll's magnitude is not
 ;     portable), but this path reproduces the original's magnitude too: on a
 ;     mismatch it returns upcase(c1) - upcase(c2) through the SAME
@@ -82,7 +82,7 @@ CFF80   DW      16 dup(0FF80h)
 wia_rtlcmpustr PROC
         ;----------------------------------------------------------------------
         ; 2ND PC fast entry: case-insensitive AND common < 32 bytes.
-        ; NO pushes, NO pops, NO vzeroupper.
+        ; No pushes, no pops, no vzeroupper.
         ;----------------------------------------------------------------------
         movzx     r9d, word ptr [rcx]              ; Length1 (bytes)
         movzx     r10d, word ptr [rdx]             ; Length2 (bytes)

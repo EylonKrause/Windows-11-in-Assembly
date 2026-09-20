@@ -1,19 +1,19 @@
 /* changes/252-rtlfindunicodesubstring/reference.c
  *
- * THE INDEPENDENT ORACLE for RtlFindUnicodeSubstring.
+ * The independent oracle for RtlFindUnicodeSubstring.
  *
- * It is deliberately written to share NOTHING with impl.asm except the contract. impl.asm filters
+ * It is deliberately written to share nothing with impl.asm except the contract. impl.asm filters
  * sixteen positions at a time with two vector anchors, folds with a 65536-entry table built once,
  * and approximates case-insensitivity in the filter before settling it exactly. This does the
  * simplest thing that could possibly be right:
  *
  *     for every start position, compare every character, one at a time,
- *     and fold by CALLING ntdll!RtlUpcaseUnicodeChar ON EVERY CHARACTER.
+ *     and fold by calling ntdll!RtlUpcaseUnicodeChar on every character.
  *
  * The two independences that matter:
  *   * THE SEARCH is a plain nested loop with no filter, no blocking and no early exit beyond the
  *     first mismatch, so a wrong candidate-filter in impl.asm cannot be mirrored here;
- *   * THE FOLD calls the LIVE OS function per character rather than reading our table, so a wrong
+ *   * The fold calls the live OS function per character rather than reading our table, so a wrong
  *     or uninitialised table in impl.asm cannot be mirrored here either. That second point is not
  *     hypothetical: change 065 was accused of a formatting bug for an entire session because its
  *     two-digit table had never been built, and the failure was silent -- correct status, correct

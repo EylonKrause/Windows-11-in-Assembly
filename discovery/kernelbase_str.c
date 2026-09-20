@@ -12,12 +12,12 @@
 
    WHAT THIS MEASURES, and why each column is here:
 
-     * NARROW vs WIDE on the SAME CHARACTER COUNT. That is the diagnostic that found 225. A narrow
+     * Narrow vs wide on the same character count. That is the diagnostic that found 225. a narrow
        function doing half the bytes should be FASTER in wall-clock; when it is slower, the
        implementation differs rather than the workload.
-     * BYTES PER NANOSECOND. 4-5 is a byte loop, ~22 is 16-byte SSE2, ~85 is 32-byte AVX2, ~150 is
+     * Bytes per nanosecond. 4-5 is a byte loop, ~22 is 16-byte SSE2, ~85 is 32-byte AVX2, ~150 is
        a 64-byte paired AVX2 loop. The number says which one is in there without disassembling.
-     * SHORT AND LONG. A function can be fine at length and terrible at the call overhead, or the
+     * Short and long. a function can be fine at length and terrible at the call overhead, or the
        reverse, and only the ratio at both ends says which change is worth making.
 
    NOTHING HERE IS A CONTRACT. It is a shortlist. Every candidate that survives gets its own probe

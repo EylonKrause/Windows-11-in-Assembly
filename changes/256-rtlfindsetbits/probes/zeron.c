@@ -3,7 +3,7 @@
  * NumberToFind = 0 -- the case that broke the first implementation, and a lesson about probes.
  *
  * probes/contract.c asked what NumberToFind = 0 returns and got 0, twice, from hints of 0 and 7.
- * Both are right and both are useless: the answer is the HINT ROUNDED DOWN TO A MULTIPLE OF EIGHT,
+ * Both are right and both are useless: the answer is the hint rounded down to a multiple of eight,
  * and 0 and 7 both round to 0. The three-way corpus caught it at 262 960 cases -- every n=0 case
  * with a hint of 8 or more -- which is the corpus doing its job, but the probe should have found it
  * first, and would have if it had swept the hint instead of sampling it.
@@ -15,7 +15,7 @@
  *     0011122E  and r9d, r8d             r9 = (hint < size) ? hint : 0
  *     0011123E  test edx, edx            NumberToFind == 0 ?
  *     00111240  jne ...
- *     00111242  and r9d, 0xfffffff8      <== ROUNDED DOWN TO A MULTIPLE OF EIGHT
+ *     00111242  and r9d, 0xfffffff8      <== rounded down to a multiple of eight
  *     00111246  jmp  (return r9d)
  *
  * This sweeps every hint so the rule is measured rather than inferred from one instruction, and

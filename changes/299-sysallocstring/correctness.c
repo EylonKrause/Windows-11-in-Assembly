@@ -2,7 +2,7 @@
 //
 // Gate 1: wia_sysallocstring vs the live oleaut32!SysAllocString and an independent oracle.
 //
-// WHAT IS COMPARED. A BSTR is not just a pointer: it carries a byte-count prefix four bytes in
+// What is compared. a BSTR is not just a pointer: it carries a byte-count prefix four bytes in
 // front of it, a terminator the length does not include, and an identity as a block the caller
 // will hand to SysFreeString. So every case compares
 //
@@ -14,7 +14,7 @@
 //
 // and then frees all three blocks, because a gate that leaks measures the allocator degrading.
 //
-// THE NOACCESS SWEEP IS THE POINT OF THE ALIGNED LOAD. The implementation aligns its first load
+// The NOACCESS sweep is the point of the aligned load. The implementation aligns its first load
 // DOWN to a 32-byte boundary, which is safe only because a 32-byte aligned load cannot cross a page
 // boundary. The sweep puts a string so that its terminator is the last thing in a committed page
 // with a NOACCESS page immediately after, at every length and therefore at every alignment, so any

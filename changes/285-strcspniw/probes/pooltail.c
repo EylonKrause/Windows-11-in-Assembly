@@ -1,12 +1,12 @@
 /* changes/285-strcspniw/probes/pooltail.c
  *
- * TWO FACTS THE MUTATION SWEEP TURNED INTO QUESTIONS, ASKED INSTEAD OF ASSUMED.
+ * Two facts the mutation sweep turned into questions, asked instead of assumed.
  *
  * Two mutants of change 285 survived both gates, and whether each is harmless or a real defect depends
  * on something about change 281's generated tables that had never been written down:
  *
  *   1. A POOL SLOT holds n members for a code unit with n partners, in a sixteen-byte slot -- room for
- *      eight. A mutant that walks ONE MEMBER TOO FAR reads entry [n]. If that entry is zero the extra
+ *      eight. a mutant that walks one member too far reads entry [n]. If that entry is zero the extra
  *      comparison can never fire, because the scalar loop tests for the terminator before it compares,
  *      so a zero string character never reaches the compare. If it is a STALE value from another set,
  *      the mutant is a false-match bug and the gates simply failed to catch it.

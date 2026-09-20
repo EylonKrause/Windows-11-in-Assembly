@@ -1,6 +1,6 @@
 /* changes/282-strrchriw/probes/contract.c
  *
- * THE SIGNATURES FIRST, BECAUSE TWO OF THEM ARE GENUINELY AMBIGUOUS.
+ * The signatures first, because two of them are genuinely ambiguous.
  *
  * Change 281 landed StrChrIW at 145.36x by characterising shlwapi's case-insensitive match relation
  * -- locale-invariant, symmetric, INTRANSITIVE, 10553170 pairs -- and generating it from the live
@@ -16,7 +16,7 @@
  *   * discovery/charclass_strcmp_2026.c called it as (start, end, wMatch) -- an END POINTER -- and
  *     got a plausible answer, which proves nothing: passing (s, s+3, 'e') under the documented
  *     signature means wMatch is the low half of a pointer and cchMax is 101, and that returns NULL
- *     too. BOTH HYPOTHESES PRODUCE THE SAME ANSWER on that call, so it never distinguished them.
+ *     too. Both hypotheses produce the same answer on that call, so it never distinguished them.
  *
  * That is the same trap as change 273's probes/bytes.c, which built its hex digits out of ones:
  * 0x11111111 is byte-wise palindromic, so wrapping, truncation and saturation all read the same and

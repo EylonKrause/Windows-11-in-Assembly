@@ -1,9 +1,9 @@
 /* changes/269-convertstringsidtosid/probes/digits.c
  *
- * ARE THOSE CODE UNITS DIGITS, OR WHITESPACE?
+ * Are those code units digits, or whitespace?
  *
  * probes/authfield.c swept every code unit 1..0xFFFF as the first character of each field and found
- * that the IDENTIFIER AUTHORITY accepts 206 of them while a SUB-AUTHORITY accepts 20. The twenty
+ * that the identifier authority accepts 206 of them while a sub-authority accepts 20. The twenty
  * are the ASCII digits and the FULLWIDTH digits, which is exactly what Windows' `iswdigit` answers.
  * The 206 include Unicode whitespace AND several other digit blocks -- Arabic-Indic, Devanagari,
  * Thai, Lao, Tibetan, Myanmar, Khmer, Mongolian -- and the sweep cannot tell the two apart, because

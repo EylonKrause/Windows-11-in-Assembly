@@ -4,7 +4,7 @@
 ; The core of kernelbase!lstrcatW. The NULL checks and the __try/__except that turns an access
 ; violation into NULL live in seh.c, for the reasons given there.
 ;
-; WHY THIS TARGET. discovery/kernelbase_str.c produced the single worst number in the whole survey:
+; Why this target. discovery/kernelbase_str.c produced the single worst number in the whole survey:
 ;
 ;     lstrcatW 4000 onto empty    802.49 ns    9.94 bytes/ns   <- 16-byte SSE2
 ;     lstrcat  64 onto 4000      1643.11 ns   <- TWICE the cost of copying the whole buffer
@@ -16,27 +16,27 @@
 ; CONTRACT, measured in probes/catw.c. Nothing inherited -- not from change 228 (the narrow sibling)
 ; and not from change 229 (the wide copy):
 ;
-;   * it returns the DESTINATION; the result is TERMINATED, NOT PADDED;
+;   * it returns the destination; the result is terminated, not padded;
 ;   * THREE pointers can fail, not two, because lstrcat READS the destination before writing it. An
 ;     unterminated DESTINATION at a NOACCESS page returns NULL rather than faulting, 80 of 80 -- a
 ;     failure lstrcpy does not have at all;
-;   * an unterminated SOURCE returns NULL with EXACTLY the readable prefix transferred, 80 of 80;
-;   * a DESTINATION TOO SMALL returns NULL;
+;   * an unterminated SOURCE returns NULL with exactly the readable prefix transferred, 80 of 80;
+;   * a destination too small returns NULL;
 ;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL;
-;   * element-wise: 0 of 131070 code unit placements in BOTH strings disagree with a plain append.
+;   * element-wise: 0 of 131070 code unit placements in both strings disagree with a plain append.
 ;
-; WHOLE CHARACTERS ONLY. With an odd number of writable bytes the last character cannot be stored
+; Whole characters only. With an odd number of writable bytes the last character cannot be stored
 ; whole, and probes/catw.c compared the live export against two explicit models across every width:
-; 19 odd widths matched the WHOLE-CHARACTER model and 0 matched the byte-wise one. So both the scan
+; 19 odd widths matched the whole-CHARACTER model and 0 matched the byte-wise one. So both the scan
 ; clamp and the copy clamp are rounded down to an even count with `and r9d, -2`.
 ;
-; NO EARLY EXIT ON AN EMPTY SOURCE, same as the narrow form: a PAGE_READONLY destination returns
+; No early exit on an empty source, same as the narrow form: a PAGE_READONLY destination returns
 ; NULL for `lstrcatW(readonly, L"")`, so the terminator really is stored.
 ;
 ; STRUCTURE. Two halves, each already solved in this repository and each re-derived here:
 ;
-;   * THE SCAN uses the page clamp rather than change 225's align-down trick, because THIS
-;     FUNCTION ACCEPTS AN ODD-ALIGNED DESTINATION -- probes/catw.c drives one. Aligning down to 32
+;   * The scan uses the page clamp rather than change 225's align-down trick, because this
+;     Function accepts an odd-aligned destination -- probes/catw.c drives one. Aligning down to 32
 ;     and comparing 16-bit lanes would put the lane boundaries out of step with the string's
 ;     characters, and every comparison would be against halves of two adjacent characters. Clamping
 ;     to the page instead keeps the lanes aligned to the pointer, whatever its parity.
@@ -47,14 +47,14 @@
 ;
 ; Both clamps are hoisted out of their 64-byte loops: they change once per 4096 bytes.
 ;
-; TWO CHANGES WENT IN WHEN THIS ONE WAS UNPARKED, and neither touches a rule. Together they moved the
+; Two changes went in when this one was unparked, and neither touches a rule. Together they moved the
 ; shortest row from 0.86-1.12x -- a coin flip against the gate, failing about one run in three -- to
 ; 1.09-1.29x over twelve consecutive runs, with the geomean at 5.90-6.41x:
 ;
 ;   1. the empty-destination shortcut now computes the append's page clamp UNDER its load instead of
 ;      after it -- and the ORDER of those two is the whole gain; putting the clamp first cost 0.2 ns
 ;      on every short row, which is measured and recorded at the shortcut itself;
-;   2. the 2..32-byte tail is TWO OVERLAPPING MOVES instead of a 16/8/4/2 ladder, which removed four
+;   2. the 2..32-byte tail is two overlapping moves instead of a 16/8/4/2 ladder, which removed four
 ;      conditional branches from the shortest call in the benchmark. That ladder was the source of a
 ;      clean three-cycle step -- 4.24 ns on some runs and 4.90 on others, same executable, same data,
 ;      decided at process start -- and collapsing it removed the slow mode as well as the average.
@@ -67,12 +67,12 @@ wia_lstrcatw_core PROC
         vpxor     ymm1, ymm1, ymm1               ; the terminator
 
         ; ================= 1. find the end of the destination =================
-        ; AN EMPTY DESTINATION IS THE ONE CASE THE SCAN CANNOT HELP WITH. Appending to a buffer that
+        ; An empty destination is the one case the scan cannot help with. Appending to a buffer that
         ; a caller has just initialised is common, and the whole scan -- page clamp, 32-byte load,
         ; compare, movmsk, tzcnt -- exists to discover that the terminator is at offset zero. One
         ; load and one branch answer it instead, and the branch costs the non-empty path two uops.
         ;
-        ; THE APPEND'S PAGE CLAMP IS COMPUTED HERE, UNDER THAT LOAD -- and the ORDER of these two is
+        ; The append's page clamp is computed here, under that load -- and the order of these two is
         ; the whole point. Both halves of the clamp are pure ALU on the pointers the caller passed and
         ; neither depends on the load, so they can hide inside its latency; but the first attempt at
         ; this put the ten clamp instructions BEFORE a `cmp word ptr [rcx], 0`, which delayed the
@@ -101,7 +101,7 @@ sc_loop:
         mov       r9d, eax                       ; bytes left in the destination's page
         and       r9d, -2                        ; whole characters: an odd-aligned destination
                                                  ;   leaves an odd remainder
-        ; A SINGLE 32-BYTE BLOCK FIRST, AND ONLY THEN PAIRS. Most destinations end inside their
+        ; a single 32-BYTE block first, and only then pairs. Most destinations end inside their
         ; first block, and the pair loop makes that case pay for it twice: the hit path has to
         ; re-compare the half it landed in, because vpminuw folded the two halves together and the
         ; combined mask does not say which one held the zero. Leading with a single block answers a
@@ -215,7 +215,7 @@ cp_64_nul:
         ; ---- the last 1..16 characters, terminator included. An empty source arrives here with a
         ;      two-byte count and stores the terminator, which is what the shipped function does --
         ;      see the PAGE_READONLY measurement in probes/catw.c.
-        ; OVERLAPPING PAIRS, NOT A DESCENDING LADDER. The ladder this replaced walked 16/8/4/2 with a
+        ; Overlapping pairs, not a descending ladder. The ladder this replaced walked 16/8/4/2 with a
         ; conditional branch at every rung, so the commonest tail in the benchmark -- eighteen bytes,
         ; eight characters and a terminator -- executed SIX conditional branches to move two chunks.
         ; Each rung is individually cheap and the branches are individually predictable, but they are
@@ -224,11 +224,11 @@ cp_64_nul:
         ; -- a clean three-cycle step, the same executable, the same data, decided at process start.
         ; Two overlapping moves cover any width in that range with ONE branch and no loop.
         ;
-        ; THE OVERLAP IS PAGE-SAFE. rax is at most the clamp r9d computed above, and every one of
-        ; those bytes is inside both pointers' pages, so [rdx + rax - 16] .. [rdx + rax] is too. BOTH
-        ; LOADS PRECEDE BOTH STORES, which is what makes it safe when the two regions overlap.
+        ; The overlap is page-safe. rax is at most the clamp r9d computed above, and every one of
+        ; those bytes is inside both pointers' pages, so [rdx + rax - 16] .. [rdx + rax] is too. both
+        ; Loads precede both stores, which is what makes it safe when the two regions overlap.
         ;
-        ; THE WIDEST CASE FALLS THROUGH INTO THE RETURN, and the three narrow ones sit past it. Same
+        ; The widest case falls through into the return, and the three narrow ones sit past it. Same
         ; instructions either way; the point is that the path the benchmark actually takes ends with
         ; no taken branch at all, which is the same reasoning that motivated collapsing the ladder.
 cp_tail:

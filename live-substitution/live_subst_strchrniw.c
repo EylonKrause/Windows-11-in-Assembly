@@ -1,27 +1,27 @@
 // live-substitution/live_subst_strchrniw.c
 // LIVE-RUN PROOF for change 286 (shlwapi!StrChrNIW).
 //
-// WHAT IS COMPARED IS THE RETURNED POINTER AS A BYTE OFFSET. Change 282 found a mutant that returned a
+// What is compared is the returned pointer as a byte offset. Change 282 found a mutant that returned a
 // pointer one byte into the middle of a wchar_t and survived both gates, because `p - base` on a
 // wchar_t* divides the odd byte away. Change 285 then found the same edit HARMLESS, because its export
 // returns a count that divides it away legitimately -- this one returns a pointer, so the byte-offset
 // comparison matters again.
 //
-// THE CONTRACT THIS HARNESS RESPECTS, from changes/286-strchrniw/probes/contract.c:
+// The contract this harness respects, from changes/286-strchrniw/probes/contract.c:
 //
 //   * the prototype is (start, match, count) -- settled by calling the same address through both
 //     candidate prototypes, because discovery/charclass_strcmp_2026.c had timed it as a range form and
 //     produced a number for a different question;
 //   * the count is the number of characters EXAMINED, indices 0 .. cchMax-1;
 //   * the relation is change 281's, including the intransitive triple and the ignorable set;
-//   * THE TERMINATOR STOPS THE SCAN AND IS NEVER A MATCH, which is where it differs from changes 283
+//   * The terminator stops the scan and is never a match, which is where it differs from changes 283
 //     and 284 -- so a NUL-matching character must give NULL over a string with no other match, however
 //     far the count reaches;
 //   * a NULL start or a count of zero gives NULL;
 //   * and on an UNTERMINATED string the export faults even when the count covers the buffer, so every
 //     string here is terminated.
 //
-// THE FORCED SUB-CASES, each with an assertion that fails if the draw stops producing it. Two of them
+// The forced sub-cases, each with an assertion that fails if the draw stops producing it. Two of them
 // exist because a mutant walked through an earlier change's harness:
 //
 //   * cur_short   -- a count that stops BEFORE the match, so the count alone decides the answer;
@@ -34,7 +34,7 @@
 //                    terminator test unnecessary (change 285 was caught by exactly that);
 //   * cur_guard   -- the terminator as the last readable code unit before an unmapped page.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG state
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng state
 // across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; validate first; patch only when idle;

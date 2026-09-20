@@ -1,6 +1,6 @@
 /* changes/292-filetimetosystemtime/probes/abi.c
  *
- * GATE 3, DYNAMIC. Drives probes/abi.asm over BOTH paths this change has -- the accept path, which
+ * Gate 3, dynamic. Drives probes/abi.asm over both paths this change has -- the accept path, which
  * is a leaf, and the reject path, which builds a shadow frame and calls SetLastError -- and reports
  * any non-volatile register that did not survive the call.
  *

@@ -4,29 +4,29 @@
 //
 //   054 _ultoa   055 _ui64toa   056 _itoa   057 _i64toa
 //
-// WHY THIS BATCH, AND WHAT IT IS BEING ASKED. Two harnesses in this directory have now found the
+// Why this batch, and what it is being asked. Two harnesses in this directory have now found the
 // same class of defect in four landed changes: a function that writes the right text, returns the
 // right pointer, and leaves a byte of the destination different from what the shipped export
-// leaves. Both were found only because the comparison covered the WHOLE destination. These four
+// leaves. Both were found only because the comparison covered the whole destination. These four
 // write a caller-supplied buffer too, so they get the same comparison: a 128-byte poisoned buffer
 // compared to its last byte, the returned pointer, and the errno the CRT may set.
 //
-// RADIX 2 IS THE REASON THE BUFFER IS 128 BYTES. `_i64toa(v, buf, 2)` renders up to 64 digits plus
+// Radix 2 Is the reason the buffer is 128 Bytes. `_i64toa(v, buf, 2)` renders up to 64 digits plus
 // a terminator, and the documented buffer requirement is 65 characters. The corpus drives every
 // radix from 2 to 36, and weights the values that make a formatter wrong: 0, 1, -1, the radix
 // boundaries (r-1, r, r+1, r*r-1, r*r), INT_MIN and LLONG_MIN -- the last two because negating
 // them overflows, which is the classic defect of a signed integer formatter and is invisible to
 // any corpus that only draws uniformly.
 //
-// THE SIGNED FORMS ARE ONLY SIGNED IN RADIX 10, which the corpus exercises deliberately: _itoa
+// The signed forms are only signed in radix 10, which the corpus exercises deliberately: _itoa
 // with a negative value and radix 16 prints the UNSIGNED bit pattern, not a minus sign, and an
 // implementation that sign-extends anyway gets a plausible-looking wrong answer.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ucrtbase -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE, and emit nothing while patched: the CRT's own printf formats
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle, and emit nothing while patched: the CRT's own printf formats
 //       integers, and these are the integer formatters.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
@@ -197,7 +197,7 @@ int main(void){
     printf("  [pre-patch]  %d cases x 4 formatters recorded from the SHIPPED exports\n",NCASE);
     fflush(stdout);
 
-    /* ---------- NOTHING PRINTED FROM HERE UNTIL THE RESTORE ---------- */
+    /* ---------- Nothing printed from here until the restore ---------- */
     for(i=0;i<NFN;++i)
         if(!patch_on(&p[i],liveP[i],ours[i])){
             for(--i;i>=0;--i) patch_off(&p[i]);

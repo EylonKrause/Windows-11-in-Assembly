@@ -80,7 +80,7 @@ int main(void){
     printf("  GetACP() = %u\n", GetACP());
     build_foldp();
 
-    /* ---- THE TWO ANOMALIES, asserted directly on all three ---------------------------------- */
+    /* ---- The two anomalies, asserted directly on all three ---------------------------------- */
     {
         /* a two-character path is not a prefix of itself -- at that length and no other */
         ASSERT3(wia_pathisprefixa("aa", "aa"), 0, "ours: a 2-char path is NOT a prefix of itself");
@@ -243,7 +243,7 @@ int main(void){
                "  directions, plus a case-flipped copy: %ld cases\n", cases);
     }
 
-    /* ---- LENGTH AS A DIMENSION: across change 236's MAX_PATH threshold ----------------------- */
+    /* ---- Length as a dimension: across change 236's MAX_PATH threshold ----------------------- */
     {
         static char a[1200], b[1200];
         long cases = 0;
@@ -291,7 +291,7 @@ int main(void){
         printf("  400000 fuzz pairs with FORCED common prefixes, both directions\n");
     }
 
-    /* ---- THE SCALAR PATH: both strings at a PAGE_NOACCESS page -------------------------------- */
+    /* ---- The scalar path: both strings at a PAGE_NOACCESS page -------------------------------- */
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

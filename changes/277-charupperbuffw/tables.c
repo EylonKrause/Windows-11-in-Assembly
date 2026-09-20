@@ -1,8 +1,8 @@
 /* changes/277-charupperbuffw/tables.c
  *
- * THE TWO CASE TABLES, BUILT BY ASKING THE EXPORTS THEMSELVES.
+ * The two case tables, built by asking the exports themselves.
  *
- * probes/mapping.c established that user32's mapping is a PURE PER-CHARACTER TABLE and nothing more:
+ * probes/mapping.c established that user32's mapping is a pure per-character table and nothing more:
  *
  *   * CharUpperBuffW agrees with ntdll!RtlUpcaseUnicodeChar on all 65536 code units, and
  *     CharLowerBuffW with RtlDowncaseUnicodeChar on all 65536;
@@ -16,13 +16,13 @@
  * That is what makes this change possible where changes 274 and 276 were parked: there is no
  * allocator and no collation behind it, only a lookup this project can own.
  *
- * THE TABLES ARE BUILT FROM THE EXPORTS UNDER TEST, not from ntdll and not from a list. Change 015
+ * The tables are built from the exports under test, not from ntdll and not from a list. Change 015
  * builds its upcase table from RtlUpcaseUnicodeChar and probes/mapping.c proved the two are
  * identical -- but the function this change has to match is CharUpperBuffW, so that is the one
  * asked. It is the same decision change 269 made about the SDDL aliases and change 210 about its
  * upcase table: a transcribed table is a constant nobody can check by reading it.
  *
- * AND THE ASCII CLAIM IS CHECKED RATHER THAN ASSUMED. The vector path in impl.asm handles a block
+ * And the ASCII claim is checked rather than assumed. The vector path in impl.asm handles a block
  * with no code unit at or above 0x80 by a range subtract -- 'a'..'z' minus 0x20, 'A'..'Z' plus
  * 0x20 -- and everything else by the table. That is only correct if the table AGREES with the range
  * rule below 0x80, which is exactly the kind of thing that is true until it is not: the self-check

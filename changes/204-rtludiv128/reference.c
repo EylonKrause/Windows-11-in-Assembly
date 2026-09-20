@@ -1,7 +1,7 @@
 // changes/204-rtludiv128/reference.c
 // The correctness oracle for ntdll!RtlUdiv128. Not fast; just obviously right.
 //
-// This is a DIRECT TRANSCRIPTION of the shipped algorithm (RVA 0x0014A250) -- a 64-iteration
+// This is a direct transcription of the shipped algorithm (rva 0x0014A250) -- a 64-iteration
 // restoring shift-subtract long division. The implementation's claim is that a single hardware `div`
 // reproduces it exactly wherever the quotient is representable (DividendHigh < Divisor), and that
 // claim is only worth something if the oracle is the loop rather than a restatement of the shortcut.
@@ -11,7 +11,7 @@
 //
 // Contract, every line of it measured:
 //   * rcx = dividend high, rdx = dividend low, r8 = divisor, r9 = ULONG64* remainder;
-//   * the quotient accumulates ONE BIT PER ITERATION into a 64-bit register;
+//   * the quotient accumulates one bit per iteration into a 64-bit register;
 //   * when DividendHigh >= Divisor the quotient cannot be represented, and what comes back has NO
 //     CLOSED FORM. Two were tried and both are wrong: "saturates to all-ones with remainder
 //     lo + d" matches (1, 0, 1) -> FFFFFFFFFFFFFFFF r 1 but not (7FFFFFFFFFFFFFFF, 0, 100000000h)

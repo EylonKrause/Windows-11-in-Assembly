@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 264 (ntdll!RtlInitUTF8String).
+Rem  live-run proof for change 264 (ntdll!RtlInitUTF8String).
 REM
 REM  The implementation is change 095's, reached through a linker ALIAS:
 REM  probes/equiv.c proved RtlInitUTF8String identical to RtlInitString over

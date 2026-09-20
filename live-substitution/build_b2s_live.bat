@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
 REM  Live substitution for CryptBinaryToStringA and CryptBinaryToStringW --
-REM  EIGHT changes behind TWO exports, dispatched by dwFlags:
+Rem  eight changes behind two exports, dispatched by dwFlags:
 REM
 REM    CRYPT_STRING_BASE64        081 (A)  083 (W)
 REM    CRYPT_STRING_BASE64HEADER  092 (A)  093 (W)

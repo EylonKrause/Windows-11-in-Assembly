@@ -44,7 +44,7 @@ def parent_geomean(change):
     if not p.is_file():
         return None
     txt = p.read_text(encoding="utf-8", errors="replace")
-    # ORDER AND STRICTNESS BOTH MATTER HERE, and the first version of this got both wrong.
+    # Order and strictness both matter here, and the first version of this got both wrong.
     #
     # A loose `geomean[^\n]{0,40}?([\d.]+)x` matches the FIRST number after the word, wherever it
     # is, and these headers routinely put a different number there:

@@ -1,13 +1,13 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 282 (shlwapi!StrRChrIW).
+Rem  live-run proof for change 282 (shlwapi!StrRChrIW).
 REM
-REM  The shipped export costs 47 ns PER CHARACTER -- the same per-character
+Rem  The shipped export costs 47 ns per character -- the same per-character
 REM  collation call change 281 found in StrChrIW -- and it scans FORWARD even
 REM  though it returns the LAST match, so a hit at the end of the range costs it
 REM  as much as a miss.
 REM
-REM  This export has NO TERMINATOR: probes/bounds.c measured that its end pointer
+Rem  This export has no terminator: probes/bounds.c measured that its end pointer
 REM  is taken literally and that an end past a guard page FAULTS. So the corpus
 REM  plants NULs inside ranges on purpose and pins one case in three to a
 REM  PAGE_NOACCESS page, alternating which END of the range touches it --

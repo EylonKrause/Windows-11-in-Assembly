@@ -1,6 +1,6 @@
 // changes/194-i64toa-s/correctness.c
 // Gate 1: wia_i64toa_s must be indistinguishable from ucrtbase!_i64toa_s -- the return value, the
-// WHOLE buffer (the ERANGE path leaves reversed leftovers, so the tail matters), errno, and the
+// whole buffer (the ERANGE path leaves reversed leftovers, so the tail matters), errno, and the
 // invalid-parameter handler hit count.
 //
 // Built /MD on purpose: errno and the handler must be UCRTBASE's, the same ones our assembly
@@ -83,7 +83,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY size 0..48 x several values x every radix: the whole ERANGE partial surface ----
+    // ---- every size 0..48 x several values x every radix: the whole ERANGE partial surface ----
     {
         static const long long V[] = { 0, 1, 9, 10, 99, 100, 1234, -1, -9, -10, -1234,
                                        9223372036854775807LL, -9223372036854775807LL-1,

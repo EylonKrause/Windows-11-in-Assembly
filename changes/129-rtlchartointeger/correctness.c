@@ -53,7 +53,7 @@ int main(void){
            new cases is the same defect in miniature. */
         seed=seed*1103515245u+12345u; chk(f,BASES[(seed>>5)%NBASES]);
     }
-    /* ---- PLANTED BYTES: the cases a corpus of string LITERALS cannot express -------------------
+    /* ---- Planted bytes: the cases a corpus of string literals cannot express -------------------
        Everything above this point passes a literal, so whatever follows a terminator is whatever the
        linker put there. That is why the leading-NUL rule went unnoticed: "" and "abc" happened to give
        0 for all sixteen bases, which is what the implementation returned, and the two were

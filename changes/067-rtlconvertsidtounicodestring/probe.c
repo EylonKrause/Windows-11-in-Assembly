@@ -1,6 +1,6 @@
 /* changes/067-rtlconvertsidtounicodestring/probe.c
  *
- * THE PROTECTED HEADER READ, WHICH IS PART OF THE CONTRACT AND NOT AN OPTIMISATION.
+ * The protected header read, which is part of the contract and not an optimisation.
  *
  * changes/270-convertsidtostringsid/probes/truncated.c placed a SID so that only its first A bytes
  * were readable, with a PAGE_NOACCESS page immediately after, and swept A against the
@@ -23,10 +23,10 @@
  * refused everywhere, or faulted everywhere, is wrong on inputs a guard page finds immediately and
  * nothing else ever does.
  *
- * THAT HANDLER IS THE COMPILER'S, DELIBERATELY. Hand-rolling an x64 language-specific handler and
+ * That handler is the compiler's, deliberately. Hand-rolling an x64 language-specific handler and
  * its scope table in MASM, so that a fault unwinds to a landing pad inside the assembly, is real
  * work with a real chance of being subtly wrong, and it would buy nothing: table-based SEH costs
- * NOTHING at run time when no exception occurs, so all this is worth is the call and four loads.
+ * nothing at run time when no exception occurs, so all this is worth is the call and four loads.
  * It is the same decision change 269 made about LocalAlloc and SetLastError -- the things the OS
  * owns are CALLED, not imitated.
  *

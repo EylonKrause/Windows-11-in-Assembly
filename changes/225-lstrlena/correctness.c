@@ -2,14 +2,14 @@
 // Gate 1: wia_lstrlena must be indistinguishable from kernelbase!lstrlenA.
 // Three-way: our ASM+wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE PAGE-GUARD SECTIONS ARE THE POINT OF THIS FILE, not an afterthought at the end. A 32-byte
+// The page-guard sections are the point of this file, not an afterthought at the end. a 32-byte
 // scan that reads one block too far is INVISIBLE to an ordinary length test -- every string in a
 // heap buffer has slack after it, so the over-read lands on readable bytes and the answer is
 // right. It only shows up when the string ends within 32 bytes of an unmapped page, and then it
 // does not crash: the shipped export swallows the fault and returns 0, so a correct 3-character
 // string would come back as 0. That is silent data corruption, and only a guard page finds it.
 //
-// So this sweeps EVERY tail distance from 1 to 200 bytes before a PAGE_NOACCESS page, twice: once
+// So this sweeps every tail distance from 1 to 200 bytes before a PAGE_NOACCESS page, twice: once
 // with the string properly terminated (where the answer must be the length) and once with NO
 // terminator at all (where the answer must be 0, matching the live export rather than crashing).
 #define WIN32_LEAN_AND_MEAN
@@ -47,7 +47,7 @@ int main(void){
     if(!sys){ printf("CORRECTNESS: cannot resolve kernelbase!lstrlenA\n"); return 1; }
     printf("  GetACP() = %u\n", GetACP());
 
-    // ---- lengths 0..2048 at EVERY start offset within a 64-byte window -------------------------
+    // ---- lengths 0..2048 at every start offset within a 64-byte window -------------------------
     // 64 offsets, because the first block is aligned down to 32 and the paired loop realigns to
     // 64: the peel-one-block path only runs for half of them, and the masked-first-block path
     // behaves differently for each of the 32 residues.
@@ -68,7 +68,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY byte value, at three positions ---------------------------------------------------
+    // ---- every byte value, at three positions ---------------------------------------------------
     // Only 0x00 may terminate. A lead byte immediately before the NUL is the placement that would
     // catch an MBCS-aware implementation swallowing the terminator.
     {
@@ -82,7 +82,7 @@ int main(void){
             chk(b, "byte value immediately before the NUL");
         }
     }
-    // and a string made ENTIRELY of one byte value, long enough to drive the paired loop
+    // and a string made entirely of one byte value, long enough to drive the paired loop
     {
         static char b[512];
         for (int v = 1; v < 256; ++v) {
@@ -117,7 +117,7 @@ int main(void){
         }
     }
 
-    // ---- PAGE GUARD, terminated: the answer must be the LENGTH -----------------------------------
+    // ---- Page guard, terminated: the answer must be the length -----------------------------------
     // Every tail distance 1..200. An implementation that reads one block past the terminator would
     // touch the guard, the wrapper would swallow it, and the length would come back 0.
     {
@@ -140,7 +140,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- PAGE GUARD, UNTERMINATED: the answer must be 0, and it must not crash -------------------
+    // ---- Page guard, unterminated: the answer must be 0, and it must not crash -------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -159,7 +159,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- PAGE GUARD with the string STARTING at the page boundary --------------------------------
+    // ---- Page guard with the string starting at the page boundary --------------------------------
     // The first block is aligned DOWN, so for a string starting exactly at a page start the load
     // reaches backwards into the previous page. That page must be the one the caller's string is
     // in -- which it is, because the alignment is to 32 and 4096 is a multiple of 32, so aligning

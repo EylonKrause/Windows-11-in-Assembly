@@ -4,7 +4,7 @@
 ; Tiger Lake / Willow Cove variant of change 124, and the exact counterpart of
 ; changes/023-rtlnumberofsetbits-tgl -- same cause, same fix, complementary answer.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent computes clear = SizeOfBitMap - popcount(set), counting with a scalar POPCNT loop that
 ; accumulates into a single register. POPCNT retires one per cycle, so 64 bits per cycle is the hard

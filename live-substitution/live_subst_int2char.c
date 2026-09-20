@@ -1,40 +1,40 @@
 // live-substitution/live_subst_int2char.c
 // LIVE-RUN PROOF for change 279 (ntdll!RtlIntegerToChar).
 //
-// WHAT IS COMPARED IS THE WHOLE DESTINATION, not the status. probes/contract.c measured that a
+// What is compared is the whole destination, not the status. probes/contract.c measured that a
 // refusal leaves the caller's buffer COMPLETELY untouched -- not one byte written -- so an
 // implementation that helpfully wrote a terminator before discovering it had no room would pass any
 // check that only looked at the NTSTATUS. That is change 268's rule, which found 154 mismatches in
 // change 016 that were nothing but a single 00 past the end of a string.
 //
-// THREE WRITE PATHS ARE UNDER TEST, NOT TWO:
+// Three write paths are under test, not two:
 //
 //   * base 10 is length-first and two digits at a time;
 //   * bases 2, 8 and 16 emit more than one digit per store from wide tables;
-//   * A NEGATIVE `length` IS A ZERO-PADDED FIELD WIDTH -- probes/negative.c found it by sweeping
+//   * a negative `length` is a zero-padded field width -- probes/negative.c found it by sweeping
 //     every negative length against a guard page -- and it runs a fill loop that NO positive length
 //     ever reaches. It is also the only part of this change that touches an XMM register.
 //
 // A corpus of plausible positive lengths would drive two of the three and report them as the
 // function. So every case draws a base from the five legal ones AND the illegal ones, a value from
 // the digit-count boundaries as often as from anywhere, and a length from AROUND the room rule on
-// BOTH sides of zero. The harness FAILS if any converter, either sign of length, or any of the
+// both sides of zero. The harness FAILS if any converter, either sign of length, or any of the
 // three outcomes comes back thin.
 //
-// THE NEGATIVE LENGTHS ARE BOUNDED, AND THAT BOUND IS NOT TIMIDITY. A field width is honoured
+// The negative lengths are bounded, and that bound is not timidity. a field width is honoured
 // literally: probes/negative.c measured that length -100 writes a hundred characters and FAULTS if
 // the buffer is shorter, and the first draft of change 279's correctness corpus died of an access
 // violation because it asked for INT_MIN+1 -- a field two billion characters wide. The destination
 // here is 512 bytes and no case asks for more than 300.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_int2char_live.bat
@@ -119,7 +119,7 @@ static unsigned digits_of(ULONG v, ULONG b)
 {
     unsigned n = 1;
     ULONG base = b ? b : 10;
-    /* BASE 1 WOULD LOOP FOREVER: v /= 1 never decreases. One case in seven draws an ILLEGAL base
+    /* Base 1 Would loop forever: v /= 1 never decreases. One case in seven draws an illegal base
        from rnd() % 40, which includes 1, and change 278's harness hung in its pre-patch pass having
        printed only its header. The length of a refused call is never used, so any sane number will
        do -- but it has to terminate. */

@@ -2,22 +2,22 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE kernelbase!FindStringOrdinal.
  *
- * BOTH OBSERVABLES ARE COMPARED, not just the return value. This is a Win32 API: it sets a
+ * Both observables are compared, not just the return value. This is a Win32 API: it sets a
  * last-error, and a reimplementation that returned the right index while leaving the wrong error
  * behind would be wrong in a way no index comparison could see. Every case checks the returned
  * index AND GetLastError(), against both the oracle and the live export.
  *
- * THE CORPORA ARE SPLIT BY WHICH PATH THEY REACH, which is the lesson of change 248 (1 085 965
+ * The corpora are split by which path they reach, which is the lesson of change 248 (1 085 965
  * enumerated cases passed in silence while the vector path was broken, because a six-character
  * string never reaches it) and of change 252 (whose corpora were split the same way):
  *
  *   1. THE REFUSALS           -- every validation branch, and the exact last-error each sets
  *   2. EXHAUSTIVE, short      -- all four modes; reaches only the scalar tail
- *   3. THE BLOCK BOUNDARY     -- every n-m from 0 to 40, planted at EVERY offset, all four modes:
+ *   3. The block boundary     -- every n-m from 0 to 40, planted at every offset, all four modes:
  *                                this is where the forward loop bound and the BACKWARD one live,
  *                                and the backward walk is the half with no precedent in 252
  *   4. RANDOMISED, long       -- reaches the vector loops, over four alphabets
- *   5. THE FOLD               -- real fold pairs, AND pairs the NT ordinal table refuses to merge
+ *   5. The fold               -- real fold pairs, and pairs the nt ordinal table refuses to merge
  *   6. A GUARD PAGE           -- a PAGE_NOACCESS page against the end of the source, so an
  *                                over-read faults rather than merely disagreeing
  */
@@ -145,7 +145,7 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 3. the block boundary, planted at EVERY offset, all four modes ---- */
+    /* ---- 3. the block boundary, planted at every offset, all four modes ---- */
     {
         long before = cases;
         int span, m, pos;
@@ -165,7 +165,7 @@ int main(void)
                     }
                     for (i = 0; i < m; ++i) h[pos + i] = (wchar_t)(L'a' + (rnd() % 3));
                 }
-                /* and TWO plants, so FROMSTART and FROMEND must disagree */
+                /* and two plants, so fromstart and fromend must disagree */
                 if (span >= m + 2) {
                     for (i = 0; i < m; ++i) { h[i] = nb[i]; h[span - m + i] = nb[i]; }
                     for (mi = 0; mi < 4; ++mi) one(MODES[mi], h, n, nb, m, FALSE, "two plants");
@@ -212,7 +212,7 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 5. the fold, at pairs that DO merge and pairs that deliberately DO NOT ---- */
+    /* ---- 5. the fold, at pairs that do merge and pairs that deliberately do not ---- */
     {
         static const struct { wchar_t a, b; const char* what; } P[] = {
             { 0x00E0, 0x00C0, "a-grave / A-grave -- MERGE"      },

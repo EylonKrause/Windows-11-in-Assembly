@@ -1,6 +1,6 @@
 // live-substitution/live_subst_s2b.c
 //
-// LIVE-RUN PROOF for CryptStringToBinaryA and CryptStringToBinaryW -- the DECODE half of the
+// Live-run proof for CryptStringToBinaryA and CryptStringToBinaryW -- the decode half of the
 // crypt32 pair, EIGHT changes behind TWO exports:
 //
 //   CRYPT_STRING_BASE64        082 (A)  084 (W)
@@ -11,14 +11,14 @@
 // A dispatcher over dwFlags, exactly as live_subst_b2s.c does for the encoders, with a trap for
 // the formats this project does not implement.
 //
-// THE DECODER HAS THREE OUTPUT PARAMETERS AND THAT IS WHY IT GETS ITS OWN HARNESS. Besides the
+// The decoder has three output parameters and that is why it gets its own harness. Besides the
 // BOOL it writes *pcbBinary, *pdwSkip and *pdwFlags -- the number of bytes produced, how many
 // characters of header it stepped over, and which format it decided the input actually was. The
 // last two are pure bookkeeping that a decoder can get wrong while producing perfectly correct
 // bytes, and BASE64_ANY exists precisely to make *pdwFlags meaningful. All three are compared,
 // along with the whole output buffer and GetLastError.
 //
-// THE CORPUS IS BUILT BY THE ENCODER, which is the only way to get valid input for four formats
+// The corpus is built by the encoder, which is the only way to get valid input for four formats
 // without reimplementing them in the harness. Random binary is run through the LIVE
 // CryptBinaryToString for the matching format and the result handed back to the decoder, so every
 // well-formed case is well-formed by construction. Then it is damaged on purpose: a character
@@ -29,10 +29,10 @@
 // than the real length, because that is a different code path reading the same string.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       crypt32 -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE. The ENCODER is never patched, so building the corpus is unaffected.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle. The encoder is never patched, so building the corpus is unaffected.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_s2b_live.bat
@@ -206,7 +206,7 @@ static void run_all(ans_t* out){
     }
 }
 
-/* MALFORMED INPUT IS DECLARED OUT OF SCOPE BY THE CHANGES THEMSELVES, and this harness counts it
+/* Malformed input is declared out of scope by the changes themselves, and this harness counts it
  * separately rather than failing on it. Change 082's header: "Scope: valid base64; malformed-input
  * quirks out of scope (RESULTS.md)", and its RESULTS repeats it. The first run of this file drove a
  * fifth of the corpus damaged on purpose and reported 688 divergences -- every one of them a

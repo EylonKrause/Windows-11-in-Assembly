@@ -43,7 +43,7 @@ int main(void){
 
     static wchar_t b[64];
 
-    // ---- EVERY code unit, in each of the three positions where classification matters ----
+    // ---- every code unit, in each of the three positions where classification matters ----
     for(int c=1;c<65536;c++){
         b[0]=(wchar_t)c; b[1]=0;                       CHECK(one(b), "single code unit");
         b[0]=(wchar_t)c; b[1]=L'7'; b[2]=0;            CHECK(one(b), "code unit then '7' (whitespace/sign)");

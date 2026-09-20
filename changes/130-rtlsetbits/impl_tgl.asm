@@ -1,5 +1,5 @@
 ; changes/130-rtlsetbits/impl_tgl.asm
-; VOID wia_setbits(RTL_BITMAP* bm, ULONG StartingIndex, ULONG NumberToSet)   [Win64: rcx, edx, r8d]
+; Void wia_setbits(RTL_BITMAP* bm, ulong StartingIndex, ulong NumberToSet)   [Win64: rcx, edx, r8d]
 ;
 ; Reimplements ntdll!RtlSetBits: set bits [StartingIndex, StartingIndex+NumberToSet) to 1.
 ; Contract (probed against the live export): there is NO bounds check whatsoever -- ntdll writes past
@@ -15,10 +15,10 @@
 ; ISA: AVX2, plus ERMS/FSRM `rep stosb`. Validated on bench #3 (Intel i9-11900H, Tiger Lake-H)
 ; -- see docs/PLATFORM-i9-11900H.md.
 ;
-; TIGER LAKE VARIANT of change 130. Everything below is the parent's code except two things in the
+; Tiger lake variant of change 130. Everything below is the parent's code except two things in the
 ; bulk fill, and the two things it is NOT are worth recording because both were tried and measured.
 ;
-; WHAT IS WRONG ON THIS PART
+; What is wrong on this part
 ;   * The parent does not reach `rep` until 4096 ULONGs (16 KB), because on Zen 3 rep startup is
 ;     brutal -- its own comment records 512 bytes costing 37 ns via rep against 6 ns unrolled. This
 ;     part has ERMS/FSRM, and the parent's 40000-bit class measures 0.55x here: 69.68 ns against
@@ -27,7 +27,7 @@
 ;     fast-string path at all. That is why even the parent's largest class (32 KB) sits at 0.86x
 ;     inside the branch that was supposed to be its fastest.
 ;
-; TWO THINGS TRIED THAT MADE IT WORSE, kept here so they are not tried again:
+; Two things tried that made it worse, kept here so they are not tried again:
 ;   * rep from 64 ULONGs (256 bytes), on the reasoning that FSRM means "fast SHORT rep". It fixed
 ;     40000 (0.55x -> 0.91x) and BROKE 4096: 512 bytes cost 18.61 ns through rep against 7.86 ns
 ;     through stores. Fast-short-rep is faster than the old rep, not free; there is still roughly
@@ -173,7 +173,7 @@ sb_rep:
         mov       rcx, r11
         shl       rcx, 2                          ; ULONGs -> BYTES
 
-        ; ALIGN THE DESTINATION TO A CACHE LINE FIRST. This was removed once, on a single
+        ; Align the destination to a cache line first. This was removed once, on a single
         ; comparison that showed it slower at 32 KB, and putting it back is the result of reading
         ; the distribution instead of one number.
         ;

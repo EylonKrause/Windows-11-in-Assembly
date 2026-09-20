@@ -2,12 +2,12 @@
  *
  * Gate 2: time wia_inet_ntoa against the live ws2_32!inet_ntoa.
  *
- * EVERY ROW IS TIMED x16. probes/floor.c put the digit-table version at 1.43 ns a call and change
+ * Every row is timed x16. probes/floor.c put the digit-table version at 1.43 ns a call and change
  * 261's probes/floor.c put an empty call through THIS harness at 2.32 ns -- so a row of one call
  * would be measuring the harness and reporting it as the function. Sixteen puts every row above
  * twenty nanoseconds.
  *
- * THE ROWS ARE THE FOUR FIELD LENGTHS AND THEIR MIXTURES, because the implementation steps by two,
+ * The rows are the four field lengths and their mixtures, because the implementation steps by two,
  * three or four bytes per field and the only thing that varies is how often it takes each. A row of
  * "127.0.0.1" alone would measure one of the three step lengths three times.
  */

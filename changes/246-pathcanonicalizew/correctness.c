@@ -4,20 +4,20 @@
  * shlwapi!PathCanonicalizeW.
  *
  * THREE-WAY on every case -- ours, an independent oracle (reference.c, which wraps change 243's
- * oracle) and the LIVE EXPORT -- and FOUR observables each time:
+ * oracle) and the live export -- and four observables each time:
  *
  *   * the BOOL;
  *   * the destination buffer up to and including the terminator, against a poison fill -- both
  *     failure paths clear pszDst[0] and write nothing else, which a string comparison cannot tell
  *     from writing the same bytes back;
- *   * that NOTHING is written at or past MAX_PATH, checked with a 32-character canary -- the envelope
+ *   * that nothing is written at or past MAX_PATH, checked with a 32-character canary -- the envelope
  *     passes cch = MAX_PATH to a function whose result is capped at 259 characters, so a byte written
  *     at index 260 is a bug only a canary sees;
  *   * GetLastError(), which is the only place the underlying HRESULT survives at all;
  *   * and on the NULL-source case, that pszDst was CLEARED -- the clear happens between the two NULL
  *     checks, so its presence is what proves the order.
  *
- * WHAT IS *NOT* COMPARED, AND IT IS CHANGE 243'S DECISION RATHER THAN A NEW ONE. The bytes between
+ * What is *not* compared, and it is change 243'S decision rather than a new one. The bytes between
  * the result's terminator and cch are not compared, because the shipped function canonicalises
  * directly in the caller's buffer and truncates as it pops, leaving its own scratch behind the answer
  * -- 243's RESULTS.md gives the example, `C:\a\..` coming back as `C:\` followed by the leftover `\`
@@ -39,7 +39,7 @@
  * exactly what 243 does -- and the no-write-past-cch guarantee, which is the part that could actually
  * corrupt a caller, IS checked here too.
  *
- * THE CORPUS IS THE ENUMERATED ONE, not a list of realistic paths, for the reason change 243
+ * The corpus is the enumerated one, not a list of realistic paths, for the reason change 243
  * established: this function's rules live in the {backslash, dot, colon} subspace, and a corpus of
  * plausible paths agrees with a wrong model nearly everywhere. Change 243's own probing plateaued at
  * 99.63 % on realistic input and only the enumerated subspace exposed the residuals.
@@ -97,7 +97,7 @@ static void one(const wchar_t* src, const char* what)
                   what, src, d, b[d], c[d]);
         }
     }
-    /* and NOTHING may be written at or past MAX_PATH, which is the part that could corrupt a caller */
+    /* and nothing may be written at or past MAX_PATH, which is the part that could corrupt a caller */
     for (int i = CAP; i < CAP + TAIL; ++i) {
         CHECK(a[i] == POISON, "%s \"%ls\": ours wrote at [%d] (past MAX_PATH): %04X", what, src, i,
               a[i]);

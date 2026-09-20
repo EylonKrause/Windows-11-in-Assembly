@@ -6,7 +6,7 @@
 ; the worst per-byte cost found anywhere in ntdll during that sweep.
 ;
 ; ------------------------------------------------------------------------------------------------
-; WHICH CRC IT IS, DERIVED RATHER THAN GUESSED (probes/identify.c).
+; Which crc it is, derived rather than guessed (probes/identify.c).
 ;
 ; The check value of "123456789" is E3069283, which is CRC-32C's -- Castagnoli, reflected
 ; polynomial 0x82F63B78 -- and NOT zlib's CBF43926. But an EMPTY buffer returns the third argument
@@ -22,7 +22,7 @@
 ; buffer and chaining the calls gives the same answer as one call, over 200 random splits.
 ;
 ; ------------------------------------------------------------------------------------------------
-; WHY IT IS SLOW, AND WHAT THE FIX IS.
+; Why it is slow, and what the fix is.
 ;
 ; 0x82F63B78 is the polynomial the SSE4.2 CRC32 instruction implements IN HARDWARE, so the shipped
 ; export is not using a table -- it is using the instruction, serially. CRC32 has 3-cycle latency
@@ -38,20 +38,20 @@
 ;
 ; where shift_L advances a CRC past L zero bytes. That is a fixed linear map, tabulated once per L
 ; in shifttab.c as four 256-entry tables -- four loads and three XORs, twice per 3L bytes. The
-; tables are BUILT FROM THE POLYNOMIAL at run time and then CHECKED against the definition they are
+; tables are built from the polynomial at run time and then checked against the definition they are
 ; supposed to satisfy, because they are the one piece of this change that cannot be seen to be
 ; right by reading it.
 ;
-; TWO BLOCK SIZES, because one leaves a hole. L = 1024 needs 3072 bytes before it can be used at
+; Two block sizes, because one leaves a hole. L = 1024 needs 3072 bytes before it can be used at
 ; all, and a 200-byte buffer would fall all the way back to the serial chain and merely tie the
 ; shipped code. A second pass with L = 64 covers everything from 192 bytes up. Below that both
 ; implementations are a serial chain and there is nothing to win.
 ;
-; NO FRAME ON THE SHORT PATH. A buffer under 192 bytes is answered by a leaf with no prologue at
+; No frame on the short path. a buffer under 192 bytes is answered by a leaf with no prologue at
 ; all; the framed body is reached by a tail-jump and its four pushes are paid only by buffers large
 ; enough not to notice them. That is the shape changes 256, 260 and 262 use.
 ;
-; READING PAST THE BUFFER CANNOT HAPPEN: every block loop is entered only when its whole block is
+; Reading past the buffer cannot happen: every block loop is entered only when its whole block is
 ; inside the length, and the tail is 8, then 4, then 2, then 1 byte.
 ;
 ; ISA: SSE4.2 (CRC32).

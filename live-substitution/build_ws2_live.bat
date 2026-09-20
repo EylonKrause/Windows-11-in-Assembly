@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  ws2_32's IP-conversion exports are ALREADY COVERED by landed ntdll changes.
+Rem  ws2_32's IP-conversion exports are already covered by landed ntdll changes.
 REM  inet_addr and inet_ntop do not parse or format an address at all -- they
 REM  dispatch through their import table into ntdll!RtlIpv4StringToAddressA and
 REM  ntdll!RtlIpv4AddressToStringExA, which are changes 114 and 065. This patches

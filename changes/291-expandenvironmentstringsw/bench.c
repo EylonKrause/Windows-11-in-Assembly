@@ -1,6 +1,6 @@
 /* changes/291-expandenvironmentstringsw/bench.c
  *
- * THE TABLE DELIBERATELY CONTAINS THE ROWS THAT COULD EMBARRASS IT.
+ * The table deliberately contains the rows that could embarrass it.
  *
  * discovery/shlwapi_url_str.c once timed UrlEscape on a subject that escaped nothing, and so
  * published the speed of a scan that copied its input out unchanged. The identical mistake is
@@ -12,7 +12,7 @@
  *                        294 ns to decide that a 254-character path contains no '%'. This is a
  *                        scan, and this is where the change earns its place.
  *   variables to expand  one, four and eight real lookups. Every one of those is a call into
- *                        ntdll!RtlQueryEnvironmentVariable, which BOTH implementations make, so
+ *                        ntdll!RtlQueryEnvironmentVariable, which both implementations make, so
  *                        these rows measure what fraction of the cost was ever ours to win. A row
  *                        near 1.00x here is the honest answer, not a failure to optimise.
  *   adversarial          a subject that is nothing but '%', which is the input a naive vectoriser

@@ -1,9 +1,9 @@
 /* changes/270-convertsidtostringsid/probes/validate.c
  *
- * TWO THINGS probes/reads.c TURNED UP THAT A REIMPLEMENTATION WOULD OTHERWISE GET WRONG.
+ * Two things probes/reads.c turned up that a reimplementation would otherwise get wrong.
  *
  * ---------------------------------------------------------------------------------------------
- * 1. A SID WHOSE COUNT BYTE IS UNREADABLE IS *REFUSED*, NOT A FAULT.
+ * 1. a SID whose count byte is unreadable is *refused*, not a fault.
  *
  * reads.c placed a SID so that only its FIRST byte was readable and everything after it was on a
  * PAGE_NOACCESS page:
@@ -25,7 +25,7 @@
  * and has to implement it.
  *
  * ---------------------------------------------------------------------------------------------
- * 2. A SUCCESSFUL CALL LEAVES THE LAST ERROR AT ZERO.
+ * 2. a successful call leaves the last error at zero.
  *
  *     last error before 0D15EA5E, after a SUCCESSFUL call 00000000 -- CHANGED
  *

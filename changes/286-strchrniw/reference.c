@@ -1,10 +1,10 @@
 /* changes/286-strchrniw/reference.c
  *
- * THE SCALAR MODEL for shlwapi!StrChrNIW, from the contract measured in probes/contract.c:
+ * The scalar model for shlwapi!StrChrNIW, from the contract measured in probes/contract.c:
  *
  *     PWSTR StrChrNIW(PCWSTR start, WCHAR match, UINT cchMax)
  *
- *   * IT TAKES A COUNT, NOT AN END POINTER, and that had to be settled rather than read off a header:
+ *   * It takes a count, not an end pointer, and that had to be settled rather than read off a header:
  *     discovery/charclass_strcmp_2026.c timed it as (start, start+511, char) -- reusing StrRChrIW's
  *     three-argument typedef and labelling it "range form" -- which does not fault, so it produced a
  *     number that was not this function's cost. Called that way the export returns NULL; called as
@@ -13,7 +13,7 @@
  *     reach index 2, a count of 3 does, and a count of 0 gives NULL;
  *   * the relation is change 281's -- the intransitive triple holds, it is symmetric, the 3237-member
  *     ignorable set works, and U+200B matches only itself;
- *   * THE TERMINATOR STOPS THE SCAN AND IS NEVER A MATCH. This is where it differs from changes 283 and
+ *   * The terminator stops the scan and is never a match. This is where it differs from changes 283 and
  *     284: there a needle character that matches a NUL matched the terminator itself. Here searching for
  *     a NUL, or for a SOFT HYPHEN, over "abcd" gives NULL. An embedded NUL stops it the same way;
  *   * a NULL start gives NULL.

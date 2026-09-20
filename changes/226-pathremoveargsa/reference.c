@@ -6,17 +6,17 @@
 // 255 non-NUL byte values at seven positions the rule consults, also 0.
 //
 //   1. Find the first 0x20 OUTSIDE double quotes; each '"' toggles the state. Measured, not
-//      assumed: sweeping every byte value, EXACTLY ONE splits (0x20) and EXACTLY ONE is trimmed
+//      assumed: sweeping every byte value, exactly one splits (0x20) and exactly one is trimmed
 //      (0x20). A TAB does neither.
-//   2. If one exists AND something follows it: NUL it, and ALSO NUL the LAST byte of that run of
+//   2. If one exists and something follows it: NUL it, and also NUL the last byte of that run of
 //      spaces when a non-space follows. "ab   c" gets TWO terminators, at 2 and at 4 -- not at 2
 //      and 3. The second write lands PAST the terminator, which no string comparison can see, so
 //      every test compares the whole buffer.
-//   3. If there is NO unquoted space: trim TRAILING spaces, terminating at the FIRST byte of the
+//   3. If there is no unquoted space: trim trailing spaces, terminating at the first byte of the
 //      trailing run. This ignores quoting entirely -- '"'+' ' IS cut even though that space sits
 //      inside an unclosed quote, while '"'+' '+'a' is left alone.
 //
-// And when there is nothing to do, NOTHING is written -- not even a redundant terminator. That is
+// And when there is nothing to do, nothing is written -- not even a redundant terminator. That is
 // observable against a poison fill, and it is why behaviour 3 tests the last byte before acting.
 //
 // There is no MAX_PATH guard: lengths 250..270 all act.

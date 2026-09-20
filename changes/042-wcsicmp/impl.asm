@@ -1,18 +1,18 @@
 ; changes/042-wcsicmp/impl.asm
 ; int wia_wcsicmp(const wchar_t* s1, const wchar_t* s2)   [Win64: rcx, rdx -> eax]
 ;
-; Case-insensitive wide compare. In the default C locale ucrtbase folds ONLY ASCII
+; Case-insensitive wide compare. In the default C locale ucrtbase folds only ASCII
 ; A-Z (0x41-0x5A) -> a-z; every other code unit (incl. Latin-1/Cyrillic letters) is
 ; compared as-is (verified against the live export). Return = folded(w1) - folded(w2)
 ; at the first differing position, 0 if equal. ucrtbase's is scalar (~4.5 GB/s).
 ;
 ; We fold both 16-wchar vectors in-register (A-Z detected with two signed vpcmpgtw,
 ; +0x20 to those lanes) then compare. Two unbounded pointers, so page-safe like 004:
-; a 32-byte load is only issued when BOTH pointers have >= 32 bytes to their page end;
+; a 32-byte load is only issued when both pointers have >= 32 bytes to their page end;
 ; otherwise it steps one wchar at a time. The terminator stops the scan.
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 (their low 128 bits are;
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 (their low 128 bits are;
 ; the upper halves are volatile), so an earlier cut of this function -- which parked constants in
 ; ymm6/ymm7 -- silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers. See tools/abi-check.

@@ -1,5 +1,5 @@
 ; changes/088-cryptstringtobinaryw-hexraw/impl.asm
-; BOOL wia_s2bhw(LPCWSTR s, DWORD cch, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2bhw(LPCWSTR s, dword cch, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=cch, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; Wide sibling of 086: crypt32!CryptStringToBinaryW for CRYPT_STRING_HEXRAW (wide hex -> binary). Reuses

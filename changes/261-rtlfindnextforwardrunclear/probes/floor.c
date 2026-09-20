@@ -1,6 +1,6 @@
 /* changes/261-rtlfindnextforwardrunclear/probes/floor.c
  *
- * WHAT DOES AN EMPTY CALL COST IN THIS HARNESS?
+ * What does an empty call cost in this harness?
  *
  * The two smallest FORWARD rows of bench.c sit at 1.00x-1.01x and will not move. Three separate
  * structural fixes -- the slack mask hoisted out of both scans, the out-pointer spill removed, the

@@ -6,7 +6,7 @@
 ; PathStripPathW on the SAME path -- 4.87x the wide cost for HALF the bytes, the MBCS-walk signature
 ; the whole narrow shlwapi family has shown.
 ;
-; THIS IS CHANGE 212 PLUS A MOVE, and the equivalence was verified rather than assumed, on both
+; This is change 212 Plus a move, and the equivalence was verified rather than assumed, on both
 ; halves at once (probes/strip.c): over every string in {a, backslash, slash, colon} up to length 8
 ; -- 87381 of them -- and again over {a, backslash, slash, colon, SPACE} up to length 8 -- 488281, of
 ; which 400900 contain a space -- the buffer left by the live PathStripPathA is byte for byte what
@@ -30,7 +30,7 @@
 ; with no zero fill, and the correctness harness compares the whole buffer to prove it.
 ;
 ; The copy is forward and the destination is strictly below the source, so overlap is safe as long as
-; each block is LOADED BEFORE IT IS STORED: the store then lands entirely behind the next block's
+; each block is loaded before it is stored: the store then lands entirely behind the next block's
 ; read. The usual head/tail overlapping-pair trick would NOT be safe here, and change 218 proved that
 ; the hard way -- it borrowed the pair from change 211, whose source and destination are different
 ; buffers, and re-read bytes it had already moved. The remainder below therefore walks DOWN
@@ -50,14 +50,14 @@
 ;     mismatches vs a simpler rule      : 76672
 ;
 ; plus 2396745 strings over {a, backslash, slash, colon, dot, space, z, 0xE9}: 0 mismatches. So the
-; narrow form carries the wide rule EXACTLY, run condition included -- and the simpler rule that every
+; narrow form carries the wide rule exactly, run condition included -- and the simpler rule that every
 ; spot check in probes/pffa.c was consistent with is wrong on 76672 strings. Spot checks would never
 ; have found it; only the enumeration did.
 ;
 ; The rule:
 ;   * '\' and '/' are always separators. One sets the answer to i+1 when the next character is
 ;     neither NUL nor '\' nor '/'  (a following ':' is fine).
-;   * ':' sets the answer to i+1 under the same next-character test, but ONLY when it is the sole
+;   * ':' sets the answer to i+1 under the same next-character test, but only when it is the sole
 ;     colon in its RUN -- the stretch between two backslash/slash characters. So ":a" gives 1 and
 ;     "a:a" gives 2, while ":a:" and "a::a" both give 0, and ":\:a" gives 3 because the backslash
 ;     starts a fresh run in which that colon is alone.
@@ -81,7 +81,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt, blsr) + BMI2 (shrx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their low 128 bits are -- and
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are -- and
 ; parking a constant in ymm6, as an earlier cut of change 161 did, silently destroys any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters. See
 ; tools/abi-check. ':' is the rarest of the four and is only compared against, so it becomes a memory
@@ -220,7 +220,7 @@ ff_end:
         lea       rsi, [rdi + 1]
 ff_done:
         ; rsi = byte offset of the last component, rdx = byte offset of the terminator.
-        ; ff_done is reached ONLY through ff_end, which is the branch taken when the scan meets the
+        ; ff_done is reached only through ff_end, which is the branch taken when the scan meets the
         ; terminator, so rdx is the string's length here.
         test      rsi, rsi
         jz        ff_ret                            ; already at the front: nothing to move

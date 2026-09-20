@@ -1,6 +1,6 @@
 /* changes/258-rtlfindclearruns/probes/enumorder.c
  *
- * THE ORDER THE SHIPPED EXPORT FINDS RUNS IN -- which is NOT the order they occur in.
+ * The order the shipped export finds runs in -- which is not the order they occur in.
  *
  * probes/contract.c concluded that the UNSORTED form "returns the FIRST runs found, in order". The
  * first half is right and the second half is wrong, and the correctness corpus caught it: on a
@@ -12,13 +12,13 @@
  * The contract probe missed it because every run in it was in a byte of its own, which is the one
  * arrangement where the two orders agree.
  *
- * WHY. ntdll!RtlFindClearRuns (RVA 0x0E3280) scans ONE BYTE AT A TIME through four byte tables:
+ * Why. ntdll!RtlFindClearRuns (rva 0x0E3280) scans one byte at a time through four byte tables:
  *
- *      RVA 0x17FBD0[b]  the number of CLEAR bits at the BOTTOM of b     (trailing zeros)
- *      RVA 0x192560[b]  the number of CLEAR bits at the TOP of b        (leading zeros)
+ *      Rva 0x17FBD0[b]  the number of clear bits at the bottom of b     (trailing zeros)
+ *      Rva 0x192560[b]  the number of clear bits at the top of b        (leading zeros)
  *      RVA 0x192548[n]  (1 << n) - 1
- *      RVA 0x180570[b]  the LENGTH OF THE LONGEST CLEAR RUN in b
- *      RVA 0x180558[n]  the mask of the bits at and above n -- used BOTH to force the slack past
+ *      Rva 0x180570[b]  the length of the longest clear run in b
+ *      RVA 0x180558[n]  the mask of the bits at and above n -- used both to force the slack past
  *                       SizeOfBitMap to ones AND, read backwards from 0x180560, as the top-n mask
  *
  * (Every one of those was dumped from the live image and checked against its claimed meaning over
@@ -30,14 +30,14 @@
  *      emitted FIRST;
  *   2. the run at the TOP of the byte becomes the new carry -- NOT emitted here;
  *   3. both of those are masked off, and what is left -- the runs strictly INSIDE the byte -- is
- *      emitted by REPEATEDLY TAKING THE LONGEST ONE (0x180570), ties going to the lowest position,
+ *      emitted by repeatedly taking the longest one (0x180570), ties going to the lowest position,
  *      masking it off and going again.
  *
  * Step 3 is the whole discrepancy: a byte's interior runs come out LONGEST FIRST, so (3,2) precedes
  * (1,1). A byte holds at most three interior runs, so at most three entries are ever permuted, but
  * WHICH runs an undersized array keeps depends on it, and that is observable.
  *
- * AND THE SORTED FORM IS UNAFFECTED, which is worth stating because it is not obvious. Sorted output
+ * And the sorted form is unaffected, which is worth stating because it is not obvious. Sorted output
  * is a STABLE sort of the found order by descending length, so the found order can only show through
  * between runs of EQUAL length -- and for two runs of equal length the found order and the ascending
  * order AGREE:

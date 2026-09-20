@@ -76,7 +76,7 @@ int main(void){
         CHECK(one(s,400), "generous bound");
     }
 
-    // EVERY byte value, one character at a time -- pins the fold set to exactly a-z
+    // every byte value, one character at a time -- pins the fold set to exactly a-z
     for(int c=1;c<256;c++){
         s[0]=(char)c; s[1]=0;
         CHECK(one(s,4), "fold-set sweep");

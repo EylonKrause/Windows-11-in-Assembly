@@ -2,12 +2,12 @@
 // Gate 1: wia_pathrenameexta must be indistinguishable from shlwapi!PathRenameExtensionA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE WHOLE BUFFER IS COMPARED, always, and so is the BOOL. The export writes only the extension
+// The whole buffer is compared, always, and so is the BOOL. The export writes only the extension
 // and its terminator and leaves everything past it stale ("file.txtxxxxxx" + ".o" ->
 // "file.o\0txxxxxx"), and it must leave the buffer COMPLETELY untouched when the result does not
 // fit -- neither of which a string comparison can see.
 //
-// AND THE CORPORA ENUMERATE RATHER THAN SAMPLE, WITH A SPACE IN THE ALPHABET. The wide sibling,
+// And the corpora enumerate rather than sample, with a space in the alphabet. The wide sibling,
 // change 158, shipped wrong for exactly the want of that: its corpus had no space in it, so its
 // test, its oracle and its implementation shared one blind spot. Eight landed changes carried the
 // same missing stopper.
@@ -73,7 +73,7 @@ int main(void){
                 chk(P[i], E[j], "probe-derived case");
     }
 
-    // EXHAUSTIVE over the alphabet that reaches every stopper candidate, INCLUDING THE SPACE.
+    // Exhaustive over the alphabet that reaches every stopper candidate, including the space.
     // 335923 strings, 238267 of them containing a space.
     {
         static const char AL[6] = { 'a', '.', '\\', '/', ':', ' ' };
@@ -107,7 +107,7 @@ int main(void){
         }
     }
 
-    // THE MAX_PATH BOUNDARY, SWEPT EXACTLY. The limit is on the RESULT, so every combination of
+    // The MAX_PATH boundary, swept exactly. The limit is on the result, so every combination of
     // input length and extension length has to be walked across it -- an input-length-only sweep
     // would pass an implementation that bounded the wrong quantity.
     {
@@ -149,7 +149,7 @@ int main(void){
         }
     }
 
-    // EVERY byte value at the five positions the rule consults, in the path
+    // every byte value at the five positions the rule consults, in the path
     for (int c = 1; c < 256; ++c) {
         s[0]='a'; s[1]='b'; s[2]=(char)c; s[3]='c'; s[4]='d'; s[5]='.'; s[6]='t'; s[7]=0;
         chk(s, ".zz", "path byte sweep: a lone separator");
@@ -162,7 +162,7 @@ int main(void){
         s[0]='a'; s[1]='b'; s[2]='.'; s[3]=(char)c; s[4]='t'; s[5]=0;
         chk(s, ".zz", "path byte sweep: just after the dot");
     }
-    // EVERY byte value inside the EXTENSION -- it is copied verbatim, not validated
+    // every byte value inside the EXTENSION -- it is copied verbatim, not validated
     for (int c = 1; c < 256; ++c) {
         char e[8];
         e[0]='.'; e[1]=(char)c; e[2]='z'; e[3]=0;
@@ -200,7 +200,7 @@ int main(void){
         CHECK(!sys(0, ".obj"), "NULL path returns FALSE (live)");
     }
 
-    // randomized fuzz -- alphabet carries BOTH a space and a tab, because the rule is 0x20
+    // randomized fuzz -- alphabet carries both a space and a tab, because the rule is 0x20
     // specifically and not whitespace in general
     {
         static const char AL[10] = { 'a', 'b', '.', '\\', '/', ':', ' ', '\t', 'x', '.' };

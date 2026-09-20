@@ -1,8 +1,8 @@
 // live-substitution/live_subst_inetaddr.c
 // LIVE-RUN PROOF for change 273 (ws2_32!inet_addr).
 //
-// THIS HARNESS EXISTS BECAUSE THE REPOSITORY ALREADY CLAIMED THIS EXPORT WAS COVERED, AND THE CLAIM
-// WAS TOO STRONG. live_subst_ws2.c patches ntdll!RtlIpv4StringToAddressA (change 114), calls
+// This harness exists because the repository already claimed this export was covered, and the claim
+// Was too strong. live_subst_ws2.c patches ntdll!RtlIpv4StringToAddressA (change 114), calls
 // ws2_32!inet_addr, and shows the counter moving on every input -- which proves inet_addr DELEGATES
 // to it, and it does, on all 22 of its subjects. What it does not prove is the headline above it:
 // "inet_addr does not parse an address at all". changes/273-inet-addr/probes/grammar.c asks both
@@ -22,15 +22,15 @@
 //
 // So this one patches ws2_32!inet_addr ITSELF.
 //
-// THE CORPUS IS BUILT FROM WHAT THE PROBES FOUND, not from plausible addresses: the wrapping
+// The corpus is built from what the probes found, not from plausible addresses: the wrapping
 // accumulator (which no description of inet_addr contains), the whitespace terminator, every field
 // boundary in all three bases, and the single byte 0x20 that is an address on its own. A corpus of
 // realistic dotted quads exercises none of it.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and inet_addr is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and inet_addr is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_inetaddr_live.bat
@@ -107,7 +107,7 @@ static void putnum(int* n, unsigned long long v, int base, int prefix)
 
 static const unsigned char WS[] = { 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x20 };
 
-/* THE CASE IS A PURE FUNCTION OF ITS INDEX. Change 252's harness carried PRNG state across its
+/* The case is a pure function of its index. Change 252's harness carried prng state across its
    passes and reported 14285 differences with its patch counter at ZERO. */
 static void build_case(long i)
 {

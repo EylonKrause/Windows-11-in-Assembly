@@ -1,7 +1,7 @@
 // changes/132-pathfindextensionw/correctness.c
 // Bit-exact fuzz of wia_pathfindextw vs live shlwapi!PathFindExtensionW + oracle.
 //
-// CORRECTED 2026-09-15, AND THE CORRECTION IS THE POINT. The previous version of this test declared
+// Corrected 2026-09-15, and the correction is the point. The previous version of this test declared
 // "600k path fuzz" and passed -- while the implementation was wrong on 295513 of 2015539 enumerated
 // strings. Its alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'}: NO SPACE. The oracle, the
 // implementation and the corpus all shared one blind spot, so the test could not see it.

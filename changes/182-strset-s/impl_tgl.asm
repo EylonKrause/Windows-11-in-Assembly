@@ -5,10 +5,10 @@
 ; Tiger Lake / Willow Cove variant of change 182. Same contract, same oracle, same gates; this is
 ; the only file that differs from the parent.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3. Here the 8-byte class measures 0.83x, and the reason
-; is that at that size the parent does NO VECTOR WORK AT ALL while paying the full price of having
+; is that at that size the parent does no vector work at all while paying the full price of having
 ; intended to:
 ;
 ;   * `vpxor ymm1, ymm1, ymm1` runs unconditionally in the prologue, before the bound is examined.
@@ -41,13 +41,13 @@
 ; CONTRACT -- unchanged, and it is unusual enough to restate, because two of the three `_s` shapes
 ; in this CRT would be wrong here (see the parent's header for how it was pinned):
 ;
-;   * numberOfElements == 0 -> EINVAL (22) and NOTHING is written.
+;   * numberOfElements == 0 -> EINVAL (22) and nothing is written.
 ;   * No terminator strictly inside numberOfElements -> PARTIAL FILL of numberOfElements-1 cells,
 ;     THEN str[0] = 0, return EINVAL (22).
 ;   * Otherwise -> fill every cell before the terminator, keep the terminator, return 0.
 ;   * All 256 fill byte values behave the same, including 0.
 ;
-; PAGE SAFETY: a probe is issued only when that many bytes of the caller's DECLARED buffer remain,
+; Page safety: a probe is issued only when that many bytes of the caller's declared buffer remain,
 ; and is additionally guarded against crossing into the next page -- the same two-part discipline
 ; the parent uses, applied at 16 and 8 bytes as well as 32. The fill writes at most
 ; numberOfElements-1 bytes, and the overlapping stores land strictly inside that span, so the
@@ -213,7 +213,7 @@ no_term:
         lea       r11, [rdx - 1]                 ; count = numberOfElements - 1
         mov       r10d, 1                        ; outcome = EINVAL
 
-        ;---------------- one fill loop serves BOTH outcomes ----------------
+        ;---------------- one fill loop serves both outcomes ----------------
 do_fill:
         movzx     eax, r8b
         vmovd     xmm2, eax

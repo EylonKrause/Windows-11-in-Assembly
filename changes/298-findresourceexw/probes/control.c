@@ -1,4 +1,4 @@
-/* probes/control.c -- IS THE TABLE ITSELF FAIR?
+/* probes/control.c -- is the table itself fair?
  *
  * bench.h measures OURS first and SYSTEM second for every case. On a subject
  * where 95% of the time is a call into ntdll whose cost moves with page and MUI
@@ -7,7 +7,7 @@
  * perhaps 15 ns of wrapper out of 580 -- so the question has to be answered
  * before that 1.03x is believed.
  *
- * The control: run the SAME bench with the LIVE EXPORT on BOTH sides. Anything
+ * The control: run the same bench with the live export on both sides. Anything
  * the table reports other than 1.00x is the harness, not the implementation.
  */
 #define WIN32_LEAN_AND_MEAN

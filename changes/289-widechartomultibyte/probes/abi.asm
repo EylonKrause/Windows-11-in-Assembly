@@ -5,7 +5,7 @@
 ; GATE 3, DYNAMIC, for this change. `tools/abi-check/check.bat` is the repository's dynamic gate,
 ; but adding a change to it means editing check.bat and abi_check.c, and this change is not allowed
 ; to modify an existing file. So the same probe is written here, in the one shape that cannot be
-; masked: the sentinels are armed AROUND THE CALL, by hand, with no compiled C between the arming
+; masked: the sentinels are armed around the call, by hand, with no compiled C between the arming
 ; and the call.
 ;
 ; That distinction is not pedantry -- tools/abi-check/abi_check.c records it. Its first form armed
@@ -14,7 +14,7 @@
 ; for. It was demonstrated on change 258: with `push r15` and its `pop` deleted from impl.asm the
 ; gate still said PASS.
 ;
-; WHAT THE ABI ACTUALLY SAYS, which is narrower than "never touch ymm6":
+; What the ABI actually says, which is narrower than "never touch ymm6":
 ;   volatile      rax rcx rdx r8 r9 r10 r11, xmm0-xmm5, and the UPPER half of ymm0-ymm15
 ;   non-volatile  rbx rbp rdi rsi rsp r12-r15, and the LOW 128 BITS of xmm6-xmm15
 ; so the comparison in abi.c is 128 bits wide per vector register and not 256.

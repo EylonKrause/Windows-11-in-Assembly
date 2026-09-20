@@ -14,7 +14,7 @@
 //     the comparison by construction.
 //
 // Both are now the opposite: `MaximumLength` is swept across every interesting value for every
-// length, and the WHOLE destination buffer is compared byte for byte against both the live export
+// length, and the whole destination buffer is compared byte for byte against both the live export
 // and the oracle, poison included.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -50,7 +50,7 @@ static void one(const wchar_t* src, int n, unsigned short maxlen)
     if(yo!=oo||yo!=ro) bad=1;
     if(u1.Length!=u2.Length||u1.Length!=ur.Length) bad=1;
     if(u1.MaximumLength!=u2.MaximumLength||u1.MaximumLength!=ur.MaximumLength) bad=1;
-    /* the WHOLE buffer, so the terminator and the truncating write are both in scope */
+    /* the whole buffer, so the terminator and the truncating write are both in scope */
     if(memcmp(d1,d2,DB)||memcmp(d1,dr,DB)) bad=1;
     if(bad){
         printf("FAIL n=%d max=%u: ntdll st=%08lX len=%u | ours st=%08lX len=%u | ref st=%08lX len=%u\n",

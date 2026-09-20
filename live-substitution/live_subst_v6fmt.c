@@ -10,7 +10,7 @@
 // so the two groups cannot share an image. 068 and 069 build on 063's and 064's implementations
 // as their core, so all four belong together here.
 //
-// WHAT THIS HARNESS IS LOOKING FOR, having been taught by its sibling. The IPv4 version failed on
+// What this harness is looking for, having been taught by its sibling. The IPv4 version failed on
 // its first run and was right to: ntdll's RtlIpv4AddressToString{A,W} write a SECOND terminator at
 // a FIXED index -- the end of the 16-character maximum -- and changes 059 and 061 wrote only the
 // one after the text. The rendered string and the returned pointer were identical in all 17462
@@ -18,17 +18,17 @@
 // comparison is applied here, over a 128-byte poisoned buffer, and the same question is open for a
 // 46-character maximum.
 //
-// THE CORPUS IS SHAPED AROUND THE :: RULE, because that is where an IPv6 formatter goes wrong.
+// The corpus is shaped around the :: Rule, because that is where an IPv6 formatter goes wrong.
 // The longest run of zero groups is compressed, ties go to the FIRST run, a single zero group is
 // NOT compressed, and a trailing run is. So the corpus carries: all-zero, loopback, one interior
 // run, two runs of equal length, two of unequal length, a leading run, a trailing run, single
 // isolated zero groups, IPv4-mapped and IPv4-compatible forms, and uniformly random groups.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these four is used by the loader or the heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these four is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_v6fmt_live.bat

@@ -3,17 +3,17 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// WHAT DRIVES THE SHAPE OF THIS TEST.
+// What drives the shape of this test.
 //
-// 1. THE SET IS A 256-BIT BITMAP, so every byte value has to be provable both as a member and as a
+// 1. The set is a 256-BIT bitmap, so every byte value has to be provable both as a member and as a
 //    non-member. The membership test is a two-table vpshufb selected by the character's BIT 7, so
 //    the halves are exercised separately: 0x00..0x7F resolve through one table and 0x80..0xFF
 //    through the other, and a swapped blend would pass any test that only used ASCII.
-// 2. THE FIRST LOAD IS ALIGNED DOWN and the leading bytes are shifted out of the mask, so garbage
+// 2. The first load is aligned down and the leading bytes are shifted out of the mask, so garbage
 //    before the string could produce a false hit if the shift were wrong. Every case is therefore
-//    run at EVERY start offset within a 32-byte block, with the preceding bytes deliberately filled
+//    run at every start offset within a 32-byte block, with the preceding bytes deliberately filled
 //    with set members.
-// 3. A NULL SET IS NOT THE EMPTY SET -- 0 versus strlen. Both are tested explicitly.
+// 3. a NULL set is not the empty set -- 0 versus strlen. Both are tested explicitly.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
@@ -64,7 +64,7 @@ int main(void){
     CHECK(one("abc", ""), "an EMPTY set returns strlen -- not the same as NULL");
     CHECK(wia_strcspna("abc", "") == 3, "and that value is 3, not 0");
 
-    // ---- EVERY byte value as a set member, and as a non-member ---------------------------------
+    // ---- every byte value as a set member, and as a non-member ---------------------------------
     // The membership test resolves 0x00..0x7F through one table and 0x80..0xFF through the other,
     // selected by bit 7, so both halves must be proved independently.
     {

@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// THIS TEST IS MOSTLY ABOUT THE FAILURE PATH. IIDFromString writes into the caller's GUID as it
+// This test is mostly about the failure path. IIDFromString writes into the caller's GUID as it
 // parses, so a malformed string leaves a partially-filled GUID that must match byte for byte. Every
 // case therefore starts from a poison fill and compares all sixteen output bytes AND the HRESULT --
 // and the HRESULT itself is two-valued (E_INVALIDARG for a structural rejection, CO_E_IIDSTRING for a
@@ -79,7 +79,7 @@ int main(void){
         for (int i = 0; i < 7; ++i) CHECK(one(S[i]), "valid forms");
     }
 
-    // ---- structural rejections: the length must be EXACTLY 38 -> E_INVALIDARG, nothing written ----
+    // ---- structural rejections: the length must be exactly 38 -> E_INVALIDARG, nothing written ----
     {
         static const wchar_t* S[] = {
             L"",
@@ -96,7 +96,7 @@ int main(void){
         for (int i = 0; i < 10; ++i) CHECK(one(S[i]), "structural rejection (length != 38)");
     }
 
-    // ---- THE CORRUPTION SWEEP: 38 positions x 256 low values. This is what pins the
+    // ---- The corruption sweep: 38 positions x 256 low values. This is what pins the
     // ---- partial-write table, because each position stops the parser at a different boundary.
     for (int pos = 0; pos < 38; ++pos) {
         for (int v = 1; v < 256; ++v) {          /* v == 0 would shorten the string; covered above */

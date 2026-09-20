@@ -9,12 +9,12 @@
    PSTR StrRChrA(PCSTR pszStart, PCSTR pszEnd, WORD wMatch)
 
    What has to be settled before any of that matters:
-     * IS THE WALK BYTE-WISE ON THIS CODE PAGE? Sixteen times the wide cost is the signature of an
+     * Is the walk byte-wise on this code page? Sixteen times the wide cost is the signature of an
        MBCS-aware walk -- CharNextA per character. If some byte acts as a lead byte, a byte-wise
        reverse scan would disagree with the export and the target is dead, the way StrCmpNW and
        lstrcmpA died on being linguistic. (212 asked the same question of PathFindFileNameA and got
        zero of 255; this function is asked separately, because it is a different function.)
-     * IS pszEnd INCLUSIVE OR EXCLUSIVE? The whole loop bound depends on it, and the answer is
+     * Is pszEnd inclusive or exclusive? The whole loop bound depends on it, and the answer is
        checked at the exact boundary, not inferred from a case in the middle.
      * pszEnd == NULL -- does it mean "to the end of the string"?
      * wMatch is a WORD on a code page with no lead bytes: is only the low byte consulted?
@@ -100,7 +100,7 @@ int main(void){
         static const char s[] = "abc";
         show(s, -1, 0, "wMatch = 0, pszEnd = NULL");
         show(s, 3,  0, "wMatch = 0, pszEnd = s+3");
-        /* NOT PROBED, DELIBERATELY: StrRChrA(s, s+4, 0) -- searching for the terminator with an
+        /* Not probed, deliberately: StrRChrA(s, s+4, 0) -- searching for the terminator with an
            pszEnd placed one PAST it -- does not return. The first run of this probe sat in that
            call for 300 seconds and had to be killed. It is an out-of-contract input (pszEnd is
            exclusive and s+4 is past the end of the string), and a hang is not behaviour a caller
@@ -117,7 +117,7 @@ int main(void){
         show(e, -1, 0,   "empty string, searching for NUL");
         static const char s[] = "abcZdefZghi";
         show(s, -1, 'Q', "target absent");
-        /* NOT PROBED, DELIBERATELY: pszEnd < pszStart. The range is empty by the exclusive rule
+        /* Not probed, deliberately: pszEnd < pszStart. The range is empty by the exclusive rule
            established above, so there is nothing to learn, and a reverse scan starting below the
            string has nowhere to stop. Out of contract; not reproduced, not tested. */
         printf("  %-38s -> SKIPPED: out of contract (see the source)\n",

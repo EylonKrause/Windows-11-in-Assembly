@@ -1,14 +1,14 @@
 // changes/207-iidfromstring/reference.c
 // The correctness oracle for combase!IIDFromString. Not fast; just obviously right.
 //
-// THE POINT OF THIS FILE IS THE FAILURE PATH. IIDFromString writes into the caller's GUID as it
+// The point of this file is the failure path. IIDFromString writes into the caller's GUID as it
 // parses, so a malformed string leaves a PARTIALLY FILLED GUID that has to be reproduced byte for
 // byte. probes/wmask.c measured that directly -- corrupt exactly one character, then report which of
 // the sixteen output bytes moved away from a poison fill -- and this is the rule that came back:
 //
 //     corrupted char   bytes written        because
 //     0   '{'          none                 the brace is checked before anything is stored
-//     1..8             0-3, PARTIAL Data1   Data1 is zeroed first, then re-stored after EVERY digit
+//     1..8             0-3, PARTIAL Data1   Data1 is zeroed first, then re-stored after every digit
 //     9   '-'          0-3, full Data1
 //     10..13           0-3                  Data2 is not stored yet
 //     14  '-'          0-3                  ...not even after its four digits validate
@@ -20,10 +20,10 @@
 //     25..36           one more byte per hex pair
 //     37  '}'          all 16               Data4[7] is stored BEFORE the brace is checked
 //
-// So each field is stored only once IT AND ITS TRAILING SEPARATOR validate -- except Data1, which is
+// So each field is stored only once it and its trailing separator validate -- except Data1, which is
 // progressive, and Data4[0], which has no trailing separator.
 //
-// TWO ERROR CODES, not interchangeable:
+// Two error codes, not interchangeable:
 //   * 0x80070057 E_INVALIDARG  -- lpiid is NULL, or strlen != 38 exactly. Nothing written.
 //   * 0x800401F4 CO_E_IIDSTRING -- length was right, content was not. Partial writes as above.
 //

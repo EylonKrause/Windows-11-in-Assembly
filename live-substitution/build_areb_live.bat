@@ -1,11 +1,11 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 259 (ntdll!RtlAreBitsSet, RtlAreBitsClear).
+Rem  live-run proof for change 259 (ntdll!RtlAreBitsSet, RtlAreBitsClear).
 REM
-REM  Both exports are patched ONE AT A TIME, each with its own counter: they
+Rem  Both exports are patched one at a time, each with its own counter: they
 REM  are separate code in ntdll and one implementation serves both here, so a
 REM  wrapper routing one through the other would otherwise go unnoticed. The
-REM  corpus is built to answer YES as well as NO -- a range check that only
+Rem  corpus is built to answer yes as well as no -- a range check that only
 REM  ever said no would prove nothing about the loop.
 REM
 REM  Sacrificial single-threaded child; it patches only its own copy-on-write

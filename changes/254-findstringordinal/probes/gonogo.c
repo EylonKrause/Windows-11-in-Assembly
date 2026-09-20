@@ -1,9 +1,9 @@
 /* changes/254-findstringordinal/probes/gonogo.c
  *
- * THE GO/NO-GO for kernelbase!FindStringOrdinal (RVA 0x0A1E90) -- and it is NOT the same question
+ * The go/no-go for kernelbase!FindStringOrdinal (rva 0x0A1E90) -- and it is not the same question
  * change 252 asked, even though it is the same shape of function.
  *
- * WHAT THE DISASSEMBLY ALREADY SETTLES. The search itself is a naive O(n*m) scan that shifts its
+ * What the disassembly already settles. The search itself is a naive O(n*m) scan that shifts its
  * window by ONE character, in both modes -- the case-sensitive inner loop is
  *
  *     000A2128  movzx eax, word ptr [rdx]            the needle character
@@ -15,32 +15,32 @@
  * FOLD, and here it differs from RtlFindUnicodeSubstring in a way that matters:
  *
  *     000A22A9  cmp r9d, 0x61 / jb ; cmp r9d, 0x7a / ja ; sub r9w, 0x20     ASCII a-z, inline
- *     000A22F6  cmp r9w, r14w      (r14d = 0xC0) / jb  -> NOT FOLDED AT ALL
+ *     000A22F6  cmp r9w, r14w      (r14d = 0xC0) / jb  -> not folded at all
  *     000A22FC  mov rsi, qword ptr [rip + 0x308a15]                          a TABLE pointer
  *     000A2301  movzx edx, r9b / shr rax, 8 / movzx ecx, [rsi + rax*2]       a THREE-LEVEL TRIE
  *               shr eax, 4 / and edx, 0xf / add ecx, eax / movzx ecx, [rsi + rcx*2] ...
  *
  * A trie indexed by high byte, then high nibble, then low nibble is an ORDINAL table, not the sort
- * machinery -- so it is reproducible in principle. BUT THE `< 0xC0` SHORT-CIRCUIT MEANS IT CANNOT
- * SIMPLY BE RtlUpcaseUnicodeChar: every code unit in 0x80..0xBF is left alone here, and at least one
+ * machinery -- so it is reproducible in principle. But the `< 0xC0` short-circuit means it cannot
+ * simply BE RtlUpcaseUnicodeChar: every code unit in 0x80..0xBF is left alone here, and at least one
  * of them (U+00B5 MICRO SIGN) the ordinal upcase table does map elsewhere. If that is right, change
  * 252's case-partner table is the WRONG table for this function and a second one has to be derived.
  *
- * SO THIS PROBE ASKS THREE THINGS, in order of how badly a wrong answer would hurt:
+ * So this probe asks three things, in order of how badly a wrong answer would hurt:
  *
- *   1. WHAT IS THE FOLD? Tested as a hypothesis over all 65536 code units:
+ *   1. What is the fold? Tested as a hypothesis over all 65536 code units:
  *          fold(u) = (0x61 <= u <= 0x7A) ? u - 0x20
  *                  : (u < 0xC0)          ? u
  *                  : RtlUpcaseUnicodeChar(u)
  *      Every unit is searched for against its own hypothesised partner (must match) and against a
  *      unit the hypothesis says is in a different class (must not).
  *
- *   2. HOW BIG ARE THE CLASSES? Change 252's vector filter is exact only because no
+ *   2. How big are the classes? Change 252's vector filter is exact only because no
  *      case-equivalence class has more than two members. That was a property of the ordinal upcase
  *      table; if this function's fold merges differently, the number has to be re-measured before
  *      any of 252's machinery can be reused.
  *
- *   3. WHAT IS THE CONTRACT? The flags (FIND_FROMSTART / FROMEND / STARTSWITH / ENDSWITH), the
+ *   3. What is the contract? The flags (FIND_FROMSTART / fromend / startswith / endswith), the
  *      -1 lengths, the empty needle, and what it returns when it fails -- all of which the
  *      documentation states and none of which this project takes on trust.
  */

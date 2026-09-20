@@ -10,7 +10,7 @@
    Three of the four rules were found by isolating a derived quantity and enumerating it, rather than
    by reasoning about the implementation:
 
-     * the protected ROOT, as the FIXED POINT of the function itself -- apply it until S_FALSE and what
+     * the protected root, as the fixed point of the function itself -- apply it until S_FALSE and what
        is left is exactly what it refuses to cut into. That is what showed PathCchSkipRoot to be the
        wrong source: SkipRoot INCLUDES the root's trailing separator and this function's protected
        prefix does not, a consistent difference of one on every UNC path (793 disagreements over

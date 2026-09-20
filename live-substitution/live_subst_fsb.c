@@ -1,31 +1,31 @@
 // live-substitution/live_subst_fsb.c
 // LIVE-RUN PROOF for change 256 (ntdll!RtlFindSetBits and ntdll!RtlFindClearBits).
 //
-// The two exports are patched ONE AT A TIME, each driven through its own name with its own counter.
+// The two exports are patched one at a time, each driven through its own name with its own counter.
 // They are separate code in ntdll -- 0x111210 and 0x0D0140 -- and one implementation serves both
 // here, so a wrapper routing one through the other would otherwise go unnoticed; that is the same
 // reason changes 249 and 250 patched each half of their pair alone.
 //
-// EVERY CASE SWEEPS THE HINT, because the search WRAPS: it scans [hint, size) and then starts again
+// Every case sweeps the hint, because the search wraps: it scans [hint, size) and then starts again
 // from the beginning, and a run straddling the wrap point does not count. On any bitmap whose
 // answer lies after the hint -- which is most bitmaps -- an implementation built on "search forward
 // and stop" is indistinguishable from a correct one, so a corpus that left the hint at zero would
 // prove nothing about the half of the contract that is hardest to get right.
 //
-// AND N IS SWEPT ACROSS EVERY WITNESS BLOCK SIZE, since N is what picks it: pairs (3..6), nibbles
+// And N is swept across every witness block size, since N is what picks it: pairs (3..6), nibbles
 // (7..14), bytes (15..30), words (31..62), dwords (63..126) and qwords (127 and up), plus N below
 // three, which has no useful block and runs the scalar scanner, and N = 0, which returns the hint
 // rounded down to a multiple of eight and nothing else.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself -- and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or the heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_fsb_live.bat

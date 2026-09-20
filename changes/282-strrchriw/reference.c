@@ -1,6 +1,6 @@
 /* changes/282-strrchriw/reference.c
  *
- * THE SCALAR MODEL: shlwapi!StrRChrIW written the slow obvious way -- walk the range backwards, one
+ * The scalar model: shlwapi!StrRChrIW written the slow obvious way -- walk the range backwards, one
  * code unit at a time, and return the first thing that matches.
  *
  * It exists so the gate is THREE-WAY. Comparing an implementation only against the live export

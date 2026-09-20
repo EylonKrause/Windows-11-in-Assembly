@@ -4,7 +4,7 @@
 ; shlwapi!StrChrNIW -- the case-insensitive character search, bounded by a COUNT.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 1. THE NUMBER IN THE DISCOVERY SWEEP IS NOT THIS FUNCTION'S COST.
+; 1. The number in the discovery sweep is not this function's cost.
 ;
 ; discovery/charclass_strcmp_2026.c reported 1655 ns for StrChrNIW over 511 code units, and that is the
 ; only reason this export was on the list. It timed it as
@@ -18,13 +18,13 @@
 ; right pointer, the range reading returns NULL. The bench in this change measures the export properly.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE CONTRACT, ALL MEASURED.
+; 2. The contract, all measured.
 ;
 ;   * the count is the number of characters EXAMINED, indices 0 .. cchMax-1. A count of 2 does not reach
 ;     index 2, a count of 3 does, a count of 0 gives NULL;
 ;   * the relation is change 281's: the intransitive triple holds, it is symmetric, the 3237-member
 ;     ignorable set works, and U+200B matches only itself;
-;   * THE TERMINATOR STOPS THE SCAN AND IS NEVER A MATCH -- and this is where it parts company with
+;   * The terminator stops the scan and is never a match -- and this is where it parts company with
 ;     changes 283 and 284. There, a needle character that matches a NUL matched the terminator itself,
 ;     and modelling that took two wrong drafts. Here searching "abcd" for a NUL gives NULL, and so does
 ;     searching it for a SOFT HYPHEN, which the relation says matches a NUL. An embedded NUL behaves the
@@ -51,7 +51,7 @@
 ; boundary, so aligning DOWN and masking is safe even when the string starts or ends one code unit before
 ; an unmapped page -- and because the terminator is in the accept set, the scan cannot run past it.
 ;
-; ISA: AVX2 + BMI1 (TZCNT) + BMI2 (BZHI). VZEROUPPER on every exit.
+; Isa: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi). Vzeroupper on every exit.
 ; --------------------------------------------------------------------------------------------------
 
 OPTION PROC:PRIVATE
@@ -66,7 +66,7 @@ EXTERN wia_sci_bmap:DWORD
 
 ; ---------------------------------------------------------------------------------------------
 ; chrscan -- the LOWEST address in [r11, rbx] whose code unit matches one of the broadcasts in
-; ymm1..ymm4 OR IS ZERO. Returns that address in rax, or 0 if the bound was reached first.
+; ymm1..ymm4 or is zero. Returns that address in rax, or 0 if the bound was reached first.
 ;
 ; The zero compare is what makes the count bound safe: a count may reach far past the end of the
 ; string, and the terminator stops the scan before the bound is ever approached.
@@ -197,14 +197,14 @@ c_scan:
         call      chrscan
         test      rax, rax
         jz        cn_null
-        ; THE TERMINATOR IS NEVER A MATCH. The scan finds whichever comes first, and if that is a NUL the
+        ; The terminator is never a match. The scan finds whichever comes first, and if that is a NUL the
         ; answer is NULL -- even when the sought character is one of the 3320 that the relation says
         ; matches a NUL. Measured: "abcd" searched for a SOFT HYPHEN gives NULL.
         cmp       word ptr [rax], 0
         je        cn_null
         jmp       cn_ret
 
-; ---- (c) MORE THAN FOUR PARTNERS: the filter cannot hold the set, so every position is tested --
+; ---- (c) More than four partners: the filter cannot hold the set, so every position is tested --
 ; but WITHOUT A CALL. The first draft called match_pair per character and the bench said what that
 ; costs: 838 ns for 511 code units, 22.6x the export and the worst row in the table, because every
 ; call re-derived the character's kind and table pointer from scratch. The kind is fixed for the whole

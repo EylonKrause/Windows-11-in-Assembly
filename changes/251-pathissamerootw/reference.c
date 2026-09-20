@@ -6,7 +6,7 @@
  *                              kernelbase!PathCchSkipRoot (RVA 0x02B2F0). It shares no code with
  *                              impl.asm, so a disagreement is a bug in one of them and not in a
  *                              shared misreading.
- *   ref_pathissamerootw()   -- the ENVELOPE only, using the LIVE PathSkipRootW and the LIVE
+ *   ref_pathissamerootw()   -- the envelope only, using the live PathSkipRootW and the live
  *                              PathCommonPrefixW. That isolates the three lines of arithmetic this
  *                              change adds on top; anything wrong in the root parser or in change
  *                              167's walk shows up instead in the comparison against the live
@@ -23,7 +23,7 @@
  *   otherwise                          -> E_INVALIDARG
  *
  * the UNC walk from i: consume the server; if no separator follows, stop; consume that separator
- * EVEN IF THE SERVER WAS EMPTY; consume the share; if the share was EMPTY stop BEFORE its
+ * Even if the server was empty; consume the share; if the share was empty stop before its
  * separator, otherwise consume that too.
  *
  * the extended branch, in order: p[3] must be a separator; then caselessly "\UNC\" at p[3..7] ->

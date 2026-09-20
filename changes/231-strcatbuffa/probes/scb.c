@@ -180,7 +180,7 @@ int main(void){
                     for (int i = 0; i < dn; ++i) { d[i] = (char)('a' + i % 23); ref[i] = d[i]; }
                     d[dn] = 0; ref[dn] = 0;
                     scb(d, s, cch);
-                    /* THE MODEL, CORRECTED. The first version capped `at` at cch-1 before
+                    /* The model, corrected. The first version capped `at` at cch-1 before
                        appending, which TRUNCATED a destination that was already longer than the
                        bound -- 10660 of 52111 cases disagreed. The live export does not touch a
                        destination it cannot append to: it only ever writes forward from the

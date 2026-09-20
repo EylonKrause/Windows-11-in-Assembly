@@ -6,25 +6,25 @@
 //   098 RtlInitStringEx         026 RtlCompareMemoryUlong
 //   051 RtlFindCharInUnicodeString                     101 RtlAppendUnicodeToString
 //
-// THE FOUR Init FORMS WRITE A STRUCT, NOT A STRING, and that is why they are interesting to a
+// The four Init forms write a struct, not a string, and that is why they are interesting to a
 // harness that compares whole destinations. The observable result is three fields -- Length,
 // MaximumLength and Buffer -- and two of them are easy to get subtly wrong: `MaximumLength`
 // includes the terminator where `Length` does not, and a NULL source must leave a zeroed
 // descriptor rather than an untouched one. The descriptor is poisoned before every call and all
 // three fields are compared, so "it set Length correctly" is not enough to pass.
 //
-// THE Ex FORMS DIFFER FROM THE PLAIN ONES IN EXACTLY ONE OBSERVABLE WAY and the corpus is built to
+// The Ex forms differ from the plain ones in exactly one observable way and the corpus is built to
 // hit it: a string too long for a USHORT Length is a hard error for the Ex form (it returns
 // STATUS_NAME_TOO_LONG and leaves the descriptor alone) where the plain form has no way to report
 // it. So the corpus includes sources past 32767 characters, which is the only place the two
 // families are allowed to disagree.
 //
-// 101 RtlAppendUnicodeToString IS THE ONE THAT MUTATES, and its failure mode is the one change 265
+// 101 RtlAppendUnicodeToString is the one that mutates, and its failure mode is the one change 265
 // documented for the ANSI side: on STATUS_BUFFER_TOO_SMALL nothing may be touched -- not the
 // buffer, not Length. A third of its cases are given a destination that cannot hold the append, and
 // the whole destination buffer is compared afterwards, not just the fields.
 //
-// THE PADDING IS REPORTED AND DELIBERATELY NOT FAILED, and the distinction is the point.
+// The padding is reported and deliberately not failed, and the distinction is the point.
 //
 // A UNICODE_STRING is {USHORT Length; USHORT MaximumLength; PWSTR Buffer} -- sixteen bytes with
 // FOUR of padding between MaximumLength and Buffer. ntdll stores all sixteen at once, so it zeroes
@@ -39,10 +39,10 @@
 // no conforming caller can observe. It is measured, printed on every run, and left alone.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these seven is used by the loader or the heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these seven is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_rtlinit_live.bat
@@ -210,7 +210,7 @@ static void run_all(ans_t* out){
 static int percnt[NFN];
 static int padcnt[NFN];          /* divergences that are ONLY in the struct PADDING */
 
-/* A descriptor is compared FIELD BY FIELD, and its padding separately.
+/* a descriptor is compared field by field, and its padding separately.
  *
  * memcmp on the struct conflates three different things: a wrong Length, a wrong Buffer, and the
  * four bytes of padding between MaximumLength and Buffer that a caller can observe but no field
@@ -218,7 +218,7 @@ static int padcnt[NFN];          /* divergences that are ONLY in the struct PADD
  * ntdll appears to store all sixteen bytes at once where these implementations write the fields --
  * and a harness reporting one number could not tell them apart.
  *
- * appd.Buffer is DELIBERATELY NOT COMPARED: this harness points it at its own per-pass answer
+ * appd.Buffer is deliberately not compared: this harness points it at its own per-pass answer
  * array, so it differs between passes by construction. Comparing it made the RESTORED pass differ
  * from the pre-patch pass by 20000 cases, which was the harness measuring itself.
  */

@@ -1,5 +1,5 @@
 ; changes/130-rtlsetbits/impl.asm
-; VOID wia_setbits(RTL_BITMAP* bm, ULONG StartingIndex, ULONG NumberToSet)   [Win64: rcx, edx, r8d]
+; Void wia_setbits(RTL_BITMAP* bm, ulong StartingIndex, ulong NumberToSet)   [Win64: rcx, edx, r8d]
 ;
 ; Reimplements ntdll!RtlSetBits: set bits [StartingIndex, StartingIndex+NumberToSet) to 1.
 ; Contract (probed against the live export): there is NO bounds check whatsoever -- ntdll writes past

@@ -1,6 +1,6 @@
 /* changes/287-getstringtypew/tables.c
  *
- * THE TWO-LEVEL CLASSIFICATION TABLES, BUILT FROM THE LIVE EXPORT AND RE-CHECKED AGAINST IT.
+ * The two-level classification tables, built from the live export and re-checked against it.
  *
  * probes/contract.c established the three facts that make a table legal at all, and each of them would
  * have killed the change on its own:
@@ -24,7 +24,7 @@
  * page number, and the deduplicated pages indexed by the LOW byte. All three types together come to
  * about 98 KB rather than 384 KB, and the handful of pages that real text touches fit in L1.
  *
- * THE TABLES ARE BUILT AT INIT FROM THE LIVE EXPORT, which is the same thing change 281 does with
+ * The tables are built at init from the live export, which is the same thing change 281 does with
  * wia_sci_init: derive, then re-check. 65536 single-character calls take a few milliseconds, and the
  * result is correct by construction rather than by a generated file that could drift. A real image
  * build would bake the finished tables in; here they are derived and verified every run, and
@@ -43,7 +43,7 @@ unsigned short wia_gst_page[3][GST_MAXPAGE][256];  /* page, low byte -> class */
 unsigned char wia_gst_npage[3];
 unsigned short wia_gst_flat[3][256];            /* the U+0000..U+00FF page, hoisted for the fast path */
 
-/* THE FLAT TABLE, AND WHY IT EXISTS ALONGSIDE THE TWO-LEVEL ONE.
+/* The flat table, and why it exists alongside the two-level one.
  *
  * The two-level layout is 4x smaller and was built first for exactly that reason. Then the bench
  * measured it: 180 ns for 511 code units, only 2.25x the shipped export, because every unit costs a

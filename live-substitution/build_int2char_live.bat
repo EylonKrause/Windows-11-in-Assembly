@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 279 (ntdll!RtlIntegerToChar).
+Rem  live-run proof for change 279 (ntdll!RtlIntegerToChar).
 REM
 REM  Every case compares the NTSTATUS AND a hash of the whole 512-byte
 REM  destination -- on REFUSING calls too, because probes/contract.c measured
@@ -8,13 +8,13 @@ REM  that a refusal leaves the buffer completely untouched. An implementation
 REM  that wrote a terminator before discovering it had no room would pass any
 REM  check that only read the status.
 REM
-REM  THREE WRITE PATHS ARE UNDER TEST: base 10 is length-first and two digits at
+Rem  three write paths are under test: base 10 is length-first and two digits at
 REM  a time; bases 2, 8 and 16 emit several digits per store; and a NEGATIVE length
-REM  is a ZERO-PADDED FIELD WIDTH, a fill loop that no positive length reaches
+Rem  is a zero-padded field width, a fill loop that no positive length reaches
 REM  and the only place this change touches an XMM register. The corpus draws the
 REM  base from the five legal ones AND the illegal ones, the value from the
 REM  digit-count boundaries as often as from anywhere, and the length from AROUND
-REM  the room rule on BOTH sides of zero. It FAILS if any converter, either sign
+Rem  the room rule on both sides of zero. It fails if any converter, either sign
 REM  of length, the wide fill, or any of the three outcomes comes back thin.
 REM
 REM  The negative lengths are bounded at 300 into a 512-byte buffer: a field

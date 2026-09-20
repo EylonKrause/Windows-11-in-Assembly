@@ -1,14 +1,14 @@
 // changes/251-pathissamerootw/bench.c
 // Gate 2: time wia_pathissamerootw against the live shlwapi!PathIsSameRootW.
 //
-// THE ROW THIS CHANGE EXISTS FOR is "254, same root": discovery measured the shipped export at
+// The row this change exists for is "254, same root": discovery measured the shipped export at
 // 603.60 ns on a 254-character path -- 5.73 ns per character, the THIRD-HIGHEST per-byte cost of
 // every shlwapi export this project had not converted.
 //
-// AND THAT COST IS NOT THE ROOT SKIP. The root skip is bounded work on a handful of characters --
+// And that cost is not the root skip. The root skip is bounded work on a handful of characters --
 // the shipped PathCchSkipRoot measures 5.16 ns on a 250-character path against 5.21 ns on a short
 // one, i.e. FLAT. All 603 ns of it is PathCommonPrefixW walking the two paths component by
-// component, which is exactly what change 167 replaced. So the rows vary HOW FAR THE TWO PATHS
+// component, which is exactly what change 167 replaced. So the rows vary how far the two paths
 // AGREE, because that is the only thing either implementation actually walks:
 //
 //   * "same root" rows at 8, 32, 128 and 254 characters -- identical paths, so the walk runs to the

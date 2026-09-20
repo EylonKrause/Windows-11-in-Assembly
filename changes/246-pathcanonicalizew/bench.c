@@ -1,14 +1,14 @@
 // changes/246-pathcanonicalizew/bench.c
 // Gate 2: time wia_pathcanonicalizew against the live shlwapi!PathCanonicalizeW.
 //
-// THIS CHANGE IS AN ENVELOPE, so its speed is change 243's speed minus a handful of instructions,
+// This change is an envelope, so its speed is change 243's speed minus a handful of instructions,
 // and the case mix is 243's for that reason: the shapes whose cost lives in the dot/dot-dot walk
 // rather than in the copy. What is genuinely new here is the pair of rows at the MAX_PATH boundary,
 // because this envelope hard-codes cch = MAX_PATH and the shipped function's result cap is 259
 // characters -- so an input whose canonical form is 259 characters succeeds and 260 fails, and the
 // failure path is a different amount of work in both implementations.
 //
-// NO RESTORE IS NEEDED: the destination is a separate buffer that is never read back, and the source
+// No restore is needed: the destination is a separate buffer that is never read back, and the source
 // is never modified. The destination still ROTATES across four PAGE-ALIGNED slots, for the reason
 // change 245 had to learn the hard way -- its first benchmark cut its buffers out of .bss at
 // whatever offsets the setup loop produced and was not reproducible, reading 2371, 2378 and then 289

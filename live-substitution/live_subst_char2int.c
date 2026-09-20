@@ -5,41 +5,41 @@
 // shipped export is actually replaced by it. The corpus is built around the things that made the change
 // hard, not around "some strings":
 //
-//   * THE REFUSAL MUST NOT WRITE THE CALLER'S ULONG. An invalid base returns STATUS_INVALID_PARAMETER
+//   * The refusal must not write the caller's ulong. An invalid base returns STATUS_INVALID_PARAMETER
 //     and leaves *Value exactly as it was -- measured, and the single most likely thing for a
 //     replacement to get wrong, because zeroing the output first is the natural way to write the code.
 //     Every case therefore pre-poisons *Value with a sentinel and compares the WORD as well as the
 //     status. A harness that only read the NTSTATUS would pass an implementation that helpfully zeroed
 //     the output on every refusal.
 //
-//   * BASES ON BOTH SIDES OF 16. The landing edit validates a caller-supplied base with a range test
+//   * Bases on both sides of 16. The landing edit validates a caller-supplied base with a range test
 //     (`cmp edx,16 / ja`) plus a bitmask over bits 2, 8 and 16, replacing a four-compare ladder. That
 //     splits the invalid bases into two populations -- above 16, refused by the range test, and below 16
 //     but not in the set, refused by the mask -- and a corpus drawing only base 36 would exercise one of
 //     them. Both are drawn deliberately, including 0xFFFFFFFF.
 //
-//   * THE THREE PREFIXES ARE LOWERCASE ONLY, and the landing edit replaced three compares with one
+//   * The three prefixes are lowercase only, and the landing edit replaced three compares with one
 //     windowed range test biased by 'b'. So the corpus needs "0x"/"0b"/"0o" AND "0X"/"0B"/"0O" (which
 //     are NOT prefixes and parse as a bare 0), AND a leading '0' followed by something outside the
 //     b..x window entirely ("0777", which means DECIMAL 777, not octal). Those last two are exactly the
 //     rows that were below parity and are now above it.
 //
-//   * THE LEADING SKIP USES A SIGNED CHAR COMPARE, so it skips 0x80-0xFF as well as 0x01-0x20. A corpus
+//   * The leading skip uses a signed char compare, so it skips 0x80-0xFF as well as 0x01-0x20. a corpus
 //     of spaces and tabs would never touch that, and it is the kind of rule that only shows up when a
 //     high byte is planted.
 //
-//   * BASES <= 10 NOW STOP AT THE FIRST NON-DIGIT without decoding a letter. Strings that end in a
+//   * Bases <= 10 Now stop at the first non-digit without decoding a letter. Strings that end in a
 //     letter, under a base that cannot accept letters, are the cases that distinguishes that shortcut
 //     from the old path.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass and carries no PRNG state across passes.
+// The corpus is regenerated from the case index on every pass and carries no prng state across passes.
 // Change 252's harness carried state and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_char2int_live.bat
@@ -289,7 +289,7 @@ int main(void)
             if (got.st != expected[i].st || got.val != expected[i].val) {
                 if (got.val != expected[i].val) ++differ_val;
                 if (++differ <= 8) {
-                    /* PRINTED AS HEX BYTES, not with %s. The corpus deliberately plants 0x80-0xFF for
+                    /* Printed as hex bytes, not with %s. The corpus deliberately plants 0x80-0xFF for
                        the signed-char skip to eat, and the console renders none of them -- the first
                        run of this harness reported eight failures whose strings all looked EMPTY, which
                        made them undiagnosable and very nearly sent me looking at the wrong case. A

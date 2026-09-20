@@ -4,10 +4,10 @@
  * it is actually for is the three things the standard leaves to the implementation, each of which
  * has bitten a change in this project before:
  *
- *   1. THE RETURN VALUE. The standard says "returns dst". The disassembly of ucrtbase!strcat
+ *   1. The return value. The standard says "returns dst". The disassembly of ucrtbase!strcat
  *      (RVA 0x0ED700) keeps the original rcx in r11 and ends `mov rax, r11`, which agrees -- but
  *      there are two `mov r11, rcx` sites in that function, one at entry and one at 0x0ED7A0 on a
- *      different path, so "it returns the original dst on EVERY path" is worth ten lines of proof
+ *      different path, so "it returns the original dst on every path" is worth ten lines of proof
  *      rather than a reading of one of them.
  *
  *   2. NULL. The _s variants have a documented invalid-parameter contract; the plain ones do not,
@@ -15,14 +15,14 @@
  *      faults, our version must be allowed to fault too and the test corpora must not include NULL.
  *      This finds out which, under __try, instead of guessing.
  *
- *   3. WHAT IT DOES WITH AN EMPTY SOURCE, and whether it writes anything at all in that case --
+ *   3. What it does with an empty source, and whether it writes anything at all in that case --
  *      because a vectorised implementation that stores a 32-byte block before checking for an
  *      immediate terminator would write past the end of a destination the shipped code leaves
  *      untouched, and no correctness corpus built from return values alone would ever see it.
  *
  * It also measures the one thing that decides the SHAPE of the implementation: whether the shipped
  * code is SWAR (8 bytes at a time) or SIMD. The disassembly says SWAR -- the classic
- * 0x7efefefefefefeff / 0x8101010101010100 has-zero trick, in BOTH halves, the destination scan and
+ * 0x7efefefefefefeff / 0x8101010101010100 has-zero trick, in both halves, the destination scan and
  * the copy -- and the survey agrees at 0.200 ns/byte, which is about one byte per cycle.
  */
 #define WIN32_LEAN_AND_MEAN

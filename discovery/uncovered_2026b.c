@@ -1,6 +1,6 @@
 /* discovery/uncovered_2026b.c
  *
- * THE NEXT SWEEP, WITH THE PROTOTYPE VERIFIED BEFORE ANY NUMBER IS PRINTED.
+ * The next sweep, with the prototype verified before any number is printed.
  *
  * This tool exists in this shape because of change 286. charclass_strcmp_2026.c reported 1655 ns for
  * shlwapi!StrChrNIW over 511 code units, and that figure was the only reason the export was ever
@@ -245,7 +245,7 @@ s10:
     {
         F_lstrcmpw g = (F_lstrcmpw)R(kb, "lstrcmpiW");
         if (!g) g = (F_lstrcmpw)R(k32, "lstrcmpiW");
-        /* TIMED FOR THE RECORD, AND ALREADY KNOWN TO BE A WALL. It comes out the most expensive thing
+        /* Timed for the record, and already known to be a wall. It comes out the most expensive thing
            in this sweep, which is exactly why it is annotated here: lstrcmp_is_linguistic.c already
            killed this family. lstrcmpA and lstrcmpiA timed IDENTICALLY, and a routine where ignoring
            case is free is one that normalises every character anyway -- a linguistic comparison

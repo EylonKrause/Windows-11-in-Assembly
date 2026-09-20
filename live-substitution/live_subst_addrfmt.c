@@ -6,27 +6,27 @@
 //   061 RtlIpv4AddressToStringW      062 RtlEthernetAddressToStringW
 //   066 RtlIpv4AddressToStringExW
 //
-// THE IPv6 FORMATTERS ARE NOT HERE, AND THAT IS A LINK CONSTRAINT RATHER THAN A CHOICE. Change
+// The IPv6 formatters are not here, and that is a link constraint rather than a choice. Change
 // 063's tables.c and change 059's dec2b.c both define `wia_dec2b`, so the two cannot be linked
 // into one image; 063/064/068/069 also share v6core/v6ref objects of their own. They want a second
 // harness, not a bigger one.
 //
-// WHAT THESE RETURN IS A POINTER, AND THAT IS THE EASIEST THING TO GET SUBTLY WRONG. The A/W forms
+// What these return is a pointer, and that is the easiest thing to get subtly wrong. The a/w forms
 // return a pointer to the TERMINATOR they wrote, not to the start of the buffer -- so a caller
 // appending to the same buffer depends on it. Comparing only the rendered text would pass an
 // implementation that returned the wrong pointer, so every case compares the returned pointer as an
 // OFFSET from the buffer, the full 64-byte destination against a poison fill, and (for the Ex form)
 // the NTSTATUS and the ULONG length written back.
 //
-// THE Ex FORM IS DRIVEN AT ITS BOUNDARY on purpose: a third of its cases pass a buffer too small
+// The Ex form is driven at its boundary on purpose: a third of its cases pass a buffer too small
 // for the text, because that is where it reports STATUS_INVALID_PARAMETER and rewrites the required
 // length, and a formatter that always had room would never exercise it.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these five is used by the loader or the heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these five is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_addrfmt_live.bat

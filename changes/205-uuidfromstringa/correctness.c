@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// TWO THINGS MAKE THIS TEST UNUSUAL.
+// Two things make this test unusual.
 //
 // 1. The output must be UNTOUCHED on failure, so every case pre-poisons the GUID and compares all
 //    sixteen bytes afterwards even when the call is expected to fail. A version that scribbled a

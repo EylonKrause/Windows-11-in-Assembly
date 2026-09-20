@@ -31,7 +31,7 @@ int main(void){
 
     static wchar_t s[600];
 
-    // every length, the match at EVERY position, and every bound around it
+    // every length, the match at every position, and every bound around it
     for(int len=0; len<=160; ++len){
         for(int i=0;i<len;i++) s[i]=L'a';
         s[len]=0;

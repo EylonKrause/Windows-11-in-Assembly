@@ -15,7 +15,7 @@
    WHAT THE CANDIDATE ENCODES, from change 242's feasibility probe:
      * an empty argument on either side is a no-op;
      * a drive-qualified or UNC `more` REPLACES the whole path ("C:\a" + "D:\b" -> "D:\b");
-     * a rooted `more` -- one leading separator -- is where the two functions differ, and it is the ONLY
+     * a rooted `more` -- one leading separator -- is where the two functions differ, and it is the only
        place they differ over eight probed pairs: Append JOINS it ("C:\a" + "\b" -> "C:\a\b") and
        Combine treats it as rooted, replacing from base's ROOT ("C:\a" + "\b" -> "C:\b");
      * otherwise one separator goes between them, and never two.
@@ -89,7 +89,7 @@ static long rootlen_nosep(const wchar_t* s)
         return unc_root(s, 2);                         /* anything else reads as a UNC shape */
     }
     if (has_drive(s)) return 2;                        /* "C:" */
-    /* THE SAME EXCEPTION AS more_replaces, on the other side of the call: an INCOMPLETE extended prefix
+    /* The same exception as more_replaces, on the other side of the call: an incomplete extended prefix
        is not a root of any kind, so Combine refuses a rooted `more` onto it -- "\\?" + "\a" is
        E_INVALIDARG where "\\a" + "\x" is "\\a\x". One rule, two places. */
     if (is_unc(s) && s[2] == L'?' && s[3] != L'\\') return -1;
@@ -99,7 +99,7 @@ static long rootlen_nosep(const wchar_t* s)
     return -1;                                         /* relative: Combine refuses it */
 }
 
-/* THE SEAM NEVER DOUBLES A SEPARATOR, and the way it avoids that is by stripping the one `more`
+/* The seam never doubles a separator, and the way it avoids that is by stripping the one `more`
    carries rather than by skipping the one it would insert. That is measurable rather than cosmetic:
    "" + "\a" comes back as "a", with the separator GONE, which no "insert only if needed" rule can
    produce. A `more` with TWO leading separators is a UNC path and replaces instead, so the strip only
@@ -122,7 +122,7 @@ static void join_2(wchar_t* out, const wchar_t* base, const wchar_t* more)
     if (!*more) { wcscpy(out, base); return; }
     if (more_replaces(more)) { wcscpy(out, more); return; }
     while (*more == L'\\') ++more;                     /* ALL of them go, not just one */
-    /* THE DRIVE TEST COMES AFTER THE STRIP, which is measurable: "\" + "\a:" is "a:\", so the
+    /* The drive test comes after the strip, which is measurable: "\" + "\a:" is "a:\", so the
        separator was removed and what was left was then recognised as drive-qualified and replaced the
        base outright. Testing before the strip would have joined it. */
     if (has_drive(more)) { wcscpy(out, more); return; }
@@ -139,7 +139,7 @@ static void join_append(wchar_t* out, const wchar_t* base, const wchar_t* more)
 
 /* Returns 0 normally, 1 when Combine refuses the pair outright (a rooted `more` onto a base with no
    root of its own). */
-/* COMBINE SPLITS ON THE SEPARATOR COUNT, and it does NOT share Append's "\\?" exception: two leading
+/* Combine splits on the separator count, and it does not share Append's "\\?" exception: two leading
    separators ALWAYS replace here, so "a" + "\\?" is "\\?" for Combine where Append joins it to "a\?".
    Exactly one leading separator is the rooted case -- the only place these two functions differ over
    the whole sweep -- and it prepends base's root WITHOUT its trailing separator, refusing outright

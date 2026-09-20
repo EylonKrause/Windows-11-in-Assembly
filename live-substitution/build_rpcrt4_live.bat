@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 205 and 208 -- UuidFromStringA + UuidFromStringW.
+Rem  live-run proof for changes 205 and 208 -- UuidFromStringA + UuidFromStringW.
 REM  Every case compares all sixteen output bytes from a pre-poisoned GUID,
 REM  failing cases included: the contract leaves the output untouched on error.
 REM  Sacrificial single-threaded child; no system process is touched.

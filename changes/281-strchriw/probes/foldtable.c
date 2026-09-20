@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/foldtable.c
  *
- * THE FOLD RELATION, TAKEN FROM THE FUNCTION ITSELF RATHER THAN GUESSED AT.
+ * The fold relation, taken from the function itself rather than guessed at.
  *
  * Three probes have now narrowed this and two of them were wrong:
  *

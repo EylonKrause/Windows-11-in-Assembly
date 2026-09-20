@@ -1,6 +1,6 @@
 /* discovery/sid_inet_bstr.c
  *
- * THREE FAMILIES NO EARLIER SWEEP TOUCHED, measured before anything is built.
+ * Three families no earlier sweep touched, measured before anything is built.
  *
  * image/tree covers 244 exports across nine DLLs. Subtracting those from the export tables of
  * twenty-four System32 DLLs and keeping the names that suggest a byte-wise leaf leaves three
@@ -18,7 +18,7 @@
  *             scan plus an allocation, and whether its block can be produced by hand is the same
  *             question change 268 had to answer for RtlFreeUTF8String.
  *
- * EVERY ROW PRINTS WHAT IT RETURNED. Sweep 4 (discovery/ntdll_rtl_uncovered3.c) timed a REFUSAL as
+ * Every row prints what it returned. Sweep 4 (discovery/ntdll_rtl_uncovered3.c) timed a refusal as
  * if it were a comparison -- 4000 identical characters answered in 7.9 ns, which is 0.001 ns per
  * byte and impossible -- and only the returned value gave it away. A row that answers instantly
  * because it did nothing must be visible as such.
@@ -195,7 +195,7 @@ int main(void)
 
 
     /* ---------------------------------------------------------------------------------------
-     * WHERE THE SID FAMILY'S TIME GOES. A row that says 178 ns does not say whether the cost is
+     * Where the SID family's time goes. a row that says 178 ns does not say whether the cost is
      * the formatting, the allocation, or a wrapper around something this project already owns --
      * and the answer decides whether there is anything to win.
      * ------------------------------------------------------------------------------------- */

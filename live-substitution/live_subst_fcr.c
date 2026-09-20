@@ -6,13 +6,13 @@
 // scan and a byte scan whose EMISSION ORDER is the thing being matched -- so a harness that mixed
 // the two could pass while one of them was wrong.
 //
-// WHAT IS COMPARED IS THE WHOLE ARRAY, not the return value. The unsorted form returns the first
+// What is compared is the whole array, not the return value. The unsorted form returns the first
 // runs FOUND, and the order they are found in is not left to right (probes/enumorder.c): a byte
 // holding a one-bit run at 1 and a two-bit run at 3 reports (3,2) first. A harness that compared
 // only the count would pass an implementation that returned the right number of wrong runs, which
 // is exactly the bug the correctness corpus caught in this change's first draft.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself -- and that is the discipline this avoids.
 //
@@ -21,10 +21,10 @@
 // behaviour to match, so the corpus never generates it.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither the loader nor
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
@@ -106,7 +106,7 @@ static void build_case(long i)
     cur_cap  = 1 + (rnd() % CAPMAX);            /* never 0: the shipped export faults there */
 }
 
-/* the WHOLE array, entry by entry, folded into one value */
+/* the whole array, entry by entry, folded into one value */
 static unsigned long long digest(ULONG n)
 {
     unsigned long long h = 0xCBF29CE484222325ull;

@@ -129,7 +129,7 @@ static int ref2_join_combine(wchar_t* out, const wchar_t* base, const wchar_t* m
     return 0;
 }
 
-/* A cch OUTSIDE THE ALLOWED RANGE IS REFUSED WITHOUT TOUCHING THE BUFFER -- another thing that could
+/* a cch outside the allowed range is refused without touching the buffer -- another thing that could
    not be inherited, because PathCchCanonicalizeEx EMPTIES the buffer for the same rejection. Measured on
    Combine, where the destination starts as poison and the difference is therefore visible; on Append the
    base sits in the buffer and hides it. */
@@ -138,7 +138,7 @@ static int ref2_cch_bad(size_t cch)
     return ((size_t)(cch - 1) > 0x7FFFFFFEu) || (cch > 0x8000u);
 }
 
-/* THESE TWO CHECK THEIR POINTERS, WHERE PathCchCanonicalizeEx FAULTS -- a difference inside one family
+/* These two check their pointers, where PathCchCanonicalizeEx faults -- a difference inside one family
    and one more thing that could not be inherited. A NULL destination is E_INVALIDARG, and a NULL source
    on either side simply reads as the empty string. */
 long wia_ref_pathcchappendex(wchar_t* path, size_t cch, const wchar_t* more, unsigned long flags)
@@ -161,7 +161,7 @@ long wia_ref_pathcchcombineex(wchar_t* out, size_t cch, const wchar_t* pathin, c
     if (flags) return REF_DELEGATED;
     if (!out) return REF_INVALID;
     if (ref2_cch_bad(cch)) return REF_INVALID;      /* no write at all */
-    /* BOTH sources NULL is refused, though either one alone reads as the empty string */
+    /* both sources NULL is refused, though either one alone reads as the empty string */
     if (!pathin && !more) { if (cch) out[0] = 0; return REF_INVALID; }
     if (!more) more = L"";
     wcscpy(base, pathin ? pathin : L"");

@@ -13,7 +13,7 @@
  * and no loop (change 126's engine). The two share no structure, so a mismatch in either direction
  * is a real defect and not a copied mistake.
  *
- * THE CONTRACT, as PROVED against the live export by probes/contract.c and probes/leapdata.c --
+ * The contract, as proved against the live export by probes/contract.c and probes/leapdata.c --
  * see RESULTS.md for the transcripts:
  *
  *   1. The FILETIME is read as one 64-bit value and tested SIGNED. t < 0  =>  the function fails.

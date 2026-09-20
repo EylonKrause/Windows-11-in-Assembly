@@ -1,19 +1,19 @@
 /* discovery/ntdll_bitmap2.c
  *
- * THE REST OF THE ntdll BITMAP FAMILY. discovery/ntdll_bitmap.c timed the searches and the counts,
+ * The rest of the ntdll bitmap family. discovery/ntdll_bitmap.c timed the searches and the counts,
  * and four changes came out of it -- 255 (RtlFindLongestRunClear), 256 (RtlFindSetBits and
  * RtlFindClearBits), 257 (the RtlNumberOfSetBits family) and 258 (RtlFindClearRuns). What it did
  * NOT time is everything else the family exports, and two of its rows asked a question that let the
  * subject answer immediately, which is not the same as timing the function.
  *
- * THE TWO ROWS THAT WERE TOO EASY. `RtlAreBitsClear 0..60000, sparse` measured 1.60 ns and
+ * The two rows that were too easy. `RtlAreBitsClear 0..60000, sparse` measured 1.60 ns and
  * `RtlAreBitsSet 0..60000, dense` 2.20 ns -- and both returned 0, meaning NO. A range check that
  * answers "no" stops at the first bit that disagrees, which on those subjects is within the first
- * word: those rows timed a two-word function. THE EXPENSIVE CASE IS THE ONE THAT SAYS YES, because
+ * word: those rows timed a two-word function. The expensive case is the one that says yes, because
  * saying yes means every bit in the range was examined. Both forms are measured here, and every row
  * says which answer it got.
  *
- * WHAT ELSE IS IN THE FAMILY, and none of it has been timed:
+ * What else is in the family, and none of it has been timed:
  *
  *   RtlFindNextForwardRunClear      the run finder that walks FORWARD from an index
  *   RtlFindLastBackwardRunClear     ... and the one that walks BACKWARD, which no change here has
@@ -25,7 +25,7 @@
  *   RtlSetAllBits / RtlClearAllBits a whole-bitmap fill
  *   RtlNumberOfSetBitsUlongPtr      one word, no bitmap at all
  *
- * EVERY ROW PRINTS WHAT IT RETURNED. A range check that answers "no" and a range check that answers
+ * Every row prints what it returned. a range check that answers "no" and a range check that answers
  * "yes" are different functions wearing one name; a search that finds in the first word and one that
  * fails over 64 Kbit are different functions wearing one name. A table that did not say which it
  * timed would be measuring the subject and reporting it as the code.
@@ -136,7 +136,7 @@ int main(void)
     printf("that succeeds in the first word never scans -- neither is the function's real cost.\n\n");
     printf("  %-46s %9s  %7s  %s\n", "export / subject", "ns", "ns/byte", "returned");
 
-    /* ---- the range checks, BOTH answers ---- */
+    /* ---- the range checks, both answers ---- */
     fill_ones();
     r = p_areset(&bm, 0, 60000);
     sprintf(note, "ret=%lu (%s) -- every bit examined", r, r ? "YES" : "no");

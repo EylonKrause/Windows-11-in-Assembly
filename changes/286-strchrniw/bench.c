@@ -2,13 +2,13 @@
  *
  * Gate 2: time wia_strchrniw against the live shlwapi!StrChrNIW.
  *
- * THIS BENCH ALSO ESTABLISHES WHAT THE EXPORT ACTUALLY COSTS. The only prior number for it,
+ * This bench also establishes what the export actually costs. The only prior number for it,
  * discovery/charclass_strcmp_2026.c's 1655 ns over 511 code units, was taken through the wrong
  * prototype: it called (start, start+511, '#') on a function whose real shape is (start, match, count),
  * so it passed the low half of an address as the character and 35 as the count. That does not fault, so
  * it produced a number for a different question. Every row below uses the measured prototype.
  *
- * THE ROWS ARE WHAT A COUNT-BOUNDED CHARACTER SEARCH COSTS:
+ * The rows are what a count-bounded character search costs:
  *
  *   * a MISS over 511 code units with the count covering all of them -- the worst case;
  *   * a hit near the START, which is where such a search usually stops;

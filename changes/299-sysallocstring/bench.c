@@ -1,12 +1,12 @@
 // changes/299-sysallocstring/bench.c
 // Gate 2: time wia_sysallocstring against the live oleaut32!SysAllocString across size classes.
 //
-// EVERY ITERATION FREES ITS BSTR. A benchmark that leaks one allocation per call measures the heap
+// Every iteration frees its BSTR. a benchmark that leaks one allocation per call measures the heap
 // growing, not the function -- the early batches look fast, the later ones slow, and a min-of-N
 // reports the warm-up rather than the steady state. The free is inside both sides equally, so it
 // cancels out of the ratio while keeping the allocator in the same state for both.
 //
-// THE SMALL ROWS ARE THE ONES THAT MATTER for the verdict. At 0-16 characters the scan is a single
+// The small rows are the ones that matter for the verdict. At 0-16 characters the scan is a single
 // block and the allocation dominates, so ours and the export should be within noise; the gate
 // requires no size class to regress, and those are the classes where a regression could hide.
 #define WIN32_LEAN_AND_MEAN

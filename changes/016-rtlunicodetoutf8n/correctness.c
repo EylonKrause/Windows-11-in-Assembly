@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours vs a scalar reference vs the LIVE ntdll export.
  *
- * THE RANDOM FUZZ BELOW IS NOT ENOUGH ON ITS OWN, and the vector blocks added on 2026-09-16 are
+ * The random fuzz below is not enough on its own, and the vector blocks added on 2026-09-16 are
  * why. It draws each character's class independently, so a run of eight characters that are ALL
  * under 0x800, or ALL non-surrogate, or four clean surrogate pairs in a row, happens by accident or
  * not at all -- four consecutive valid pairs has a probability of about 4e-11 per position. The
@@ -11,9 +11,9 @@
  *
  *   1. the original randomised fuzz, unchanged -- 80000 cases, every class mixed;
  *   2. RUNS: pure ASCII, pure two-byte, pure three-byte, pure surrogate pairs, ASCII alternating
- *      with two-byte, and pairs alternating with ASCII, at EVERY length from 0 to 200, so that
+ *      with two-byte, and pairs alternating with ASCII, at every length from 0 to 200, so that
  *      every block boundary falls inside every run at some length;
- *   3. the same runs at EVERY destination capacity from 0 to 3 x the length, because a block's
+ *   3. the same runs at every destination capacity from 0 to 3 x the length, because a block's
  *      room guard and the scalar overflow path have to agree about where the output stops;
  *   4. LONE surrogates embedded in each of those runs, which is what every block must refuse;
  *   5. the two assembler-generated packing tables, checked against the same rule written in C.
@@ -38,7 +38,7 @@ typedef NTSTATUS (WINAPI *fn)(void*, ULONG, PULONG, const wchar_t*, ULONG);
 static int failures=0;
 static long cases=0;
 
-/* NOTHING MAY BE WRITTEN AT OR PAST dstMax, and until 2026-09-16 nothing here checked it.
+/* Nothing may be written at or past dstMax, and until 2026-09-16 nothing here checked it.
  *
  * The old comparison stopped at min(len, dstMax) and the destination was a 3000-byte array, so an
  * implementation that wrote eight bytes past the capacity it was given wrote them into slack that
@@ -70,7 +70,7 @@ static int one(fn sys, const wchar_t* src, int n, ULONG dstMax){
     s2=wia_u2u8(d2,dstMax,&l2,src,n*2);
     sr=ref_u2u8(dr,dstMax,&lr,(const unsigned short*)src,n*2);
     bad=(s1!=s2)||(s2!=sr)||(l1!=l2)||(l2!=lr);
-    /* THE WHOLE CAPACITY IS COMPARED, not just the bytes that were produced.
+    /* The whole capacity is compared, not just the bytes that were produced.
      *
      * This used to stop at min(len, dstMax), which sounds right and is not: a vector block that
      * writes a full sixteen bytes and then advances by however many of them were WANTED leaves

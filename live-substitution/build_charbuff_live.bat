@@ -1,15 +1,15 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 277 (user32!CharUpperBuffW + CharLowerBuffW).
+Rem  live-run proof for change 277 (user32!CharUpperBuffW + CharLowerBuffW).
 REM
-REM  BOTH EXPORTS ARE PATCHED AT ONCE: they are the same loop with two tables and
+Rem  both exports are patched at once: they are the same loop with two tables and
 REM  two ranges, and discovery/rtl_integer_char.c measured the lower form at
 REM  1.16 ns per character against the upper one's 0.78, so they are not even the
 REM  same code underneath. A proof that patched only one would be a proof about
 REM  half a change.
 REM
 REM  Every case compares the return value AND every character of the buffer --
-REM  INCLUDING THE CHARACTERS PAST THE COUNT. These exports take a count, not a
+Rem  including the characters past the count. These exports take a count, not a
 REM  terminator, so an implementation that rounded the count up to a whole vector
 REM  block would corrupt what follows, which is change 016's defect exactly and
 REM  which only a whole-buffer comparison sees.

@@ -4,21 +4,21 @@
  * "Size class" means something unusual here, so it is worth saying plainly what
  * each table is for.
  *
- *  [1] THE ID PATH. Both arguments are MAKEINTRESOURCE integers, which is what
+ *  [1] The ID path. Both arguments are makeintresource integers, which is what
  *      LoadIcon, LoadString, LoadBitmap, LoadMenu and LoadAccelerators all do,
  *      i.e. nearly every one of the 112 modules that bind this export. There is
- *      no string in the call and therefore NO BYTE WORK AT ALL: 95% or more of
+ *      no string in the call and therefore no byte work at all: 95% or more of
  *      the time is inside ntdll!LdrFindResource_U, which this change does not
  *      replace and cannot. This table exists to show that honestly. It is
  *      included precisely because it is the common case and because leaving it
  *      out would make the geomean a lie.
  *
- *  [2] THE NAME PATH, real subjects. mfc140u.dll carries 558 string-named
+ *  [2] The name path, real subjects. mfc140u.dll carries 558 string-named
  *      resources of 8 to 55 characters (probes/enum.c); DirectUI's UIFILE
  *      resources in twinui.dll are the same shape. These are the lookups where
  *      the shipped normaliser runs.
  *
- *  [3] THE NAME PATH, isolated. The type is an integer that the module does not
+ *  [3] The name path, isolated. The type is an integer that the module does not
  *      have, so ntdll returns at the first level in a fixed ~53 ns and the rest
  *      of the measurement is the normaliser. Both arguments are still
  *      normalised before the search -- that is the order the shipped code uses

@@ -1,8 +1,8 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 256 (ntdll!RtlFindSetBits, RtlFindClearBits).
+Rem  live-run proof for change 256 (ntdll!RtlFindSetBits, RtlFindClearBits).
 REM
-REM  Both exports are patched ONE AT A TIME, each driven through its own name
+Rem  Both exports are patched one at a time, each driven through its own name
 REM  with its own counter: they are separate code in ntdll and one
 REM  implementation serves both here, so a wrapper routing one through the
 REM  other would otherwise go unnoticed.

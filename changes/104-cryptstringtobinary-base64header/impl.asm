@@ -1,6 +1,6 @@
 ; changes/104-cryptstringtobinary-base64header/impl.asm
-; BOOL wia_s2b_pem(LPCSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                  DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2b_pem(LPCSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                  Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64HEADER (0x0): PEM decode. Find the

@@ -2,7 +2,7 @@
  *
  * The contract of shlwapi/kernelbase!UrlUnescapeW, measured against the live export.
  *
- * WHY THIS FUNCTION. discovery/shlwapi_url_str.c timed it at 1.57 ns per character for the wide form
+ * Why this function. discovery/shlwapi_url_str.c timed it at 1.57 ns per character for the wide form
  * on a 1000-character URL. That is not the transform: the same string through URL_UNESCAPE_INPLACE --
  * which is the unescape state machine and nothing else -- costs 529 ns of the 1575, and a memcpy of
  * the same buffer costs 0.2 ns. Two thirds of the measured time is scaffolding around the loop.
@@ -10,7 +10,7 @@
  * The disassembly says what the scaffolding is, and this probe's job is to pin what it must
  * REPRODUCE. From kernelbase!UrlUnescapeW at RVA 0xFBD0 (read, not assumed):
  *
- *     0000FC01  bt   r9d, 0x14          <- URL_UNESCAPE_INPLACE tested BEFORE ALL VALIDATION
+ *     0000FC01  bt   r9d, 0x14          <- URL_UNESCAPE_INPLACE tested before all validation
  *     0000FC06  jb   0x10100
  *     0000FC0C  test rcx, rcx / je      <- pszUrl NULL
  *     0000FC15  test r8, r8   / je      <- pcchUnescaped NULL
@@ -21,26 +21,26 @@
  *     0000FC70  call 0x12AF0                  <- ntdll!wcslen on the input
  *     0000FCBB  movzx eax, word [rbx] ...     <- copy-in, ONE WCHAR per five instructions
  *
- * so the shipped function STAGES THE WHOLE INPUT THROUGH A TEMPORARY, unescapes it there, measures
+ * so the shipped function stages the whole input through a temporary, unescapes it there, measures
  * the result and copies it out. That is what makes the five walks, and it is also what makes
  * overlapping pszUrl and pszUnescaped well-defined -- which an implementation writing straight to the
  * destination would not reproduce. Hence the overlap section below.
  *
- * WHAT HAS TO BE SETTLED, and every one of these is a decision an implementation has to get right:
+ * What has to be settled, and every one of these is a decision an implementation has to get right:
  *
- *   1. WHICH CHARACTERS ARE HEX. Exhaustively -- all 65536 code units in the first position of an
+ *   1. Which characters are hex. Exhaustively -- all 65536 code units in the first position of an
  *      escape and all 65536 in the second. A table-driven test would be indistinguishable from a
  *      locale one over any small corpus, and kernelbase does have a character table at RVA 0x2A2B70;
  *      if the accepted set is exactly the 22 ASCII hex digits then no locale is involved and the
  *      whole thing is reachable.
- *   2. WHAT AN INCOMPLETE OR INVALID ESCAPE DOES. Copied literally, or refused, or truncated.
+ *   2. What an incomplete or invalid escape does. Copied literally, or refused, or truncated.
  *   3. %00. It cannot be copied literally into a NUL-terminated result, so it is a special case,
  *      and what it does to the destination and to *pcchUnescaped is the question.
- *   4. THE BUFFER-SIZE RULE, exactly. The disassembly shows `cmp eax, r15d / ja`, i.e. a STRICT
+ *   4. The buffer-size rule, exactly. The disassembly shows `cmp eax, r15d / ja`, i.e. a strict
  *      comparison, so a buffer exactly the size of the result is refused. What the refusal writes to
  *      *pcch, and whether it touches the destination at all, decides whether an implementation may
  *      write speculatively and discover the overflow afterwards.
- *   5. THE FLAGS. Three matter: INPLACE (0x00100000), DONT_UNESCAPE_EXTRA_INFO (0x02000000) and
+ *   5. The flags. Three matter: Inplace (0x00100000), DONT_UNESCAPE_EXTRA_INFO (0x02000000) and
  *      AS_UTF8 (0x00040000). The first two are cheap to reproduce; the third calls
  *      MultiByteToWideChar and is the one to DELEGATE rather than re-derive -- hand-rolling UTF-8
  *      here is precisely the change-239 failure mode.
@@ -84,11 +84,11 @@ int main(void)
     DWORD cch;
     HRESULT hr;
 
-    /* ============ 1. WHICH CHARACTERS ARE HEX -- exhaustively, both positions ============ */
+    /* ============ 1. Which characters are hex -- exhaustively, both positions ============ */
     {
         int first[65536], second[65536];
         int nf = 0, ns = 0;
-        /* THE PARTNER DIGIT IS '1', NOT '0', AND THE FIRST VERSION OF THIS PROBE GOT IT WRONG.
+        /* The partner digit is '1', not '0', and the first version of this probe got it wrong.
            With '0' as the partner, testing whether '0' itself is a hex digit asks about "%00" --
            which is refused for a COMPLETELY DIFFERENT REASON (section 4) -- so the sweep scored
            '0' as "not a hex digit" and reported 21 accepted characters instead of 22. The failure
@@ -348,7 +348,7 @@ int main(void)
     /* ============ 11. which flag bits change anything at all ============ */
     {
         printf("11. WHICH SINGLE FLAG BITS CHANGE THE ANSWER (so the delegation set is known)\n");
-        /* THE SUBJECT HAS TO DISCRIMINATE EVERY FLAG, and the first version's did not: without a
+        /* The subject has to discriminate every flag, and the first version's did not: without a
            multi-byte escape in it, URL_UNESCAPE_AS_UTF8 produced the same answer as flags 0 and the
            sweep reported it as a no-op. It is not. This subject carries an ASCII escape, a '?', a
            '#' and a two-byte UTF-8 sequence, so each of the three live flags moves it. */

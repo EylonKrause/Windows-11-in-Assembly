@@ -1,6 +1,6 @@
 /* changes/129-rtlchartointeger/probes/pastnul.c
  *
- * DOES ntdll!RtlCharToInteger SKIP ITS OWN TERMINATOR?
+ * Does ntdll!RtlCharToInteger skip its own terminator?
  *
  * The leading-skip rule recorded for this export is a SIGNED char compare:
  *

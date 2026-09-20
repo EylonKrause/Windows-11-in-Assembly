@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 202 and 203 -- iphlpapi ConvertGuidToStringW/A.
+Rem  live-run proof for changes 202 and 203 -- iphlpapi ConvertGuidToStringW/A.
 REM  Both exports are patched and driven separately, not assumed equivalent.
 REM  Sacrificial single-threaded child; no system process is touched.
 REM ===========================================================================

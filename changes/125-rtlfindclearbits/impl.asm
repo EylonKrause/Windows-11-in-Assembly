@@ -1,5 +1,5 @@
 ; changes/125-rtlfindclearbits/impl.asm
-; ULONG wia_findclearbits(const RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)  [rcx,rdx,r8 -> eax]
+; Ulong wia_findclearbits(const RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)  [rcx,rdx,r8 -> eax]
 ;
 ; Reimplements ntdll!RtlFindClearBits: find the first run of `NumberToFind` consecutive clear (0) bits,
 ; searching cyclically from HintIndex (wrapping to 0), returning the run's start bit index, or 0xFFFFFFFF.
@@ -20,7 +20,7 @@
 ; ISA: AVX2 + POPCNT + LZCNT/TZCNT. Validated on Zen3.
 ;   frame: [rsp]=word  [rsp+8]=scan limit  [rsp+16]=startpos  [rsp+24]=pass flag
 
-; REGISTER NOTE. This function may only touch xmm0-xmm5: xmm6-xmm15 are CALLEE-SAVED under Win64
+; Register note. This function may only touch xmm0-xmm5: xmm6-xmm15 are callee-saved under Win64
 ; (their low 128 bits are; the upper halves are volatile). An earlier cut kept the all-ones vector
 ; and the broadcast invert mask in ymm7/ymm6, which silently destroyed any double the caller had
 ; live -- invisible to a correctness test, which compares a bit index. Only registers 0 and 1 were

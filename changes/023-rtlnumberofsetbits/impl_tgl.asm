@@ -4,7 +4,7 @@
 ; Tiger Lake / Willow Cove variant of change 023. Same contract, same oracle, same gates; the only
 ; file that differs from the parent is this one.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent counts one 64-bit word per POPCNT and accumulates into a single register. On Zen 3 that
 ; ties ntdll at 1 Mb (1.00x) and wins small, which is what its RESULTS.md records. On this machine

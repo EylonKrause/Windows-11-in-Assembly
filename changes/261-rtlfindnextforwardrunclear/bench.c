@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlFindNextForwardRunClear and ntdll!RtlFindLastBackwardRunClear.
  *
- * WHAT EACH ROW COSTS IS HOW FAR IT HAS TO WALK, so the distance to the answer is the subject and
+ * What each row costs is how far it has to walk, so the distance to the answer is the subject and
  * every row states it. A hole in the first word and a hole eight kilobytes away are the same call
  * with a thousand-fold difference in work, and the first bitmap survey's row for this pair happened
  * to be the far one.
@@ -11,19 +11,19 @@
  *   none     no hole at all: the scan runs to the end of the bitmap and answers zero
  *   near     the hole is in the first word: nothing to scan, and all that is left is the prologue
  *
- * BOTH DIRECTIONS GET ALL THREE, because they are separate code with separate costs -- the shipped
+ * Both directions get all three, because they are separate code with separate costs -- the shipped
  * backward form reads through a 64-bit `bt` and a downward loop, the forward one through a 32-bit
  * loop, and the survey measured them at 0.100 and 0.053 ns/byte on the same bitmap.
  *
- * AND THE RUN'S LENGTH IS PART OF THE WORK, not just finding it: after the first clear bit the
+ * And the run's length is part of the work, not just finding it: after the first clear bit the
  * function must walk to the end of the run. The `long run` rows make that walk the dominant cost,
  * which is a different loop from the one that found the run.
  *
- * EVERY ROW PRINTS WHAT IT RETURNED -- the length and the start -- because a scan that answered
+ * Every row prints what it returned -- the length and the start -- because a scan that answered
  * from the wrong place would still produce a plausible time.
  *
  * ------------------------------------------------------------------------------------------------
- * THE SMALL ROWS CALL SIXTEEN TIMES PER TIMED OP, AND THAT IS NOT PADDING. probes/floor.c measures
+ * The small rows call sixteen times per timed op, and that is not padding. probes/floor.c measures
  * this harness with an op that calls an EMPTY stub:
  *
  *       the loop and an op returning a constant        0.96 ns
@@ -32,7 +32,7 @@
  *       OURS, 33-bit bitmap                            2.92 ns
  *       ntdll, the same bitmap                         2.96 ns
  *
- * The empty call is EIGHTY PER CENT of the measurement. What is actually being compared on a
+ * The empty call is eighty per cent of the measurement. What is actually being compared on a
  * two-word bitmap is 0.60 ns against 0.64 ns, and the remaining 2.32 ns is the same constant on
  * both sides -- so the ratio is dragged to 1.00x however fast the code is, and the quantisation of
  * a 2.9 ns measurement then decides which side "wins" from run to run. Three genuine structural
@@ -166,7 +166,7 @@ int main(void)
                (lo == ll && so == sl) ? "" : "   <== DISAGREE");
         if (lo != ll || so != sl) ++bad;
 
-        /* AND THE SEVEN FromIndex VALUES A REPEATED ROW WALKS OVER MUST ALL GIVE THAT SAME ANSWER.
+        /* And the seven FromIndex values a repeated row walks over must all give that same answer.
            If one of them landed inside the run the row would be timing a mixture of two different
            amounts of work, so this is checked rather than asserted. */
         if (ctxs[i].reps > 1) {

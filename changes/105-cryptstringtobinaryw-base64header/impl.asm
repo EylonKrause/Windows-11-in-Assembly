@@ -1,6 +1,6 @@
 ; changes/105-cryptstringtobinaryw-base64header/impl.asm
-; BOOL wia_s2bw_pem(LPCWSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                   DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2bw_pem(LPCWSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                   Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; Wide sibling of 104 — crypt32!CryptStringToBinaryW for CRYPT_STRING_BASE64HEADER (0x0): PEM

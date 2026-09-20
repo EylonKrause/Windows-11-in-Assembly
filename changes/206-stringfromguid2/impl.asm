@@ -17,7 +17,7 @@
 ;   * because the length is checked first, a NULL buffer with cchMax 0 returns 0 without faulting.
 ;     That falls out of the ordering rather than needing its own test.
 ;
-; THE PERMUTATION IS THE WHOLE TRICK, as in 202/203. Data1/Data2/Data3 are little-endian integers
+; The permutation is the whole trick, as in 202/203. Data1/Data2/Data3 are little-endian integers
 ; printed most-significant-nibble first while Data4 prints in memory order, so the sixteen GUID bytes
 ; appear in print order
 ;       3,2,1,0,  5,4,  7,6,  8,9,10,11,12,13,14,15
@@ -25,7 +25,7 @@
 ; them into output order, map them through a 16-entry hex table, widen to UTF-16, and store over a
 ; pre-built 39-cell template so the braces and separators never take part.
 ;
-; ONLY xmm0-xmm5 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2.
 

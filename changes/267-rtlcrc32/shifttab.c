@@ -1,8 +1,8 @@
 /* changes/267-rtlcrc32/shifttab.c
  *
- * THE TWO "ADVANCE A CRC PAST N ZERO BYTES" TABLES, built once from the polynomial.
+ * The two "advance a crc past N zero bytes" tables, built once from the polynomial.
  *
- * WHY THEY EXIST. probes/identify.c established that RtlCrc32 is CRC-32C, whose polynomial the
+ * Why they exist. probes/identify.c established that RtlCrc32 is CRC-32C, whose polynomial the
  * SSE4.2 CRC32 instruction implements in hardware -- and that the shipped export runs a SERIAL
  * chain of that instruction. The instruction has 3-cycle latency and 1-per-cycle throughput, so a
  * serial chain runs at 8 bytes per 3 cycles, which is almost exactly the 14 GB/s the survey
@@ -18,11 +18,11 @@
  * GF(2) linear map on 32 bits, so it can be tabulated ONCE per L as four 256-entry tables indexed
  * by the four bytes of the CRC: four loads and three XORs, twice per 3L bytes of input.
  *
- * THE TABLES ARE BUILT FROM THE POLYNOMIAL AT RUN TIME, not transcribed. A table pasted into this
+ * The tables are built from the polynomial at run time, not transcribed. a table pasted into this
  * repository would be a second copy of a constant nobody can check by reading it, and change 210
  * made the same choice for the upcase table for the same reason.
  *
- * HOW THE OPERATOR IS BUILT. "One zero bit goes through the CRC" is a 32x32 GF(2) matrix; squaring
+ * How the operator is built. "One zero bit goes through the crc" is a 32x32 GF(2) matrix; squaring
  * it doubles the number of bits it advances, so the operator for any length is assembled by
  * square-and-multiply in about log2 steps. This is zlib's crc32_combine construction, written out
  * rather than lifted so that it can be read -- and the first draft of this file muddled the
@@ -121,7 +121,7 @@ static unsigned long apply(unsigned long table[4][256], unsigned long c)
            table[2][(c >> 16) & 0xFF] ^ table[3][(c >> 24) & 0xFF];
 }
 
-/* Returns 0 on success. THE TABLES ARE CHECKED AGAINST THE DEFINITION rather than trusted: they
+/* Returns 0 on success. The tables are checked against the definition rather than trusted: they
    encode the one piece of arithmetic in this change that cannot be seen to be right by reading it,
    and the first draft of the construction above was wrong. */
 int wia_crc32_tables_init(void)

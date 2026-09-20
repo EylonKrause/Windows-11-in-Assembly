@@ -14,7 +14,7 @@
 ;                                       dst[0] = 0 (the ORIGINAL dst, not the append point), handler,
 ;                                       ERANGE (34).
 ; Probed: dst = "AB", size = 3, src = "xyz" leaves 00 42 78 -- one byte of src appended and then the
-; string emptied. Case 2 writes ONLY dst[0]; the rest of the buffer is left alone.
+; string emptied. Case 2 writes only dst[0]; the rest of the buffer is left alone.
 ;
 ; Ordering note: cases 2 and 3 are checked here in the opposite order to the UCRT source, so that the
 ; NULL-src test can be hoisted above the dst scan and the two scans can then be issued together. That

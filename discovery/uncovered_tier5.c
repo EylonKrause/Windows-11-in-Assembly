@@ -11,7 +11,7 @@
  * a counted string, a byte-size calculation or a bitmap operation -- the shapes this repository
  * already has kernels for -- and every one is absent from README.md and from image/tree.
  *
- * THE RULE THIS FILE EXISTS TO OBEY is discovery/README.md's: a candidate becomes a TARGET only
+ * The rule this file exists to obey is discovery/README.md's: a candidate becomes a target only
  * after it is timed, and most of that directory is a record of functions that looked slow and were
  * expensive for reasons no assembly can fix. Nothing here is a target yet.
  *

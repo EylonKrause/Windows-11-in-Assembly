@@ -3,7 +3,7 @@
 ;
 ; Sign matches the first differing wchar (like the CRT). Two unbounded pointers,
 ; so neither can be aligned. Page-safe by construction: a 32-byte vector compare
-; is only issued when BOTH pointers have >= 32 bytes to their page end (so both
+; is only issued when both pointers have >= 32 bytes to their page end (so both
 ; loads lie in already-mapped pages); within 32 bytes of a page boundary it steps
 ; one wchar at a time (scalar reads never pass the terminator, always safe).
 ;

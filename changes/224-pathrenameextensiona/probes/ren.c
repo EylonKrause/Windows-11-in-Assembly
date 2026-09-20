@@ -59,7 +59,7 @@ static void show(const char* src, const char* ext){
     printf("  \"%s\" + \"%s\" -> %s  \"%s\"\n", src, ext, r ? "TRUE " : "FALSE", a);
 }
 
-/* returns 1 if live and model agree on BOTH the return value and the whole buffer */
+/* returns 1 if live and model agree on both the return value and the whole buffer */
 static int cmp1(const char* src, const char* ext){
     char a[NB], b[NB];
     int n = (int)strlen(src);

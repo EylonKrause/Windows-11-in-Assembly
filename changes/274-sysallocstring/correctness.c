@@ -1,18 +1,18 @@
 /* changes/274-sysallocstring/correctness.c
  *
- * Gate 1 for oleaut32!SysAllocString: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the length
- * prefix, SysStringLen, SysStringByteLen and every byte of the block INCLUDING THE TERMINATOR.
+ * Gate 1 for oleaut32!SysAllocString: Ours vs the scalar model vs the live export, on the length
+ * prefix, SysStringLen, SysStringByteLen and every byte of the block including the terminator.
  * Every block is freed through SysFreeString, which is the only routine allowed to.
  *
- * WHAT THIS GATE IS REALLY TESTING IS A LENGTH SCAN, so the corpus is built where a scan goes
+ * What this gate is really testing is a length scan, so the corpus is built where a scan goes
  * wrong:
  *
- *   * EVERY LENGTH 0..600, which crosses the four-character scalar peel and every 16-character
+ *   * every LENGTH 0..600, which crosses the four-character scalar peel and every 16-character
  *     vector block boundary several times over. A corpus of round numbers walks past all of them.
- *   * EVERY ALIGNMENT 0..63 at each of those lengths, because the first vector block is loaded
+ *   * every ALIGNMENT 0..63 at each of those lengths, because the first vector block is loaded
  *     ALIGNED DOWN and the bits before the string are shifted out -- so the scan is wrong at
  *     exactly the offsets nobody picks.
- *   * A STRING ENDING EXACTLY AT A GUARD PAGE, at every length 0..200. An aligned-down 32-byte load
+ *   * a string ending exactly at a guard page, at every length 0..200. An aligned-down 32-byte load
  *     never crosses a page boundary, and that claim is either true or this test faults.
  *   * EMBEDDED NULs, because SysAllocString stops at the first one (probes/contract.c: a seven
  *     character source with NULs at 2 and 5 comes back with length 2) while SysAllocStringLen does

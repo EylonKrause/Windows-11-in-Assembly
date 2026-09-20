@@ -7,7 +7,7 @@
 ; PC. Same exported symbol (`wia_strlwr`), so this change's existing
 ; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured here, the Zen 3 implementation failed the gate on one size class:
 ;
@@ -30,7 +30,7 @@
 ; cost more than the vector setup it removed. Recorded here because it is the
 ; obvious fix and it does not work.
 ;
-; THE FIX THAT WORKS
+; The fix that works
 ; ------------------
 ; Handle short strings entirely in GENERAL-PURPOSE registers -- no vector unit,
 ; therefore none of those movemask->branch chains, and 8 bytes per operation
@@ -66,8 +66,8 @@
 ;   instead. For bytes < 0x80, v + 0x3F <= 0xBE and v + 0x25 <= 0xA4, so no
 ;   byte addition can ever carry into its neighbour.
 ;
-; CONTRACT PRESERVED EXACTLY
-;   * In the default C locale ucrtbase folds ONLY ASCII A-Z -> a-z (verified by
+; Contract preserved exactly
+;   * In the default C locale ucrtbase folds only ASCII A-Z -> a-z (verified by
 ;     this change's correctness.c against the live export). All three paths --
 ;     SWAR, scalar and the untouched vector body -- implement that same map.
 ;   * Returns the original pointer `s` in rax.
@@ -76,7 +76,7 @@
 ;     >= 8, and folding leaves every non-A-Z byte bit-identical anyway.
 ;
 ; SAFETY / PAGE-SAFETY
-;   * The two 8-byte probe loads happen ONLY when (s & 4095) <= 4080, which
+;   * The two 8-byte probe loads happen only when (s & 4095) <= 4080, which
 ;     guarantees bytes [s, s+16) are in the same 4 KB page as s -- a page that
 ;     must be mapped, since the string starts in it. Nearer than 16 bytes to a
 ;     page end the probe is skipped and the original (already page-safe) path
@@ -87,7 +87,7 @@
 ;
 ; char* wia_strlwr(char* s)   [Win64: rcx -> rax (returns s)]
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
 ; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
@@ -97,7 +97,7 @@
 ;       (c > LO) AND (HI+1 > c)
 ; whose second compare wants the constant as the FIRST operand, so it had to live in a register.
 ; Rewritten as
-;       (c > LO) AND NOT (c > HI)
+;       (c > Lo) and not (c > hi)
 ; both compares take c first, so the bound becomes an ordinary register compare and the two ANDs
 ; collapse into one vpandn; the fold delta and the zero vector become memory operands. Identical
 ; instruction count, three fewer live registers.

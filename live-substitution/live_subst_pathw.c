@@ -1,6 +1,6 @@
 // live-substitution/live_subst_pathw.c
 //
-// LIVE-RUN PROOF for the nine uncovered path manipulators, across TWO DLLs:
+// Live-run proof for the nine uncovered path manipulators, across two DLLs:
 //
 //   shlwapi.dll     140 PathRemoveExtensionW   158 PathRenameExtensionW
 //                   161 PathFindFileNameW      162 PathStripPathW
@@ -8,13 +8,13 @@
 //                   159 PathCchRenameExtension 160 PathCchAddExtension
 //                   164 PathCchAddBackslash
 //
-// WHY THESE NINE TOGETHER. They are the whole of the uncovered path family and they share one
+// Why these nine together. They are the whole of the uncovered path family and they share one
 // subject -- a path buffer -- so a single corpus drives all nine, and the same string is asked
 // about by both the old shlwapi function and its modern PathCch replacement in the same breath.
 // That pairing is the point: their documented behaviours are NOT the same, and the differences are
 // the kind that a corpus built for one of them would never provoke in the other.
 //
-// SIX BEHAVIOURS THE CORPUS EXISTS TO DRIVE, each taken from the change that measured it:
+// Six behaviours the corpus exists to drive, each taken from the change that measured it:
 //   * 158 leaves the destination COMPLETELY UNCHANGED when the result would exceed 259 characters,
 //     while 159 leaves it holding cch-1 characters of the result -- a PARTIAL WRITE on failure.
 //     Two functions, the same job, opposite failure semantics. Both are driven past their limits.
@@ -29,20 +29,20 @@
 //     cch = 32769 is a valid call for one and E_INVALIDARG for the others. The corpus draws it.
 //   * 162 leaves the stale tail past the new terminator untouched -- stripping "C:\dir\file.txt"
 //     leaves "file.txt\0" followed by "le.txt\0" -- so every in-place routine here is compared over
-//     its WHOLE buffer, poison included, never just the resulting string.
+//     its whole buffer, poison included, never just the resulting string.
 //   * a SPACE stops the extension scan exactly as a backslash does, so "a.b " has no extension.
 //     Change 132 shipped without that rule because its fuzz alphabet had no space in it, and 143
 //     and 144 inherited the gap before it was corrected. The alphabet here contains one.
 //
-// pszPath IS NEVER NULL. 159 and 160 answer E_INVALIDARG for it, but 164 has no NULL check at all
+// pszPath IS never NULL. 159 and 160 answer E_INVALIDARG for it, but 164 has no NULL check at all
 // and FAULTS -- its header says so, and reproducing that exactly is the implementation's job, not
 // something to fire at a shared corpus.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copies of shlwapi and kernelbase -- never a live system process, never a file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE. kernelbase is patched here, which the earlier harnesses did not do,
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle. kernelbase is patched here, which the earlier harnesses did not do,
 //       so it is worth being explicit: these five PathCch entries are leaf string functions. They
 //       are not used by the loader, the heap, the CRT startup or anything this process calls while
 //       patched, and the process is single-threaded with no other work in flight.

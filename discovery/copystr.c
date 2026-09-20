@@ -5,7 +5,7 @@
  * at 26.20 ns for the same 4096 bytes. Two probes, two harnesses, two runs -- which is exactly the
  * kind of cross-referencing this repository keeps catching itself doing.
  *
- * So this times them SIDE BY SIDE in one harness, on the same buffers, in the same run: the live
+ * So this times them side by side in one harness, on the same buffers, in the same run: the live
  * export against the two things a replacement could actually be (a 4x32-byte YMM loop and
  * rep movsb), at every size a threshold would have to choose between.
  *

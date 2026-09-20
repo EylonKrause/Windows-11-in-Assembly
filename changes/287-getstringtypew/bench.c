@@ -2,8 +2,8 @@
  *
  * Gate 2: time wia_getstringtypew against the live kernelbase!GetStringTypeW.
  *
- * THE ROWS ARE WHAT A CLASSIFICATION LOOKUP ACTUALLY COSTS, AND THE STRING'S COMPOSITION IS AS MUCH OF
- * THE INPUT AS ITS LENGTH:
+ * The rows are what a classification lookup actually costs, and the string's composition is as much of
+ * The input as its length:
  *
  *   * ASCII, which is what real text is, and which touches only the first 512 bytes of the table;
  *   * LATIN-1 across the whole 0..255 range, the same 512 bytes but all of them;

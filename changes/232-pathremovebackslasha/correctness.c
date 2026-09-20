@@ -2,12 +2,12 @@
 // Gate 1: wia_pathremovebackslasha must be indistinguishable from shlwapi!PathRemoveBackslashA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE RETURN VALUE IS PART OF THE CONTRACT AND IS EASY TO GET WRONG. It is psz + max(n-1, 0) -- a
+// The return value is part of the contract and is easy to get wrong. It is psz + max(n-1, 0) -- a
 // pointer to the LAST CHARACTER, not to the terminator and not to the start -- and it is returned
 // whether or not anything was stripped. Every case here compares the returned OFFSET as well as the
 // whole buffer.
 //
-// AND THE DRIVE-LETTER SWEEP IS NOT OPTIONAL. The WIDE sibling (change 171) accepts the Latin-1
+// And the drive-letter sweep is not optional. The wide sibling (change 171) accepts the Latin-1
 // letters as drive letters; this narrow one accepts ASCII only. An implementation that inherited
 // the wide set would wrongly protect 78 byte values, and nothing but a full 0..255 sweep at that
 // position can see it.
@@ -30,7 +30,7 @@ static int fails = 0;
 static unsigned long sd = 0x5A5A5u;
 static unsigned rnd(void){ sd = sd*1103515245u + 12345u; return sd>>8; }
 
-/* one three-way case: the returned OFFSET and the WHOLE buffer */
+/* one three-way case: the returned OFFSET and the whole buffer */
 static int chk(const char* src, int off, const char* what)
 {
     static char a[DSZ], b[DSZ], c[DSZ];
@@ -72,7 +72,7 @@ int main(void){
                 chk(V[i], off, "probe-derived case");
     }
 
-    // ---- EVERY byte value as the DRIVE LETTER: the narrow/wide divergence -----------------------
+    // ---- Every byte value as the drive letter: the narrow/wide divergence -----------------------
     for (int v = 1; v < 256; ++v) {
         s[0] = (char)v; s[1] = ':'; s[2] = '\\'; s[3] = 0;
         chk(s, 0, "drive-letter sweep");
@@ -80,7 +80,7 @@ int main(void){
         s[0] = (char)v; s[1] = ':'; s[2] = '\\'; s[3] = 'x'; s[4] = '\\'; s[5] = 0;
         chk(s, 0, "drive-letter sweep, longer");
     }
-    // ---- EVERY byte value as the TRAILING character: only 0x5C may be removed -------------------
+    // ---- every byte value as the TRAILING character: only 0x5C may be removed -------------------
     for (int v = 1; v < 256; ++v) {
         s[0] = 'a'; s[1] = 'b'; s[2] = (char)v; s[3] = 0;
         chk(s, 0, "trailing-byte sweep");

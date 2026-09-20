@@ -208,7 +208,7 @@ int main(void){
             cs[i].ours = op_ours_r; cs[i].system = op_sys_r; cs[i].ctx = &C[i];
         }
     }
-    /* REPRINT THE ARTEFACT, measured here rather than quoted: the same single store and the same single
+    /* Reprint the artefact, measured here rather than quoted: the same single store and the same single
        call, differing only in whether the store lands on the buffer the call is about to read. */
     {
         volatile uint64_t sink = 0;

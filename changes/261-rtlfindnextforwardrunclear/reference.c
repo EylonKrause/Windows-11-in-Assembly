@@ -1,21 +1,21 @@
 /* changes/261-rtlfindnextforwardrunclear/reference.c
  *
- * THE INDEPENDENT ORACLE for RtlFindNextForwardRunClear and RtlFindLastBackwardRunClear.
+ * The independent oracle for RtlFindNextForwardRunClear and RtlFindLastBackwardRunClear.
  *
  * It shares nothing with impl.asm but the contract. impl.asm skips thirty-two bytes at a time with
  * VPCMPEQD and finds the ends with TZCNT and LZCNT; this looks at one bit, then the next.
  *
  * THE RULES, as probes/contract.c measured them:
  *
- *   * BOTH FORMS CLIP AT FromIndex, in opposite directions. Forward finds the first clear bit at or
+ *   * Both forms clip at FromIndex, in opposite directions. Forward finds the first clear bit at or
  *     after FromIndex and reports the run FROM THERE -- asked from 105 inside a run of 100..119 it
  *     answers start=105, length=15, not start=100, length=20. Backward finds the last clear bit at
  *     or before FromIndex and reports the run from its TRUE START to that bit -- asked back from 105
  *     it answers start=100, length=6.
  *   * FromIndex IS INCLUDED in both.
- *   * NOTHING FOUND writes the start pointer anyway, and with different values: the forward form
+ *   * nothing FOUND writes the start pointer anyway, and with different values: the forward form
  *     writes SizeOfBitMap, the backward form writes 0.
- *   * FromIndex AT OR PAST SizeOfBitMap returns 0 and writes FromIndex ITSELF -- not the size, and
+ *   * FromIndex at or past SizeOfBitMap returns 0 and writes FromIndex itself -- not the size, and
  *     not zero. That is the one case where the two forms agree.
  *   * The slack past SizeOfBitMap never extends a run: the same buffer with bits 1000..1023 clear
  *     answers 24 when declared as 1024 bits and 10 when declared as 1010.

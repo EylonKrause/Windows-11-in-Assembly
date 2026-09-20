@@ -2,7 +2,7 @@
 // Gate 3, dynamic, for change 293. tools/abi-check/check.bat carries a hardcoded list of change
 // directories and this change is not in it (and no existing file may be edited), so this driver
 // reuses tools/abi-check/abi_probe.asm UNCHANGED -- it is only assembled into this directory -- and
-// arms the sentinels AROUND THE CALL with wia_abi_call4, which is the form abi_check.c documents as
+// arms the sentinels around the call with wia_abi_call4, which is the form abi_check.c documents as
 // the one that cannot be masked by a compiled thunk saving and restoring a register itself.
 //
 // Bits 0-7 = rbx rbp rdi rsi r12 r13 r14 r15;  bits 8-17 = xmm6..xmm15 (low 128 bits only);

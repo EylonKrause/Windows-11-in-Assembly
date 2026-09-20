@@ -10,7 +10,7 @@
 ; them is a feature nobody would guess.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 1. `length` IS ROOM IN BYTES, AND THE TERMINATOR IS WRITTEN ONLY IF IT FITS.
+; 1. `length` Is room in bytes, and the terminator is written only if it fits.
 ;
 ;     length  9   ten digits   STATUS_BUFFER_OVERFLOW, buffer untouched
 ;     length 10   ten digits   SUCCESS, ten characters, NO terminator
@@ -18,10 +18,10 @@
 ;
 ; That is change 067's rule for RtlConvertSidToUnicodeString. It is NOT change 278's rule for
 ; RtlIntegerToUnicodeString, which demands Length+2 and always writes a terminator. THREE FORMATTERS
-; IN ONE DLL, TWO RULES -- and the only way to know which is which is to ask each one, one byte at a
+; In one DLL, two rules -- and the only way to know which is which is to ask each one, one byte at a
 ; time. probes/contract.c does.
 ;
-; 2. A NEGATIVE `length` IS A ZERO-PADDED FIELD WIDTH.
+; 2. a negative `length` is a zero-padded field width.
 ;
 ;     length -9    ten digits   STATUS_BUFFER_OVERFLOW
 ;     length -10   ten digits   "3735928559"
@@ -39,7 +39,7 @@
 ;    is STATUS_INVALID_PARAMETER. The value is unsigned. A refusal leaves the buffer untouched.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 4. THIS CHANGE SUPERSEDES CHANGE 097, WHICH IS WRONG ON EVERY NEGATIVE LENGTH.
+; 4. This change supersedes change 097, which is wrong on every negative length.
 ;
 ; 097 landed this same export at 1.39x. Its capacity test is `cmp edx, r10d / ja overflow` -- an
 ; UNSIGNED compare -- so a negative length reads as the largest possible room, and it writes the
@@ -57,7 +57,7 @@
 ;
 ; The power-of-two bases are NOT 278's shift-and-mask loop. 097 beat that loop on hexadecimal and
 ; binary by writing them MSB-first with no temp, and a supersession that regressed those rows would
-; be the sort of quiet loss these gates exist to catch. So they emit MORE THAN ONE DIGIT PER STORE:
+; be the sort of quiet loss these gates exist to catch. So they emit more than one digit per store:
 ; a byte is two hexadecimal digits, six bits are two octal digits, and a byte is eight binary digits
 ; that go out as a single 8-byte store. The digit count still comes from a table indexed by
 ; BSR(base) and the bit length.
@@ -100,7 +100,7 @@ GTAB    LABEL BYTE                           ; +88  : digits10(2^B)
 HEXCH   LABEL BYTE                           ; +120 : uppercase
         DB      '0123456789ABCDEF'
 ALIGN 16
-; THE POWER-OF-TWO BASES EMIT MORE THAN ONE DIGIT PER STORE, for the same reason base 10 does.
+; The power-of-two bases emit more than one digit per store, for the same reason base 10 does.
 ; A shift-and-mask loop is one digit per iteration, and change 097 -- the landed change this one
 ; supersedes -- beat exactly that loop by writing hex and binary MSB-first with no temp. Neither is
 ; as good as not iterating: a byte of the value is TWO hexadecimal digits, TWO octal digits fit in
@@ -152,7 +152,7 @@ HOFF    EQU 120
 
 .code
 
-; THE REGISTER BUDGET IS SEVEN AND THE JOB NEEDS EIGHT, which is why the field width is consumed
+; The register budget is seven and the job needs eight, which is why the field width is consumed
 ; before the table base is loaded. Everything lives in volatile registers -- nothing is saved, there
 ; is no frame and there are no calls:
 ;
@@ -183,7 +183,7 @@ have_base:
 
 ; ---- how many digits, into r11d
 d_pow2:
-        ; THE DIGIT COUNT IS ARITHMETIC, NOT A TABLE LOOKUP, and that is worth a paragraph.
+        ; The digit count is arithmetic, not a table lookup, and that is worth a paragraph.
         ; The first version indexed a table by BSR(base)*32 + BSR(value) -- correct, and checked
         ; against its definition, but a shift, an add and a LOAD hang off the BSR before the first
         ; character can be written. The A/B against change 097 showed it: eight hexadecimal digits
@@ -223,7 +223,7 @@ d_base10:
         add       r11d, ecx                       ; digits10(value)
 
 have_digits:
-        ; THE ROOM RULE. A POSITIVE length is room, and the terminator is written only if it fits.
+        ; The room rule. a positive length is room, and the terminator is written only if it fits.
         ; A NEGATIVE length is a zero-padded field width, and no terminator is written at all.
         ; probes/contract.c and probes/negative.c measured both, one byte at a time.
         test      r8d, r8d
@@ -352,8 +352,8 @@ pad:
         ; Anything left between the buffer and the first digit is the zero padding a negative length
         ; asked for. A positive length leaves none, because the field was set to the digit count.
         ;
-        ; THIS IS THE LOOP THAT PARKED THE FIRST BENCH RUN. Written a byte at a time it cost 182 ns
-        ; to pad a hundred-character field against the export's 115 -- the ONLY regressing row in a
+        ; This is the loop that parked the first bench run. Written a byte at a time it cost 182 ns
+        ; to pad a hundred-character field against the export's 115 -- the only regressing row in a
         ; table of sixteen, and it regressed for the plainest possible reason: ntdll fills the field
         ; with a wide store and this wrote ninety separate bytes. Sixteen at a time, with the two
         ; ends OVERLAPPING so that no count between 16 and 31 needs a loop at all, turned 0.63x into

@@ -1,24 +1,24 @@
 // changes/249-urlhasha/bench.c
 // Gate 2: time wia_urlhasha against the live shlwapi!UrlHashA.
 //
-// THE CASE MIX. UrlHashA's cost is the product of two lengths and nothing else -- there is no
+// The case mix. UrlHashA's cost is the product of two lengths and nothing else -- there is no
 // locale, no code page, no grammar and no allocation anywhere in it -- so the rows separate the two:
 //
-//   * THE URL LENGTH drives the length scan (change 225's, a 32-byte AVX2 compare against the
+//   * The url length drives the length scan (change 225's, a 32-byte AVX2 compare against the
 //     shipped byte loop) and the number of source bytes the hash consumes;
-//   * THE DIGEST SIZE selects change 244's kernel. That is not a smooth curve and the rows are
+//   * The digest size selects change 244's kernel. That is not a smooth curve and the rows are
 //     placed where it steps: cbHash 1..4 take a LEAF path with exactly cbHash lanes and no saved
 //     registers, cbHash >= 5 takes ceil(cbHash/12) passes of a twelve-lane kernel. So 4, 5, 12, 13
 //     and 16 are all rows -- 5 and 13 are the first case of each new pass, where a naive
 //     "always twelve lanes" shape did its worst.
 //
-// AND ONE ROW THAT IS NOT ABOUT SPEED AT ALL. "16 url, 1 digest" exists because change 244 measured
+// And one row that is not about speed at all. "16 url, 1 digest" exists because change 244 measured
 // its own twelve-lane kernel at 0.72x there before the leaf kernels were written: a pass costs the
 // same whether it advances two lanes or twelve, so a one-byte digest done twelve lanes wide does
 // eleven lanes of arithmetic for nothing. This change inherits that fix, and the row proves the
 // inheritance rather than assuming it.
 //
-// NO RESTORE IS NEEDED ANYWHERE HERE. The digest is a separate buffer that is never read back and
+// No restore is needed anywhere here. The digest is a separate buffer that is never read back and
 // the URL is never modified -- correctness.c asserts that last part by comparing the whole buffer --
 // so unlike changes 228, 230, 238 and 245 there is no memcpy to charge to either side and no
 // store-to-load hazard to place. The digests still ROTATE across eight page-aligned slots, because a
@@ -62,7 +62,7 @@ static uint64_t op_sys(void* c){
 static char* spool;
 static BYTE* dpool;
 static unsigned long scur, dcur;
-/* 8192, not 4096: the longest subject here is 4096 BYTES PLUS ITS TERMINATOR, and at a 4096-byte
+/* 8192, not 4096: the longest subject here is 4096 Bytes plus its terminator, and at a 4096-byte
    slot that terminator landed in the next subject's slot and was overwritten by it. The per-row
    diagnostic caught it -- the row labelled "4096 url" reported urlLen=8192, having run off the
    end of its own string into the one after it -- which is the entire reason every row here
@@ -107,7 +107,7 @@ int main(void){
             printf("BENCH SETUP ERROR: pool too small\n"); return 1;
         }
         cs[i].label = names[i];
-        /* GB/s counts SOURCE BYTES x DIGEST BYTES, because that product is what the shipped loop
+        /* GB/s counts source bytes x digest bytes, because that product is what the shipped loop
            actually costs: change 244's probes/cost.c measured the surface FLAT at 0.42 ns per pair
            for every digest of six bytes or more. A GB/s on source bytes alone would make the
            one-digest rows look twelve times better than the sixteen-digest ones for no reason. */
@@ -133,7 +133,7 @@ int main(void){
         printf("\n");
     }
 
-    /* THE WIDE EXPORT IS THE NARROW ONE PLUS A CONVERSION, and this block measures the part a patch
+    /* The wide export is the narrow one plus a conversion, and this block measures the part a patch
        on UrlHashA would and would not reach. kernelbase!UrlHashW builds a 65-byte inline narrow
        string and then does `call 0x12F750`, which IS UrlHashA -- so the hash is shared and the
        conversion is not. Printed rather than claimed, because it is the basis for the statement
@@ -162,7 +162,7 @@ int main(void){
         printf("\n");
     }
 
-    /* IS THE INLINED WORKER REALLY FASTER THAN THE EXPORT? discovery/README.md recorded that the
+    /* Is the inlined worker really faster than the export? discovery/README.md recorded that the
        copy at 0xC0A10 measured "1.15-1.45x FASTER" than the HashData export at 0xBB750, and pulled
        this pair's projection down to ~1.6x geomean on the strength of it. That claim is testable
        from here: UrlHashA reaches the inlined copy and the HashData export is one call away, and the

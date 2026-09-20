@@ -5,29 +5,29 @@
 //   126 RtlTimeToTimeFields        127 RtlTimeFieldsToTime
 //   128 RtlSecondsSince1970ToTime  058 RtlStringFromGUIDEx
 //
-// TWO OF THESE WRITE A STRUCT AND THE THIRD WRITES A COUNTED STRING, so all four get the
+// Two of these write a struct and the third writes a counted string, so all four get the
 // comparison this directory exists for: the whole destination against a poison fill, not just the
 // fields the call was supposed to set. `TIME_FIELDS` is seven SHORTs and one of padding, and a
 // converter that leaves the eighth as it found it differs from one that zeroes it -- which is the
 // distinction that mattered for the `RtlInit*String` descriptors.
 //
-// THE CORPUS IS THE CALENDAR'S EDGES, NOT A UNIFORM DRAW. A civil-from-days conversion is wrong at
+// The corpus is the calendar's edges, not a uniform draw. a civil-from-days conversion is wrong at
 // the boundaries or nowhere: the corpus carries the epoch itself, every century year from 1600 to
 // 2400 (the ones divisible by 400 are leap and the others are not), 29 February in leap and
 // non-leap years, 31 December and 1 January either side of each, the 1970 epoch `RtlSecondsSince1970ToTime`
 // is defined against, the largest FILETIME that still yields a representable year, and negative
 // and absurd values that must be refused rather than wrapped.
 //
-// RtlTimeFieldsToTime IS THE ONE THAT CAN SAY NO, and a third of its cases are built to make it:
+// RtlTimeFieldsToTime is the one that can say no, and a third of its cases are built to make it:
 // month 0 and 13, day 0 and 32, day 31 in a 30-day month, 29 February in a non-leap year, hour 24,
 // minute 60, second 60, and a millisecond of 1000. Its BOOLEAN and its output are both compared,
 // so "refused but wrote anyway" is visible.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these four is used by the loader or the heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these four is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_time_live.bat
@@ -192,7 +192,7 @@ static void run_all(ans_t* out){
     }
 }
 
-/* A NEGATIVE Time IS DECLARED OUT OF SCOPE BY CHANGE 126 ITSELF -- its header reads "Scope:
+/* a negative Time is declared out of scope by change 126 Itself -- its header reads "Scope:
  * Time >= 0 (the whole representable domain: 1601-01-01 .. year ~30828). Negative Time is not"
  * in scope. The first run of this file drew negative FILETIMEs and reported 2809 divergences,
  * every one of them a negative input: ntdll clamps to 1601-01-01 with odd hour values, and this

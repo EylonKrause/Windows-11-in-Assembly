@@ -4,23 +4,23 @@
 ; ucrtbase!strchr (and msvcrt!strchr, which ships its own byte-identical-in-behaviour copy).
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE CONTRACT, AS PROVED -- not as documented.
+; The contract, as proved -- not as documented.
 ;
 ; probes/contract.c asked the live exports 108 questions. The three that shape this file:
 ;
-;   * ONLY THE LOW 8 BITS OF `c` ARE USED, unsigned. The shipped code opens with `movzx edx,dl`
+;   * Only the low 8 Bits of `c` are used, unsigned. The shipped code opens with `movzx edx,dl`
 ;     and never looks at the rest. So needle 0x1E9 finds the 0xE9 byte, 0x161 finds 'a', and
 ;     0x100 / 0xFFFFFF00 both find the TERMINATOR. Sign has nothing to do with it.
-;   * `strchr(s, 0)` RETURNS THE TERMINATOR, not NULL. When the needle is zero the terminator is
+;   * `strchr(s, 0)` Returns the terminator, not NULL. When the needle is zero the terminator is
 ;     the match, which falls out of the dual search for free -- see below.
-;   * A NEEDLE OCCURRING ONLY AFTER THE TERMINATOR IS NOT FOUND. This is the one place a dual
+;   * a needle occurring only after the terminator is not found. This is the one place a dual
 ;     search can be silently wrong: the first STOP decides, and if that stop is the terminator the
 ;     answer is NULL even though a needle byte is sitting in the same register.
 ;
 ; ucrtbase and msvcrt agreed on all 108 probes, so one implementation covers both hosts.
 ;
 ; --------------------------------------------------------------------------------------------------
-; WHAT IS BEING BEATEN (ucrtbase.dll 10.0.26100.9444, RVA 0x31200, 127 bytes)
+; What is being beaten (ucrtbase.dll 10.0.26100.9444, rva 0x31200, 127 bytes)
 ;
 ;   movzx edx,dl / and rax,-16 / shl r8d,8 / or r8d,edx      ; needle, and align the pointer down
 ;   pshuflw+pshufd                                            ; broadcast it to 16 bytes
@@ -37,12 +37,12 @@
 ; Nothing about it is wrong. It is simply 128 bits wide and was written before AVX2 was a baseline.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE SHAPE OF THIS ONE, AND WHY IT IS NOT JUST "THE SAME THING IN YMM"
+; The shape of this one, and why it is not just "the same thing in ymm"
 ;
 ; changes/003-wcschr is this exact search one element width up, and its Tiger Lake variant
 ; (impl_tgl.asm) paid for the lesson that decides the layout here:
 ;
-;     A 256-bit FIRST probe obliges a `vzeroupper` on EVERY return path, including the return
+;     A 256-bit FIRST probe obliges a `vzeroupper` on every return path, including the return
 ;     from a three-character string. On Willow Cove that cost is large enough to lose the
 ;     shortest size class outright -- 003's parent measures 0.870x at 3 wchars on this machine
 ;     while still winning 2.0x overall.
@@ -75,7 +75,7 @@
 ; the vector loop (tools/vector-reentry-audit.py).
 ;
 ; --------------------------------------------------------------------------------------------------
-; HOW THE NEEDLE-OR-TERMINATOR QUESTION IS SETTLED
+; How the needle-or-terminator question is settled
 ;
 ; Per block: mask_c = (block == needle), mask_0 = (block == 0), stop = mask_c | mask_0.
 ; `tzcnt stop` is the first position at which the scan must end for ANY reason. `bt mask_c, pos`
@@ -161,7 +161,7 @@ bump:
         ; the upper state at all. Past that the 256-bit loop is still entered, and at 8 KB and
         ; 64 KB the two skipped blocks are noise against a loop running at ~49 GB/s.
         ;
-        ; BOTH alignments must come through here. The first version of this loop was reached only
+        ; both alignments must come through here. The first version of this loop was reached only
         ; via `bump`, so a subject whose aligned base was already 32-aligned still jumped straight
         ; to go256 and still measured 0.83x -- the extra blocks were being skipped for exactly the
         ; case that needed them, and the class stayed at 0.82x-0.87x in four runs of five.

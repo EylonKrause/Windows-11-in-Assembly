@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 067 (ntdll!RtlConvertSidToUnicodeString).
+Rem  live-run proof for change 067 (ntdll!RtlConvertSidToUnicodeString).
 REM
 REM  Every case compares the NTSTATUS, Length, MaximumLength AND a hash of all
 REM  1024 destination bytes, because this export's interesting behaviour is at

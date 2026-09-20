@@ -1,21 +1,21 @@
 /* changes/275-inet-ntoa/correctness.c
  *
- * Gate 1 for ws2_32!inet_ntoa: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the text.
+ * Gate 1 for ws2_32!inet_ntoa: Ours vs the scalar model vs the live export, on the text.
  *
- * THE POINTER CANNOT BE COMPARED AND SHOULD NOT BE. Both implementations return a per-thread buffer
+ * The pointer cannot be compared and should not be. Both implementations return a per-thread buffer
  * of their own; the contract is that the text is valid until the same thread calls again, which
  * probes/contract.c measured. So the comparison is the string -- and the live export's answer has to
  * be COPIED before ours is asked for, because if ours were the shipped one they would be the same
  * buffer and the second call would overwrite the first. A gate that forgot that would compare a
  * string against itself and pass no matter what.
  *
- * THE FORMATTING IS PER-BYTE AND THE BYTES ARE CONCATENATED, so exhaustive over one byte is not
+ * The formatting is per-byte and the bytes are concatenated, so exhaustive over one byte is not
  * enough and exhaustive over four is 4294967296 pairs of calls. What settles it is exhaustive over
  * ADJACENT PAIRS: every one of the 65536 combinations of bytes 0 and 1, and of bytes 2 and 3,
  * against several backgrounds. Any interaction between fields is an interaction between neighbours,
  * because the only thing a field does to the next one is decide where it starts.
  *
- * AND THE STEP IS WHAT CAN GO WRONG. Each field writes four bytes and advances by two, three or
+ * And the step is what can go wrong. Each field writes four bytes and advances by two, three or
  * four, so the interesting cases are where a short field is followed by a long one -- the long one's
  * store has to land on top of the short one's padding. Every length transition is covered by the
  * pair sweeps by construction.

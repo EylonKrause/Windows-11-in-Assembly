@@ -9,7 +9,7 @@
 ;   else copy src after dest->Buffer[Length], Length += strlen.
 ; ntdll's version makes a real `call` into strlen and another into the copy; we inline the
 ; page-safe AVX2 strlen (change 032) + an SSE copy so short appends have no call overhead.
-; STRING = {USHORT Length; USHORT MaximumLength; PCHAR Buffer@+8}. AVX2 + BMI1. Zen3.
+; String = {ushort Length; ushort MaximumLength; pchar Buffer@+8}. AVX2 + BMI1. Zen3.
 
 .code
 wia_appendaz PROC

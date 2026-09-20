@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar _strset_s. Not fast; just correct.
 // Contract derived in probes/sss.c and fuzz-confirmed against the live export
 // (1,000,000 cases, 0 mismatches). The FILL family differs from the case-fold family:
-//   * numberOfElements == 0 -> EINVAL (22), NOTHING written;
+//   * numberOfElements == 0 -> EINVAL (22), nothing written;
 //   * no terminator inside the bound -> PARTIAL FILL of numberOfElements-1 cells, then
 //     str[0] = 0, return EINVAL (22);
 //   * otherwise -> fill every cell before the terminator, keep it, return 0.

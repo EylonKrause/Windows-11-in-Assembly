@@ -2,10 +2,10 @@
  *
  * Gate 2: time wia_strchriw against the live shlwapi!StrChrIW.
  *
- * THE ROWS ARE THE THREE DISPATCH PATHS AND THE TWO WAYS A SEARCH ENDS, because those are what the
+ * The rows are the three dispatch paths and the two ways a search ends, because those are what the
  * implementation distinguishes:
  *
- *   * a needle that matches ONLY ITSELF (56825 of the 65535) -- one broadcast, one compare per 16;
+ *   * a needle that matches only ITSELF (56825 of the 65535) -- one broadcast, one compare per 16;
  *   * a needle with 2..4 partners -- four broadcasts, four compares. Every ASCII letter is here:
  *     'a' matches A, a, U+1D2C and U+1D43;
  *   * a needle with 5..8 partners -- the inline list. U+212A KELVIN SIGN matches K, k, U+1D37,
@@ -57,7 +57,7 @@ static uint64_t op_sys(void* c)
 enum { K = 12 };
 
 /* Every haystack is built from 'a'..'h' only, so that the needles chosen to exercise the other
- * dispatch paths -- KELVIN SIGN, the soft hyphen, a self-only code unit -- genuinely MISS. The
+ * dispatch paths -- kelvin sign, the soft hyphen, a self-only code unit -- genuinely miss. The
  * first version of this file used 'a'..'x', which contains 'k', and the pre-flight caught the
  * KELVIN row reporting a hit at offset 10 while its name said MISS. That is the same failure
  * change 269 shipped: a row that measures something other than what it is called. */
@@ -105,7 +105,7 @@ int main(void)
     for (i = 0; i < 8; ++i) s8[i] = (wchar_t)(L'a' + i);
     s8[8] = 0;
 
-    /* a needle that matches ONLY ITSELF, found from the same table impl.asm dispatches on rather
+    /* a needle that matches only ITSELF, found from the same table impl.asm dispatches on rather
        than guessed at -- the first version guessed U+4E00 and the pre-flight rejected it */
     for (i = 0x3000; i < 0xFFFF; ++i)
         if (wia_sci_n[i] == 0) { selfonly = (unsigned)i; break; }

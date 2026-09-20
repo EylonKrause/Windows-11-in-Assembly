@@ -1,6 +1,6 @@
 /* changes/284-strstriw/probes/emptyneedle.c
  *
- * WHAT DOES AN EMPTY NEEDLE DO?  THE TWO EXPORTS DISAGREE.
+ * What does an empty needle do?  The two exports disagree.
  *
  * probes/contract.c asked this and got "NULL", over the haystack "abcXYZabc". That answer was right
  * about that haystack and wrong about the rule -- the SAME defect class this family keeps producing,
@@ -14,7 +14,7 @@
  * that character while our code returned NULL.
  *
  * So the question is asked properly here: over a haystack that DOES contain a NUL-matching code unit,
- * at a known position, and asked of BOTH exports -- because change 283 measured StrRStrIW refusing an
+ * at a known position, and asked of both exports -- because change 283 measured StrRStrIW refusing an
  * empty needle outright, and if the two really differ then inheriting either answer is a mistake.
  */
 #define WIN32_LEAN_AND_MEAN

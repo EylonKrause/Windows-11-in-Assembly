@@ -14,24 +14,24 @@
 ;   * anything else malformed -> 1705 with the output GUID left UNTOUCHED, so the result is
 ;     accumulated into a stack scratch and stored only once the string is known good.
 ;
-; HOW THE WIDTH IS PAID FOR: NOT by reading 32 words. The 36 characters are narrowed to 36 bytes with
+; How the width is paid for: Not by reading 32 words. The 36 characters are narrowed to 36 bytes with
 ; three `vpackuswb`, and then this is change 205's byte parser verbatim.
 ;
-; That narrowing is SAFE PRECISELY BECAUSE IT SATURATES. vpackuswb treats its inputs as signed words
+; That narrowing is safe precisely because it saturates. vpackuswb treats its inputs as signed words
 ; and clamps to 0..255, so
 ;       0000h-00FFh  pass through unchanged
 ;       0100h-7FFFh  clamp to 0FFh   -- which the hex table marks invalid
 ;       8000h-FFFFh  are NEGATIVE, so they clamp to 00h -- which the table also marks invalid
 ; and the only word that can become '-' is 002Dh itself. A non-ASCII character therefore cannot
 ; masquerade as a hex digit or a separator. The one thing saturation WOULD break is the terminator
-; test, since 8000h collapses to 00h and would look like a NUL -- so THE LENGTH IS CHECKED ON THE
-; ORIGINAL WIDE DATA, before any narrowing, with vpcmpeqw.
+; test, since 8000h collapses to 00h and would look like a NUL -- so the length is checked on the
+; Original wide data, before any narrowing, with vpcmpeqw.
 ;
 ; PAGE SAFETY: 37 characters plus the tail load is 80 bytes read before the length is known. Within
 ; 80 bytes of a page boundary the code falls back to a bounded character walk. Same discipline as
 ; changes 001-004, 205 and 207.
 ;
-; ONLY xmm0-xmm5 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2.
 
@@ -83,7 +83,7 @@ wia_uuidfromstringw PROC
         cmp       eax, 4096 - 80
         ja        near_page_end
 
-        ;================ the length must be EXACTLY 36 characters ================
+        ;================ the length must be exactly 36 characters ================
         ; Checked on the ORIGINAL wide data: after narrowing, 8000h would look like a NUL.
         vpxor     xmm3, xmm3, xmm3
         vmovdqu   ymm0, ymmword ptr [rcx]      ; chars 0..15

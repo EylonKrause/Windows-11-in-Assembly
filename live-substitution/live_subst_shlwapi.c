@@ -1,18 +1,18 @@
 // live-substitution/live_subst_shlwapi.c
 // LIVE-RUN PROOF for changes 132, 168-176 and 212-222 -- the shlwapi functions converted on the
-// second PC, plus the NARROW PathFindFileNameA, StrRChrA, the whole narrow SPAN family, BOTH
+// second PC, plus the narrow PathFindFileNameA, StrRChrA, the whole narrow span family, both
 // halves of PathFindExtension, StrTrimA, PathStripPathA, StrChrA, PathRemoveBlanksA and PathRemoveExtensionA.
 //     StrCpyNW (168)   StrChrNW (169)   StrCatBuffW (170)
 //     PathRemoveBackslashW (171)   PathQuoteSpacesW (172)   PathFindNextComponentW (173)
 //
 // FREEZE-SAFETY PROTOCOL (same as live_subst_new.c / live_subst_2ndpc.c):
-//   (0) SACRIFICIAL CHILD: a standalone single-threaded console exe. It patches only ITS OWN
+//   (0) Sacrificial child: a standalone single-threaded console exe. It patches only its own
 //       per-process (copy-on-write) copy of shlwapi -- never a live system process, never the
 //       file on disk. A fault here kills only this process. A user-mode fault cannot bugcheck:
 //       that needs kernel-mode code, of which there is none anywhere in this repository.
-//   (1) VALIDATE FIRST against the LIVE EXPORT over a fuzz corpus BEFORE any patch is
+//   (1) Validate first against the live export over a fuzz corpus before any patch is
 //       installed. A function that fails validation is NOT patched.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and these are leaf path helpers that the
+//   (2) Patch only when idle: single-threaded, and these are leaf path helpers that the
 //       loader/heap/CRT never call, so nothing can be mid-prologue during the write.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.
 //
@@ -285,7 +285,7 @@ int main(void){
 
     // ===================== 171 PathRemoveBackslashW =====================
     // 142 PathAddBackslashW -- the mirror of 171, and the one place its contract is not symmetric:
-    // THE MAX_PATH RULE IS APPLIED BEFORE THE ALREADY-ENDS-WITH-BACKSLASH SHORTCUT, so the two
+    // The MAX_PATH rule is applied before the already-ends-with-backslash shortcut, so the two
     // thresholds differ by one -- a path needing an append fails from length 259, one that already ends
     // in a separator still succeeds at 259 even though nothing would be written. The sweep below crosses
     // 258/259/260 in both shapes for exactly that reason, and a forward slash does NOT count as a
@@ -461,9 +461,9 @@ int main(void){
     }
 
     // ===================== 174 PathUndecorateW =====================
-    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    // Exhaustive over an alphabet that contains a space, and comparing the whole buffer.
     //
-    // THIS BLOCK USED TO BE THE PROBLEM. It drove 4000 randomly built decorated paths over
+    // This block used to be the problem. It drove 4000 randomly built decorated paths over
     // {a..w, '[', '1', ']', '.', backslash} -- no space anywhere in it -- and it passed, every
     // session, while change 174 was WRONG. The rule it implements contains an extension position
     // (the ']' must hug the last '.' of the component) and that position stops at a SPACE exactly
@@ -644,7 +644,7 @@ int main(void){
     }
 
     // ===================== 212 PathFindFileNameA =====================
-    // THE CORPUS HERE IS EXHAUSTIVE, NOT SAMPLED, AND THAT IS THE POINT. The separator rule is not
+    // The corpus here is exhaustive, not sampled, and that is the point. The separator rule is not
     // local: a colon sets the answer only when it is the SOLE colon in its run, so a random path
     // corpus -- which almost never produces two colons between the same pair of backslashes -- would
     // validate a WRONG implementation. probes/rule.c measured exactly that: the plausible simpler
@@ -721,7 +721,7 @@ int main(void){
     }
 
     // ===================== 213 StrRChrA =====================
-    // THE CORPUS STAYS INSIDE THE CONTRACT DOMAIN ON PURPOSE. probes/srca.c established that the
+    // The corpus stays inside the contract domain on purpose. probes/srca.c established that the
     // shipped export walks FORWARD with CharNextA, which does not advance past a terminator, so an
     // pszEnd placed BEYOND the string's NUL makes it spin forever -- measured twice, once at the
     // cost of a 300-second timeout. Every bounded case below therefore keeps pszEnd within
@@ -813,14 +813,14 @@ int main(void){
     }
 
     // ===================== 214 StrCSpnA =====================
-    // TWO THINGS THIS CORPUS HAS TO REACH, neither of which a plain ASCII fuzz would.
+    // Two things this corpus has to reach, neither of which a plain ASCII fuzz would.
     //
-    // (1) BOTH HALVES OF THE MEMBERSHIP BITMAP. The set is a 256-bit map and the vector test
+    // (1) Both halves of the membership bitmap. The set is a 256-bit map and the vector test
     //     resolves 0x00..0x7F through one vpshufb table and 0x80..0xFF through the other, selected
     //     by the character's bit 7. A swapped blend passes every ASCII-only test, so the corpus
     //     draws characters and set members from the FULL byte range and counts how many cases
     //     actually carried a high-byte member.
-    // (2) THE NULL SET, WHICH IS NOT THE EMPTY SET. StrCSpnA(s, NULL) is 0 while StrCSpnA(s, "")
+    // (2) The NULL set, which is not the empty set. StrCSpnA(s, NULL) is 0 while StrCSpnA(s, "")
     //     is strlen -- the single distinction a reimplementation is most likely to get wrong.
     printf("[214 StrCSpnA]  shlwapi (both bitmap halves + the NULL-vs-empty set distinction)\n");
     {
@@ -960,10 +960,10 @@ int main(void){
     }
 
     // ===================== 216 StrSpnA =====================
-    // A SPAN NEEDS A CORPUS BUILT THE OTHER WAY ROUND. Random sets over the full byte range almost
+    // a span needs a corpus built the other way round. Random sets over the full byte range almost
     // never contain the subject's first character, so a corpus like 214's and 215's would return 0
     // nearly every time and prove nothing about the scan. Here the set is drawn FROM the subject's
-    // own alphabet, and a fraction of cases use a set that covers the subject ENTIRELY -- which is
+    // own alphabet, and a fraction of cases use a set that covers the subject entirely -- which is
     // the case that runs to the terminator, and so the one that tests the inverted mask's ability
     // to stop there with no NUL compare of its own.
     printf("[216 StrSpnA]  shlwapi (corpus built so spans actually RUN -- see the source)\n");
@@ -1037,14 +1037,14 @@ int main(void){
     }
 
     // ============ 217 PathFindExtensionA and 132 PathFindExtensionW ============
-    // BOTH HALVES, TOGETHER, AND THE CORPUS IS EXHAUSTIVE -- because change 132 is the reason this
+    // Both halves, together, and the corpus is exhaustive -- because change 132 is the reason this
     // block exists. It had been landed and passing its own "600k path fuzz" for weeks while
     // disagreeing with the live PathFindExtensionW on 295513 of 2015539 enumerated strings: its
     // fuzz alphabet contained no SPACE, and a space terminates the backward scan exactly as a
     // backslash does. Its oracle, its implementation and its corpus were all wrong together.
     //
     // A random corpus is what failed. So this one enumerates every string over
-    // {a, '.', backslash, '/', ':', space} of length 0..6 -- 55987 of them -- against BOTH live
+    // {a, '.', backslash, '/', ':', space} of length 0..6 -- 55987 of them -- against both live
     // exports, and reports how many actually contain a space, rather than assuming any do.
     printf("[217 PathFindExtensionA + 132 PathFindExtensionW]  shlwapi (exhaustive -- see the source)\n");
     {
@@ -1110,8 +1110,8 @@ int main(void){
     }
 
     // ===================== 218 StrTrimA =====================
-    // THIS ONE COMPARES THE WHOLE BUFFER, and that is not belt-and-braces -- it is the only thing
-    // that can see what this function does. StrTrimA writes ONLY what it must, and the ORDER of its
+    // This one compares the whole buffer, and that is not belt-and-braces -- it is the only thing
+    // that can see what this function does. StrTrimA writes only what it must, and the ORDER of its
     // writes is observable: trimming both ends of "xxabcxx" leaves TWO terminators behind, because
     // the export cuts the trailing end in place FIRST and only then moves the leading end down. An
     // implementation that moved first and terminated once returns the same BOOL and leaves the same
@@ -1150,7 +1150,7 @@ int main(void){
                         for (int q = 0; q < sl; ++q) if (c == set[q]) { c = 'Q'; break; }
                         seed_[i] = c;
                     }
-                    /* A fifth of the corpus is forced to trim NOTHING, deliberately. Drawing
+                    /* A fifth of the corpus is forced to trim nothing, deliberately. Drawing
                        lead and trail independently from 0..5 makes a genuine no-op only 1 case in
                        36, and the first run of this block produced ~160 of them -- while the no-op
                        is the case that must write NOTHING AT ALL, which is exactly what a
@@ -1216,7 +1216,7 @@ int main(void){
     }
 
     // ===================== 219 PathStripPathA =====================
-    // EXHAUSTIVE, and comparing the WHOLE BUFFER -- both for reasons already paid for elsewhere in
+    // Exhaustive, and comparing the whole buffer -- both for reasons already paid for elsewhere in
     // this file. The separator rule is the non-local one change 212 derived (a colon separates only
     // when it is the SOLE colon in its run), so a sampled corpus would validate a wrong
     // implementation; and the export leaves the bytes past the new terminator untouched, so a
@@ -1344,7 +1344,7 @@ int main(void){
     }
 
     // ===================== 221 PathRemoveBlanksA =====================
-    // WHOLE-BUFFER, because this function returns NOTHING -- the buffer is the only observable it
+    // whole-BUFFER, because this function returns nothing -- the buffer is the only observable it
     // has. It writes only what it must, and the ORDER of its writes is visible: it MOVES the leading
     // end down first and CUTS the trailing end second, which is the OPPOSITE of StrTrimA (change
     // 218). Stripping "  abc  " leaves 'a','b','c',NUL,space,NUL,space,NUL; cutting first would have
@@ -1368,7 +1368,7 @@ int main(void){
                 reseed(221);
                 for (int k = 0; k < 8000; ++k) {
                     int len = (int)(rnd() % 400);
-                    /* a fifth strips NOTHING, deliberately: that is the case which must write
+                    /* a fifth strips nothing, deliberately: that is the case which must write
                        nothing at all, and drawing the two runs independently makes it rare */
                     int noop  = ((rnd() % 5) == 0);
                     int lead  = noop ? 0 : (int)(rnd() % 6);
@@ -1428,7 +1428,7 @@ int main(void){
     }
 
     // ===================== 222 PathRemoveExtensionA =====================
-    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    // Exhaustive over an alphabet that contains a space, and comparing the whole buffer.
     //
     // The space is the reason this block exists in this shape. This function's rule was wrong in
     // THREE landed siblings until earlier in this same session: change 132 shipped a
@@ -1520,7 +1520,7 @@ int main(void){
     }
 
     // ===================== 223 PathUndecorateA =====================
-    // EXHAUSTIVE over an alphabet that contains a SPACE, and comparing the WHOLE BUFFER.
+    // Exhaustive over an alphabet that contains a space, and comparing the whole buffer.
     //
     // This block is shaped by what went wrong with the WIDE sibling. Change 174's live block drove
     // 4000 randomly built decorated paths with no space anywhere in them, and it passed every
@@ -1528,8 +1528,8 @@ int main(void){
     // stops at a space as well as a backslash. The narrow export disagreed with 174's shipped rule
     // on 2724 of 335923 enumerated strings, and so did the wide one.
     //
-    // NOTE THE ASYMMETRY the corpus has to reach: the space bounds the EXTENSION search but does
-    // NOT start a new component, so a test needs BOTH delimiters present at once to tell the two
+    // Note the asymmetry the corpus has to reach: the space bounds the extension search but does
+    // NOT start a new component, so a test needs both delimiters present at once to tell the two
     // jobs apart. Hence two exhaustive alphabets, one carrying the space and one carrying both.
     //
     // Whole-buffer, because the export moves a tail down and deliberately leaves the stale bytes
@@ -1618,7 +1618,7 @@ int main(void){
 
     // ===================== 224 PathRenameExtensionA =====================
     // EXHAUSTIVE with a SPACE, the RESULT-length MAX_PATH boundary swept exactly, and the BOOL
-    // checked alongside the WHOLE BUFFER.
+    // checked alongside the whole BUFFER.
     //
     // All three of those are here because of what the wide sibling got wrong. Change 158 is
     // PathRenameExtensionW and it shipped with change 132's extension rule, which was missing the
@@ -1737,12 +1737,12 @@ int main(void){
     }
 
     // ===================== 226 PathRemoveArgsA =====================
-    // EXHAUSTIVE over {a, SPACE, QUOTE, TAB}, and comparing the WHOLE BUFFER against poison.
+    // Exhaustive over {a, space, quote, tab}, and comparing the whole buffer against poison.
     //
     // The poison fill is not caution here, it is the only way to see two of this function's three
     // behaviours. It writes a SECOND terminator PAST the first one -- "ab   c" gets terminators at
     // 2 AND at 4, not at 2 and 3 -- so the bytes after the visible string are part of the contract.
-    // And when there is nothing to do it writes NOTHING AT ALL, not even a redundant terminator
+    // And when there is nothing to do it writes nothing at all, not even a redundant terminator
     // over the existing one. A string comparison passes an implementation that gets both wrong.
     //
     // The TAB is in the alphabet because "exactly 0x20 splits and whitespace in general does not"
@@ -1845,7 +1845,7 @@ int main(void){
     // ===================== 231 StrCatBuffA =====================
     // EXHAUSTIVE over the three dimensions that interact -- destination length, source length and
     // the BOUND -- with a poison fill, because this function's most distinctive rule is invisible
-    // otherwise: when no terminator is found within the first cch bytes it writes NOTHING AT ALL.
+    // otherwise: when no terminator is found within the first cch bytes it writes nothing at all.
     // It does not truncate the destination and it does not append. Only poison separates "wrote
     // nothing" from "wrote a terminator where one already was".
     //
@@ -2134,7 +2134,7 @@ int main(void){
     // terminator because the export uses both: an empty string gives NULL, a string with no
     // separator gives the terminator.
     //
-    // THE CORPUS IS SEPARATOR-HEAVY ON PURPOSE. The doubled-separator rule advances exactly ONE
+    // The corpus is separator-heavy on purpose. The doubled-separator rule advances exactly one
     // more, never the whole run, so "skip the separators" -- the obvious implementation -- is
     // correct on one and two backslashes and wrong from three onward. A realistic path corpus, with
     // single separators between components, could never see that.
@@ -2215,10 +2215,10 @@ int main(void){
     // The whole contract is a BOOL, so the corpus has to be chosen for BRANCH coverage rather than
     // for value coverage. Two things make that non-trivial:
     //
-    //   * THERE ARE TWO SEPARATORS, 0x5C and 0x3A, and the colon is the one a reader forgets. Both
-    //     appear in the enumeration alphabet, and both are also swept across EVERY position of a
+    //   * There are two separators, 0x5C and 0x3A, and the colon is the one a reader forgets. Both
+    //     appear in the enumeration alphabet, and both are also swept across every position of a
     //     long string so a block-boundary bug cannot hide behind the short cases.
-    //   * THE EMPTY STRING IS TRUE. That is the single case a natural model gets wrong -- it was the
+    //   * The empty string is TRUE. That is the single case a natural model gets wrong -- it was the
     //     only mismatch in 488281 strings when the probe first ran with "non-empty" in its rule --
     //     so the enumeration starts at length 0 and the count of TRUE answers is asserted.
     printf("[235 PathIsFileSpecA]  shlwapi (exhaustive to length 8 + both separators at every position)\n");
@@ -2257,7 +2257,7 @@ int main(void){
                         ++cases;
                     }
                 }
-                /* BOTH separators at EVERY position of strings that span several 32-byte blocks */
+                /* both separators at every position of strings that span several 32-byte blocks */
                 for (int len = 1; len <= 70; ++len) {
                     for (int i = 0; i < len; ++i) t[i] = (char)('a' + i % 23);
                     t[len] = 0;
@@ -2306,11 +2306,11 @@ int main(void){
 
 
     // ===================== 236 PathCommonPrefixA =====================
-    // EVERY COMPARISON HERE INCLUDES THE OUTPUT BUFFER AGAINST A POISON FILL, because for this
+    // Every comparison here includes the output buffer against a poison fill, because for this
     // function the return is not the contract and three separate measured facts say so:
     //
     //   * a common prefix of exactly 2 is REPORTED as 3 while only two characters are written;
-    //   * NULL writes NOTHING AT ALL while a valid pair with no common prefix writes a terminator;
+    //   * NULL writes nothing at all while a valid pair with no common prefix writes a terminator;
     //   * when the RESULT reaches MAX_PATH the copy is refused and only a bare terminator appears,
     //     with the count returned unchanged.
     //
@@ -2437,7 +2437,7 @@ int main(void){
     // ===================== 237 PathIsPrefixA =====================
     // The answer is one bit, so the corpus is chosen for BRANCH coverage -- and the branches worth
     // reaching are the ones no realistic path corpus contains. Two of them fall out of change 236's
-    // reported-count defect, which this function inherits and makes VISIBLE IN ITS ANSWER:
+    // reported-count defect, which this function inherits and makes visible in its answer:
     //
     //   * a TWO-CHARACTER path is NOT a prefix of itself, at that length and no other;
     //   * a path of length 3 ending in a separator IS a prefix of its own first two characters.
@@ -2499,7 +2499,7 @@ int main(void){
                         }
                     }
                 }
-                /* LENGTH IS A DIMENSION -- change 236's model survived 3.65 million short pairs and
+                /* Length is a dimension -- change 236's model survived 3.65 million short pairs and
                    was wrong about a rule that starts at 260, so this crosses it in both directions. */
                 for (int n = 240; n <= 620; n += 3) {
                     for (int i = 0; i < n; ++i) {
@@ -2571,18 +2571,18 @@ int main(void){
 
 
     // ===================== 238 PathMakePrettyA =====================
-    // EVERY case compares the WHOLE BUFFER against a poison fill, because three separate measured
+    // Every case compares the whole buffer against a poison fill, because three separate measured
     // facts make the return and the string insufficient on their own:
     //
     //   * the RETURN means "no ASCII lowercase letter was present", NOT "something changed":
     //     "123456", "" and "\\\\" all return 1 while changing nothing;
-    //   * a REFUSAL writes NOTHING, which a string comparison cannot tell from writing the same
+    //   * a REFUSAL writes nothing, which a string comparison cannot tell from writing the same
     //     bytes back;
     //   * the rewrite TRUNCATES at 259 characters by writing a NUL there, so a comparison that
     //     stopped at the new terminator would never see the bytes beyond it.
     //
     // The corpus is built around the one asymmetry that makes this function easy to get wrong: THE
-    // REFUSAL SET IS ASCII-ONLY -- exactly 26 values -- while BOTH case maps cover the CP1252 range.
+    // Refusal set is ascii-only -- exactly 26 values -- while both case maps cover the CP1252 range.
     // So 0xE0 is a lowercase letter that does NOT veto and IS rewritten, and an implementation using
     // the code page's notion of lowercase would refuse on 30 values too many. Every byte value is
     // swept, and index 0 is swept separately because it is UPPERCASED rather than lowercased and is

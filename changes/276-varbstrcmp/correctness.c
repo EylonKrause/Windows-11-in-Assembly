@@ -1,25 +1,25 @@
 /* changes/276-varbstrcmp/correctness.c
  *
- * Gate 1 for oleaut32!VarBstrCmp: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the HRESULT.
+ * Gate 1 for oleaut32!VarBstrCmp: Ours vs the scalar model vs the live export, on the HRESULT.
  *
- * THE ONE THING THIS GATE EXISTS TO CATCH is the fast path answering EQ where the export would not.
+ * The one thing this gate exists to catch is the fast path answering eq where the export would not.
  * That can happen three ways, and the corpus is built around all three:
  *
- *   1. THE ARGUMENTS ARE INVALID. probes/errors.c found that a non-empty pair validates even when
+ *   1. The arguments are invalid. probes/errors.c found that a non-empty pair validates even when
  *      the two operands are the SAME POINTER -- `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG, not
  *      EQ -- while the empty cases do not validate at all. So every shape is asked under every
  *      single-bit flag value 0..31 and under invalid locales, and the identical pairs are asked
  *      most of all.
  *
- *   2. THE STRINGS ARE NOT REALLY IDENTICAL. The byte comparison runs 32 bytes at a time with an
+ *   2. The strings are not really identical. The byte comparison runs 32 bytes at a time with an
  *      OVERLAPPING tail, so a difference in the last few characters, or in the characters the
  *      overlap covers twice, is exactly where it would be missed. Every length 16..200 is asked with
- *      the difference walked through EVERY position.
+ *      the difference walked through every position.
  *
- *   3. THE LENGTHS DIFFER. Two BSTRs of different length always collate, because "co-op" and "coop"
+ *   3. The lengths differ. Two BSTRs of different length always collate, because "co-op" and "coop"
  *      are different lengths and compare GT, not by length.
  *
- * AND THE THRESHOLD ITSELF. The fast path only runs at sixteen characters or more, so every length
+ * And the threshold itself. The fast path only runs at sixteen characters or more, so every length
  * from 0 to 40 is asked with equal content -- the answer must be the same on both sides of the
  * boundary, which is the one thing a threshold can get wrong.
  *
@@ -116,7 +116,7 @@ int main(void)
                cases - before);
     }
 
-    /* 3. EVERY LENGTH 0..40 with equal content -- the threshold is at 16 and both sides must agree */
+    /* 3. every LENGTH 0..40 with equal content -- the threshold is at 16 and both sides must agree */
     {
         long before = cases;
         for (k = 0; k <= 40; ++k) {
@@ -133,7 +133,7 @@ int main(void)
                cases - before);
     }
 
-    /* 4. A DIFFERENCE WALKED THROUGH EVERY POSITION, at every length 16..200. The byte comparison
+    /* 4. a difference walked through every position, at every length 16..200. The byte comparison
           is 32 bytes at a time with an overlapping tail, so the last characters and the ones the
           overlap covers twice are where a difference would be missed. */
     {

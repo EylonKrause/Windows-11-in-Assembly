@@ -1,26 +1,26 @@
 // live-substitution/live_subst_appasciiz.c
 // LIVE-RUN PROOF for change 265 (ntdll!RtlAppendAsciizToString).
 //
-// THE WHOLE DESTINATION BUFFER IS COMPARED, not the status and not Length. This export writes into
-// a caller's buffer and NEVER writes a terminator -- unlike its wide sibling, which change 101
+// The whole destination buffer is compared, not the status and not Length. This export writes into
+// a caller's buffer and never writes a terminator -- unlike its wide sibling, which change 101
 // landed and which does. The only way to catch an implementation that helpfully NUL-terminates is
 // to fill the buffer with poison and compare every byte afterwards, so that is what this does, with
 // a 64-bit FNV-1a fold of the whole buffer recorded for each case.
 //
-// BOTH OUTCOMES ARE COUNTED AND THE RUN FAILS IF EITHER IS THIN. A successful append and a refusal
+// Both outcomes are counted and the run fails if either is thin. a successful append and a refusal
 // are different code paths, and only the refusal is allowed to leave the buffer untouched -- a
 // corpus that never overflowed would be testing half the function.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass, and it must be: this export MUTATES
+// The corpus is regenerated from the case index on every pass, and it must be: this export mutates
 // its destination, so a second pass over a destination the first pass filled would be asking a
 // different question. Change 252's harness carried PRNG state across its passes and reported 14285
 // differences with its counter at ZERO -- the shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is not used by the loader or heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_appasciiz_live.bat

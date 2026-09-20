@@ -148,7 +148,7 @@ def covered_set(names):
 
         built = [n for n in names if n in text]
 
-        # A CALL CAN BE TRANSITIVE. Change 034's symbol `wia_u82u` appears nowhere in
+        # a call can be transitive. Change 034's symbol `wia_u82u` appears nowhere in
         # live_subst_u8str.c -- but change 268, which that harness does call, calls it five times,
         # and the build script links 034 for exactly that reason. So the text a symbol may appear
         # in is the harness source PLUS the sources of every change the same harness builds.

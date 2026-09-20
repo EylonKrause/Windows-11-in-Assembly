@@ -1,6 +1,6 @@
 ; changes/294-strchr/probes/shapes.asm
 ;
-; THE SHAPE EXPERIMENT. Six candidate implementations of wia_strchr, identical in contract and
+; The shape experiment. Six candidate implementations of wia_strchr, identical in contract and
 ; differing only in prologue width and main-loop width, so that the choice recorded in impl.asm is
 ; a measurement rather than an opinion. shapes.c times all six against the live ucrtbase export at
 ; sixteen lengths x three start alignments, absent and found-at-end, after screening every one of

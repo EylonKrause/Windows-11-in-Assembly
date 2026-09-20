@@ -1,6 +1,6 @@
 // changes/138-pathisfilespecw/correctness.c
 // Bit-exact check of wia_pathisfilespecw vs live shlwapi!PathIsFileSpecW + oracle: every byte value at
-// every position (which is what pins ':' and '\' as the ONLY disqualifiers and clears '/'), every
+// every position (which is what pins ':' and '\' as the only disqualifiers and clears '/'), every
 // length x alignment, and a NOACCESS page-guard sweep.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

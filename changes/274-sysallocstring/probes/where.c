@@ -1,6 +1,6 @@
 /* changes/274-sysallocstring/probes/where.c
  *
- * IS THE TIME REALLY THE LENGTH SCAN, AND IS THERE ANYTHING LEFT TO WIN?
+ * Is the time really the length scan, and is there anything left to win?
  *
  * probes/contract.c settled the shape: a BSTR's allocator is PRIVATE to oleaut32 -- a block made by
  * hand through CoTaskMemAlloc fail-fasts when SysFreeString touches it, and so does
@@ -14,7 +14,7 @@
  * 0.19 ns per character, roughly one character per cycle, which is what a byte-at-a-time loop
  * costs. Change 001's wcslen runs at about 0.03 ns per character.
  *
- * THIS FILE CHECKS THAT BEFORE A LINE OF ASSEMBLY IS WRITTEN, because if the gap is really the
+ * This file checks that before a line of assembly is written, because if the gap is really the
  * allocator rather than the scan there is nothing here and the change should not exist. Three
  * things are timed at every length:
  *

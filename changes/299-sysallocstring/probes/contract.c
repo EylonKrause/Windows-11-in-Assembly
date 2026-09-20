@@ -1,7 +1,7 @@
 /* changes/299-sysallocstring/probes/contract.c -- pin SysAllocString's contract before implementing it.
  *
  * discovery/oleaut32_sysallocstring.c established WHAT is slow (a scalar strlen in front of
- * SysAllocStringLen). This establishes WHAT IT DOES, because "it is obviously SysAllocStringLen(s,
+ * SysAllocStringLen). This establishes what it does, because "it is obviously SysAllocStringLen(s,
  * wcslen(s))" is a guess until the corners are measured:
  *
  *   1. NULL input -- NULL out, or an empty BSTR?

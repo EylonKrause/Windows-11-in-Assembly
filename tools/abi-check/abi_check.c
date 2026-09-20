@@ -24,7 +24,7 @@
 
 extern unsigned long long wia_abi_probe(void (*thunk)(void));
 
-/* THE WHOLE-THUNK FORM CAN BE MASKED, AND WAS. wia_abi_probe fills the non-volatile registers,
+/* The whole-thunk form can be masked, and was. wia_abi_probe fills the non-volatile registers,
    calls the thunk, and compares afterwards -- but the thunk is compiled C, and if the compiler
    used r15 for a loop variable it saved r15 on entry and restored it on exit, undoing an
    implementation's damage before the comparison. Demonstrated on change 258: with `push r15` and
@@ -309,7 +309,7 @@ static void thunk(void){
 #define NAME "214-strcspna"
 extern int wia_strcspna(const char*, const char*);
 static void thunk(void){
-    /* a full scan, an early hit, a set spanning BOTH halves of the bitmap, and both NULL exits.
+    /* a full scan, an early hit, a set spanning both halves of the bitmap, and both NULL exits.
        The set-building loop writes into the CALLER'S SHADOW SPACE, so this thunk also proves that
        doing so leaves the caller's frame intact. */
     sink += wia_strcspna(a8, "#");
@@ -324,7 +324,7 @@ static void thunk(void){
 #define NAME "215-strpbrka"
 extern const char* wia_strpbrka(const char*, const char*);
 static void thunk(void){
-    /* a hit, a full scan to the terminator, a set spanning BOTH halves of the bitmap, the empty
+    /* a hit, a full scan to the terminator, a set spanning both halves of the bitmap, the empty
        set and both NULL exits. The set-building loop writes into the CALLER'S SHADOW SPACE, so
        this also proves that leaves the caller's frame intact. */
     sink += (long long)(size_t)wia_strpbrka(a8, "CD");
@@ -463,7 +463,7 @@ static void thunk(void){
 #define NAME "174-pathundecoratew"
 extern void wia_pathundecoratew(wchar_t*);
 static void thunk(void){
-    /* added when this change was CORRECTED for the missing space rule. The correction PUSHES RBX
+    /* added when this change was corrected for the missing space rule. The correction pushes rbx
        to carry the second tracked position, so this change went from using no callee-saved
        register at all to using one -- exactly the edit this gate exists to police. */
     static wchar_t p[512];
@@ -511,7 +511,7 @@ static void thunk(void){
 #define NAME "224-pathrenameextensiona"
 extern int wia_pathrenameexta(char*, const char*);
 static void thunk(void){
-    /* this change PUSHES RBX to carry the last backslash-or-space, and it has THREE exits --
+    /* this change pushes rbx to carry the last backslash-or-space, and it has three exits --
        the two NULL rejections, the MAX_PATH rejection and the success path -- every one of
        which has to pop it */
     static char p[640];
@@ -1473,7 +1473,7 @@ static void thunk(void){
     cch = 64;  sink += wia_urlunescapea(in, 0, &cch, 0);
     sink += wia_urlunescapea(in, out, 0, 0);
     cch = 0;   sink += wia_urlunescapea(in, out, &cch, 0);
-    /* AND THE FAULT. An unterminated source at a PAGE_NOACCESS page: lstrlenA swallows it, so the
+    /* And the fault. An unterminated source at a PAGE_NOACCESS page: lstrlenA swallows it, so the
        shipped function returns S_OK with an empty result, and so must this -- by unwinding out of
        the assembly scan and through the C __except. That is the path this gate exists for. */
     {
@@ -1729,7 +1729,7 @@ extern wchar_t* wia_findunicodesubstring(void*, void*, unsigned char);
 extern int      wia_casemate_init(void);
 #define SETUP() wia_casemate_init()
 static void thunk(void){
-    /* This one reaches for ymm0-ymm5 AND makes internal calls out of a PROC FRAME to two LEAF
+    /* This one reaches for ymm0-ymm5 and makes internal calls out of a proc frame to two leaf
        verifiers, so the stack-balance and DF bits matter as much as the register bits. The upper
        halves of ymm6-ymm15 are volatile and are not reported here, but the LOW halves are not, and
        a broadcast that picked xmm6 instead of xmm2 would show up as a violation.
@@ -1888,7 +1888,7 @@ extern unsigned long wia_numberofclearbits(void*);
 extern unsigned long wia_numberofsetbitsinrange(void*, unsigned long, unsigned long);
 extern unsigned long wia_numberofclearbitsinrange(void*, unsigned long, unsigned long);
 static void thunk(void){
-    /* THIS CHANGE IS WHY THE GATE EXISTS. Its four entry stubs pass a selector to a shared framed
+    /* This change is why the gate exists. Its four entry stubs pass a selector to a shared framed
        body, and the first version put it in r13 -- a NON-VOLATILE register -- BEFORE that body's
        prologue saved it, destroying the caller's r13. Correctness passed at /Od, where the compiler
        spills everything, and the /O2 build died with an access violation before its first line of
@@ -2026,7 +2026,7 @@ typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
 typedef struct { unsigned long StartingIndex; unsigned long NumberOfBits; } ABI_RUN;
 extern unsigned long wia_findclearruns(void*, ABI_RUN*, unsigned long, unsigned char);
 static void thunk(void){
-    /* ALL EIGHT non-volatile GPRs hold loop state here, and the two scans SHARE them: r12 is the
+    /* All eight non-volatile GPRs hold loop state here, and the two scans share them: r12 is the
        SortByLength flag on the way in, then the enumeration mask on the sorted path and the byte
        table's base on the unsorted one. A prologue that saved the wrong set, or a path that
        returned without the matching epilogue, would show up here as one of those eight not being
@@ -2129,7 +2129,7 @@ typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
 extern unsigned long wia_findsetbitsandclear(void*, unsigned long, unsigned long);
 extern unsigned long wia_findclearbitsandset(void*, unsigned long, unsigned long);
 static void thunk(void){
-    /* THIS ONE IS NOT A LEAF, and it is the only thing in the bitmap family here that is not: it
+    /* This one is not a leaf, and it is the only thing in the bitmap family here that is not: it
        CALLS change 256's search and then mutates, so it has a real frame with real unwind data and
        it must both preserve the register contract itself AND not be broken by the callee. It keeps
        the bitmap and the count in the frame it has to allocate anyway rather than in rbx and rsi,
@@ -2198,7 +2198,7 @@ extern unsigned short wia_upcase[65536];
 extern void wia_upcase_init(void);
 #define SETUP() wia_upcase_init()
 static void thunk(void){
-    /* THIS GATE ALREADY EARNED ITS KEEP ON THIS CHANGE. The first draft parked four constants in
+    /* This gate already earned its keep on this change. The first draft parked four constants in
        ymm4..ymm7, and the low 128 bits of xmm6-xmm15 are NON-VOLATILE under Win64 -- so it
        destroyed two registers belonging to the caller. The symptom was not a crash: the benchmark
        printed 0.00 ns for every case-insensitive row, because the compiler had a double live in
@@ -2345,7 +2345,7 @@ extern unsigned long wia_crc32(const void*, size_t, unsigned long);
 extern int wia_crc32_tables_init(void);
 #define SETUP() wia_crc32_tables_init()
 static void thunk(void){
-    /* TWO SHAPES IN ONE FUNCTION and the gate has to reach both: a LEAF with no prologue answers
+    /* Two shapes in one function and the gate has to reach both: a leaf with no prologue answers
        anything under 192 bytes, and a PROC FRAME body with four pushed registers -- rbx, rsi, rdi
        and r12 -- handles everything larger. The framed half is the one that can get the unwind
        data wrong, and the leaf half is the one that must not touch a non-volatile register at all.
@@ -2376,7 +2376,7 @@ typedef struct { unsigned short Length, MaximumLength; char* Buffer; } WIA_U8STR
 extern long wia_unicodestringtoutf8string(WIA_U8STR*, const WIA_USTR*, unsigned char);
 extern long wia_utf8stringtounicodestring(WIA_USTR*, const WIA_U8STR*, unsigned char);
 static void thunk(void){
-    /* TWO FRAMED FUNCTIONS AND FIVE PATHS EACH, and the gate has to reach all of them: the
+    /* Two framed functions and five paths each, and the gate has to reach all of them: the
        one-pass conversion into the caller buffer, the shortfall that leaves it partly filled,
        the sizing pass a tight destination forces, the USHORT-field refusal, and the allocating
        path -- which is the only one that calls out to the heap, so it is the only one whose
@@ -2474,7 +2474,7 @@ extern void wia_upoemmap_init(void);
 #define SETUP() wia_upoemmap_init()
 #endif
 static void thunk(void){
-    /* TWO PATHS THAT ALTERNATE ON THE DATA, and both have to be reached: a 16-wide and an 8-wide
+    /* Two paths that alternate on the data, and both have to be reached: a 16-wide and an 8-wide
        ASCII block that upcase in-register, and a table walk for anything above 0x7F. The corpus
        below is the one that found these two functions running at 0.59x -- pure ASCII, pure
        non-ASCII, and the two INTERLEAVED, which is what makes the block and the table hand over to
@@ -2521,7 +2521,7 @@ extern int wia_sid_classify_init(void);
                          printf("ABI 269: the OS-derived tables failed to build\n");           \
                          ExitProcess(2); } } while (0)
 static void thunk(void){
-    /* SEVEN EXITS AND ALL OF THEM MATTER. This function returns through five different failure
+    /* Seven exits and all of them matter. This function returns through five different failure
        labels and two success paths, and three of the five CALL OUT -- to LocalAlloc through
        wia_sid_alloc, and to SetLastError through the three error setters -- so a register the
        implementation failed to save could be destroyed on one path and preserved on the others.
@@ -2584,7 +2584,7 @@ typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U067;
 extern long wia_sidfmt(U067*, void*, unsigned char);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* THE FRAME IS 552 BYTES WITH EIGHT REGISTERS PUSHED AND ONE CALL OUT, which is the shape whose
+    /* The frame is 552 Bytes with eight registers pushed and one call out, which is the shape whose
        unwind data can be wrong without any test noticing -- and the call out is what makes it
        matter, because wia_sid_header runs an exception handler and a mis-described frame is only
        visible when something unwinds through it.
@@ -2646,7 +2646,7 @@ static void thunk(void){
 extern int wia_sid2str(const void*, wchar_t**);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* AN ENVELOPE OVER CHANGE 067, SO TWO FRAMES ARE UNDER TEST AT ONCE: this one's 856 bytes with
+    /* An envelope over change 067, so two frames are under test at once: this one's 856 bytes with
        four registers pushed, and 067's 552 with eight, nested inside it -- and 067's body calls out
        to an exception handler of its own. A register that either of them failed to save is only
        visible from out here.
@@ -2699,7 +2699,7 @@ static void thunk(void){
 extern int wia_sid2stra(const void*, char**);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* THE SAME TWO NESTED FRAMES AS 270 -- this one's 856 bytes with four pushes over change 067's
+    /* The same two nested frames as 270 -- this one's 856 bytes with four pushes over change 067's
        552 with eight, whose body calls out to an exception handler -- plus a VECTOR pack, which is
        the part that matters here: VPACKUSWB writes xmm0 and xmm1, and the LOW 128 BITS of xmm6 to
        xmm15 are non-volatile. Sixteen implementations in this repository used an xmm register as
@@ -2757,7 +2757,7 @@ extern int wia_sid_classify_init(void);
                          printf("ABI 272: the OS-derived tables failed to build\n");           \
                          ExitProcess(2); } } while (0)
 static void thunk(void){
-    /* TWO NESTED FRAMES AND A VECTOR SCAN. This one is 2104 bytes with six registers pushed, over
+    /* Two nested frames and a vector scan. This one is 2104 bytes with six registers pushed, over
        change 269's 1080 with seven -- and between them sits an AVX2 scan that finds the length and
        the "any byte at or above 0x80" answer in one pass. The LOW 128 BITS of xmm6 to xmm15 are
        non-volatile; sixteen implementations in this repository used an xmm register as scratch
@@ -2816,7 +2816,7 @@ static void thunk(void){
 extern unsigned long wia_inet_addr(const char*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* A LEAF WITH A FRAME AND NO CALLS, which is the shape whose unwind data nobody checks because
+    /* a leaf with a frame and no calls, which is the shape whose unwind data nobody checks because
        nothing ever unwinds through it -- until something does. Every path is driven: the four
        forms, the three bases, the wrapping accumulator, the whitespace terminator, the one-byte
        special case, the five refusals, and NULL.
@@ -2848,7 +2848,7 @@ static void thunk(void){
 extern char* wia_inet_ntoa(unsigned long);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* A 32-byte frame with one register pushed and ONE CALL OUT -- to the thread-local buffer, which
+    /* a 32-byte frame with one register pushed and one call out -- to the thread-local buffer, which
        the compiler reaches through gs:[0x58] and the TLS array. That call is the reason the unwind
        data matters here: a mis-described frame is only visible when something unwinds through it,
        and a TLS access on a thread whose slot has not been materialised yet can do exactly that.
@@ -2883,7 +2883,7 @@ extern int wia_cub_init(void);
                          printf("ABI 277: the case tables failed to build\n");                 \
                          ExitProcess(2); } } while (0)
 static void thunk(void){
-    /* BOTH EXPORTS AND BOTH PATHS. A 16-character block with no code unit at or above 0x80 is
+    /* Both exports and both paths. a 16-character block with no code unit at or above 0x80 is
        handled entirely in YMM registers and everything else falls back to a table, so a thunk of
        plain ASCII would leave the table path's register use untested -- and the LOW 128 BITS of
        xmm6 to xmm15 are non-volatile, which is what sixteen implementations in this repository got
@@ -2924,7 +2924,7 @@ typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U278;
 extern long wia_int2ustr(unsigned long, unsigned long, U278*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* A LEAF WITH NO FRAME AND NO CALLS -- the shape whose unwind data nobody checks because
+    /* a leaf with no frame and no calls -- the shape whose unwind data nobody checks because
        nothing ever unwinds through it, until something does.
 
        TWO CONVERTERS ARE UNDER TEST, not one: base 10 goes through a length-first,
@@ -2962,7 +2962,7 @@ static void thunk(void){
 extern long wia_int2char(unsigned long, unsigned long, long, char*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* A LEAF WITH NO FRAME AND NO CALLS -- the shape whose unwind data nobody checks because
+    /* a leaf with no frame and no calls -- the shape whose unwind data nobody checks because
        nothing ever unwinds through it, until something does.
 
        THREE WRITE PATHS ARE UNDER TEST, not one. Base 10 goes through a length-first,
@@ -3010,7 +3010,7 @@ typedef struct { long long q; } LI280;
 extern long wia_lint2char(const LI280*, unsigned long, long, char*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* A LEAF WITH NO FRAME, NO PUSHES AND NO CALLS -- the shape whose unwind data nobody checks
+    /* a leaf with no frame, no pushes and no calls -- the shape whose unwind data nobody checks
        because nothing ever unwinds through it, until something does.
 
        FIVE PATHS ARE UNDER TEST, not one:
@@ -3020,7 +3020,7 @@ static void thunk(void){
            table, a dispatch or the room rule;
          * bases 2, 8 and 16, which emit several digits per store from three different tables --
            base 2 running to SIXTY-FOUR characters, twice what change 279 could produce;
-         * the ZERO-PADDED FIELD FILL, which is the only place this change touches an XMM register.
+         * the zero-padded field fill, which is the only place this change touches an xmm register.
 
        Every padding size class is driven -- 1, 2, 3, 4..7, 8..15, 16..31 and the 32-byte loop --
        because they are separate blocks with separate register use, and the wide ones write through
@@ -3069,7 +3069,7 @@ int wia_sci_init(void);
 extern unsigned char wia_sci_n[65536];
 #define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
 static void thunk(void){
-    /* A LEAF WITH NO FRAME AND NO CALLS, and the one in this repository with the most to lose from
+    /* a leaf with no frame and no calls, and the one in this repository with the most to lose from
        a register slip: it is the first change to use FOUR YMM registers for live data across a
        loop. Win64 makes xmm6-xmm15 non-volatile, and the first draft of impl.asm used ymm6 and
        ymm7 as scratch -- which is exactly what this gate exists to catch.
@@ -3122,7 +3122,7 @@ int wia_sci_init(void);
 extern unsigned char wia_sci_n[65536];
 #define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
 static void thunk(void){
-    /* A LEAF WITH NO FRAME AND NO CALLS that keeps FOUR YMM registers live across a loop. Win64
+    /* a leaf with no frame and no calls that keeps four ymm registers live across a loop. Win64
        makes xmm6-xmm15 non-volatile; change 281's first draft used ymm6 and ymm7 as scratch, which
        is what this gate exists to catch, and this change inherits that register budget.
 
@@ -3179,7 +3179,7 @@ int wia_sci_init(void);
 extern unsigned char wia_sci_n[65536];
 #define SETUP() do { if (wia_sci_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
 static void thunk(void){
-    /* THE FIRST CHANGE IN THIS REPOSITORY WITH A REAL FRAME AND SEVEN SAVED REGISTERS.
+    /* The first change in this repository with a real frame and seven saved registers.
        The character searches were leaves that saved nothing; this one pushes r15, r14, r13, r12,
        rbx, rsi and rdi, declares them with .pushreg, and calls two internal routines. Every one of
        those has to come back unchanged, and the two internal calls must not disturb them either.

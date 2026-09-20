@@ -17,7 +17,7 @@
  *   ntdll!RtlExpandEnvironmentStrings       RVA 0xBB050
  *       the loop below, verbatim.
  *
- * THE LOOKUP IS NOT REIMPLEMENTED. `RtlQueryEnvironmentVariable` -- the ntdll export the shipped
+ * The lookup is not reimplemented. `RtlQueryEnvironmentVariable` -- the ntdll export the shipped
  * RtlExpandEnvironmentStrings itself calls at 0x1800BB17F -- is resolved live and called with the
  * identical six arguments. Reimplementing it would mean reimplementing the process environment
  * block walk, its cached hash table, its critical section AND the four virtual variables ntdll
@@ -25,7 +25,7 @@
  * out of ntdll's own table at RVA 0x173AC0 by probes; see RESULTS.md). None of that is the part
  * that is slow, and all of it is the part that is impossible to match by guessing.
  *
- * THE SIX CONTRACT POINTS, all PROVEN against the live export rather than assumed -- every one of
+ * The six contract points, all proven against the live export rather than assumed -- every one of
  * them is a direct reading of the disassembly above, and correctness.c re-proves each one on this
  * machine on every run:
  *
@@ -120,7 +120,7 @@ DWORD wia_expand_env_w_ref(const wchar_t* lpSrc, wchar_t* lpDst, DWORD nSize)
                         continue;
                     }
                     /* Any other failure (STATUS_VARIABLE_NOT_FOUND is the usual one) falls
-                     * through to the literal copy of the '%' -- and ONLY of the '%'. */
+                     * through to the literal copy of the '%' -- and only of the '%'. */
                 }
             }
         }

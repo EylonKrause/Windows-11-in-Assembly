@@ -99,10 +99,10 @@ static int model(const char* a, const char* b, char* out)
     }
     if (n == 2) n = 3;                                  /* the drive-root fixup */
     if (out && n >= MAX_PATH) {
-        /* THE BOUND THIS PROBE ORIGINALLY MISSED. See the header. */
+        /* The bound this probe originally missed. See the header. */
         out[0] = 0;
     } else if (out) {
-        /* A BOUNDED copy of n characters that STOPS AT THE TERMINATOR -- which is why the fixup
+        /* a bounded copy of n characters that stops at the terminator -- which is why the fixup
            can report 3 while writing only 2: "aa" has nothing to copy for the third. When the
            first path does have a third character, as "aa\\" does, all three are written. */
         int la = 0; while (a[la]) ++la;

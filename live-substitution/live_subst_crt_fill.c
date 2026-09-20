@@ -1,5 +1,5 @@
 // live-substitution/live_subst_crt_fill.c
-// LIVE-RUN PROOF for the bounded FILL family -- changes 182 (_strset_s), 183 (_wcsset_s),
+// Live-run proof for the bounded fill family -- changes 182 (_strset_s), 183 (_wcsset_s),
 // 184 (_strnset_s) and 185 (_wcsnset_s).
 //
 // Same `_s` requirement as live_subst_crt_s.c: install the invalid-parameter handler through
@@ -15,11 +15,11 @@
 // EINVAL path (the handler-fired count at the end of the run is the evidence).
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ucrtbase -- never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
-//   (1) VALIDATE FIRST against the LIVE export over a fuzz corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and none of these four is used by the
+//   (1) Validate first against the live export over a fuzz corpus before any patch.
+//   (2) Patch only when idle: single-threaded, and none of these four is used by the
 //       loader/heap/CRT startup.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.
 //

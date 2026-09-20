@@ -1,12 +1,12 @@
 /* changes/263-rtlcompareunicodestrings/probes/fold.c
  *
- * THE SHAPE OF THE UPCASE TABLE, because the implementation's speed depends on it being boring
+ * The shape of the upcase table, because the implementation's speed depends on it being boring
  * where text usually lives.
  *
  * The plan for the case-insensitive path is the one change 236 arrived at: compare the RAW
  * characters first, because two strings that are equal are usually equal exactly, and fold only a
  * block that disagrees. That leaves one case where the fold is on the critical path for every
- * character -- two strings that differ ONLY in case, where every block disagrees raw and every
+ * character -- two strings that differ only in case, where every block disagrees raw and every
  * block has to be folded -- and for that case a 65536-entry table lookup per character would be
  * slower than the shipped code.
  *

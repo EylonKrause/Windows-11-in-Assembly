@@ -1,6 +1,6 @@
 /* changes/274-sysallocstring/probes/contract.c
  *
- * WHAT IS A BSTR, EXACTLY, AND CAN ONE BE MADE BY HAND?
+ * What is a BSTR, exactly, and can one be made by hand?
  *
  * discovery/sid_inet_bstr.c measured the family:
  *
@@ -15,7 +15,7 @@
  * already owns (change 001) runs at roughly 0.03 ns per character, so a 4000-character scan should
  * cost about 120 ns, not 773.
  *
- * BUT THE ALLOCATION IS THE QUESTION THAT DECIDES WHETHER THIS CHANGE CAN EXIST AT ALL. A BSTR is
+ * But the allocation is the question that decides whether this change can exist at all. a BSTR is
  * documented as "a length prefix, the characters, and a terminator", allocated by oleaut32's own
  * allocator -- and the caller frees it with SysFreeString. If that allocator is private, an
  * implementation cannot make a block SysFreeString will accept, and the most this change could be
@@ -25,15 +25,15 @@
  *
  * THE QUESTIONS:
  *
- *   1. WHERE IS THE LENGTH? Four bytes before the pointer, or somewhere else? Is it characters or
+ *   1. Where is the length? Four bytes before the pointer, or somewhere else? Is it characters or
  *      bytes? What does SysStringLen read?
- *   2. IS THE BLOCK ONE THE CALLER COULD HAVE MADE? Does SysFreeString accept a block this test
+ *   2. Is the block one the caller could have made? Does SysFreeString accept a block this test
  *      builds by hand -- and with which allocator?
- *   3. WHAT IS THE CONTRACT AT THE EDGES: NULL, the empty string, a string with embedded NULs, and
+ *   3. What is the contract at the edges: NULL, the empty string, a string with embedded NULs, and
  *      the largest string that works.
- *   4. IS SysAllocString REALLY SysAllocStringLen AFTER A wcslen? Compared directly, byte for byte,
+ *   4. Is SysAllocString really SysAllocStringLen after a wcslen? Compared directly, byte for byte,
  *      over many lengths.
- *   5. WHAT DOES IT DO WHEN THE ALLOCATION FAILS -- and is that reachable at all?
+ *   5. What does it do when the allocation fails -- and is that reachable at all?
  *
  * Nothing is asserted. Every line prints what the live exports returned.
  */
@@ -121,7 +121,7 @@ int main(void)
             b = (BSTR)(base + 4);
             printf("     hand-made through CoTaskMemAlloc: SysStringLen=%u, text \"%ls\"\n",
                    (unsigned)SysStringLen(b), b);
-            /* SysFreeString ON THIS BLOCK TERMINATES THE PROCESS. It is not an exception a
+            /* SysFreeString on this block terminates the process. It is not an exception a
                __try/__except can catch -- the first version of this probe tried, and the run ended
                with exit code 116 partway through section 4. oleaut32 keeps its own cached allocator
                and a foreign block trips a fail-fast rather than raising.

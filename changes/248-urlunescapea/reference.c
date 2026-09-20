@@ -4,7 +4,7 @@
 // so that overlap is not something it has to think about. If both agree it is because the rule is
 // right, not because one copy of a mistake was compiled twice.
 //
-// EVERY RULE HERE WAS MEASURED BY probes/unesca.c AGAINST THE LIVE EXPORT. The three that are NOT the
+// Every rule here was measured by probes/unesca.c against the live export. The three that are not the
 // wide form's, and that a reasonable person would have got wrong by analogy with change 245:
 //
 //   1. AS_UTF8 IS REFUSED (E_INVALIDARG), not implemented -- but only on the path that reaches the
@@ -19,8 +19,8 @@
 //      correctness.c never puts an unterminated source to the oracle and tests that case against the
 //      live export alone.
 //
-// AND THE ONE THE WIDE FORM SHARES BUT THAT IS EASY TO INVERT: URL_DONT_UNESCAPE_EXTRA_INFO stops the
-// walk at a RAW '?' or '#' and copies the marker AND EVERYTHING AFTER IT verbatim -- while an escape
+// And the one the wide form shares but that is easy to invert: URL_DONT_UNESCAPE_EXTRA_INFO stops the
+// walk at a raw '?' or '#' and copies the marker and everything after it verbatim -- while an escape
 // that DECODES to '?' does not stop anything ("a%3Fb%41" -> "a?bA"). So the test is on the source
 // byte, never on the byte produced.
 #define WIN32_LEAN_AND_MEAN
@@ -83,7 +83,7 @@ HRESULT ref_urlunescapea(char* pszURL, char* pszUnescaped, DWORD* pcchUnescaped,
     size_t n, len;
     int zero;
 
-    /* IN PLACE FIRST, before any validation: measured, an in-place call with a NULL destination and
+    /* In place first, before any validation: measured, an in-place call with a NULL destination and
        *pcch == 0 succeeds, and *pcch is never written. */
     if (dwFlags & F_INPLACE) {
         n = strlen(pszURL);

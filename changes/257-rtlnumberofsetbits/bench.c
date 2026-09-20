@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlNumberOfSetBits family.
  *
- * COUNTING DOES NOT CARE WHAT THE BITS ARE -- there is no early exit and no data-dependent branch in
+ * Counting does not care what the bits are -- there is no early exit and no data-dependent branch in
  * either implementation -- so the rows vary the two things that DO matter: the SIZE, which decides
  * whether the vector body runs at all, and the ALIGNMENT of the range, which decides how much of
  * the work falls to the masked partial words at the ends.
@@ -11,7 +11,7 @@
  * cost the same: a row that moved with density would mean one of the two implementations had a
  * data-dependent path nobody had noticed.
  *
- * EVERY ROW STATES WHAT IT COUNTED before the table, because a range that quietly refuses returns
+ * Every row states what it counted before the table, because a range that quietly refuses returns
  * 0xFFFFFFFF instantly and would otherwise look like a spectacular result.
  */
 #include "bench.h"

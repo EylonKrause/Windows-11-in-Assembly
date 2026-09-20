@@ -3,18 +3,18 @@
  * THREE-WAY: ours, an independent oracle (reference.c, which models the ENVELOPE and calls the live
  * RtlIpv6StringToAddressW for the address body), and the LIVE ntdll!RtlIpv6StringToAddressExW.
  *
- * FOUR OBSERVABLES PER CASE:
+ * Four observables per case:
  *
  *   * the NTSTATUS, on every case;
  *   * *ScopeId, seeded 0xDEADBEEF, on every case;
  *   * *Port, seeded 0xBEEF, on every case;
- *   * and the SIXTEEN ADDRESS BYTES against a 0xCD fill, on every case the export SUCCEEDED.
+ *   * and the sixteen address bytes against a 0xCD fill, on every case the export succeeded.
  *
  * The two sentinels are the point of seeding them: the measured rule is that a FAILING call leaves
  * both untouched, which no comparison of success paths could ever check.
  *
- * WHY THE ADDRESS IS COMPARED ONLY ON SUCCESS, STATED RATHER THAN QUIETLY ASSUMED. The shipped IPv6
- * parser fills the destination AS IT GOES, so a call that fails part-way leaves whatever it had
+ * Why the address is compared only on success, stated rather than quietly assumed. The shipped IPv6
+ * parser fills the destination as it goes, so a call that fails part-way leaves whatever it had
  * committed -- "f:" leaves 00 0F, "1." leaves 01 -- while change 166, whose core this change
  * composes, accumulates into a stack scratch and copies out once, on success. Measured directly,
  * over 55987 enumerated strings: status differ 0, *Terminator differ 0, ADDRESS BYTES differ 17268,
@@ -28,7 +28,7 @@
  * MEASURES it through this export rather than hiding it, so the number is in this change's own
  * output and not only in a comment.
  *
- * WHAT EACH COMPARISON ISOLATES. Ours-vs-ORACLE isolates the ENVELOPE, because the oracle uses the
+ * What each comparison isolates. Ours-vs-ORACLE isolates the envelope, because the oracle uses the
  * shipped address parser -- a disagreement there is in the fourteen envelope rules and nowhere else.
  * Ours-vs-LIVE covers both halves at once, so it is also the check that change 166's assembly still
  * agrees with the shipped body it is standing in for.

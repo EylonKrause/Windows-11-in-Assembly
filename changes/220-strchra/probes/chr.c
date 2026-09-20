@@ -15,7 +15,7 @@
    PSTR StrChrA(PCSTR pszStart, WORD wMatch)
 
    What has to be settled:
-     * IS IT BYTE-WISE? Asked separately from its siblings, because it is a different function and,
+     * Is it byte-wise? Asked separately from its siblings, because it is a different function and,
        by the timing, a differently implemented one.
      * wMatch is a WORD: is only the low byte consulted, as it is for StrRChrA?
      * searching for the TERMINATOR;

@@ -1,6 +1,6 @@
 // changes/071-wcsrev/correctness.c
 // Bit-exact fuzz of wia_wcsrev vs live ucrtbase!_wcsrev + oracle. Compares the returned pointer and
-// EVERY byte of a canary-filled buffer, so anything written past the terminator is caught.
+// every byte of a canary-filled buffer, so anything written past the terminator is caught.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

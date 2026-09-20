@@ -18,7 +18,7 @@
  *     a successful call                  the last error becomes ZERO        probes/validate.c
  *     (an allocation failure)            ERROR_NOT_ENOUGH_MEMORY
  *
- * THE ZERO ON SUCCESS IS NOT AN ASSUMPTION. probes/validate.c set the last error to five different
+ * The zero on success is not an assumption. probes/validate.c set the last error to five different
  * values -- 0, 1, 87, 0x0D15EA5E and 1337 -- and called at four lengths: all twenty came back 0. It
  * is set here explicitly rather than left to whatever LocalAlloc happens to leave behind, because
  * "LocalAlloc happened to leave zero on this heap state" is not something a test can hold to.

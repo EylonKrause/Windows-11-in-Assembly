@@ -1,6 +1,6 @@
 // CORRECTED 2026-09-20: this required only room for the conversion and wrote no terminator, which
 // matched the implementation exactly and the export on neither count. The export NUL-TERMINATES, so
-// it needs room for the conversion PLUS one element, and on overflow it writes NOTHING and leaves
+// it needs room for the conversion PLUS one element, and on overflow it writes nothing and leaves
 // dst->Length as the caller had it. (Its sibling 018 is the odd one out: that one truncates and
 // partially writes. Four functions in one family, two failure disciplines.) Found by live
 // substitution; the probe output is recorded in RESULTS.md.

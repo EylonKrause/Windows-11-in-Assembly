@@ -9,7 +9,7 @@
 // invisible. The section marked EXHAUSTIVE below enumerates the small alphabet instead of sampling
 // it, which is a proof rather than a sample and would have failed loudly on day one.
 // Bit-exact fuzz of wia_pathremoveextw vs live shlwapi!PathRemoveExtensionW + oracle. In-place, so the
-// WHOLE buffer is compared after the call.
+// whole buffer is compared after the call.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ int main(void){
         printf("  exhaustive {a,.,backslash,space} 0..8: %ld strings\n", en);
     }
 
-    /* THE SPACE AND THE TAB ARE THE POINT: the absence of a space here is what let the space rule
+    /* The space and the tab are the point: the absence of a space here is what let the space rule
        ship missing, and the tab is in because the rule is 0x20 specifically, not whitespace. */
     unsigned seed=0x9e37u; static const wchar_t AL[]={L'a',L'b',L'.',L'\\',L'/',L':',L' ',L'\t'};
     for(int t=0;t<400000 && fails<15;t++){

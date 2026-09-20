@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 209, 210, 211, 225, 227, 229, 240 and 243 -- lstrcpynW + CompareStringOrdinal
+Rem  live-run proof for changes 209, 210, 211, 225, 227, 229, 240 and 243 -- lstrcpynW + CompareStringOrdinal
 REM  + lstrcpynA + lstrlenA + lstrcpyA + lstrcpyW.
 REM  A fifth of the corpus is an unterminated source at a PAGE_NOACCESS page:
 REM  the export swallows the fault, returns NULL and leaves a partial copy, and

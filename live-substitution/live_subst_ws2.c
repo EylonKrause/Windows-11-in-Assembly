@@ -2,7 +2,7 @@
 // ws2_32's IP-conversion exports DELEGATE into landed ntdll changes -- proved by a counter.
 //
 // ================================================================================================
-// CORRECTED BY CHANGE 273. This file used to open with "ws2_32's IP-conversion exports are ALREADY
+// Corrected by change 273. This file used to open with "ws2_32's IP-conversion exports are already
 // COVERED by landed ntdll changes" and "ws2_32 does not parse or format an IP address at all". The
 // first half of that is what the counter below proves and it is true: inet_addr calls
 // RtlIpv4StringToAddressA on every one of its 22 subjects. The second half is NOT true of inet_addr,
@@ -19,7 +19,7 @@
 // "did it go down", and a whitespace terminator. So change 114 is on inet_addr's path but is not
 // its answer, and "already covered" was too strong.
 //
-// THE COUNTER BELOW COULD NEVER HAVE CAUGHT THAT, and it is worth saying why: patching change 114
+// The counter below could never have caught that, and it is worth saying why: patching change 114
 // with a BIT-EXACT replacement leaves the composite answer unchanged whichever branch inet_addr
 // takes afterwards. A harness that only asks "did the answer change" is blind to which of two
 // implementations produced it. That is what change 273 exists for, and
@@ -37,7 +37,7 @@
 // the ws2_32 caller too, with no new implementation and no new contract -- the same shape as change
 // 242 covering PathCombineW/PathAppendW, and as change 249's UrlHashW.
 //
-// THIS HARNESS EXISTS BECAUSE "ALREADY COVERED" IS A CLAIM. An import-table reading is good evidence
+// This harness exists because "already covered" is a claim. An import-table reading is good evidence
 // and a counter is proof: each ntdll export is patched on its own, the WS2_32 name is then called,
 // and our counter has to move. It also checks that the answers are identical either way, because a
 // wrapper is entitled to transform what it passes and what it returns -- inet_addr, for one, has its
@@ -58,7 +58,7 @@
 
 extern long wia_ipv4a(const char*, unsigned char, const char**, void*);      /* change 114 */
 extern long wia_ip4ex(const void*, unsigned short, char*, unsigned long*);  /* change 065 */
-/* CHANGE 065 FORMATS ITS DIGITS FROM A TABLE THAT MUST BE BUILT FIRST. Leaving wia_dec2b_init()
+/* Change 065 Formats its digits from a table that must be built first. Leaving wia_dec2b_init()
    uncalled does not fail loudly -- the table is all zeros, so the digits come out as NULs and every
    address is silently TRUNCATED at its first multi-digit octet: {0,255,0,90} formatted as "0.2"
    with a correct status and a correct output SIZE of 11. That looked exactly like a bug in a landed

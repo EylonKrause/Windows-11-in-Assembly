@@ -1,6 +1,6 @@
 /* changes/034-rtlutf8tounicoden/probes/tglaxes.c
  *
- * WHICH (length, alignment) PAIR IS THE SPEED GATE FOR THE TIGER LAKE VARIANT, and is any row that
+ * Which (length, alignment) pair is the speed gate for the tiger lake variant, and is any row that
  * looks bad actually 4K ALIASING rather than slow code?
  *
  * This is change 294's probes/blockcount.c question and change 296's probes/twoaxes.c question,

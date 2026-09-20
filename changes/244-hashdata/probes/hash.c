@@ -2,12 +2,12 @@
  *
  * The contract of shlwapi/kernelbase!HashData, measured against the live export.
  *
- * WHY THIS FUNCTION. discovery/shlwapi_url_str.c timed it at 6.37 ns per source byte with a
+ * Why this function. discovery/shlwapi_url_str.c timed it at 6.37 ns per source byte with a
  * 16-byte digest -- 26 102 ns to hash 4096 bytes, i.e. 0.157 GB/s. That is not a semantic cost:
  * there is no locale, no code page, no path grammar and no allocation anywhere in it. It is bytes
  * in, bytes out.
  *
- * WHAT THIS PROBE HAS TO SETTLE, and why each one matters:
+ * What this probe has to settle, and why each one matters:
  *
  *   1. THE TABLE. The digest is built through a 256-entry byte substitution. Every byte of it has
  *      to be recovered, because one wrong entry is a wrong digest on one input in 256 and nothing
@@ -17,7 +17,7 @@
  *      is carried below as a HYPOTHESIS and compared against what the export actually produces --
  *      the export is the authority, not the disassembly.
  *
- *   2. THE INITIAL DIGEST. The digest is seeded before any source byte is consumed, and the seed
+ *   2. The initial digest. The digest is seeded before any source byte is consumed, and the seed
  *      is observable on its own: with cbData == 0 nothing is consumed and whatever is left in the
  *      buffer IS the seed. That also settles what happens past 256 bytes of digest, where a
  *      byte-sized seed must wrap.
@@ -27,13 +27,13 @@
  *      built here and run against all 65 536 two-byte sources, because a corpus of a few strings
  *      would agree with the wrong one often enough to look like a match.
  *
- *   4. WHETHER THE DIGEST BYTES INTERACT. If digest byte j is updated only from itself and the
+ *   4. Whether the digest bytes interact. If digest byte j is updated only from itself and the
  *      current source byte, the bytes are 16 independent chains and an implementation may compute
  *      them in any order -- which is the whole basis of making this fast. If they interact, it is
  *      a serial chain and there is nothing to win. Measured with cbHash = 4 over every source byte
  *      and every digest position.
  *
- *   5. THE DEGENERATE AND FAILING CASES. cbData == 0, cbHash == 0, NULL either side, and -- the one
+ *   5. The degenerate and failing cases. cbData == 0, cbHash == 0, NULL either side, and -- the one
  *      that decides whether an implementation may touch the buffer at all -- whether cbHash == 0
  *      writes anything, and whether cbData == 0 READS anything. Both are answered against a
  *      PAGE_NOACCESS page rather than by inspection, because "it appears not to" and "it does not"
@@ -50,7 +50,7 @@
 typedef HRESULT (WINAPI *FN_HASH)(const BYTE*, DWORD, BYTE*, DWORD);
 static FN_HASH sys;
 
-/* THE HYPOTHESIS, read out of kernelbase.dll at RVA 0x2A6010 (the table the export's inner loop
+/* The hypothesis, read out of kernelbase.dll at rva 0x2A6010 (the table the export's inner loop
    indexes with `movzx ecx, byte ptr [rdx + rsi]`). It is compared against the live export below;
    if the two ever disagree, the export wins and this array is wrong. */
 static const unsigned char HYP[256] = {
@@ -278,7 +278,7 @@ int main(void)
         CHECK(hr == S_OK, "cbHash=0 returned %08lX", (unsigned long)hr);
         CHECK(d[0] == 0xAB, "cbHash == 0 wrote to the buffer");
 
-        /* THE TWO QUESTIONS THAT DECIDE WHAT AN IMPLEMENTATION MAY TOUCH, answered against a
+        /* The two questions that decide what an implementation may touch, answered against a
            PAGE_NOACCESS page rather than by looking at a poison fill. */
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

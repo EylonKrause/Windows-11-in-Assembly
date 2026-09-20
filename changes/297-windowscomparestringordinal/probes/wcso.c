@@ -1,6 +1,6 @@
 // changes/297-windowscomparestringordinal/probes/wcso.c
 //
-// THE MEASUREMENT THAT HAD TO COME BEFORE ANY CODE. Not a test -- a probe. It answers, against the
+// The measurement that had to come before any code. Not a test -- a probe. It answers, against the
 // live combase on this PC, the questions reference.c is then written from:
 //
 //   1  is [h+0x04] really the length and [h+0x10] really the buffer, for every kind of HSTRING?
@@ -9,7 +9,7 @@
 //   4  what comes back for a NULL result pointer, and does it leave anything behind?
 //   5  does the comparison stop at an embedded NUL?
 //   6  is comparing a handle with itself an early-out?
-//   7  IS IT ACTUALLY ORDINAL -- the question that decides whether this function belongs in this
+//   7  Is it actually ordinal -- the question that decides whether this function belongs in this
 //      repository at all, since the StrCmp/StrChrI family was ruled out for being linguistic
 //   8  what does the shipped export cost, and where does the cost go?
 //
@@ -259,7 +259,7 @@ int main(void)
         Delete(d); Delete(h);
     }
 
-    /* ---- 7. IS IT ORDINAL? ---- */
+    /* ---- 7. Is it ordinal? ---- */
     printf("\n== 7. ordinal, or linguistic? 400000 pairs ==\n");
     {
         static const wchar_t alpha[] = {

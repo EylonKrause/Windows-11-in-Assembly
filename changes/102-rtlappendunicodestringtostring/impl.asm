@@ -8,7 +8,7 @@
 ;   else copy src->Buffer after dest->Buffer[Length], Length += src->Length, and if
 ;        MaximumLength - Length >= 2 write a wide NUL.
 ; ntdll's version makes a real `call` into the block copy; we inline an SSE copy. Frameless
-; leaf, legacy SSE only (no YMM -> no vzeroupper). UNICODE_STRING = {USHORT Length; USHORT
+; leaf, legacy SSE only (no ymm -> no vzeroupper). UNICODE_STRING = {ushort Length; ushort
 ; MaximumLength; PWSTR Buffer@+8}. Validated bit-exact vs live on Zen3.
 
 .code

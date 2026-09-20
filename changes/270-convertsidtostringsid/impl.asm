@@ -7,7 +7,7 @@
 ; 181 was neither the formatting nor the allocation.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THIS FILE IS AN ENVELOPE, NOT A SECOND FORMATTER. probes/contract.c formats every shape of SID
+; This file is an envelope, not a second formatter. probes/contract.c formats every shape of SID
 ; with advapi32's export AND with ntdll's and compares the two strings -- the ordinary counts, every
 ; revision, every sub-authority count 0..255, and the identifier authority at every decimal and
 ; hexadecimal boundary. They agree on all of it, INCLUDING on what they refuse. So the text comes
@@ -16,28 +16,28 @@
 ; silently leave behind, which is how change 132's extension rule ended up wrong in four landed
 ; changes at once.
 ;
-; "THEY AGREE" WAS NOT ASSUMED. Change 268 was built on exactly this bet about two functions
+; "They agree" was not assumed. Change 268 was built on exactly this bet about two functions
 ; documented as a pair, and found four behaviours where they differ. Here they do not, and the
 ; probe that says so is in the repository.
 ;
 ; --------------------------------------------------------------------------------------------------
-; WHAT THE ENVELOPE OWNS, and every line of it is a measurement:
+; What the envelope owns, and every line of it is a measurement:
 ;
-;   1. THE FAILURE CODES ARE Win32 AND THERE ARE ONLY TWO. A NULL SID or a NULL out-pointer is
+;   1. The failure codes are Win32 and there are only two. a NULL SID or a NULL out-pointer is
 ;      ERROR_INVALID_PARAMETER; everything the formatter refuses -- a revision other than 1, a
 ;      sub-authority count above 15 -- is ERROR_INVALID_SID. Nothing maps to anything else.
 ;
-;   2. ON FAILURE THE OUTPUT POINTER IS LEFT ALONE, measured with a poison value. Its sibling
+;   2. On failure the output pointer is left alone, measured with a poison value. Its sibling
 ;      ConvertStringSidToSidW (change 269) CLEARS it for three characters out of 65535; this one
 ;      never does, and the two were measured separately rather than assumed to match.
 ;
-;   3. ON SUCCESS THE LAST ERROR BECOMES ZERO, from any starting value (probes/validate.c: five
+;   3. On success the last error becomes zero, from any starting value (probes/validate.c: five
 ;      values at four lengths, twenty out of twenty).
 ;
-;   4. THE BLOCK IS LocalAlloc(LMEM_FIXED) OF EXACTLY (characters + 1) * 2 BYTES, because the CALLER
+;   4. The block is LocalAlloc(LMEM_FIXED) of exactly (characters + 1) * 2 Bytes, because the caller
 ;      frees it with LocalFree. That is called, not imitated -- see alloc.c.
 ;
-;   5. A SID THAT IS NOT FULLY READABLE is a REFUSAL when its sub-authority array runs off the end
+;   5. a SID that is not fully readable is a refusal when its sub-authority array runs off the end
 ;      and a FAULT when only its six identifier-authority bytes do (probes/truncated.c). That rule
 ;      lives in change 067 and is inherited here for free, because it is the same formatter.
 ;
@@ -112,7 +112,7 @@ wia_sid2str PROC FRAME
         lea       rsi, [rsp + TMP]
         lea       r8d, [r12d + 2]                   ; bytes to move, the terminator included
 
-        ; EXACTLY r8d BYTES. The block is (characters+1)*2 and not one byte more, so the tail is an
+        ; exactly r8d BYTES. The block is (characters+1)*2 and not one byte more, so the tail is an
         ; OVERLAPPING chunk from the end rather than a rounded-up one -- the rule change 016 had to
         ; be corrected for. The shortest result is "S-1-0" and a NUL, twelve bytes, so the
         ; eight-byte path always has something to work with.

@@ -4,16 +4,16 @@
    WHERE pmpa2.c GOT TO. The function is not "lowercase the path" -- it is two different mappings
    applied to two different parts, gated by an ASCII-only predicate:
 
-     * IT REFUSES if the string contains any byte in 'a'..'z'. EXACTLY those 26 values and nothing
+     * It refuses if the string contains any byte in 'a'..'z'. Exactly those 26 values and nothing
        else -- not the CP1252 lowercase range, not digits, not punctuation. So a path containing
        0xE0 (a-grave) is NOT considered to contain a lowercase letter and is rewritten anyway.
-     * INDEX 0 IS UPPERCASED, not skipped. pmpa2.c's first detector could not see this because the
+     * Index 0 Is uppercased, not skipped. pmpa2.c's first detector could not see this because the
        only way to observe it is with a byte that is lowercase in CP1252 but not in ASCII -- the
        exact set the refusal predicate ignores. 34 of 255 values move, and 34 is a closed form:
        0x9A/0x9C/0x9E (3) + 0xE0..0xF6 (23) + 0xF8..0xFE (7) + 0xFF (1).
-     * INDEX 1 ONWARD IS LOWERCASED. 60 of 255 values move: 0x41..0x5A (26) + 0xC0..0xD6 (23) +
+     * Index 1 Onward is lowercased. 60 of 255 values move: 0x41..0x5A (26) + 0xC0..0xD6 (23) +
        0xD8..0xDE (7) + 0x8A/0x8C/0x8E (3) + 0x9F (1) = 60.
-     * THE RETURN means "no ASCII lowercase letter was present", NOT "something changed": "123456"
+     * The return means "no ASCII lowercase letter was present", not "something changed": "123456"
        and "" and "\\\\" all return 1 while changing nothing.
 
    WHAT IS LEFT.

@@ -1,28 +1,28 @@
 /* changes/263-rtlcompareunicodestrings/probes/contract.c
  *
- * WHAT DOES ntdll!RtlCompareUnicodeStrings ACTUALLY RETURN?
+ * What does ntdll!RtlCompareUnicodeStrings actually return?
  *
  *     LONG RtlCompareUnicodeStrings(PCWCH s1, SIZE_T len1, PCWCH s2, SIZE_T len2, BOOLEAN caseIns)
  *
  * discovery/rtl_cmpstrings_probe.c has already settled the two questions that decide whether this
  * is a target at all: it is a DISTINCT export from the landed RtlCompareUnicodeString (singular),
- * and its case-insensitive flag is EXACTLY RtlUpcaseUnicodeChar -- 66462 equal pairs over a dense
+ * and its case-insensitive flag is exactly RtlUpcaseUnicodeChar -- 66462 equal pairs over a dense
  * sweep, with zero characters equal that the table disagrees about and zero different that it
  * agrees about. A flag that consulted a locale would have ended the change there, the way
  * discovery/lstrcmp_is_linguistic.c ended its target.
  *
- * What is left is the part that has to be reproduced BIT-EXACTLY, and every question below exists
+ * What is left is the part that has to be reproduced BIT-exactly, and every question below exists
  * because getting it wrong would still produce a plausible-looking comparison:
  *
- *   * IS THE RETURN A SIGN OR A VALUE? A caller testing `< 0` cannot tell, but one storing the
+ *   * Is the return a sign or a value? a caller testing `< 0` cannot tell, but one storing the
  *     result can, and this project reproduces what the export returns rather than what callers
  *     are likely to look at.
- *   * WHAT DECIDES AN UNEQUAL-LENGTH COMPARISON -- the common prefix first, or the length? And
+ *   * What decides an unequal-length comparison -- the common prefix first, or the length? And
  *     what exactly is returned when one string is a prefix of the other?
- *   * WHICH CHARACTER'S DIFFERENCE IS REPORTED under the case-insensitive flag: the raw pair, or
+ *   * Which character's difference is reported under the case-insensitive flag: the raw pair, or
  *     the upcased pair? They differ in sign for pairs like 'a' (0x61) against 'B' (0x42).
  *   * ZERO LENGTHS, and whether a NULL pointer is even looked at when the length is zero.
- *   * THE LENGTHS ARE IN CHARACTERS. That is not assumed: the first run of the discovery probe
+ *   * The lengths are in characters. That is not assumed: the first run of the discovery probe
  *     passed 2 for a single character and every character came back different from itself.
  */
 #define WIN32_LEAN_AND_MEAN

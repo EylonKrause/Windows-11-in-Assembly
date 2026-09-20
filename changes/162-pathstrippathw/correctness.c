@@ -1,5 +1,5 @@
 // changes/162-pathstrippathw/correctness.c
-// Bit-exact fuzz of wia_pathstrippathw vs live shlwapi!PathStripPathW + oracle. Compares the WHOLE
+// Bit-exact fuzz of wia_pathstrippathw vs live shlwapi!PathStripPathW + oracle. Compares the whole
 // buffer, not just the resulting string: the live one leaves the bytes past the new terminator
 // untouched (stripping "C:\dir\file.txt" leaves "file.txt\0" followed by the stale tail "le.txt\0"),
 // so a test that only compared strings would miss a spurious zero fill.

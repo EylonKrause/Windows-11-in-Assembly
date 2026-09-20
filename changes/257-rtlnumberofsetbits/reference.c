@@ -1,10 +1,10 @@
 /* changes/257-rtlnumberofsetbits/reference.c
  *
- * THE INDEPENDENT ORACLE for the RtlNumberOfSetBits family.
+ * The independent oracle for the RtlNumberOfSetBits family.
  *
  * It shares nothing with impl.asm but the contract. impl.asm counts thirty-two bytes at a time with
  * a VPSHUFB nibble table and VPSADBW, masks two partial words at the ends, and assembles those
- * partial words from bounds-checked 32-bit reads. This adds up ONE BIT AT A TIME.
+ * partial words from bounds-checked 32-bit reads. This adds up one bit at a time.
  *
  * That is the right shape for an oracle here because everything difficult in the implementation is
  * an EDGE -- the mask below the start, the mask at the end, the partial word that must not be read

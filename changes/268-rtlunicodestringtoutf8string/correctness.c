@@ -2,26 +2,26 @@
  *
  * THREE-WAY: ours vs the LIVE ntdll exports, for both directions.
  *
- * THERE IS NO SEPARATE ORACLE HERE, and that is deliberate rather than a shortcut: the conversion
+ * There is no separate oracle here, and that is deliberate rather than a shortcut: the conversion
  * itself is changes 016 and 034, each already gated bit-exact against its own live N-form over its
  * own corpora. What is new in THIS change is the wrapper -- the capacity arithmetic, the
  * terminator, the Length, and which of two failure statuses comes back -- so the corpora below are
  * built to exercise exactly that, and they compare against the live wrapper, which is the only
  * thing that can confirm it.
  *
- * WHAT IS COMPARED, on every case: the NTSTATUS, Length, MaximumLength, AND the whole destination
- * buffer against a poison fill. The buffer matters because ON FAILURE the destination is PARTIALLY
+ * What is compared, on every case: the NTSTATUS, Length, MaximumLength, and the whole destination
+ * buffer against a poison fill. The buffer matters because on failure the destination is partially
  * WRITTEN -- "abc" into MaximumLength 2 leaves an 'a' behind -- and an implementation that tidied
  * that up, or wrote one byte more, would pass any test that only read the status.
  *
- *   1. EVERY source length 0..40 against EVERY capacity 0..48, both directions. This is the table
+ *   1. every source length 0..40 against every capacity 0..48, both directions. This is the table
  *      probes/statuses.c drew by hand, enumerated: it pins the terminator rule, the two different
  *      failure codes, and the partial write, at every relationship between the two sizes.
  *   2. MULTI-BYTE output, where the byte count and the character count are different numbers, at
  *      every capacity -- two-, three- and four-byte sequences, and a surrogate pair.
- *   3. INVALID INPUT: lone surrogates going out, malformed UTF-8 coming in. Both are REPLACED, and
+ *   3. Invalid input: lone surrogates going out, malformed UTF-8 coming in. Both are replaced, and
  *      the call still succeeds with STATUS_SOME_NOT_MAPPED.
- *   4. THE ALLOCATING PATH, whose block must be the right size and must be freeable by the paired
+ *   4. The allocating path, whose block must be the right size and must be freeable by the paired
  *      RtlFreeUTF8String.
  *   5. RANDOMISED lengths, contents and capacities.
  */
@@ -123,7 +123,7 @@ static void oneW(const char* s, int blen, USHORT maxlen, const char* where)
 }
 
 /* ---------------------------------------------------------------------------------------------
- * THE ALLOCATING PATH, BOTH DIRECTIONS, ANY CONTENT.
+ * The allocating path, both directions, any content.
  *
  * The original section 4 asked only the UTF-16 -> UTF-8 direction with ASCII, which is exactly the
  * combination that hides the two differences probes/notmapped.c found: this direction passes
@@ -177,7 +177,7 @@ static void allocW(const char* s, int blen, const char* where)
 }
 
 /* ---------------------------------------------------------------------------------------------
- * THE USHORT BOUNDARY, where the result is too big for the Length field and the answer is neither
+ * The ushort boundary, where the result is too big for the Length field and the answer is neither
  * of the two shortfall codes but STATUS_INVALID_PARAMETER_2 (probes/limits.c). Nothing in the
  * small corpora above can reach it -- a 40-character source cannot produce 65535 bytes -- and it
  * is the one case where getting it wrong on the ALLOCATING path allocates a wrapped, far too small
@@ -384,7 +384,7 @@ int main(void)
                            n, (unsigned long)ro, a.Length, a.MaximumLength,
                            (unsigned long)rl, b.Length, b.MaximumLength);
             }
-            /* THE BLOCK OURS ALLOCATED MUST BE FREEABLE BY THE PAIRED EXPORT. If it were not, a
+            /* The block ours allocated must be freeable by the paired export. If it were not, a
                caller doing the normal thing would corrupt its heap, and no comparison of Length
                would ever notice. */
             if (ro == 0 && l_freeu8) l_freeu8(&a);
@@ -416,7 +416,7 @@ int main(void)
                cases - before);
     }
 
-    /* 6. the allocating path in BOTH directions, with content that produces every status */
+    /* 6. the allocating path in both directions, with content that produces every status */
     {
         long before = cases;
         static const wchar_t MB[4] = { 0x00E9, 0x20AC, 0xD83D, 0xDE00 };

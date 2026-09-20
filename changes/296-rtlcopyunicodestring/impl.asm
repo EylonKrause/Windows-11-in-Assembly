@@ -3,7 +3,7 @@
 ;
 ; Reimplements ntdll!RtlCopyUnicodeString.
 ;
-; WHAT THE SHIPPED ONE DOES (ntdll.dll 10.0.26100.9278, RVA 0xDA540; excerpt in RESULTS.md):
+; What the shipped one does (ntdll.dll 10.0.26100.9278, rva 0xDA540; excerpt in RESULTS.md):
 ;   it builds a 0x28-byte frame, homes rbx and rsi into the caller's shadow space, clamps
 ;   n = min(src->Length, dst->MaximumLength) with a cmov, stores dst->Length, and then CALLS
 ;   ntdll's memmove -- an SSE-only routine that aligns the destination to 16 and runs a
@@ -16,13 +16,13 @@
 ;
 ; CONTRACT -- every rule was PROVED against the live export by probes/contract.c, not assumed.
 ; reference.c carries the same list with the evidence beside each one.
-;   src == NULL                       -> dst->Length = 0 and NOTHING else is touched
+;   src == NULL                       -> dst->Length = 0 and nothing else is touched
 ;   n = min(src->Length, dst->Max)    -> a RAW byte clamp. MaximumLength = 7 copies SEVEN bytes
 ;                                        and reports Length = 7; it does NOT round to a WCHAR
-;   dst->Length = n always;  dst->MaximumLength is NEVER written
+;   dst->Length = n always;  dst->MaximumLength is never written
 ;   the copy is a MEMMOVE -- the shipped callee tests src-dst and runs backwards
 ;   a wide NUL is written iff n + 2 <= MaximumLength, at BYTE offset (n & ~1), so for an ODD n
-;                                        the NUL OVERWRITES THE LAST BYTE COPIED
+;                                        the NUL overwrites the last byte copied
 ;   src->MaximumLength is never read
 ;
 ; PAGE SAFETY. There is no alignment guard and none is needed: every load and every store is
@@ -32,7 +32,7 @@
 ; The corpus proves it with the destination -- and separately the source -- ending exactly at a
 ; PAGE_NOACCESS boundary, for every length 0..200.
 ;
-; OVERLAP IS IN CONTRACT, because the shipped code's callee is a real memmove (probes/contract.c
+; Overlap is in contract, because the shipped code's callee is a real memmove (probes/contract.c
 ; matches C memmove byte for byte at n = 512 with dst = src + 8). Below 64 bytes every arm issues
 ; ALL of its loads before ANY of its stores, so it is memmove-correct for free at any delta. At 64
 ; and above, the one ordering a forward copy cannot do -- the destination sitting INSIDE the
@@ -130,7 +130,7 @@ ge64:   mov       rdx, r11
         cmp       ecx, WIA_ERMS
         jae       erms
 
-        ; ---- 64 .. WIA_ERMS-1 : 64 bytes per iteration, DESTINATION ALIGNED TO 32 ------------
+        ; ---- 64 .. WIA_ERMS-1 : 64 bytes per iteration, destination aligned to 32 ------------
         ; Aligning the destination is worth more here than anything else in this file.
         ; probes/shape.c sweeps dst & 63 with the length and the source held fixed:
         ;
@@ -143,7 +143,7 @@ ge64:   mov       rdx, r11
         ; same code reading 1.38x and 0.84x on neighbouring size classes. ntdll's memmove aligns
         ; its destination to 16 for the same reason; this aligns to 32, one step wider.
         ;
-        ; HEAD AND TAIL ARE LOADED BEFORE THE LOOP AND STORED AFTER IT, and that is not cosmetic.
+        ; Head and tail are loaded before the loop and stored after it, and that is not cosmetic.
         ; Aligning means the loop starts at i0 = (-dst) & 31 rather than 0, so the head [0,32)
         ; needs its own store; if that store went FIRST it would land on source bytes the loop has
         ; yet to read whenever the destination sits just below the source. The same argument
@@ -242,7 +242,7 @@ bwd32:  sub       edx, 32
         jmp       tail_nul
 
         ; ---- the wide NUL. room = MaximumLength - n was computed before the copy. ------------
-        ; ONLY the ERMS arm enters at tail_nul_n. `rep movsb` counts rcx down to zero, and that arm
+        ; only the ERMS arm enters at tail_nul_n. `rep movsb` counts rcx down to zero, and that arm
         ; leaves eax alone, so eax is where n survives. The forward VECTOR arm is the opposite way
         ; round -- it reuses eax as its loop index and leaves ecx alone -- and entering here would
         ; write the NUL at the loop index instead of at n. That was a real bug, caught by the
@@ -256,7 +256,7 @@ tail_nul:
         mov       word ptr [r11 + rcx], 0
 done:   ret
 
-        ; ---- src == NULL: the ONLY effect is dst->Length = 0. -------------------------------
+        ; ---- src == NULL: the only effect is dst->Length = 0. -------------------------------
 src_null:
         mov       word ptr [rcx], 0
         ret

@@ -2,28 +2,28 @@
  *
  * The contract of ntdll!RtlIpv6StringToAddressExW, measured against the live export.
  *
- * WHY THIS ONE. It is the LAST MISSING MEMBER of a sixteen-function family this project has
+ * Why this one. It is the last missing member of a sixteen-function family this project has
  * otherwise finished: Ipv4/Ipv6 x StringToAddress/AddressToString x A/W/ExA/ExW is sixteen exports,
  * and image/tree has fifteen .asm files for them. The missing one is this.
  *
- * AND IT WAS MISSED ON PURPOSE, FOR A REASON THAT NO LONGER HOLDS. Change 122 landed
+ * And it was missed on purpose, for a reason that no longer holds. Change 122 landed
  * RtlIpv6StringToAddressExA and its README row says, in as many words, "`ExW` scoped out -- Unicode
  * digits". Change 166 then landed RtlIpv6StringToAddressW and settled exactly that question: swept
- * over all 65536 units, the digit set the live wide parser folds is EXACTLY SEVENTEEN CONTIGUOUS
- * BLOCKS OF TEN -- the frozen Unicode 3.0 Nd list -- and 166 implements it. So the blocker is gone,
+ * over all 65536 units, the digit set the live wide parser folds is exactly seventeen contiguous
+ * Blocks of ten -- the frozen Unicode 3.0 Nd list -- and 166 implements it. So the blocker is gone,
  * and what is left is 166's core plus 122's envelope.
  *
- * THE DISASSEMBLY SAYS THE COMPOSITION IS REAL (ntdll!RtlIpv6StringToAddressExW, RVA 0xC3120):
+ * The disassembly says the composition is real (ntdll!RtlIpv6StringToAddressExW, rva 0xC3120):
  *
  *     000C314C..0C316A  four NULL checks -> error
  *     000C3177  cmp bp, 0x5b            a leading '[' , remembered in r13b
- *     000C318E  call 0x0C33F0           <== AND 0x0C33F0 IS RtlIpv6StringToAddressW ITSELF.
+ *     000C318E  call 0x0C33F0           <== and 0x0C33F0 is RtlIpv6StringToAddressW itself.
  *                                       Not a copy of it, not a shared worker: the export's own
  *                                       RVA. So the address body here is change 166's, exactly as
  *                                       change 122's body is change 121's.
  *     000C31A6  cmp word ptr [rdi],0x25 '%' -> the scope id, and note what guards its digits:
  *     000C31B4  cmp bx, r8w (0x80) / jae error
- *                                       <== THE SCOPE IS ASCII-ONLY. A unit >= 0x80 is rejected
+ *                                       <== The scope is ascii-only. a unit >= 0x80 is rejected
  *                                       outright, before any digit test.
  *     000C31C4  call 0x127AF0           f(ch, 4) -- mask 4 is C1_DIGIT
  *     000C31E3  cmp ax, 0x5d            ']'
@@ -31,18 +31,18 @@
  *     000C3211..0C323A                  base detection: "0x"/"0X" -> 16, a leading '0' -> 8,
  *                                       otherwise 10
  *     000C324D  cmp ax, r8w (0x80) / jb 0x0C338E
- *                                       <== BUT THE PORT IS NOT ASCII-ONLY. A unit BELOW 0x80 takes
+ *                                       <== But the port is not ascii-only. a unit below 0x80 takes
  *                                       a separate fast path and a unit at or above it falls
  *                                       through to code that keeps parsing. That asymmetry between
  *                                       the scope and the port is the single most important thing
  *                                       this probe has to settle, because it decides whether change
  *                                       250 needs the 17-block table at all and, if so, WHERE.
  *
- * SO THE THREE QUESTIONS THAT DECIDE THE CHANGE, and none of them is answerable from change 122 or
+ * So the three questions that decide the change, and none of them is answerable from change 122 or
  * change 166 alone:
  *
- *   1. WHICH UNITS ARE DIGITS IN THE SCOPE POSITION? Swept over all 65536, not sampled.
- *   2. WHICH UNITS ARE DIGITS IN THE PORT POSITION, at each of the three bases? Also swept over all
+ *   1. Which units are digits in the scope position? Swept over all 65536, not sampled.
+ *   2. Which units are digits in the port position, at each of the three bases? Also swept over all
  *      65536. If this comes back as change 166's seventeen blocks, that is an INDEPENDENT
  *      confirmation of a measured constant through a different export -- which is the only honest
  *      way for change 250 to carry that table, since 166's own ud_val is private to its PROC and
@@ -60,7 +60,7 @@
 typedef LONG NTSTATUS_;
 typedef NTSTATUS_ (NTAPI *FEXW)(const wchar_t*, void*, ULONG*, USHORT*);
 typedef NTSTATUS_ (NTAPI *FEXA)(const char*, void*, ULONG*, USHORT*);
-/* RtlIpv6StringToAddressW takes the TERMINATOR SECOND and the address THIRD -- not the other way
+/* RtlIpv6StringToAddressW takes the terminator second and the address third -- not the other way
    round. The first version of this probe had them swapped and section 8 duly reported all fifteen
    addresses differing, with the "address" full of stack pointer bytes. */
 typedef NTSTATUS_ (NTAPI *FW)(const wchar_t*, const wchar_t**, void*);
@@ -174,7 +174,7 @@ int main(void)
         CHECK(bad == 0, "%d ASCII shapes differ between ExW and ExA", bad);
     }
 
-    /* ============ 3. THE SCOPE DIGIT SET: all 65536 units ============ */
+    /* ============ 3. The scope digit set: all 65536 units ============ */
     {
         int u, n = 0, nonascii = 0;
         int lo = -1, hi = -1;
@@ -199,7 +199,7 @@ int main(void)
               nonascii);
     }
 
-    /* ============ 4. THE PORT DIGIT SET: all 65536 units, at each base ============ */
+    /* ============ 4. The port digit set: all 65536 units, at each base ============ */
     {
         struct { const wchar_t* pre; const wchar_t* post; const char* what; int base; } P[] = {
             { L"[::1]:",   L"",  "decimal (no prefix)", 10 },
@@ -207,7 +207,7 @@ int main(void)
             { L"[::1]:0x", L"",  "hex (0x prefix)",     16 },
         };
         int p;
-        /* THE ANSWER, AND IT INVERTS THE PREMISE CHANGE 122 SCOPED ExW OUT ON. Every accepted unit
+        /* The answer, and it inverts the premise change 122 Scoped ExW out on. Every accepted unit
            is below 0x80, at every base: decimal takes '0'-'9' and nothing else; hex takes
            '0'-'9','A'-'F','a'-'f'; and the "octal" sweep's three runs are '0'-'7' plus 'X' and 'x',
            which are not octal digits at all -- they turn "0<u>" into a 0x prefix with an empty hex
@@ -242,7 +242,7 @@ int main(void)
                     }
                 }
                 if (inblock && runlen != 10) ++bad_run;
-                /* THE RUN-LENGTH CHECK THAT USED TO BE HERE ASSERTED "every run is exactly ten
+                /* The run-length check that used to be here asserted "every run is exactly ten
                    long" -- the Unicode-block hypothesis written down as a test. It fired on the hex
                    and octal rows, and the DATA was right while the TEST was wrong. What actually
                    matters is the 0x80 line below. */
@@ -367,7 +367,7 @@ int main(void)
             NTSTATUS_ sw;
             memset(aw, 0xCD, 16);
             sw = w(T[i], &term, aw);
-            /* TWO SEPARATE QUESTIONS, counted separately: does the STATUS differ (the Ex envelope
+            /* Two separate questions, counted separately: does the status differ (the Ex envelope
                is entitled to be stricter), and do the ADDRESS BYTES differ (it is not entitled to
                that at all -- the body is the same parser). */
             if (memcmp(aw, rw.a, 16) != 0) {
@@ -384,7 +384,7 @@ int main(void)
                        T[i], (unsigned long)sw, (unsigned long)rw.st);
             }
         }
-        /* THE TWO THAT DIFFER ARE THE POINT, not noise. "::0x1" and "::1.2.3.0x5" are strings
+        /* The two that differ are the point, not noise. "::0x1" and "::1.2.3.0x5" are strings
            RtlIpv6StringToAddressW ACCEPTS -- it stops at a terminator and reports where -- and
            RtlIpv6StringToAddressExW REFUSES, because the Ex form has no Terminator out-parameter
            and so requires the WHOLE STRING to be consumed. The address bytes are identical in both,

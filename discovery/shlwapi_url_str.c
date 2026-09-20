@@ -24,18 +24,18 @@
 
    METHOD, unchanged and for the same reasons as the previous sweeps:
 
-     * TWO SUBJECTS ALWAYS, a short one and a long one, with ns/byte computed from the long. One
+     * Two subjects always, a short one and a long one, with ns/byte computed from the long. One
        short subject is what understated change 235 by two orders of magnitude.
      * Functions that WRITE are timed with a per-iteration restore, and the restore's own cost is
        printed on its own line so it can be subtracted. A restore heavier than the function replaces
        the measurement rather than enabling it -- change 238's benchmark had to be rebuilt over
        exactly that, and changes 142, 228, 230 and 241 were all PARKED for five runs by a subtler
        version of it.
-     * NOTHING HERE TOUCHES THE FILESYSTEM. PathFileExists, PathIsDirectory, PathFindOnPath and
+     * Nothing here touches the filesystem. PathFileExists, PathIsDirectory, PathFindOnPath and
        PathSearchAndQualify are excluded deliberately: their cost is an FS round trip, which is not
        ours to remove and would make every number a measurement of the disk.
      * Nothing writes to disk, touches the registry or modifies system state.
-     * RUN IT ON AN IDLE MACHINE. This pins to core 2 and raises its priority, which is enough to
+     * Run it on an idle machine. This pins to core 2 and raises its priority, which is enough to
        keep one busy neighbour out of the way but not enough to survive a loaded box: run once while
        eight other processes were compiling, EVERY row came out about twice its idle value --
        UrlUnescapeW 1.57 -> 2.32 ns/byte, UrlCanonicalizeW 2.10 -> 4.32, UrlIsW 6.28 -> 11.98.
@@ -166,7 +166,7 @@ int main(void){
         int k = 0;
         const wchar_t* head = L"http://example.com/";
         while (head[k]) { LONG_U[k] = head[k]; ++k; }
-        /* a long path segment, then a query carrying characters that MUST be escaped */
+        /* a long path segment, then a query carrying characters that must be escaped */
         while (k < 700) {
             for (int i = 0; i < 7 && k < 700; ++i) LONG_U[k++] = (wchar_t)(L'a' + i);
             if (k < 700) LONG_U[k++] = L'/';

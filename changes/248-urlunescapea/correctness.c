@@ -1,6 +1,6 @@
 // changes/248-urlunescapea/correctness.c
 // THREE-WAY: ours, an independent oracle (reference.c), and the LIVE shlwapi!UrlUnescapeA export, on
-// identical buffers, compared on the HRESULT, on *pcch, and on THE WHOLE BUFFER -- not just the
+// identical buffers, compared on the HRESULT, on *pcch, and on the whole buffer -- not just the
 // destination. The whole buffer matters three times over here:
 //
 //   * the in-place path writes the SOURCE and never touches *pcch, so comparing only a destination
@@ -9,7 +9,7 @@
 //     poison fill;
 //   * the overlap cases write inside the source, and the question is exactly which bytes.
 //
-// WHAT THE ORACLE IS NOT ASKED. It cannot model a faulting source (it would have to fault to find
+// What the oracle is not asked. It cannot model a faulting source (it would have to fault to find
 // out), so the unterminated-source case is tested against the LIVE EXPORT alone, at a PAGE_NOACCESS
 // page, where the shipped function returns S_OK with an empty result and the wide form would crash.
 #define WIN32_LEAN_AND_MEAN

@@ -1,10 +1,10 @@
 // changes/248-urlunescapea/bench.c
 // Gate 2: time wia_urlunescapea against the live shlwapi!UrlUnescapeA.
 //
-// THE CASE MIX. This function's cost has four components and the rows separate them:
+// The case mix. This function's cost has four components and the rows separate them:
 //
 //   * the per-byte walk, which scales with the input;
-//   * a FIXED HEAP TAX above 64 bytes. The shipped code stages every call through an inline buffer
+//   * a fixed heap tax above 64 bytes. The shipped code stages every call through an inline buffer
 //     whose size is written in the disassembly -- `mov dword ptr [rbp+7], 0x41` at 0x49E5F, so 65
 //     BYTES -- and calls the grow helper at 0x0F730 past it. That step is at the SAME character count
 //     as the wide form's, but at HALF the bytes, which is one reason the narrow form measured worse
@@ -12,7 +12,7 @@
 //     rows, so the step is visible rather than assumed;
 //   * the escape density, because every escape is a scalar step on both sides while the runs between
 //     them are 32-byte vector work here and a byte-at-a-time loop there;
-//   * WHETHER THE CALLER'S BUFFER IS BIGGER THAN THE SOURCE. This is the one structural choice in the
+//   * Whether the caller's buffer is bigger than the source. This is the one structural choice in the
 //     change and it has to be measured, not asserted: unescaping never lengthens, so a destination
 //     larger than the source cannot fail the size test, and -- because a zero-valued escape merely
 //     ENDS the result here instead of refusing, unlike the wide form -- nothing has to be pre-scanned
@@ -22,11 +22,11 @@
 //     length, so an exact buffer is n+1, which is already bigger than n. Only escapes shrink the
 //     result enough for an exact buffer to be smaller than the source, so rows 10 and 11 carry them.)
 //
-// NO RESTORE IS NEEDED ON THE NON-IN-PLACE ROWS: the destination is a separate buffer that is never
+// No restore is needed on the non-in-place rows: the destination is a separate buffer that is never
 // read back, and the source is never modified -- correctness.c asserts that last part by comparing
 // the whole buffer. The IN-PLACE rows are the exception and are the reason for the rotation: an
 // in-place unescape consumes its own input, so it must be restored, and the restore is a memcpy of
-// the whole string. That is heavy relative to the function, so it is (a) charged to BOTH sides
+// the whole string. That is heavy relative to the function, so it is (a) charged to both sides
 // equally, (b) placed on a buffer eight slots away from the one being processed, so it cannot stall
 // the next call's wide load the way the restores that parked changes 142, 228, 230 and 241 did, and
 // (c) printed on its own line so it can be subtracted.
@@ -86,7 +86,7 @@ static uint64_t op_ip_restore(void* c){
 }
 #pragma optimize("", on)
 
-/* PAGE-ALIGNED ARENAS, AND THIS IS NOT COSMETIC -- change 245's first benchmark cut its subjects out
+/* Page-aligned arenas, and this is not cosmetic -- change 245's first benchmark cut its subjects out
    of .bss at whatever offsets the build produced and was NOT REPRODUCIBLE: one row read 2371, 2378
    and then 289 ns for the same call, and adding a diagnostic block ahead of the table (which moved
    nothing but the layout) shifted five other rows by up to 35%. Every subject and every destination

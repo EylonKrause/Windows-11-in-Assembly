@@ -1,18 +1,18 @@
 // live-substitution/live_subst_sida.c
 // LIVE-RUN PROOF for change 272 (advapi32!ConvertStringSidToSidA).
 //
-// WHAT IS COMPARED IS FOUR THINGS: the BOOL, GetLastError(), what happened to the output pointer,
+// What is compared is four things: the BOOL, GetLastError(), what happened to the output pointer,
 // and GetLengthSid plus a hash of every byte of the SID. Every allocated SID is freed through the
 // process's UNPATCHED LocalFree.
 //
-// THE LAST ERROR IS COMPARED ON EVERY CALL, FROM A NON-ZERO SENTINEL. Change 269's first gate did
+// The last error is compared on every call, from a non-zero sentinel. Change 269's first gate did
 // neither -- it set the last error to zero before each call and then compared it only on FAILING
 // ones -- and the two omissions together hid a real defect for a whole change: all four exports of
 // the SID text family ZERO the last error on success, and 269's implementation did not.
 // changes/272-.../probes/lasterror.c is the measurement; this harness is built so it could not
 // happen here.
 //
-// TWO WIDENING PATHS ARE DRIVEN, because they are different code:
+// Two widening paths are driven, because they are different code:
 //   * an input with no byte at or above 0x80 is widened by a VPMOVZXBW zero extension, with no code
 //     page consulted -- licensed by probes/asciilen.c, which measured every byte 0x00..0x7F against
 //     all 22 code pages Windows can use as an ACP and found zero counterexamples;
@@ -21,17 +21,17 @@
 // the cases here are therefore built from high bytes on purpose, and the harness FAILS if that class
 // comes back empty.
 //
-// AND THE ALIGNMENT IS SWEPT. The scan loads its first block ALIGNED DOWN and shifts out the bits
+// And the alignment is swept. The scan loads its first block aligned down and shifts out the bits
 // before the string, so it is wrong at exactly the offsets nobody picks; every case runs at an
 // offset taken from its index.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_sida_live.bat
@@ -201,7 +201,7 @@ int main(void)
         printf("  the export resolves to %p, which is in %ls\n", (void*)live, path);
     }
 
-    /* BEFORE THE PATCH EXISTS: both tables build themselves by asking the WIDE export. */
+    /* Before the patch exists: both tables build themselves by asking the wide export. */
     if (wia_sid_classify_init()) { printf("  FAIL: the character classes failed to build\n"); return 1; }
     if (wia_sid_alias_init())    { printf("  FAIL: the alias table failed to build\n"); return 1; }
 

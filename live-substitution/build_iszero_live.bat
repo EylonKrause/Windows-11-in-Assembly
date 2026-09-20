@@ -1,11 +1,11 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 266 (ntdll!RtlIsZeroMemory).
+Rem  live-run proof for change 266 (ntdll!RtlIsZeroMemory).
 REM
 REM  A predicate has only two answers, which makes a careless corpus very easy
 REM  to pass: an implementation that always said "not zero" would agree with the
-REM  shipped export on nearly every random buffer. So the corpus produces BOTH
-REM  answers in quantity, puts the first non-zero byte at EVERY position
+REM  shipped export on nearly every random buffer. So the corpus produces both
+REM  answers in quantity, puts the first non-zero byte at every position
 REM  including the very last, and keeps a fifth of its cases below 32 bytes,
 REM  where the overlapping ladder runs instead of the vector loops. The run
 REM  reports each of those counts and fails if any is thin.

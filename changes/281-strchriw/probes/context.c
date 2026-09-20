@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/context.c
  *
- * THE DECISIVE EXPERIMENT: DOES A MATCH DEPEND ON THE SURROUNDING CHARACTERS?
+ * The decisive experiment: Does a match depend on the surrounding characters?
  *
  * Everything this change is built on assumes StrChrIW asks a question about ONE haystack character
  * at a time: "is s[i] equal to the needle". If that is true, the relation is a 65536 x 65536 table,
@@ -13,7 +13,7 @@
  *     StrChrIW(L"힢", U+D7B0)                ->  (tested below)
  *
  * If the first matches and the second does not, the match at that position was not about U+D7A2 at
- * all -- it was about U+D7A2 AND WHAT FOLLOWS IT. A collation-based search can do that: Hangul jamo
+ * all -- it was about U+D7A2 and what follows it. a collation-based search can do that: Hangul jamo
  * combine, and CompareStringW can consider a needle equal to a sequence.
  *
  * This is the question that decides whether change 281 can exist:

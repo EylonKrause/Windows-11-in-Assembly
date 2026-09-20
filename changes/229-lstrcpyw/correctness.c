@@ -2,14 +2,14 @@
 // Gate 1: wia_lstrcpyw must be indistinguishable from kernelbase!lstrcpyW.
 // Three-way: our ASM + wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE SPLIT-CHARACTER SWEEP IS THE ONE THIS FILE EXISTS FOR. lstrcpyW has no bound, so it runs off
+// The split-character sweep is the one this file exists for. lstrcpyW has no bound, so it runs off
 // the end of a destination too small for the source, and the export returns NULL rather than
 // faulting with the destination filled to its last writable character. If that destination has an
 // ODD number of writable bytes the last character cannot be stored whole -- and probes/cpyw.c
-// measured that the export writes WHOLE CHARACTERS ONLY, never half of one.
+// measured that the export writes whole characters only, never half of one.
 //
 // An implementation whose page clamp is in bytes rather than characters passes every ordinary test,
-// returns the right NULL, and leaves ONE EXTRA BYTE in the caller's buffer. Nothing crashes and no
+// returns the right NULL, and leaves one extra byte in the caller's buffer. Nothing crashes and no
 // return value differs. Only an odd-aligned destination against a guard page can see it.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -83,7 +83,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY code unit value, at three positions, surrogates included ---------------------------
+    // ---- every code unit value, at three positions, surrogates included ---------------------------
     {
         static wchar_t b[64];
         for (int v = 1; v < 65536; ++v) {
@@ -116,7 +116,7 @@ int main(void){
         CHECK(sys(0, 0) == 0,               "both NULL return NULL (live)");
     }
 
-    // ---- GUARD PAGE ON THE SOURCE: unterminated, at every distance --------------------------------
+    // ---- Guard page on the source: unterminated, at every distance --------------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -139,7 +139,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- GUARD PAGE ON THE DESTINATION: too small, at every ALIGNED room --------------------------
+    // ---- Guard page on the destination: too small, at every aligned room --------------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -168,8 +168,8 @@ int main(void){
         VirtualFree(bc, 0, MEM_RELEASE);
     }
 
-    // ---- THE SPLIT CHARACTER: an ODD number of writable bytes -------------------------------------
-    // The sweep that catches a byte-granular page clamp. The export writes WHOLE CHARACTERS ONLY,
+    // ---- The split character: an odd number of writable bytes -------------------------------------
+    // The sweep that catches a byte-granular page clamp. The export writes whole characters only,
     // so with 2n+1 writable bytes exactly 2n of them change. A clamp that rounds in bytes leaves
     // one extra byte behind, and nothing else in this file can see that.
     {

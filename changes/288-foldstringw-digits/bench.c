@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_foldstringw_digits against the live kernelbase!FoldStringW with MAP_FOLDDIGITS.
  *
- * THE ROWS SEPARATE THE THREE THINGS THIS CALL CAN COST:
+ * The rows separate the three things this call can cost:
  *
  *   * ASCII, where every code unit maps to itself and the table is read from its first 512 bytes;
  *   * ARABIC-INDIC DIGITS, where every code unit actually changes -- 462 of 65535 units do, and a row

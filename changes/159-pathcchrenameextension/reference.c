@@ -1,5 +1,5 @@
 // changes/159-pathcchrenameextension/reference.c
-// CORRECTED 2026-09-15: the extension rule inherited from change 132 was INCOMPLETE -- a SPACE
+// Corrected 2026-09-15: the extension rule inherited from change 132 was incomplete -- a space
 // stops the backward scan exactly as a backslash does. This oracle and the implementation were
 // wrong together on 46158 of 335923 enumerated strings; see discovery/extension_space_audit2.c.
 // Oracle for kernelbase!PathCchRenameExtension, built entirely from probe evidence: the rejected
@@ -36,7 +36,7 @@ HRESULT ref_pathcchrenameext(wchar_t* path, size_t cch, const wchar_t* ext)
         wchar_t c = body[m];
         if (c == L' ' || c == L'\\' || c == L'.') return E_INVALIDARG;
     }
-    /* AND THE BODY HAS A LENGTH LIMIT: at most 255 characters. 256 or more is E_INVALIDARG, and it
+    /* And the body has a length limit: at most 255 characters. 256 or more is E_INVALIDARG, and it
        beats every size failure -- a 257-character extension with cch at its minimum still answers
        E_INVALIDARG rather than STRSAFE_E_INSUFFICIENT_BUFFER. It is the BODY that is limited, not
        the whole argument: with a leading dot the boundary is a total of 257, without one it is

@@ -3,7 +3,7 @@
 // bytes + *Terminator. Covers 121's full ANSI edge/fuzz corpus lifted to UTF-16, plus the wide-only
 // hazards: units above 255 whose LOW BYTE aliases a meaningful ASCII character ('.', ':', '0'..'9',
 // 'a'..'f', 'A'..'F'), planted at every position of every base string; one member of each of the 17
-// Unicode decimal-digit blocks the value helper folds; EVERY one of the 65536 units dropped into 24
+// Unicode decimal-digit blocks the value helper folds; every one of the 65536 units dropped into 24
 // templates that reach every branch that can see a non-ASCII unit; an exhaustive sweep over a wide
 // alphabet that contains such a unit; and a NOACCESS page guard placed one unit past the terminating
 // NUL, so a single unit of over-read dies immediately.

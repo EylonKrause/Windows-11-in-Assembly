@@ -1,6 +1,6 @@
 /* changes/016-rtlunicodetoutf8n/bench.c
  *
- * THIS TABLE USED TO BE ASCII ONLY, and for a UTF-8 encoder that was the wrong table to publish.
+ * This table used to be ASCII only, and for a UTF-8 encoder that was the wrong table to publish.
  *
  * Every row was ASCII input, which is the one case the original fast path handled, so the 2.61x it
  * reported was the speed of a path a caller converting Hebrew, Greek, Cyrillic, CJK or emoji never

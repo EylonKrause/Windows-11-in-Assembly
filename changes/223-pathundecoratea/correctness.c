@@ -2,12 +2,12 @@
 // Gate 1: wia_pathundecoratea must be indistinguishable from shlwapi!PathUndecorateA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE WHOLE BUFFER IS COMPARED, always -- including the stale tail past the new terminator, which
+// The whole buffer is compared, always -- including the stale tail past the new terminator, which
 // the shipped export deliberately leaves behind ("file[123].txt" becomes "file.txt" with ".txt"
 // still sitting in the bytes after it). A string comparison would pass an implementation that
 // cleared them.
 //
-// AND THE CORPORA ENUMERATE RATHER THAN SAMPLE, with a SPACE in the alphabet. That is not a style
+// And the corpora enumerate rather than sample, with a space in the alphabet. That is not a style
 // preference here: the wide sibling this change is modelled on, change 174, shipped WRONG for
 // exactly this reason. Its fuzz alphabet had no space in it, so its test, its oracle and its
 // implementation shared one blind spot -- as did 132, 140, 143, 144, 158, 159 and 160, eight
@@ -87,7 +87,7 @@ int main(void){
         }
     }
 
-    // EXHAUSTIVE AGAIN, WITH A SPACE IN THE ALPHABET -- the corpus shape change 174 lacked.
+    // Exhaustive again, with a space in the alphabet -- the corpus shape change 174 lacked.
     // 335923 strings, 238267 of them containing a space.
     {
         static const char AL6[6] = { '[', ']', '.', '1', ' ', 'z' };
@@ -105,7 +105,7 @@ int main(void){
         printf("  exhaustive {[,],.,1,space,z} 0..7: %ld strings, %ld with a space\n", en, sp);
     }
 
-    // AND WITH THE BACKSLASH BACK IN, so the asymmetry is exercised directly: the space bounds the
+    // And with the backslash back in, so the asymmetry is exercised directly: the space bounds the
     // EXTENSION search but does not start a component, and both delimiters must be present at once
     // for a test to tell those two jobs apart.
     {
@@ -121,17 +121,17 @@ int main(void){
         }
     }
 
-    // EVERY byte value inside the brackets -- pins "digits only, possibly none"
+    // every byte value inside the brackets -- pins "digits only, possibly none"
     for(int c=1;c<256;c++){
         s[0]='f'; s[1]='['; s[2]=(char)c; s[3]=']'; s[4]='.'; s[5]='t'; s[6]=0;
         CHECK(one(s), "bracket-content sweep");
     }
-    // EVERY byte value immediately after the ']' -- pins "must be '.' or the terminator"
+    // every byte value immediately after the ']' -- pins "must be '.' or the terminator"
     for(int c=1;c<256;c++){
         s[0]='f'; s[1]='['; s[2]='1'; s[3]=']'; s[4]=(char)c; s[5]='t'; s[6]=0;
         CHECK(one(s), "post-bracket sweep");
     }
-    // EVERY byte value immediately BEFORE the '[' and at the component start -- the two positions
+    // every byte value immediately BEFORE the '[' and at the component start -- the two positions
     // where an MBCS-aware export would differ from a byte-wise one. probes/bytes.c ran this
     // against the live export; here it also has to match our assembly and the oracle.
     for(int c=1;c<256;c++){
@@ -140,7 +140,7 @@ int main(void){
         s[0]=(char)c; s[1]='['; s[2]='1'; s[3]=']'; s[4]='.'; s[5]='t'; s[6]=0;
         CHECK(one(s), "component-start sweep");
     }
-    // EVERY byte value as a lone separator ahead of the name -- re-derives the stopper set from
+    // every byte value as a lone separator ahead of the name -- re-derives the stopper set from
     // scratch instead of inheriting "backslash and space" from the correction
     for(int c=1;c<256;c++){
         s[0]='a'; s[1]=(char)c; s[2]='b'; s[3]='['; s[4]='1'; s[5]=']'; s[6]='.'; s[7]='e'; s[8]=0;
@@ -185,7 +185,7 @@ int main(void){
         }
     }
 
-    // randomized fuzz -- alphabet carries BOTH a space and a tab, because the rule is 0x20
+    // randomized fuzz -- alphabet carries both a space and a tab, because the rule is 0x20
     // specifically and not whitespace in general
     {
         static const char AL[10] = { 'a', '[', ']', '1', '9', '.', '\\', 'x', ' ', '\t' };

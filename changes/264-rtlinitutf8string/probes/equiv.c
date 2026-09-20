@@ -1,6 +1,6 @@
 /* changes/264-rtlinitutf8string/probes/equiv.c
  *
- * IS RtlInitUTF8String BIT-FOR-BIT RtlInitString ON EVERY INPUT?
+ * Is RtlInitUTF8String bit-for-bit RtlInitString on every input?
  *
  * probes/contract.c asked twenty-odd hand-picked strings and got the same answer from both exports
  * every time -- byte counting rather than character counting, NO UTF-8 validation of any kind, the
@@ -12,16 +12,16 @@
  * So this enumerates instead of sampling, over exactly the dimensions where a UTF-8 aware
  * implementation would have to differ:
  *
- *   1. EVERY SINGLE BYTE 0x01..0xFF as a one-byte string, and every ordered PAIR of bytes -- 65280
+ *   1. Every single byte 0x01..0xFF as a one-byte string, and every ordered pair of bytes -- 65280
  *      two-byte strings, which contains every lead/continuation combination there is, every
  *      overlong prefix, and every truncated sequence.
- *   2. EVERY LENGTH from 0 to 300, so a length-dependent rule cannot hide between the sizes a
+ *   2. every LENGTH from 0 to 300, so a length-dependent rule cannot hide between the sizes a
  *      hand-written list happens to pick.
- *   3. EVERY LENGTH ACROSS THE CLAMP, 65400..65700, where the two USHORT fields saturate.
+ *   3. Every length across the clamp, 65400..65700, where the two ushort fields saturate.
  *   4. RANDOM byte strings over alphabets that are pure ASCII, pure high-bit, valid UTF-8, and
  *      deliberately malformed UTF-8.
  *
- * ALL THREE FIELDS ARE COMPARED, not just Length: the struct is poisoned before each call, so a
+ * All three fields are compared, not just Length: the struct is poisoned before each call, so a
  * field one export writes and the other does not is visible rather than invisible.
  */
 #define WIN32_LEAN_AND_MEAN

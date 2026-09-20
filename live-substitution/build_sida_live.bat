@@ -1,12 +1,12 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 272 (advapi32!ConvertStringSidToSidA).
+Rem  live-run proof for change 272 (advapi32!ConvertStringSidToSidA).
 REM
 REM  Four things per case: the BOOL, GetLastError, what happened to the output
 REM  pointer, and every byte of the SID. Every allocated SID is freed through the
 REM  process's UNPATCHED LocalFree.
 REM
-REM  THE LAST ERROR IS COMPARED ON EVERY CALL, FROM A NON-ZERO SENTINEL. Change
+Rem  the last error is compared on every call, from a non-zero sentinel. Change
 REM  269's first gate did neither, and the two omissions together hid a real
 REM  defect for a whole change: all four exports of this family ZERO the last
 REM  error on success and 269's implementation did not.

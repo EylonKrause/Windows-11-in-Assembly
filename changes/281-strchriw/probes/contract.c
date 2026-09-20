@@ -1,9 +1,9 @@
 /* changes/281-strchriw/probes/contract.c
  *
- * WHAT DOES shlwapi's CASE-INSENSITIVE SEARCH FAMILY ACTUALLY CONSIDER EQUAL?
+ * What does shlwapi's case-insensitive search family actually consider equal?
  *
  * discovery/charclass_strcmp_2026.c measured StrChrIW at 21939.92 ns to scan 511 characters. That
- * is FORTY-THREE NANOSECONDS PER CHARACTER, which is not a table lookup and not a loop -- it is the
+ * is forty-three nanoseconds per character, which is not a table lookup and not a loop -- it is the
  * cost of a full call per character. For scale, CompareStringOrdinal compares the same 511
  * characters in 85.91 ns, and change 277's vectorised CharUpperBuffW upcases 4000 of them in under
  * a microsecond.
@@ -18,7 +18,7 @@
  *      this project does not own -- change 276 parked for exactly that reason.
  *
  * If the answer is (3) this change cannot be written. So this probe does not guess: it asks
- * StrChrIW itself, for EVERY ONE OF THE 65536 UTF-16 code units, which partners it matches, and
+ * StrChrIW itself, for every one of the 65536 UTF-16 code units, which partners it matches, and
  * compares that set against what CharUpperW, CharLowerW and RtlUpcaseUnicodeChar would say.
  *
  * It also pins the shape questions a search has to get right: what is returned on a miss, what

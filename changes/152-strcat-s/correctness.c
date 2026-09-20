@@ -2,7 +2,7 @@
 // Bit-exact fuzz of wia_strcat_s vs live ucrtbase!strcat_s + oracle. Each trial compares the errno
 // return, the number of invalid-parameter-handler invocations, and every byte of a canary-filled
 // destination -- the byte compare is what pins the two partial-write paths (an unterminated dst,
-// which must write ONLY dst[0], and ERANGE, which appends first and empties afterwards).
+// which must write only dst[0], and ERANGE, which appends first and empties afterwards).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

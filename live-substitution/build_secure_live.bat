@@ -4,7 +4,7 @@ REM  Live substitution for the eight ucrtbase bounds-checked string functions:
 REM    150 strcpy_s  151 wcscpy_s  152 strcat_s  153 wcscat_s
 REM    154 strncpy_s 155 wcsncpy_s 156 strncat_s 157 wcsncat_s
 REM
-REM  /MD is REQUIRED here, not merely preferred: the harness installs an
+Rem  /md is required here, not merely preferred: the harness installs an
 REM  invalid-parameter handler with _set_invalid_parameter_handler, and that
 REM  handler must be the one the PATCHED ucrtbase exports consult. With the
 REM  static CRT the test would set a handler in its own copy and the export

@@ -1,6 +1,6 @@
 ; changes/107-cryptstringtobinaryw-base64any/impl.asm
-; BOOL wia_s2bw_any(LPCWSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                   DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2bw_any(LPCWSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                   Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; Wide sibling of 106 — crypt32!CryptStringToBinaryW for CRYPT_STRING_BASE64_ANY (0x0006): if the

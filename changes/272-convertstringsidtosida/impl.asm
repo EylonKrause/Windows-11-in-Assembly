@@ -6,7 +6,7 @@
 ; which MultiByteToWideChar itself is only 24.70 ns.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE ANSI FORM IS A WIDENING AND THEN THE WIDE PARSER, AND THAT WAS MEASURED.
+; The ANSI form is a widening and then the wide parser, and that was measured.
 ;
 ; probes/codepage.c asks the ANSI export and the wide export the same question -- the wide one being
 ; given MultiByteToWideChar(CP_ACP, 0, s, -1, ...) of the same bytes -- and compares the BOOL,
@@ -20,7 +20,7 @@
 ; So the parser is change 269, linked in, and this file is the widening.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE WIDENING IS A ZERO EXTENSION WHENEVER THE INPUT IS ASCII, AND THAT IS PROVED RATHER THAN
+; The widening is a zero extension whenever the input is ASCII, and that is proved rather than
 ; ASSUMED.
 ;
 ; probes/asciilen.c asked whether every byte below 0x80 is the same code point under every code page
@@ -32,7 +32,7 @@
 ; the wide parser accepting 180 different code units as decimal digits and 25 as whitespace, so what
 ; a byte above 0x7F means is genuinely a code-page question.
 ;
-; THE SCAN FINDS THE LENGTH AND ANSWERS THAT QUESTION IN ONE PASS. VPMOVMSKB extracts the top bit of
+; The scan finds the length and answers that question in one pass. Vpmovmskb extracts the top bit of
 ; every byte, which IS the "at or above 0x80" test, so the same 32-byte load yields the terminator
 ; mask (through a compare with zero) and the non-ASCII mask. The first block is loaded ALIGNED DOWN
 ; and the bits before the string are shifted out -- a 32-byte aligned load never crosses a page
@@ -40,12 +40,12 @@
 ; and the reason for it is that reading past a string that ends near a page boundary faults.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE TEMPORARY CANNOT BE A FIXED BUFFER. probes/asciilen.c handed the shipped export a MEGABYTE of
+; The temporary cannot be a fixed buffer. probes/asciilen.c handed the shipped export a megabyte of
 ; junk and got ERROR_INVALID_SID rather than a crash, and a legal 254-sub-authority SID string is
 ; already about 2800 characters. Up to 1023 characters the temporary is the frame; past that it is
 ; allocated and freed, and the free preserves the last error because the parser has already set it.
 ;
-; ISA: AVX2 + BMI2 (BZHI) for the scan; VPMOVZXBW for the widening.
+; Isa: AVX2 + BMI2 (bzhi) for the scan; vpmovzxbw for the widening.
 
 OPTION PROC:PRIVATE
 PUBLIC wia_str2sida

@@ -1,25 +1,25 @@
 // live-substitution/live_subst_inetntoa.c
 // LIVE-RUN PROOF for change 275 (ws2_32!inet_ntoa).
 //
-// THE ANSWER IS COPIED BEFORE THE NEXT CALL, and that is not a detail. inet_ntoa returns a pointer
+// The answer is copied before the next call, and that is not a detail. inet_ntoa returns a pointer
 // into a PER-THREAD buffer that the next call overwrites -- probes/contract.c measured it: the same
 // pointer every time from one thread, a different one per thread. A harness that recorded the
 // pointer and compared it later would be comparing a string against whatever the most recent call
 // left there, and would pass no matter what either implementation did.
 //
-// THE POINTER ITSELF CANNOT BE COMPARED AND SHOULD NOT BE. Our implementation has a thread-local
+// The pointer itself cannot be compared and should not be. Our implementation has a thread-local
 // buffer of its own, which is exactly what the contract permits: the caller owns nothing and the
 // text is valid until the same thread calls again. So the comparison is the TEXT.
 //
-// AND IT RUNS ON FOUR THREADS. A single-threaded harness cannot tell a per-thread buffer from a
+// And it runs on four threads. a single-threaded harness cannot tell a per-thread buffer from a
 // per-process one, and "per-thread" is the only part of this contract that a wrong implementation
 // could satisfy on one thread and break on two. Each thread formats its own stream of addresses
 // under the patch and checks every one against what it recorded before the patch existed.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone; it patches only its own copy-on-write copy of ws2_32.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: the worker threads are created AFTER the patch is in place and joined
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: the worker threads are created after the patch is in place and joined
 //       BEFORE it is removed, so no thread is ever inside the sixteen bytes being written.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
@@ -109,7 +109,7 @@ static DWORD WINAPI worker(LPVOID p)
         struct in_addr a;
         char got[16];
         a.S_un.S_addr = addr_of(idx);
-        /* COPY IT AT ONCE: the next call on this thread overwrites the buffer */
+        /* Copy it at once: the next call on this thread overwrites the buffer */
         lstrcpynA(got, live(a), 16);
         if (lstrcmpA(got, expected[idx]) != 0) ++w->bad;
     }

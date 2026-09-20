@@ -5,10 +5,10 @@
 ; Tiger Lake / Willow Cove variant of change 185. Same contract, same oracle, same gates; this is
 ; the only file that differs from the parent.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here the "8" class measures 0.82x, and the
-; reason is not the arithmetic -- it is that at that size the parent does NO VECTOR WORK AT ALL
+; reason is not the arithmetic -- it is that at that size the parent does no vector work at all
 ; while paying the full price of having intended to.
 ;
 ; What that bench row actually is matters, because the label is in CHARACTERS while the page rules
@@ -30,7 +30,7 @@
 ; This is the wide mirror of what change 182 showed on the byte side, where the same split took the
 ; 8-byte class from 0.83x to a tie and made the variant land.
 ;
-; WHAT THIS VARIANT DOES
+; What this variant does
 ; ----------------------
 ; It splits at the bound BEFORE touching any vector register, and below 16 elements it never
 ; touches a 256-bit one:
@@ -61,7 +61,7 @@
 ; The parent is left untouched: its RESULTS.md records a measurement taken on different hardware,
 ; where dirtying the upper state for a short call is cheap enough not to show.
 ;
-; WHAT WAS CONSIDERED AND NOT USED, AND WHY
+; What was considered and not used, and why
 ; -----------------------------------------
 ; This part has AVX-512VL, so the whole narrow scan could have been one masked load: `bzhi` the
 ; bound into a k register, `vmovdqu16 ymm0{k1}{z}`, `vptestnmw k2{k1}`, `tzcnt` -- which needs no
@@ -80,15 +80,15 @@
 ; (../184-strnset-s/probes/sns.c -- 1000000 cases for the byte and the wide form each, fuzzed side
 ; by side, 0 mismatches for both):
 ;
-;   * numberOfElements == 0 -> EINVAL (22) and NOTHING is written, regardless of count.
+;   * numberOfElements == 0 -> EINVAL (22) and nothing is written, regardless of count.
 ;   * No terminator strictly inside numberOfElements -> fill min(count, numberOfElements-1)
-;     ELEMENTS (not bytes), and only THEN write str[0] = 0, returning EINVAL (22).
+;     Elements (not bytes), and only then write str[0] = 0, returning einval (22).
 ;   * Otherwise -> fill min(count, length) elements, leave the rest of the string and the
 ;     terminator alone, return 0.
 ;   * _TRUNCATE ((size_t)-1) is NOT special-cased -- it saturates to the other limit.
 ;   * Every fill value behaves the same, including 0, the surrogate range and 0FFFFh.
 ;
-; THE SCAN CANNOT BE SHORTENED BY `count`: even at count 0 the return value still depends on
+; The scan cannot be shortened by `count`: even at count 0 the return value still depends on
 ; whether a terminator exists strictly inside numberOfElements. Only the FILL is clipped.
 ;
 ; PAGE SAFETY: unchanged in kind, applied at three widths instead of one. A probe is issued only
@@ -285,7 +285,7 @@ no_term:
         cmova     r10, r9                        ; r10 = min(count, numberOfElements-1)
         mov       edx, 1                         ; outcome = EINVAL
 
-        ;---------------- one fill loop serves BOTH outcomes ----------------
+        ;---------------- one fill loop serves both outcomes ----------------
 do_fill:
         movzx     eax, r8w
         vmovd     xmm2, eax

@@ -4,7 +4,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\
 set H=%~dp0
 set C=%H%..
 cd /d "%H%"
-REM  This change IS a wrapper around change 243, so 243's assembly and 243's oracle are COMPILED
+Rem  This change is a wrapper around change 243, so 243's assembly and 243's oracle are compiled
 REM  ALONGSIDE rather than copied -- the same arrangement change 242 uses for the same reason.
 ml64 /nologo /c impl.asm >nul || goto :err
 ml64 /nologo /c /Fopccx243.obj "%C%\243-pathcchcanonicalizeex\impl.asm" >nul || goto :err

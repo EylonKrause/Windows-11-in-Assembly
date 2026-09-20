@@ -10,7 +10,7 @@
      * whether the comparison stops at a NUL as well as at the bound;
      * what nMax <= 0 does, and whether nMax is signed;
      * NULL handling on either side;
-     * for the case-insensitive form, EXACTLY which characters fold -- ASCII only, Latin-1, or the
+     * for the case-insensitive form, exactly which characters fold -- ASCII only, Latin-1, or the
        full OS upcase table. That decides whether this needs a 64K table (as change 051 did) or a
        range test, and it is the one thing that cannot be guessed.                                 */
 #define WIN32_LEAN_AND_MEAN

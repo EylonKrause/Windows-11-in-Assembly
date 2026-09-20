@@ -1,9 +1,9 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 186-191 -- the WIDE integer parser family:
+Rem  live-run proof for changes 186-191 -- the wide integer parser family:
 REM  _wtoi/_wtol, _wtoi64, wcstol, wcstoul, _wcstoi64/wcstoll, _wcstoui64/wcstoull.
 REM  Six implementations, EIGHT exported names.
-REM  /MD is REQUIRED: errno and the invalid-parameter handler must be UCRTBASE's --
+Rem  /md is required: errno and the invalid-parameter handler must be UCRTBASE's --
 REM  the same ones our assembly writes through via its exported _errno /
 REM  _invalid_parameter_noinfo. With the static CRT the comparison is meaningless.
 REM  Sacrificial single-threaded child; no system process is touched, nothing on

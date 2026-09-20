@@ -4,7 +4,7 @@
 ; Tiger Lake / Willow Cove variant of change 003. Same contract, same oracle, same gates; this is
 ; the only file that differs from the parent.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent opens with a 256-bit probe. That buys 16 wchars in the first compare, and on Zen 3 it
 ; wins at every size class including 3 wchars, which is what its RESULTS.md records. On this machine

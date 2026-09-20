@@ -1,12 +1,12 @@
 /* changes/285-strcspniw/reference.c
  *
- * THE SCALAR MODEL for shlwapi!StrCSpnIW, written from the contract measured in probes/contract.c and
+ * The scalar model for shlwapi!StrCSpnIW, written from the contract measured in probes/contract.c and
  * probes/relation.c:
  *
  *   * it returns a COUNT: the number of leading characters of the string that are NOT in the set,
  *     equivalently the index of the first one that IS. A full int -- 66000 characters of 'a' with a
  *     set of "z" returns 66000, so nothing here is 16-bit;
- *   * the relation is change 281's, EXACTLY. probes/relation.c extracted StrCSpnIW's own relation over
+ *   * the relation is change 281's, exactly. probes/relation.c extracted StrCSpnIW's own relation over
  *     786420 pairs using StrCSpnIW({c},{m}) == 0 as a membership oracle and found ZERO disagreements
  *     with change 281's tables, on twelve members chosen to include both ignorable bitmap sets, the
  *     intransitive triple, and the five-partner 'K'. It is symmetric in the export itself, and a
@@ -15,7 +15,7 @@
  *   * an empty set gives the length, an empty string gives 0, and any NULL argument gives 0;
  *   * an embedded NUL ends the scan.
  *
- * AND THE ONE SIMPLIFICATION THAT MAKES THIS CHANGE SMALL. Changes 283 and 284 both had to model a
+ * And the one simplification that makes this change small. Changes 283 and 284 both had to model a
  * virtual NUL run past the terminator, because 3320 code units match a NUL and a needle could match
  * across the end. Here that cannot be observed AT ALL: if the set contains a NUL-matching code unit
  * then the terminator "matches" and the answer is the length; if it does not, the scan runs out and the

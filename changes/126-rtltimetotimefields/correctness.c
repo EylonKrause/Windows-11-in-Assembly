@@ -1,5 +1,5 @@
 // changes/126-rtltimetotimefields/correctness.c
-// Bit-exact check of wia_time2fields vs live ntdll!RtlTimeToTimeFields + oracle, over EVERY day
+// Bit-exact check of wia_time2fields vs live ntdll!RtlTimeToTimeFields + oracle, over every day
 // boundary of the entire valid domain (10 675 199 days, 1601-01-01 .. year ~30828), all 8 TIME_FIELDS
 // members, plus edges and 3M full-range random instants (sub-day resolution).
 #define WIN32_LEAN_AND_MEAN

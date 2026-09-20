@@ -74,7 +74,7 @@ int main(void){
                     CHECK(one(V[a], V[b], V[c]), "structured edge triple");
     }
 
-    // ---- THE OVERFLOW BOUNDARY: hi exactly at, just below and just above the divisor ----
+    // ---- The overflow boundary: hi exactly at, just below and just above the divisor ----
     // This is where the implementation chooses between a hardware div and the saturating path.
     // One off-by-one here is either a wrong answer or a #DE, so it is swept deliberately.
     {

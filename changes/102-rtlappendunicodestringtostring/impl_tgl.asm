@@ -4,7 +4,7 @@
 ; Tiger Lake / Willow Cove variant of change 102. Same contract, same oracle, same gates; this is
 ; the only file that differs from the parent.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent's copy is a 16-byte `movdqu` loop followed by a 2-byte scalar tail loop, chosen so the
 ; function stays legacy-SSE and never needs a `vzeroupper`. On Zen 3 that wins every class. Here the
@@ -13,7 +13,7 @@
 ; calls a memcpy that is tuned for precisely this length. At 128 bytes the parent's advantage over
 ; ntdll -- not making the call -- is worth less than the call buys.
 ;
-; The variant changes only HOW THE BYTES MOVE:
+; The variant changes only how the bytes move:
 ;
 ;   * 32 bytes per iteration instead of 16, halving both the iteration count and the branches.
 ;   * The tail is not a loop. The last block is copied by a single store that may OVERLAP bytes

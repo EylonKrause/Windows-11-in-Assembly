@@ -5,20 +5,20 @@
  * discovery/ntdll_rtl_uncovered.c took the exports whose names suggest string work and ranked them
  * by cost per byte. Everything it found worth doing is now landed (changes 263 and 264 came out of
  * it), and what it left behind is memcpy-bound at 0.012 ns/byte, where there is little to win. This
- * file goes after a different shape: FILLS, APPENDS, PARSES and SINGLE-VALUE lookups that the first
+ * file goes after a different shape: Fills, appends, parses and single-value lookups that the first
  * sweep did not list at all.
  *
- * WHAT IS DELIBERATELY NOT HERE. Anything whose name says locale or encoding, anything that
+ * What is deliberately not here. Anything whose name says locale or encoding, anything that
  * allocates as its main job, and the hash-table and memory-zone families -- the same exclusions the
  * first sweep made, for the same reasons.
  *
  * METHOD, and the mistakes this file is written to avoid:
- *   * RUN IT ON AN IDLE MACHINE. Every row is a min-of-N, robust to a slow sample but not to load.
- *   * EVERY ROW PRINTS WHAT IT ACTUALLY DID -- the return value and, where there is one, the output
+ *   * Run it on an idle machine. Every row is a min-of-N, robust to a slow sample but not to load.
+ *   * Every row prints what it actually did -- the return value and, where there is one, the output
  *     it produced. A survey row whose subject does not do the work its label claims is this
  *     project's most expensive recurring mistake: a subject whose escapable characters sat in the
  *     wrong URL segment made an earlier survey measure a no-op for a whole commit.
- *   * A PER-BYTE COST IS ONLY MEANINGFUL FOR A FUNCTION WHOSE WORK SCALES WITH A LENGTH. The
+ *   * a per-byte cost is only meaningful for a function whose work scales with a length. The
  *     single-value rows below (a character fold, a status lookup, a bit scan) are reported in ns
  *     per CALL and marked, because dividing them by a byte count would invent a number.
  */

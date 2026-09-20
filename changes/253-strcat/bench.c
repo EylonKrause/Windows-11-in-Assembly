@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ucrtbase strcat / wcscat.
  *
- * STRCAT'S COST HAS TWO HALVES AND THEY SCALE DIFFERENTLY, so the rows are chosen to separate them:
+ * Strcat's cost has two halves and they scale differently, so the rows are chosen to separate them:
  *   * the DESTINATION SCAN, which is O(strlen(dst)) and is paid even when nothing much is appended;
  *   * the SOURCE COPY, which is O(strlen(src)).
  * A table of "append n bytes to an empty string" measures only the second and would make the first
@@ -10,16 +10,16 @@
  * rescans the whole destination every time. Change 152 called that "the quadratic-strcat pattern
  * real code actually hits" and it is the row that matters most here too.
  *
- * EVERY ROW STATES WHAT IT DID before the table: the destination length, the source length, and the
+ * Every row states what it did before the table: the destination length, the source length, and the
  * final string length ours and the live export both produced. A row whose destination was not reset
  * between calls would grow without bound and would still produce a plausible-looking time.
  *
- * TWO LAYOUT HAZARDS, both of which have inverted a verdict in this project before:
+ * Two layout hazards, both of which have inverted a verdict in this project before:
  *   * 4K ALIASING. Source and destination are both walked linearly at the same rate. Placed at the
  *     same offset within their pages they collide in the same L1 set on every single block. The
  *     arena below is page-aligned VirtualAlloc and every buffer is given a deliberate, distinct
  *     stagger.
- *   * THE DESTINATION MUST BE RESET. strcat WRITES, so an unmodified benchmark appends forever.
+ *   * The destination must be reset. strcat writes, so an unmodified benchmark appends forever.
  *     Each op stores a single terminator first; it is one byte, identical on both sides.
  */
 #include "bench.h"

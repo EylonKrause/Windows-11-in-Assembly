@@ -2,14 +2,14 @@
 // Gate 1: wia_pathremoveargsa must be indistinguishable from shlwapi!PathRemoveArgsA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE WHOLE BUFFER IS COMPARED, always, against a poison fill. Two of this function's three
+// The whole buffer is compared, always, against a poison fill. Two of this function's three
 // behaviours are invisible to a string comparison:
-//   * behaviour 2 writes a SECOND terminator PAST the first one ("ab   c" -> cells 2 AND 4), so
+//   * behaviour 2 writes a second terminator past the first one ("ab   c" -> cells 2 And 4), so
 //     the bytes after the visible string are part of the contract;
-//   * when there is nothing to do the function writes NOTHING AT ALL -- not even a redundant
+//   * when there is nothing to do the function writes nothing at all -- not even a redundant
 //     terminator over the existing one -- and only poison can tell that apart.
 //
-// AND THE CORPUS ENUMERATES rather than samples, with a TAB in the alphabet. "Exactly 0x20 splits,
+// And the corpus enumerates rather than samples, with a tab in the alphabet. "Exactly 0x20 splits,
 // and whitespace in general does not" is a claim, and a corpus missing one character is precisely
 // how eight landed changes in this repository shipped wrong earlier in this session.
 #define WIN32_LEAN_AND_MEAN
@@ -100,7 +100,7 @@ int main(void){
         printf("  exhaustive {a,space,quote,tab} 0..9: %ld strings\n", en);
     }
 
-    // EVERY byte value at each position the rule consults
+    // every byte value at each position the rule consults
     for (int c = 1; c < 256; ++c) {
         s[0]='a'; s[1]='b'; s[2]=(char)c; s[3]='c'; s[4]='d'; s[5]=' '; s[6]='e'; s[7]=0;
         chk(s, "byte sweep: before the split");

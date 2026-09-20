@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 204 -- ntdll!RtlUdiv128.
+Rem  live-run proof for change 204 -- ntdll!RtlUdiv128.
 REM  The corpus is weighted onto DividendHigh == Divisor, the boundary where a
 REM  hardware div would #DE, and onto Divisor == 0, which must not fault.
 REM  Sacrificial single-threaded child; no system process is touched.

@@ -92,7 +92,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY code unit in the classifier-relevant positions, across several bases ----
+    // ---- every code unit in the classifier-relevant positions, across several bases ----
     for(int c=1;c<65536;c++){
         for(int k=0;k<NB;k+=4){                        /* bases 0, 8, 13, 36 */
             int base = BASES[k];

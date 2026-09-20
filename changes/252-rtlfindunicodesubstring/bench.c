@@ -2,21 +2,21 @@
  *
  * OURS vs the LIVE ntdll!RtlFindUnicodeSubstring on this machine.
  *
- * EVERY ROW STATES WHAT IT ACTUALLY DID before the table is printed -- the haystack length, the
+ * Every row states what it actually did before the table is printed -- the haystack length, the
  * needle length, the mode, and the offset all three agreed on. This project has twice measured a
  * no-op and believed it: a survey subject whose escapable characters sat in the wrong URL segment,
  * and a formatter whose digit table had never been built. A search benchmark is especially easy to
  * get wrong in that way, because a needle that is accidentally present at offset 0 turns a
  * full-scan row into a two-character row and still looks entirely plausible.
  *
- * THE ROWS ARE CHOSEN TO INCLUDE THE CASES THIS IMPLEMENTATION IS WORST AT, not only the ones it
+ * The rows are chosen to include the cases this implementation is worst at, not only the ones it
  * is best at:
  *   * tiny inputs, where the vector loop can never run and the only question is whether the setup
  *     was skipped (it is -- see the `cmp r14d, 15` bypass in impl.asm);
  *   * a TWO-LETTER alphabet, where the two-anchor filter admits one position in four instead of
  *     one in a few hundred;
- *   * a RUN OF ONE CHARACTER with a needle whose first and last characters are both that
- *     character. With the far anchor fixed at m-1 this admits EVERY position and hands all of them
+ *   * a run of one character with a needle whose first and last characters are both that
+ *     character. With the far anchor fixed at m-1 this admits every position and hands all of them
  *     to the scalar verifier; it measured 0.91x-1.17x, i.e. it crossed the 0.97x gate at random
  *     from run to run, which is what forced impl.asm to CHOOSE its far anchor instead of assuming
  *     it. The row is kept so the fix stays measured;
@@ -140,7 +140,7 @@ int main(void)
     add("non-ASCII 4000, CI miss",    4000,    8, 1, 3,  -1, 0);
     add("non-ASCII 4000, CI hit",     4000,    8, 1, 3, 3000, 1);
 
-    /* ---- EVERY ROW STATES WHAT IT DID, and all three answers must agree before timing ---- */
+    /* ---- Every row states what it did, and all three answers must agree before timing ---- */
     printf("== SUBJECTS (what each row actually measures) ==\n");
     printf("  %-28s %6s %4s %3s  %8s %8s\n", "case", "n", "m", "ci", "ours@", "live@");
     for (i = 0; i < nc; ++i) {

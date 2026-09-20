@@ -1,6 +1,6 @@
 /* changes/285-strcspniw/probes/contract.c
  *
- * THE CONTRACT OF shlwapi!StrCSpnIW, ASKED FROM SCRATCH.
+ * The contract of shlwapi!StrCSpnIW, asked from scratch.
  *
  *     int StrCSpnIW(PCWSTR pszStr, PCWSTR pszSet)
  *
@@ -17,7 +17,7 @@
  * therefore accept far more than k code units, and whether the export really behaves that way is the
  * first question below.
  *
- * THE QUESTIONS THIS FAMILY HAS TAUGHT ME TO ASK, in order. Change 283 shipped two wrong drafts
+ * The questions this family has taught me to ask, in order. Change 283 shipped two wrong drafts
  * because its corpus could not express a case; change 284's first draft inherited 283's empty-needle
  * answer and was wrong because the two exports genuinely differ. So:
  *

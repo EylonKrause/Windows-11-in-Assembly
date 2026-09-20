@@ -1,11 +1,11 @@
 ; changes/244-hashdata/impl.asm
-; HRESULT wia_hashdata(PCBYTE pbData, DWORD cbData, PBYTE pbHash, DWORD cbHash)
+; HRESULT wia_hashdata(PCBYTE pbData, dword cbData, pbyte pbHash, dword cbHash)
 ;   [Win64: rcx, edx, r8, r9d -> eax]
 ;
 ; Reimplements shlwapi!HashData (the body lives in kernelbase!HashData; shlwapi's export is a jmp
 ; thunk through api-ms-win-core-url-l1-1-0).
 ;
-; WHY THIS TARGET. discovery/shlwapi_url_str.c: hashing 4096 bytes into a 16-byte digest costs
+; Why this target. discovery/shlwapi_url_str.c: hashing 4096 bytes into a 16-byte digest costs
 ; 26 102 ns, which is 6.37 ns per source byte, 0.157 GB/s. probes/cost.c then measured the whole
 ; cost surface and found it FLAT at 0.42 ns per (source byte x digest byte) for every digest of six
 ; bytes or more -- so the shipped cost is exactly "one table lookup per pair, about 1.9 cycles
@@ -23,16 +23,16 @@
 ; 256 one-byte calls; the source order was fixed by running all 65536 two-byte sources against both
 ; directions (last-byte-first matched 65536, first-byte-first matched only the 256 palindromes).
 ;
-; WHAT MAKES IT FAST. Digest byte j depends only on ITSELF and the source byte, so the digest bytes
+; What makes it fast. Digest byte j depends only on itself and the source byte, so the digest bytes
 ; are INDEPENDENT CHAINS -- confirmed twice in the probe, once by h[j] == T[j ^ src[0]] over every
 ; one-byte source and once by the first four bytes of a 32-byte digest equalling a 4-byte digest.
-; The shipped loop nonetheless walks ONE LANE AT A TIME THROUGH MEMORY: per lane it loads h[j],
+; The shipped loop nonetheless walks one lane at a time through memory: per lane it loads h[j],
 ; RELOADS src[i], xors, loads the table and stores h[j] back -- five memory operations and about
 ; eight uops for one byte of progress. This implementation holds the lanes IN REGISTERS and advances
 ; them together, so a lane costs one xor and one table load and the source byte is loaded once for
 ; the whole group.
 ;
-; TWO KERNELS, AND THE SMALL ONE EARNS ITS KEEP. A group of twelve is the widest the register file
+; Two kernels, and the small one earns its keep. a group of twelve is the widest the register file
 ; allows: the loop needs the table base, the source pointer and the current source byte, which is
 ; three of the fifteen usable general registers. But a pass costs the same whether it advances two
 ; lanes or twelve -- it is bound by its own dependency latency, not by the twelve table loads -- so
@@ -51,7 +51,7 @@
 ; already paying eight uops per lane, so the waste is invisible, and it keeps the hot loop free of
 ; every branch but its own back edge.
 ;
-; THE OVERLAP FALLBACK, and it is required rather than defensive. probes/overlap.c ran a 24-byte
+; The overlap fallback, and it is required rather than defensive. probes/overlap.c ran a 24-byte
 ; source against a 20-byte digest at all 2401 relative placements inside one buffer:
 ;
 ;     descending lanes, source re-read per lane : 2401 of 2401
@@ -63,7 +63,7 @@
 ; src[i] changes what the remaining lanes of that same source byte consume. When the two ranges
 ; intersect this implementation therefore emulates the shipped loop byte for byte instead.
 ;
-; THE SEED IS NOT WRITTEN ON THE FAST PATHS. Every digest byte is stored at the end of its group, so
+; The seed is not written on the fast paths. Every digest byte is stored at the end of its group, so
 ; seeding the buffer first would be a write that is immediately overwritten and is unobservable
 ; while the buffers are disjoint -- which the overlap test has already established. The seed IS
 ; written, on its own, when cbData == 0, because then it is the entire result.
@@ -139,7 +139,7 @@ ws_done:
 write_seed ENDP
 
 ; =============================================================================================
-; THE ENTRY IS A LEAF. It saves nothing, builds no frame and uses only its caller-provided home
+; The entry is a leaf. It saves nothing, builds no frame and uses only its caller-provided home
 ; space, so the cheap shapes -- and a one-byte digest is the cheapest shape there is -- pay no
 ; prologue at all. Only the twelve-lane path needs the non-volatile registers, and it is a separate
 ; framed procedure reached by a tail jump with the stack still exactly as it was on entry.
@@ -352,7 +352,7 @@ hd_big PROC FRAME
         lea       rbx, [c_tab]
 
 hd_group:
-        ; ---- A LAST GROUP OF FOUR OR FEWER GETS ITS OWN KERNEL. The twelve-lane kernel would be
+        ; ---- a last group of four or fewer gets its own kernel. The twelve-lane kernel would be
         ;      correct here too, since surplus lanes are simply not stored, but it would spend
         ;      twenty-seven uops per source byte to produce at most four bytes of digest. cbHash = 16
         ;      -- the shape this function is actually called in -- is exactly one full group plus

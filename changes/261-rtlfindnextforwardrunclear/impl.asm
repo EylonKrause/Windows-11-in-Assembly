@@ -1,6 +1,6 @@
 ; changes/261-rtlfindnextforwardrunclear/impl.asm
-;   ULONG wia_findnextforwardrunclear (RTL_BITMAP* bm, ULONG FromIndex, ULONG* StartingRunIndex)
-;   ULONG wia_findlastbackwardrunclear(RTL_BITMAP* bm, ULONG FromIndex, ULONG* StartingRunIndex)
+;   Ulong wia_findnextforwardrunclear (RTL_BITMAP* bm, ulong FromIndex, ulong* StartingRunIndex)
+;   Ulong wia_findlastbackwardrunclear(RTL_BITMAP* bm, ulong FromIndex, ulong* StartingRunIndex)
 ;     [Win64: rcx, edx, r8 -> eax, and the start written through r8]
 ;
 ; ntdll!RtlFindNextForwardRunClear (RVA 0x0DB350) and ntdll!RtlFindLastBackwardRunClear.
@@ -9,7 +9,7 @@
 ;       RtlFindNextForwardRunClear from 1                 400.95 ns   0.100 ns/byte
 ;       RtlFindLastBackwardRunClear from 65535            420.30 ns   0.053 ns/byte
 ;
-; and the forward scan is SEVEN INSTRUCTIONS PER 32-BIT WORD:
+; and the forward scan is seven instructions per 32-BIT word:
 ;
 ;       000DB3B0  not r10d
 ;       000DB3B3  test r10d, r10d
@@ -28,47 +28,47 @@
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
 ;
-;   * BOTH FORMS CLIP AT FromIndex, IN OPPOSITE DIRECTIONS. Forward finds the first clear bit at or
+;   * Both forms clip at FromIndex, in opposite directions. Forward finds the first clear bit at or
 ;     after FromIndex and reports the run FROM THERE -- asked from 105 inside a run of 100..119 it
 ;     answers start=105 length=15, NOT start=100 length=20. Backward finds the last clear bit at or
 ;     before FromIndex and reports the run from its TRUE START to that bit -- asked back from 105 it
 ;     answers start=100 length=6. A caller walking a bitmap with one reading would loop forever on
 ;     the other.
 ;   * FromIndex IS INCLUDED in both.
-;   * NOTHING FOUND still writes the start pointer, and the two forms write DIFFERENT values: the
+;   * Nothing found still writes the start pointer, and the two forms write different values: the
 ;     forward one writes SizeOfBitMap, the backward one writes 0.
-;   * FromIndex AT OR PAST SizeOfBitMap returns 0 and writes FromIndex ITSELF -- not the size, not
+;   * FromIndex at or past SizeOfBitMap returns 0 and writes FromIndex itself -- not the size, not
 ;     zero. It is the one case where the two agree.
 ;   * THE SLACK past SizeOfBitMap never extends a run: the same buffer with bits 1000..1023 clear
 ;     answers 24 declared as 1024 bits and 10 declared as 1010.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. Two scans, the same shape in both directions:
+; How it works. Two scans, the same shape in both directions:
 ;
-;   * to find a CLEAR bit, skip words that are ALL ONES;
+;   * to find a clear bit, skip words that are all ones;
 ;   * to find where the run ends, skip words that are ALL ZEROS.
 ;
 ; VPCMPEQD against a register of ones (or of zeros) plus VPMOVMSKB turns eight words into one
 ; compare and one branch.
 ;
-; THREE THINGS ARE STRUCTURAL, and the first draft got all three wrong. It measured 0.59x to 0.94x
+; Three things are structural, and the first draft got all three wrong. It measured 0.59x to 0.94x
 ; against the shipped export on every SHORT row while winning 7x on the long ones, and none of that
 ; was noise -- each of the three is a specific thing the code was doing per word:
 ;
-;   1. THE WORD THAT HIT IS IN THE MASK ALREADY. VPMOVMSKB gives four mask bits per dword, and
+;   1. The word that hit is in the mask already. Vpmovmskb gives four mask bits per dword, and
 ;      because a compare result is all-ones or all-zeros per lane those four are always equal: the
 ;      mask is eight nibbles, 0xF where the word was uniform. So after `not`, TZCNT>>2 IS the index
 ;      of the first word with a clear bit (LZCNT for the backward scan's last). The draft instead
 ;      returned to the scalar loop at the base of the block and re-walked up to eight words.
-;   2. AND THE SCALAR WALK MUST NOT RE-ENTER THE VECTOR LOOP. The draft's scalar step ended with
+;   2. And the scalar walk must not re-enter the vector loop. The draft's scalar step ended with
 ;      `jmp f_loop`, and f_loop re-tested whether eight whole words remained -- so every single word
 ;      after a vector hit built ymm1, loaded thirty-two bytes, compared, hit again, and VZEROUPPERed
 ;      again, all to advance ONE word. On a 1 Kbit bitmap with the hole six words into a block that
 ;      is six wasted vector iterations, and it is why a 32-word bitmap measured 11.73 ns against
 ;      ntdll's 8.80. The loop below is entered once and falls out once.
-;   3. NOTHING RELOADS SizeOfBitMap IN A LOOP. The last word of the bitmap has slack bits that must
+;   3. Nothing reloads SizeOfBitMap in a loop. The last word of the bitmap has slack bits that must
 ;      read as ONES -- that is what stops a run at SizeOfBitMap -- and the draft tested "am I on the
-;      last word" and rebuilt that mask from a spilled copy of the size on EVERY word of both scans,
+;      last word" and rebuilt that mask from a spilled copy of the size on every word of both scans,
 ;      eight instructions each. The last word is not in the vector loop and not in the scalar loop
 ;      either: each loop runs strictly BELOW it and falls through to a single site that handles it.
 ;
@@ -76,18 +76,18 @@
 ; the common case for a caller walking a bitmap, the vector entry plus VZEROUPPER costs more than
 ; three scalar words, and on a long scan those two words are lost in the noise of hundreds.
 ;
-; THE BACKWARD FORM NEEDS NO SLACK HANDLING AT ALL, which is worth stating because it looks like an
+; The backward form needs no slack handling at all, which is worth stating because it looks like an
 ; omission: it starts at the word holding FromIndex with every bit ABOVE FromIndex forced to one,
 ; and FromIndex is already inside the bitmap, so the slack is above it and already covered. Nothing
 ; above that word is ever read. It also needs no scalar pre-step -- the shipped backward form costs
 ; 13.9 ns even when the answer is in the first word it looks at, so there is nothing to protect.
 ;
-; NO FRAME AND NO SAVED REGISTERS in either function: everything lives in the seven volatile
+; No frame and no saved registers in either function: everything lives in the seven volatile
 ; registers plus the shadow space the caller already reserved. The forward form keeps SizeOfBitMap
 ; in edx and the run's start in r8d, and parks only two things in the shadow space -- the out
 ; pointer and the slack mask -- neither of which is ever read inside a loop.
 ;
-; READING PAST THE BUFFER cannot happen: the vector step runs only while eight whole words remain
+; Reading past the buffer cannot happen: the vector step runs only while eight whole words remain
 ; inside the ULONG array, and everything else is read one 32-bit word at a time.
 ;
 ; ISA: AVX2, BMI1 (tzcnt), BMI2 (bzhi), LZCNT.
@@ -106,11 +106,11 @@ PUBLIC wia_findlastbackwardrunclear
 ;   r8  = the caller's out pointer, and then the run's start once that has been written
 ;   [rsp+32] = the slack mask of the last word
 ;
-; THE SLACK MASK IS BUILT ONCE, IN THE PROLOGUE, and that is a speed fix rather than tidiness. It
+; The slack mask is built once, in the prologue, and that is a speed fix rather than tidiness. It
 ; is a six-instruction SERIAL chain -- shift, subtract, negate, shift, or -- and the draft ran it
-; at BOTH sites it is needed, in the find scan and again in the end scan, putting twelve cycles of
+; at both sites it is needed, in the find scan and again in the end scan, putting twelve cycles of
 ; pure latency in the path of a call that answers out of the first word. A 33-bit bitmap measured
-; 0.94x to 1.13x against the shipped export ACROSS RUNS OF THE SAME BINARY: at parity, and which
+; 0.94x to 1.13x against the shipped export across runs of the same binary: at parity, and which
 ; side won was decided by where the quantised timer landed. Built once in the prologue it is off
 ; the critical path (nothing else in the prologue depends on it) and each use site is one OR.
 ;
@@ -222,7 +222,7 @@ f_vhit: not       ecx                         ; the mask is eight nibbles, 0xF w
         vzeroupper
         mov       eax, dword ptr [r10 + r11*4]; never the last word: no slack to force
 
-; THE WHOLE ANSWER OUT OF ONE WORD, by change 258's carry strip.
+; The whole answer out of one word, by change 258's carry strip.
 ;
 ; Complement the word and the run of clear bits becomes a run of ONES whose lowest bit is where the
 ; run starts. BLSI isolates that bit; ADDING it back runs a carry up through the run and stops on
@@ -233,7 +233,7 @@ f_vhit: not       ecx                         ; the mask is eight nibbles, 0xF w
 ; TZCNT that could not start until the first TZCNT had finished. That serial chain is the whole
 ; reason a 33-bit bitmap sat at 1.00x.
 ;
-; THE CARRY OUT IS THE SIGNAL that there is no zero above the run inside this word, which is
+; The carry out is the signal that there is no zero above the run inside this word, which is
 ; exactly the case where the run may continue into the next one -- so `jc` is both the overflow
 ; check and the "keep scanning" branch, and costs nothing when it is not taken.
 f_found:                                      ; eax = the word that has a clear bit in it
@@ -322,7 +322,7 @@ wia_findnextforwardrunclear ENDP
 ;   rdx = the run's end, once it is known     r10 = Buffer     r11 = the current word
 ;   rax, rcx, r8, r9 = scratch                [rsp+16] = the caller's out pointer
 ;
-; r11d IS WALKED AS A SIGNED COUNTER: `dec r11d / jns` is the whole loop control, and stepping off
+; r11d is walked as a signed counter: `dec r11d / jns` is the whole loop control, and stepping off
 ; the bottom of the bitmap is the sign flag rather than a second compare.
 ; ---------------------------------------------------------------------------------------------
 ALIGN 16

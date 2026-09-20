@@ -7,14 +7,14 @@
 //
 // THE RULES, and where each one came from:
 //
-//  1. Length == 0, or Length ODD  ->  STATUS_INVALID_PARAMETER, and *Value IS WRITTEN WITH 0.
+//  1. Length == 0, or Length odd  ->  STATUS_INVALID_PARAMETER, and *Value is written with 0.
 //     (shipped: `test dx,dx / je` and `test dl,1 / jne` both jump to `mov esi,0C000000Dh` which then
 //      falls into the COMMON `mov [r14],eax` with eax still 0. Probed with four distinct sentinels --
 //      0xDEADBEEF, 0, 0xFFFFFFFF, 0x55555555 -- because with a sentinel of 0 "wrote 0" and "did not
 //      write" are the same observation. This is the FIRST divergence from the ANSI sibling
 //      RtlCharToInteger (change 129), which leaves *Value untouched on failure.)
 //
-//  2. Accepted bases are 0, 2, 8, 10, 16 and NOTHING else -- probed over 25 bases including the five
+//  2. Accepted bases are 0, 2, 8, 10, 16 and nothing else -- probed over 25 bases including the five
 //     that alias onto low bits under a `bt` (0x80000002 etc). An invalid base is the same
 //     INVALID_PARAMETER + *Value = 0.
 //
@@ -28,15 +28,15 @@
 //     "- 42" -> 0, "--5" -> 0. The sign is remembered from the first non-whitespace character, so
 //     "-0xFF" (base 0) -> 0xFFFFFF01.
 //
-//  5. Base 0 infers 0x / 0o / 0b -- LOWERCASE ONLY ("0X10" -> 0, "0B101" -> 0) -- and a bare leading
+//  5. Base 0 infers 0x / 0o / 0b -- LOWERCASE only ("0X10" -> 0, "0B101" -> 0) -- and a bare leading
 //     '0' means DECIMAL, not octal ("0777" -> 777). A prefix is only looked for when at least one
 //     character follows the '0'; a '0' that is the last character ends the parse at 0.
 //
 //  6. Digits are '0'-'9' and, for base 16 only, 'A'-'F' / 'a'-'f'. No other character is ever a digit:
-//     U+FF10 FULLWIDTH DIGIT ZERO, U+0660 ARABIC-INDIC ZERO and U+00B2 are all rejected. A digit whose
+//     U+FF10 fullwidth digit zero, U+0660 arabic-indic zero and U+00B2 are all rejected. a digit whose
 //     value is >= the base ends the parse.
 //
-//  7. NO OVERFLOW DETECTION. The accumulation is mod 2^32 and the status stays STATUS_SUCCESS:
+//  7. No overflow detection. The accumulation is mod 2^32 and the status stays STATUS_SUCCESS:
 //     "4294967295" -> FFFFFFFF, "4294967296" -> 0, "4294967297" -> 1, twenty 9s -> 630FFFFF.
 //     Probed at the exact boundary in bases 10, 16, 8 and 2.
 //

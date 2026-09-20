@@ -8,7 +8,7 @@
  * matter once there IS an implementation: the whole byte image of the SID, the length, the output
  * pointer on failure, and every code unit in every field position.
  *
- * WHAT IS COMPARED on every case: the BOOL, `GetLastError()` on failure, whether the output pointer
+ * What is compared on every case: the BOOL, `GetLastError()` on failure, whether the output pointer
  * was touched, and on success the SID's length and every byte of it.
  *
  * THE CORPORA:
@@ -17,7 +17,7 @@
  *   2. prefixes, separators and shapes;
  *   3. every sub-authority count from 0 to 260, straddling the 254 limit and its
  *      ERROR_ARITHMETIC_OVERFLOW;
- *   4. EVERY CODE UNIT 1..0xFFFF in each of the three field positions, twice each -- leading, where
+ *   4. Every code unit 1..0xFFFF in each of the three field positions, twice each -- leading, where
  *      whitespace is legal in two of the three, and trailing, where it is legal in none. This is
  *      what covers the Unicode digit and whitespace sets without a table of them appearing here;
  *   5. every two-character string over printable ASCII: the alias table, exhaustively;
@@ -40,7 +40,7 @@ static long n_ok, n_sid, n_over, n_param;
 
 #define POISON ((PSID)(UINT_PTR)0xABCDEF01)
 
-/* THE SENTINEL IS NOT ZERO, AND THAT MATTERS. The first version of this gate wrote
+/* The sentinel is not zero, and that matters. The first version of this gate wrote
  *
  *     SetLastError(0); rb = wia_str2sid(s, &b); eb = GetLastError();
  *
@@ -69,7 +69,7 @@ static void one(const wchar_t* s)
     else if (ea == ERROR_ARITHMETIC_OVERFLOW) ++n_over;
     else if (ea == ERROR_INVALID_PARAMETER) ++n_param;
 
-    /* THE LAST ERROR IS COMPARED ON EVERY CALL, SUCCESS INCLUDED. It used to be compared only when
+    /* The last error is compared on every call, success included. It used to be compared only when
        the call FAILED -- `(!ra && (ea != eb ...))` -- which is the other half of the blindness the
        sentinel note above describes: even with a non-zero pre-value, a success-path difference was
        simply not looked at. Both halves had to be wrong for the defect to survive, and both were. */

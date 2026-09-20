@@ -8,7 +8,7 @@
 ; Contract (derived in probes/sns.c, fuzz-confirmed bit-exact against the live export over
 ; 1,000,000 cases -- confirmed on the FIRST candidate, unlike change 182):
 ;
-;   * numberOfElements == 0 -> EINVAL (22) and NOTHING is written at all.
+;   * numberOfElements == 0 -> EINVAL (22) and nothing is written at all.
 ;   * No terminator strictly inside numberOfElements -> fill min(count, numberOfElements-1)
 ;     cells, and only THEN write str[0] = 0, returning EINVAL (22):
 ;         "abcdef" n=6 cnt=6  -> 0 x x x x f      (min(6,5) = 5 filled, then emptied)
@@ -20,7 +20,7 @@
 ;     simply saturates to the other limit. Checked explicitly in probes/sns.c section 4.
 ;   * All 256 fill byte values behave identically, including 0.
 ;
-; THE SCAN CANNOT BE SHORTENED BY `count`. Even when count is 0 the return value still depends on
+; The scan cannot be shortened by `count`. Even when count is 0 the return value still depends on
 ; whether a terminator exists strictly inside numberOfElements, so the bounded scan always runs to
 ; completion. Only the FILL is clipped by count.
 ;
@@ -92,7 +92,7 @@ no_term:
         cmova     r10, r9                        ; r10 = min(count, numberOfElements-1)
         mov       edx, 1                         ; outcome = EINVAL
 
-        ;================ one fill loop serves BOTH outcomes ================
+        ;================ one fill loop serves both outcomes ================
 do_fill:
         movzx     eax, r8b
         vmovd     xmm2, eax

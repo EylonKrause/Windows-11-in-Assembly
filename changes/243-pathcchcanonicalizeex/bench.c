@@ -18,10 +18,10 @@
      * THE LENGTH, which both implementations must cross. The shipped code walks it one wchar_t at a
        time with a bounds test per character and an INDIRECT CALL PER COMPONENT to find the component
        end; ours pre-scans with AVX2 and then copies 16 characters per instruction.
-     * WHETHER THERE ARE DOT COMPONENTS, because that is exactly the condition that decides whether
+     * Whether there are dot components, because that is exactly the condition that decides whether
        our fast path applies. A path with "." or ".." components takes the per-component walk, so it
        is measured separately rather than hidden inside an average.
-     * THE SHAPE, because the prefix forms and UNC change where the walk starts, and a trailing-dot
+     * The shape, because the prefix forms and unc change where the walk starts, and a trailing-dot
        path exercises the finish.
 
    Two error rows are included as the honest floor: a result over the cap, and a cch too small. Both

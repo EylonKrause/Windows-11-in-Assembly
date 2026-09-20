@@ -9,15 +9,15 @@
    BOOL StrTrimA(PSTR pszSource, PCSTR pszTrimChars)   -- in place, and it MOVES the string.
 
    What has to be settled:
-     * IS THE WALK BYTE-WISE ON THIS CODE PAGE? Asked separately from its siblings, because it is a
+     * Is the walk byte-wise on this code page? Asked separately from its siblings, because it is a
        different function. 6.33x is the MBCS-walk signature.
      * what exactly is trimmed -- leading only, trailing only, or both;
-     * WHAT THE RETURN VALUE MEANS. "TRUE if anything was trimmed" is the obvious guess and obvious
+     * What the return value means. "TRUE if anything was trimmed" is the obvious guess and obvious
        guesses are what this project keeps getting punished for;
-     * a string made ENTIRELY of trim characters -- does it become empty;
+     * a string made entirely of trim characters -- does it become empty;
      * the empty set and the empty source, and NULL for either;
      * whether the trailing scan and the leading scan use the SAME set (they need not);
-     * and the one that costs the most to get wrong: DOES IT WRITE WHEN IT TRIMS NOTHING? An
+     * and the one that costs the most to get wrong: Does it write when it trims nothing? An
        implementation that always re-terminates would touch a buffer the shipped one leaves alone,
        which no return-value comparison would ever catch.                                          */
 #define WIN32_LEAN_AND_MEAN

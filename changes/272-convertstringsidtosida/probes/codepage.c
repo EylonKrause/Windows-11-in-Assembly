@@ -1,6 +1,6 @@
 /* changes/272-convertstringsidtosida/probes/codepage.c
  *
- * THE ANSI PARSER TAKES BYTES, AND BYTES HAVE A CODE PAGE. THIS IS THE OPPOSITE OF CHANGE 271.
+ * The ANSI parser takes bytes, and bytes have a code page. This is the opposite of change 271.
  *
  * discovery/sid_inet_bstr.c measured the four SID text functions:
  *
@@ -13,19 +13,19 @@
  * '-', 'x', the digits and A-F, all below 0x80, and the wide and ANSI forms agreed byte for byte
  * over every shape of SID and under four thread locales.
  *
- * THE PARSING DIRECTION IS NOT THE SAME QUESTION AND MUST NOT BE ANSWERED BY ANALOGY. Here the
+ * The parsing direction is not the same question and must not be answered by analogy. Here the
  * INPUT is arbitrary caller bytes, so every byte from 0x80 to 0xFF means something different under
  * every code page -- and change 269 established that the wide parser accepts FAR more than ASCII:
  * 180 code units are decimal digits to its lenient number parser (Arabic-Indic, Devanagari, Thai,
  * Khmer and a dozen more blocks) and 25 are whitespace. Under code page 1252, byte 0xB2 is U+00B2
- * SUPERSCRIPT TWO; under 65001 a two-byte sequence can reach U+0660 ARABIC-INDIC DIGIT ZERO, which
- * change 269 measured the wide parser accepting as a DIGIT WORTH ZERO.
+ * Superscript two; under 65001 a two-byte sequence can reach U+0660 arabic-indic digit zero, which
+ * change 269 measured the wide parser accepting as a digit worth zero.
  *
  * So the questions this file has to answer before a line of assembly is written:
  *
  *   1. Is ConvertStringSidToSidA(s) exactly ConvertStringSidToSidW(widen(s))? With which widening
  *      -- MultiByteToWideChar with which code page and which flags?
- *   2. Does EVERY single byte 0x00..0xFF behave, in each of the three fields, the way its ANSI
+ *   2. Does every single byte 0x00..0xFF behave, in each of the three fields, the way its ANSI
  *      code page translation behaves in the wide parser? This is asked byte by byte, in every
  *      field, so the answer is a table rather than a claim.
  *   3. Do the two-letter SDDL ALIASES work the same way? They are matched case-insensitively over

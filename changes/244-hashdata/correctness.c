@@ -2,17 +2,17 @@
  *
  * Gate 1 for change 244: wia_hashdata must be indistinguishable from the live HashData.
  *
- * THREE-WAY on every case -- ours, an independent oracle (reference.c) and the LIVE EXPORT -- and
- * the comparison is the WHOLE BUFFER against a poison fill plus a canary past the digest, never
+ * Three-way on every case -- ours, an independent oracle (reference.c) and the live export -- and
+ * the comparison is the whole BUFFER against a poison fill plus a canary past the digest, never
  * just the digest bytes. Three measured facts make anything less insufficient:
  *
- *   * cbHash == 0 writes NOTHING AT ALL, which a digest-only comparison cannot tell from writing
+ *   * cbHash == 0 writes nothing at all, which a digest-only comparison cannot tell from writing
  *     the same bytes back;
  *   * cbData == 0 writes the SEED and nothing else, so the seed is a result in its own right;
- *   * the implementation stores its digest a GROUP OF TWELVE AT A TIME, so an off-by-one in the
+ *   * the implementation stores its digest a group of twelve at a time, so an off-by-one in the
  *     partial-group store writes one byte too many -- past cbHash, where only a canary sees it.
  *
- * THE OVERLAP SWEEP IS THE POINT OF THIS FILE. The fast path holds twelve lanes in registers and
+ * The overlap sweep is the point of this file. The fast path holds twelve lanes in registers and
  * advances each group across the whole source, which is valid only because the digest bytes are
  * independent chains -- and that independence fails the moment the digest overlaps the source,
  * because the shipped inner loop re-reads src[i] for every lane. probes/overlap.c measured the
@@ -21,7 +21,7 @@
  * file drives every relative placement of source and digest inside one buffer, at several sizes,
  * because a corpus of disjoint buffers would validate an implementation with no fallback at all.
  *
- * GUARD PAGES BOTH WAYS. The digest is placed so that its last byte is the last writable byte of a
+ * Guard pages both ways. The digest is placed so that its last byte is the last writable byte of a
  * page, and the source so that its last byte is the last readable byte -- which is what catches an
  * implementation that rounds either range up to a block. The seed writer stores thirty-two bytes at
  * a time, so the digest-side sweep walks every length from 1 to 200.
@@ -139,7 +139,7 @@ int main(void)
         cases += 3;
     }
 
-    /* ---- THE OVERLAP SWEEP: every relative placement inside one buffer ---- */
+    /* ---- The overlap sweep: every relative placement inside one buffer ---- */
     {
         enum { BUF = 512 };
         static unsigned char a[BUF], b[BUF], c[BUF], seed[BUF];

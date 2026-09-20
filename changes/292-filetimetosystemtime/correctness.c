@@ -1,24 +1,24 @@
 /* changes/292-filetimetosystemtime/correctness.c
  *
- * GATE 1. wia_filetime_to_systemtime vs reference.c (the naive oracle) AND vs the LIVE
+ * Gate 1. wia_filetime_to_systemtime vs reference.c (the naive oracle) and vs the live
  * kernel32!FileTimeToSystemTime resolved with GetProcAddress. Every case compares, for all three:
  *
- *      the BOOL return, the last error (a 0xDEADBEEF sentinel is written before EVERY call, so
+ *      the BOOL return, the last error (a 0xDEADBEEF sentinel is written before every call, so
  *      "did not touch it" is as observable as "set it to 87"), all sixteen bytes of the SYSTEMTIME,
  *      and 32 canary bytes on each side of it.
  *
  * A single mismatch fails the gate.
  *
- * THE CORPUS, and how the repository's minimum maps onto a function whose input is a FIXED eight
+ * The corpus, and how the repository's minimum maps onto a function whose input is a fixed eight
  * bytes. There is no length axis here, so "every length up to twice the vector width" and "the
  * match at every position" are answered by exhausting the two axes the value actually has:
  *
- *   A. THE CALENDAR AXIS, EXHAUSTIVE. The date fields depend on nothing but the day count, so
+ *   a. The calendar axis, exhaustive. The date fields depend on nothing but the day count, so
  *      every one of the 10 675 200 day boundaries in the domain is tested -- at midnight, at the
  *      last tick of the day, and at an interior instant. That is not a sample of the calendar, it
  *      is all of it.
  *
- *   B. THE TIME-OF-DAY AXIS, EXHAUSTIVE. wHour, wMinute, wSecond and wMilliseconds are all
+ *   B. The time-of-day axis, exhaustive. wHour, wMinute, wSecond and wMilliseconds are all
  *      functions of floor(rem / 10000), because 10000 divides each of 10^7, 6*10^8 and 3.6*10^10.
  *      floor(n/d) changes only at multiples of d, so testing rem = k*10000 and rem = k*10000 - 1
  *      for every k in [0, 86 400 000) hits every quotient boundary of every one of the four
@@ -31,7 +31,7 @@
  *
  *   D. Alignment: the FILETIME placed at all 8 byte offsets of a qword, the SYSTEMTIME at all 16.
  *
- *   E. Page safety: a FILETIME occupying the LAST 8 BYTES of a committed page with the next page
+ *   E. Page safety: a filetime occupying the last 8 Bytes of a committed page with the next page
  *      PAGE_NOACCESS, and a SYSTEMTIME occupying the last 16 bytes of a committed page with the
  *      next page PAGE_NOACCESS. Both at once, too. A wide load or a wide store would fault.
  *

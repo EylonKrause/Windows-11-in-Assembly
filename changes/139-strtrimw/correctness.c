@@ -1,5 +1,5 @@
 // changes/139-strtrimw/correctness.c
-// Bit-exact fuzz of wia_strtrimw vs live shlwapi!StrTrimW + oracle. This one is in-place, so the WHOLE
+// Bit-exact fuzz of wia_strtrimw vs live shlwapi!StrTrimW + oracle. This one is in-place, so the whole
 // buffer is compared after the call (not just the resulting string) -- that also pins the
 // terminate-before-move ordering, which decides the bytes left past the new terminator.
 #define WIN32_LEAN_AND_MEAN

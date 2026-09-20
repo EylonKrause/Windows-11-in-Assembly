@@ -6,7 +6,7 @@
 ;
 ; Contract -- identical to strcat_s in wide units:
 ;   1. dst == NULL or size == 0      -> handler, EINVAL (22), dst untouched;
-;   2. no terminator in dst[0..size) -> dst[0] = 0, handler, EINVAL, and ONLY dst[0] is written;
+;   2. no terminator in dst[0..size) -> dst[0] = 0, handler, EINVAL, and only dst[0] is written;
 ;   3. src == NULL                   -> dst[0] = 0, handler, EINVAL;
 ;   4. src fits in the remainder     -> exactly len+1 wchars written at dst+L, return 0;
 ;   5. src does not fit              -> exactly `size - L` wchars appended FIRST, then dst[0] = 0 on

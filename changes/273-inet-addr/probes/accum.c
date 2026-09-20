@@ -1,9 +1,9 @@
 /* changes/273-inet-addr/probes/accum.c
  *
- * THE TWO RULES probes/overflow.c NARROWED BUT DID NOT SETTLE.
+ * The two rules probes/overflow.c narrowed but did not settle.
  *
  * ------------------------------------------------------------------------------------------------
- * A. HEXADECIMAL SEEMS TO WRAP, EXCEPT WHEN IT DOES NOT.
+ * a. Hexadecimal seems to wrap, except when it does not.
  *
  *     0x12345678     accepted, 0x12345678         eight digits, the control
  *     0x123456789    accepted, 0x23456789         NINE digits -- the top nibble is simply GONE
@@ -23,7 +23,7 @@
  * and the prediction either holds for all fifteen or it is the wrong rule.
  *
  * ------------------------------------------------------------------------------------------------
- * B. A LONE SPACE IS AN ADDRESS AND TWO SPACES ARE NOT.
+ * B. a lone space is an address and two spaces are not.
  *
  *     " "      accepted, 0.0.0.0
  *     "  "     REFUSED

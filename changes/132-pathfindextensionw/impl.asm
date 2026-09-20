@@ -7,12 +7,12 @@
 ;
 ; Contract:
 ;   the extension is the LAST '.' that occurs after the last STOPPER, where a stopper is a
-;   **backslash OR A SPACE**. '/' and ':' do NOT stop the search, even though PathFindFileNameW
+;   **backslash Or a space**. '/' and ':' do not stop the search, even though PathFindFileNameW
 ;   treats both as separators. So "a.b/c" -> the '.' at index 1, while "a.b\c" and "a.b " both ->
 ;   the terminator. A leading dot counts (".hidden" -> index 0) and a trailing dot counts ("a.b." ->
 ;   the final '.').
 ;
-; ---- THE SPACE WAS MISSING, AND THIS CHANGE SHIPPED WRONG -------------------------------------------
+; ---- The space was missing, and this change shipped wrong -------------------------------------------
 ; The original rule here had only the backslash, and was "validated bit-exact over 600k fuzz". It was
 ; not. That fuzz alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'} -- NO SPACE -- so the corpus
 ; could not produce the failing shape, and the oracle, the implementation and the test were all wrong

@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// EVERY CASE COMPARES THE WHOLE BUFFER. The live export leaves the bytes past the new terminator
+// Every case compares the whole buffer. The live export leaves the bytes past the new terminator
 // untouched -- stripping "C:\dir\file.txt" leaves "file.txt\0" followed by the stale tail "le.txt\0"
 // -- so an implementation that zero-filled the vacated space would produce the same STRING on every
 // input and only a whole-buffer check can tell it apart.

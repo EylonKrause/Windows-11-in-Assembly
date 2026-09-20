@@ -10,7 +10,7 @@
  * not "can we write it" -- it is the two questions that decide whether the existing assembly may be
  * pointed at msvcrt's exports at all:
  *
- *   1. ARE THEY THE SAME FUNCTION? msvcrt predates the UCRT. Its `_s` functions and its parsers may
+ *   1. Are they the same function? msvcrt predates the ucrt. Its `_s` functions and its parsers may
  *      differ from ucrtbase's in exactly the ways this project keeps finding: a different last
  *      error, a different partial write, a different answer to an invalid parameter. Assuming they
  *      match because the names match is the mistake that produced twelve defects in the live
@@ -23,7 +23,7 @@
  * A function is a target for materialisation only if the answer is YES to both. One NO to question
  * 1 makes it a separate change with a separate contract, not a re-use.
  *
- * RUN IT ON AN IDLE MACHINE. Every timing is a min-of-N.
+ * Run it on an idle machine. Every timing is a min-of-N.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -55,15 +55,15 @@ static double bestns(void (*op)(void), int inner, int trials)
 static volatile unsigned long long sink;
 static HMODULE hM, hU;
 
-/* ---- TWO CRTs MEANS TWO OF EVERYTHING, and the first cut of this file forgot both ----------
+/* ---- Two CRTs means two of everything, and the first cut of this file forgot both ----------
  *
- * (1) THE INVALID-PARAMETER HANDLER IS PER-CRT. `_set_invalid_parameter_handler` installs a
+ * (1) The invalid-parameter handler is per-crt. `_set_invalid_parameter_handler` installs a
  *     handler in the CRT that exports it, and this program links against the UCRT. Handing msvcrt
  *     an invalid base therefore went to MSVCRT's handler, which is the default one, which
  *     terminates the process: the first run died at 0xC0000409 with no output at all -- the same
  *     trap changes 110-113 hit. Both handlers are installed below.
  *
- * (2) `errno` IS PER-CRT TOO. The `errno` macro resolves to the UCRT's thread-local, so reading it
+ * (2) `errno` Is per-crt too. The `errno` macro resolves to the UCRT's thread-local, so reading it
  *     after an msvcrt call reads a variable msvcrt never touched, and every comparison would have
  *     been meaningless while looking perfectly reasonable. Each CRT's `_errno()` is resolved
  *     separately and read through its own pointer.
@@ -219,7 +219,7 @@ static int diffs_writers(void)
     GETB(strcpy_s, F_strcpys); GETB(wcscpy_s, F_wcscpys);
     GETB(_swab, F_swab); GETB(_memccpy, F_memccpy);
     for (si = 0; si < 4; ++si) {
-        /* msvcrt DOES NOT EXPORT _set_invalid_parameter_handler, so there is no way to make its
+        /* msvcrt does not export _set_invalid_parameter_handler, so there is no way to make its
          * `_s` functions report instead of terminating -- and the termination is __fastfail, which
          * SEH cannot catch either. The second run of this file died there, at 0xC0000409, after
          * printing the parser results. So the `_s` corpus is restricted to parameters that are

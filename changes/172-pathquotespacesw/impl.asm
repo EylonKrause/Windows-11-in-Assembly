@@ -13,7 +13,7 @@
 ;   otherwise              ->  buffer left COMPLETELY untouched, return FALSE
 ;
 ; Pinned by exhaustive sweep, and both are load-bearing:
-;   * "SPACE" IS EXACTLY U+0020 -- ONE of 65535 code units triggers quoting. TAB DOES NOT, and
+;   * "Space" is exactly U+0020 -- one of 65535 code units triggers quoting. Tab does not, and
 ;     neither does any other Unicode whitespace. A predicate like iswspace would be wrong.
 ;   * The MAX_PATH rule is n <= 257 (so the quoted result, terminator included, fits 260).
 ;     Measured directly: quoting happens for lengths 1..257 and stops at 258.
@@ -50,7 +50,7 @@ wia_pathquotespacesw PROC
         xor       r10d, r10d                     ; "a space was seen before the terminator"
 
         ;--------------------------------------------------------------------------------
-        ; SHORT PATH: two UNALIGNED 16-byte probes, covering paths of up to 15 characters.
+        ; Short path: two unaligned 16-byte probes, covering paths of up to 15 characters.
         ; Narrow loads are what matter here, not fewer of them. The caller (and this change's
         ; bench) writes the buffer immediately before the call, in narrow pieces; a 32-byte
         ; aligned load cannot be satisfied from the store buffer and stalls, while a 16-byte

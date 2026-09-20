@@ -1,40 +1,40 @@
 // live-substitution/live_subst_sid.c
 // LIVE-RUN PROOF for change 269 (advapi32!ConvertStringSidToSidW).
 //
-// THIS EXPORT ALLOCATES, AND THAT IS THE PROPERTY NO OTHER GATE CAN CHECK. Every success hands the
+// This export allocates, and that is the property no other gate can check. Every success hands the
 // caller a LocalAlloc block that the CALLER frees, through the process's ordinary, UNPATCHED
 // LocalFree. An implementation that returned a static buffer, a HeapAlloc block, or a LocalAlloc
 // block with the wrong flags would satisfy correctness.c -- which compares bytes -- and would
 // corrupt the caller's heap here. So every allocated SID in this harness is freed, all 38000-odd of
 // them, and a bad block shows up as a crash or a heap check rather than as a diff.
 //
-// WHAT IS COMPARED IS FOUR THINGS, NOT ONE:
+// What is compared is four things, not one:
 //   - the BOOL,
 //   - GetLastError(), which is the whole substance of three of this export's five exits
 //     (ERROR_INVALID_SID, ERROR_INVALID_PARAMETER, ERROR_ARITHMETIC_OVERFLOW),
-//   - WHAT HAPPENED TO THE OUTPUT POINTER: left alone, cleared to NULL, or written. A poison value
+//   - What happened to the output pointer: left alone, cleared to NULL, or written. a poison value
 //     is stored before every call, so "left alone" is observable rather than assumed. This matters
 //     because the three SDDL terminators `)`, `,` and `;` are the only characters in the whole
 //     16-bit space that make a FAILING call write the pointer, and a harness that only looked at
 //     the BOOL would call that identical,
 //   - and, when a SID came back, GetLengthSid plus a hash of every byte of it.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass, never carried in an array of
+// The corpus is regenerated from the case index on every pass, never carried in an array of
 // pointers and never advanced by a PRNG threaded through the three passes. Change 252's harness
 // carried PRNG state across its passes and reported 14285 differences with its patch counter at
 // ZERO -- the shipped export disagreeing with itself.
 //
-// THE TWO OS-DERIVED TABLES ARE BUILT BEFORE THE PATCH EXISTS, and they have to be: aliases.c and
+// The two os-derived tables are built before the patch exists, and they have to be: aliases.c and
 // classify.c both build themselves by ASKING ConvertStringSidToSidW several thousand questions. If
 // they ran while the patch was in place they would be asking our code what our code should say.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of the module -- never a live system process, never the file on disk.
 //       Note that GetProcAddress resolves advapi32's forwarder, so the bytes actually patched are
 //       sechost's; the harness prints which module it landed in.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither the loader nor
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the whole corpus
 //       is run again through the restored export.
@@ -142,7 +142,7 @@ static void appnum(int* n, unsigned long long v, int base, int digbase)
     while (k) cur[(*n)++] = t[--k];
 }
 
-/* THE CASE IS A PURE FUNCTION OF ITS INDEX. Eight classes, and the dials are deliberately given
+/* The case is a pure function of its index. Eight classes, and the dials are deliberately given
    co-prime strides so that no class is pinned to one shape of the others -- change 268's harness
    took its direction from the low bit and its content from index-modulo-six, and the surrogate
    class landed only on the direction that has no surrogates in its input. */
@@ -168,7 +168,7 @@ static void build_case(long i)
         break;
 
     case 1: {
-        /* TWO CHARACTERS: THE ALIAS TABLE, AND IT IS SWEPT RATHER THAN SAMPLED. The first draft
+        /* Two characters: The alias table, and it is swept rather than sampled. The first draft
            drew both characters at random from the 95 printable ASCII codes; 264 of those 9025
            pairs are aliases, so 5000 random draws reached 104 of them and the run said so. A
            corpus that touches 40 % of the one table this change builds from the OS is not a
@@ -320,7 +320,7 @@ static void run_case(F_S2S f, rec_t* out)
     if (p == POISON) { out->ptr = 0; return; }
     if (p == 0)      { out->ptr = 1; return; }
     out->ptr = 2;
-    /* THE BLOCK IS FREED THROUGH THE UNPATCHED LocalFree. If our implementation handed back
+    /* The block is freed through the unpatched LocalFree. If our implementation handed back
        anything LocalFree does not own, this is where the process dies. */
     if (IsValidSid(p)) {
         out->len = GetLengthSid(p);
@@ -359,7 +359,7 @@ int main(void)
         printf("  the export resolves to %p, which is in %ls\n", (void*)live, path);
     }
 
-    /* BEFORE THE PATCH EXISTS, and it has to be: both tables build themselves by asking this very
+    /* Before the patch exists, and it has to be: both tables build themselves by asking this very
        export several thousand questions. */
     if (wia_sid_classify_init()) { printf("  FAIL: the character classes failed to build\n"); return 1; }
     if (wia_sid_alias_init())    { printf("  FAIL: the alias table failed to build\n"); return 1; }

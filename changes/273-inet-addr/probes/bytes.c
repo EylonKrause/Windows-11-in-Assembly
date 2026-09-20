@@ -1,6 +1,6 @@
 /* changes/273-inet-addr/probes/bytes.c
  *
- * THE BYTE SETS AND THE OVERFLOW BOUNDARIES, SWEPT RATHER THAN SAMPLED.
+ * The byte sets and the overflow boundaries, swept rather than sampled.
  *
  * probes/grammar.c established the four forms and the three bases, and turned up three things that
  * a hand-written case list can only hint at:
@@ -17,7 +17,7 @@
  * 0x01..0xFF is asked in every position it can occupy: leading, trailing, between the digits of a
  * part, and as a separator.
  *
- * AND THE OVERFLOW BOUNDARIES, PER FORM. grammar.c showed the export REFUSES rather than wraps:
+ * And the overflow boundaries, per form. grammar.c showed the export refuses rather than wraps:
  *
  *     "1.1.65535"     accepted        "1.1.65536"     refused
  *     "1.16777215"    accepted        "1.16777216"    refused

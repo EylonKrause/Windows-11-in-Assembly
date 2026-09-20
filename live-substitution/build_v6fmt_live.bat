@@ -9,7 +9,7 @@ REM  own build.bat assembles them as v6core.obj / v6corew.obj), so all four are
 REM  linked here from their own directories and the two tables.c files -- whose
 REM  symbols are distinct -- come from 063 and 064.
 REM
-REM  SEPARATE FROM build_addrfmt_live.bat for a link reason: 063's tables.c and
+Rem  separate from build_addrfmt_live.bat for a link reason: 063's tables.c and
 REM  059's dec2b.c both define wia_dec2b, so the IPv4 and IPv6 groups cannot
 REM  share an image.
 REM ===========================================================================

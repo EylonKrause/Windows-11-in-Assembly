@@ -12,7 +12,7 @@
 ; bswap blocks; an exact 8-byte remainder is one bswap; the rest is scalar. Only when the
 ; string proves longer than 16 B do we switch to a page-safe 16-byte vector length scan.
 ;
-; The whole routine uses ONLY volatile registers -> no push/pop to pay on a small string.
+; The whole routine uses only volatile registers -> no push/pop to pay on a small string.
 ; ISA: AVX + SSSE3 (vpshufb). Validated bit-exact vs ucrtbase on Zen3.
 
 .const
@@ -115,7 +115,7 @@ sl_done:
         ; rax -> NUL. lo = rcx (= s, untouched), hi = rax (one past last char).
         mov       rdx, rax                           ; hi
 
-        ; ---- tier 1: 32-byte block swaps, with the LAST PAIR ALLOWED TO OVERLAP ------------------
+        ; ---- tier 1: 32-byte block swaps, with the last pair allowed to overlap ------------------
         ; The old tier 1 swapped 16-byte vpshufb blocks and stopped while at least 32 bytes
         ; remained, handing 16..31 bytes down to the bswap tier. Widening to 32 bytes needs
         ; vperm2i128 to swap the two 128-bit lanes after vpshufb reverses within them, and lets the

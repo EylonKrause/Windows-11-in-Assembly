@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!StrChrW. shlwapi's is a scalar one-wchar-at-a-time scan (~1.1 cycles/char --
 ; 62 ns to scan 254 chars), so this uses the AVX2 block scan proven in the landed 003 wcschr: each
-; 32-byte block is compared against BOTH wMatch and 0, and the FIRST stop position decides, so the
+; 32-byte block is compared against both wMatch and 0, and the FIRST stop position decides, so the
 ; terminator is never scanned past.
 ;
 ; It is NOT quite wcschr: searching for wMatch == 0 returns **NULL** here, where C's wcschr returns a

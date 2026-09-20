@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// THREE THINGS GET SPECIAL ATTENTION, and all three are specific to the wide form.
+// Three things get special attention, and all three are specific to the wide form.
 //
 // 1. The output must be UNTOUCHED on failure, so every case pre-poisons the GUID and compares all
 //    sixteen bytes afterwards even when the call is expected to fail.
@@ -105,7 +105,7 @@ int main(void){
         }
     }
 
-    // ---- THE WIDE SWEEP: characters above 0xFF at every position. This is what proves the
+    // ---- The wide sweep: characters above 0xFF at every position. This is what proves the
     // ---- saturating narrow is sound -- a truncation would read U+0130 as '0'.
     {
         static const wchar_t WIDE[] = {

@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 267 (ntdll!RtlCrc32).
+Rem  live-run proof for change 267 (ntdll!RtlCrc32).
 REM
 REM  A checksum is the easiest thing in this project to get subtly wrong and the
 REM  hardest to notice: one wrong constant gives a perfectly plausible 32-bit
@@ -8,7 +8,7 @@ REM  number at a perfectly plausible speed. Every case compares the exact value,
 REM  and the corpus is built around the two block boundaries the implementation
 REM  has -- 192 and 3072 bytes -- rather than around round numbers.
 REM
-REM  Most cases use a NON-ZERO initial CRC, because it enters only the FIRST of
+Rem  Most cases use a non-zero initial crc, because it enters only the first of
 REM  the three parallel chains: an implementation that seeded the wrong chain
 REM  would pass every case that started from zero.
 REM

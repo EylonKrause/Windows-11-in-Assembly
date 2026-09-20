@@ -1,6 +1,6 @@
 /* changes/288-foldstringw-digits/probes/contract.c
  *
- * WHICH FoldStringW FLAGS ARE A TABLE, AND WHICH ARE NOT?
+ * Which FoldStringW flags are a table, and which are not?
  *
  *     int FoldStringW(DWORD dwMapFlags, LPCWSTR lpSrcStr, int cchSrc, LPWSTR lpDestStr, int cchDest)
  *

@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/failwrite.c
  *
- * WHAT DOES A FAILING CALL LEAVE IN THE DESTINATION BUFFER?
+ * What does a failing call leave in the destination buffer?
  *
  * probes/statuses.c established the statuses and the terminator rule. It did NOT establish what
  * happens to the BYTES on a failing call, and the first draft of this change assumed the two
@@ -17,7 +17,7 @@
  *   UTF-16 -> UTF-8 : a failing call PARTIALLY FILLS the buffer with as much as fit. That is the
  *                     N-form's own behaviour showing through, so the wrapper can hand the caller's
  *                     buffer straight to the N-form and let it write what it can -- one pass.
- *   UTF-8 -> UTF-16 : a failing call writes NOTHING. The destination comes back untouched, which
+ *   UTF-8 -> UTF-16 : a failing call writes nothing. The destination comes back untouched, which
  *                     means the shipped code decides it will not fit BEFORE it converts anything --
  *                     it sizes first. A wrapper that converts straight into the caller's buffer
  *                     cannot reproduce that, because by the time the N-form reports the shortfall

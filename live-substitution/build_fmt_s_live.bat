@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 194-197 -- the bounded 64-bit formatter family.
-REM  /MD is REQUIRED: errno and the invalid-parameter handler must be UCRTBASE's --
+Rem  live-run proof for changes 194-197 -- the bounded 64-bit formatter family.
+Rem  /md is required: errno and the invalid-parameter handler must be UCRTBASE's --
 REM  the same ones our assembly writes through via its exported _errno /
 REM  _invalid_parameter_noinfo. With the static CRT the live export __fastfails.
 REM  Sacrificial single-threaded child; no system process is touched.

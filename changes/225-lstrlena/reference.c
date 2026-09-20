@@ -3,9 +3,9 @@
 //
 // Everything below was measured in probes/lena.c against the live export, not assumed:
 //
-//   * it is a PLAIN BYTE SCAN. Only 0x00 terminates. All 255 non-NUL byte values were placed at
+//   * it is a plain byte scan. Only 0x00 terminates. All 255 non-NUL byte values were placed at
 //     the first byte, in the middle, and immediately before the terminator -- 0 of 765 placements
-//     disagree. ACP 1252 has ZERO DBCS lead bytes (GetCPInfo), so there is no MBCS rule to respect;
+//     disagree. Acp 1252 has zero dbcs lead bytes (GetCPInfo), so there is no mbcs rule to respect;
 //   * NULL returns 0 and does not fault;
 //   * an access violation returns 0 -- not the partial length, at any distance from the guard;
 //   * lengths 0..300 and a 1 MB string are all exact, and every start offset in a 64-byte window

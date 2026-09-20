@@ -1,6 +1,6 @@
 // changes/201-ultow-s/correctness.c
 // Gate 1: wia_ultow_s must be indistinguishable from ucrtbase!_ultow_s -- the return value, the
-// WHOLE buffer (the ERANGE path leaves reversed leftovers, so the tail matters), errno, and the
+// whole buffer (the ERANGE path leaves reversed leftovers, so the tail matters), errno, and the
 // invalid-parameter handler hit count.
 //
 // Built /MD on purpose: errno and the handler must be UCRTBASE's, the same ones our assembly
@@ -83,7 +83,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY size 0..48 x several values x every radix: the whole ERANGE partial surface ----
+    // ---- every size 0..48 x several values x every radix: the whole ERANGE partial surface ----
     {
         static const unsigned long V[] = { 0, 1, 9, 10, 99, 100, 1234,
                                        2147483647UL, 2147483648UL, 4294967295UL,

@@ -2,11 +2,11 @@
 // Gate 1: wia_lstrcpya must be indistinguishable from kernelbase!lstrcpyA.
 // Three-way: our ASM + wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE TWO GUARD-PAGE SECTIONS ARE THE POINT OF THIS FILE.
+// The two guard-page sections are the point of this file.
 //
 // lstrcpyA has NO bound. It always runs off the end of a destination too small for the source, and
 // probes/cpya.c measured what that does: it returns NULL rather than faulting, and the destination
-// is filled EXACTLY to its last writable byte -- 80 of 80 rooms. The same is true on the source
+// is filled exactly to its last writable byte -- 80 of 80 rooms. The same is true on the source
 // side: an unterminated source at a guard page returns NULL with exactly the readable prefix
 // transferred.
 //
@@ -45,7 +45,7 @@ static int same_ret(char* ra, char* da, char* rc, char* dc)
     return ra == da && rc == dc;
 }
 
-/* one ordinary three-way case: the return value and the WHOLE destination */
+/* one ordinary three-way case: the return value and the whole destination */
 static int chk(const char* src, int dstoff, const char* what)
 {
     static char a[DSZ], b[DSZ], c[DSZ];
@@ -125,7 +125,7 @@ int main(void){
         CHECK(sys(0, 0) == 0,              "both NULL return NULL (live)");
     }
 
-    // ---- GUARD PAGE ON THE SOURCE: unterminated, at every distance ------------------------------
+    // ---- Guard page on the source: unterminated, at every distance ------------------------------
     // Must return NULL and leave in the destination exactly what the live export leaves.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
@@ -156,7 +156,7 @@ int main(void){
         VirtualFree(base, 0, MEM_RELEASE);
     }
 
-    // ---- GUARD PAGE ON THE DESTINATION: too small, at every distance ----------------------------
+    // ---- Guard page on the destination: too small, at every distance ----------------------------
     // THIS is the section that catches a source-only page clamp. The live export fills the
     // destination to its last writable byte and returns NULL; an implementation that writes a whole
     // 32-byte chunk gets a different amount in and is still "correct" by every other measure.
@@ -196,7 +196,7 @@ int main(void){
         VirtualFree(bc, 0, MEM_RELEASE);
     }
 
-    // ---- BOTH guarded at once: the clamp has to take the smaller remainder -----------------------
+    // ---- both guarded at once: the clamp has to take the smaller remainder -----------------------
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

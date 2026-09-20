@@ -5,7 +5,7 @@
 // The most widely used GUID formatter in COM, at 11.32 ns per call. Ours is one vpshufb and a
 // template store.
 //
-// WHAT MUST BE PROVED LIVE:
+// What must be proved live:
 //   * cchMax >= 39 writes 38 characters plus a NUL and returns 39 -- the count INCLUDING the
 //     terminator, not 38;
 //   * cchMax <= 38 returns 0 and leaves the buffer COMPLETELY UNTOUCHED. There is no truncating
@@ -18,7 +18,7 @@
 // refusals included, and the corpus deliberately mixes rendering lengths with refusing ones,
 // negatives among them.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // combase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere. The
 // harness uses no COM itself, so nothing else in the process calls through the patched export.
 //

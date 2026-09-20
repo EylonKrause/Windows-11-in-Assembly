@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/limits.c
  *
- * WHAT HAPPENS WHEN THE RESULT DOES NOT FIT IN A USHORT?
+ * What happens when the result does not fit in a ushort?
  *
  * Length and MaximumLength are USHORTs. A UNICODE_STRING can be 65534 bytes long; converted to
  * UTF-8 that is up to three bytes per character, and a UTF8_STRING converted the other way is two
@@ -58,9 +58,9 @@ static void out3(int n)
     if (st >= 0 && freeu8) freeu8(&d);
 }
 
-/* A source whose UTF-8 output is EXACTLY `want` bytes.
+/* A source whose UTF-8 output is exactly `want` bytes.
  *
- * THE SOURCE ITSELF IS LENGTH-LIMITED, which is the trap this function exists to avoid: a
+ * The source itself is length-limited, which is the trap this function exists to avoid: a
  * UNICODE_STRING holds at most 32767 characters, because Length counts BYTES in a USHORT. A first
  * version of this probe built `want`/2 two-byte characters, which at want = 65535 is 32768
  * characters, whose Length field wrapped to 0 -- and the rows then read as if ntdll had accepted a

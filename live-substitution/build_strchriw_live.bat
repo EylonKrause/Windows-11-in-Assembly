@@ -1,11 +1,11 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 281 (shlwapi!StrChrIW).
+Rem  live-run proof for change 281 (shlwapi!StrChrIW).
 REM
-REM  The shipped export costs 43 ns PER CHARACTER because its equality test is
+Rem  The shipped export costs 43 ns per character because its equality test is
 REM  CompareStringW with NORM_IGNORECASE, evaluated once per code unit. The
 REM  relation it computes is locale-invariant, decided one character at a time,
-REM  SYMMETRIC BUT NOT TRANSITIVE -- U+D7B0 matches U+D7A2 and U+D7B1 matches
+Rem  symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches
 REM  U+D7A2, but U+D7B0 does not match U+D7B1 -- so it has no classes and is
 REM  stored per NEEDLE.
 REM

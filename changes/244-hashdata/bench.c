@@ -1,7 +1,7 @@
 // changes/244-hashdata/bench.c
 // Gate 2: time wia_hashdata against the live shlwapi!HashData.
 //
-// THE CASE MIX IS THE WHOLE DESIGN HERE, because this function has TWO size parameters and its cost
+// The case mix is the whole design here, because this function has two size parameters and its cost
 // is their product. probes/cost.c measured the shipped surface across cbData x cbHash and found the
 // per-lookup cost FLAT at 0.42 ns for every digest of six bytes or more, and RISING as the digest
 // shrinks -- 0.51 ns at four bytes, 0.74 at two, 1.06 at one -- because a one-lane digest has no
@@ -13,7 +13,7 @@
 // The small digests are therefore in the table on purpose, at the shortest source length as well as
 // the longest -- they are the rows that decide whether this lands.
 //
-// NO RESTORE IS NEEDED. The digest is written to a buffer that is not read back, and the source is
+// No restore is needed. The digest is written to a buffer that is not read back, and the source is
 // never modified, so unlike the in-place path functions in this repository there is nothing to undo
 // between calls -- and therefore none of the restore artefacts that parked changes 142, 228, 230 and
 // 241. The destination still ROTATES across four buffers, for the same reason those changes now do:

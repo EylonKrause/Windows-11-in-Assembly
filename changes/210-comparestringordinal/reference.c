@@ -2,7 +2,7 @@
 // The correctness oracle for kernelbase!CompareStringOrdinal. Not fast; just obviously right.
 //
 // Contract, every line measured against the live export in probes/cso.c:
-//   * returns 1 LESS, 2 EQUAL, 3 GREATER; 0 with ERROR_INVALID_PARAMETER if either pointer is NULL;
+//   * returns 1 Less, 2 Equal, 3 Greater; 0 with ERROR_INVALID_PARAMETER if either pointer is NULL;
 //   * a count of -1 means NUL-terminated; ANY other count is EXACT, so embedded NULs are compared as
 //     ordinary characters and the scan does NOT stop at one;
 //   * compare min(c1,c2) characters; if those are equal the SHORTER string is LESS and equal lengths

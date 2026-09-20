@@ -3,7 +3,7 @@
 //
 // The contract is change 194's, and that is a MEASUREMENT: ../194-i64toa-s/probes/its.c ran the
 // byte and wide forms side by side over 200 000 random (value, size, radix) triples and compared
-// them CHARACTER FOR CHARACTER, untouched cells past the terminator included -- 0 differences.
+// them character for character, untouched cells past the terminator included -- 0 differences.
 // SizeInChars counts CHARACTERS here, not bytes.
 //
 // The success path is ordinary. The ERROR path is not, and it could not be fitted from probing:
@@ -11,7 +11,7 @@
 // size-2 case, where nothing but Buffer[0] is touched. The shipped code settled it --
 // dumpbin /disasm ucrtbase.dll, RVA 0x00079D60 with its shared worker at 0x00076F10:
 //
-//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), and NOTHING is written;
+//   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), and nothing is written;
 //   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation, which is
 //     why an invalid radix still empties the buffer while size 0 leaves it untouched;
 //   * negative := (Radix == 10 && Value < 0); every other radix formats the 64-bit value UNSIGNED;

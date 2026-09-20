@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlCopyBitMap and ntdll!RtlExtractBitMap.
  *
- * THE TARGET OFFSET IS THE SUBJECT, not a parameter. discovery/ntdll_bitmap2.c found the shipped
+ * The target offset is the subject, not a parameter. discovery/ntdll_bitmap2.c found the shipped
  * copy EIGHTEEN TIMES apart on the same 8 KB depending on three bits of it:
  *
  *      RtlCopyBitMap 65536 bits, target 0     101.05 ns    0.012 ns/byte    RtlCopyMemory
@@ -13,12 +13,12 @@
  * 7, 31 (every kind of shift). A table that reported one "copy" row would be averaging two
  * different functions.
  *
- * THE ALIGNED ROWS ARE THE HARD ONES AND THEY ARE KEPT. The shipped code reaches RtlCopyMemory
+ * The aligned rows are the hard ones and they are kept. The shipped code reaches RtlCopyMemory
  * there and runs at memory speed; beating it is not the point and matching it is not free. They are
  * measured rather than quietly dropped, because a change that made the shifted copy ten times
  * faster and the aligned copy twice as slow would be a regression for most callers.
  *
- * SHORT COPIES ARE HERE FOR THE USUAL REASON: a copy of twenty bits is two masked words and no loop
+ * Short copies are here for the usual reason: a copy of twenty bits is two masked words and no loop
  * at all, and that is where a vector implementation goes wrong.
  */
 #include "bench.h"

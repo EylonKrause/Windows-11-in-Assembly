@@ -1,6 +1,6 @@
 /* bad32check.c -- independent check of the bench's `bad32` class against the live export.
  *
- * WHY. changes/034's TGL variant reports bad32 at ~9.4 ns for 64 bytes AND for 32000 bytes --
+ * Why. changes/034's tgl variant reports bad32 at ~9.4 ns for 64 bytes and for 32000 bytes --
  * constant time regardless of length, which would be 3379 GB/s. ntdll takes 12000 ns for the same
  * 32000 bytes, so ntdll is processing them. correctness.c passes 327,758 cases, so either the
  * variant is genuinely returning the right answer without looking at the input (impossible), or

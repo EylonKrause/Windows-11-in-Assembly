@@ -1,6 +1,6 @@
 @echo off
 REM changes/295-rtlunicodestringtointeger/build.bat -- assemble, gate on correctness, then benchmark.
-REM The bench is NEVER reached unless correctness.exe returns 0.
+REM The bench is never reached unless correctness.exe returns 0.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1
 set HERE=%~dp0

@@ -39,7 +39,7 @@ static PIP pip;
 
 static char out[4096];
 
-/* Run one case and describe the WHOLE observable result: the return, how many bytes of the poison
+/* Run one case and describe the whole observable result: the return, how many bytes of the poison
    fill were disturbed, and the string that was left. */
 static void show(const char* a, const char* b, const char* what)
 {

@@ -100,7 +100,7 @@ static const wchar_t* SHAPES[] = {
     L".\\\\\\.", L"\\.\\\\.", L"..\\\\\\.", L"\\..\\\\.", L".\\\\\\..", L"a\\..\\\\.",
     L"\\\\\\..\\.", L"..\\\\\\..", L"\\..\\\\..", L".\\\\.\\", L"\\.\\", L"aa\\.", L"a\\\\.",
     L"C:\\a\\\\\\..", L"C:\\\\..", L"C:\\\\\\..", L"C:\\a\\.\\..", L"C:\\a\\z..\\..",
-    /* IS THE DRIVE-LETTER TEST UNICODE-AWARE? The oracle assumes ASCII A-Z only, and the 5.8 M
+    /* Is the drive-letter test unicode-aware? The oracle assumes ASCII a-z only, and the 5.8 M
        enumerated cases were all ASCII, so the assumption was never tested. If the live function
        accepts a Cyrillic letter as a drive letter -- its prefix test calls an indirect character
        predicate, which could be IsCharAlphaW -- these cases say so. */

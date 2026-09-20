@@ -1,5 +1,5 @@
 ; changes/029-rtloemtounicoden/impl.asm
-; NTSTATUS wia_oem2un(wchar_t* dst, ULONG maxBytes, PULONG outLen, const char* src, ULONG srcBytes)
+; NTSTATUS wia_oem2un(wchar_t* dst, ulong maxBytes, pulong outLen, const char* src, ulong srcBytes)
 ;   [Win64: rcx, edx, r8, r9, [rsp+0x28] -> eax; *outLen = bytes written]
 ;
 ; Reimplements ntdll!RtlOemToUnicodeN (single-byte ANSI -> UTF-16, one wchar

@@ -1,18 +1,18 @@
 /* changes/276-varbstrcmp/probes/contract.c
  *
- * WHAT IS VarBstrCmp SPENDING 3162 NANOSECONDS ON?
+ * What is VarBstrCmp spending 3162 Nanoseconds on?
  *
  * discovery/sid_inet_bstr.c measured it at 3162.50 ns on 8000 bytes -- by far the largest number in
  * that sweep, and about 0.40 ns per byte. For comparison, this project's RtlCompareUnicodeString
  * (change 008) runs at roughly 0.01 ns per byte and CompareStringOrdinal (change 210) at 0.02. Three
- * orders of magnitude is not an implementation being careless; it is a DIFFERENT AMOUNT OF WORK, and
+ * orders of magnitude is not an implementation being careless; it is a different amount of work, and
  * the signature says which:
  *
  *     HRESULT VarBstrCmp(BSTR left, BSTR right, LCID lcid, ULONG flags)
  *
  * An LCID means linguistic collation -- the same machinery CompareStringW drives -- and change 210's
  * notes already record that a linguistic comparison is not something this project reimplements. So
- * THE FIRST QUESTION IS WHETHER THERE IS ANYTHING HERE AT ALL, and it has to be answered before any
+ * The first question is whether there is anything here at all, and it has to be answered before any
  * assembly is written. Change 274 was parked for exactly this reason after the fact; asking first is
  * cheaper.
  *
@@ -24,9 +24,9 @@
  *      not ours.
  *   2. What does it return, exactly? VARCMP_LT/EQ/GT are 0/1/2, not -1/0/1, and the flags argument
  *      accepts NORM_IGNORECASE among others.
- *   3. THE NULL AND EMPTY RULES. A BSTR may be NULL, and a NULL BSTR is conventionally the same as
+ *   3. The NULL and empty rules. a BSTR may be NULL, and a NULL BSTR is conventionally the same as
  *      an empty one -- but "conventionally" is what this project keeps being punished for.
- *   4. IS THERE A FAST PATH THAT IS OURS? Two identical pointers, two strings of different length,
+ *   4. Is there a fast path that is ours? Two identical pointers, two strings of different length,
  *      an empty operand -- if the export short-circuits any of those, that is a path whose cost is
  *      not collation, and it is where a change could live.
  *   5. What does the LENGTH cost? A comparison that is linguistic in the tail but ordinal in the

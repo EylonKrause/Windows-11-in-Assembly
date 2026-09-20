@@ -14,7 +14,7 @@ typedef struct { const wchar_t* s; const wchar_t* set; } ctx_t;
 // loop-invariant-arg function; with /O2 MSVC devirtualizes the harness's call and
 // hoists it clean out of the timing loop (=> bogus "0.00 ns"), while the system fn
 // (an opaque GetProcAddress pointer) is always really called -- an unfair compare.
-// Opt-off here forces a real call for BOTH, symmetric and correct. (The harness in
+// Opt-off here forces a real call for both, symmetric and correct. (The harness in
 // bench.h stays fully optimized.)
 #pragma optimize("", off)
 static uint64_t op_ours(void*c){ ctx_t*m=(ctx_t*)c; return (uint64_t)(uintptr_t)wia_wcspbrk(m->s,m->set); }

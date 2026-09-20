@@ -1,9 +1,9 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 265 (ntdll!RtlAppendAsciizToString).
+Rem  live-run proof for change 265 (ntdll!RtlAppendAsciizToString).
 REM
-REM  The WHOLE destination buffer is compared, not the status and not Length.
-REM  This export writes into a caller's buffer and NEVER writes a terminator --
+REM  The whole destination buffer is compared, not the status and not Length.
+REM  This export writes into a caller's buffer and never writes a terminator --
 REM  unlike its wide sibling, which change 101 landed and which does -- so the
 REM  buffer is poison-filled and folded into a 64-bit hash for every case.
 REM

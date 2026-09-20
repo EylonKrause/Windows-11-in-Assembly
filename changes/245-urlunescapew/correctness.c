@@ -2,8 +2,8 @@
  *
  * Gate 1 for change 245: wia_urlunescapew must be indistinguishable from the live UrlUnescapeW.
  *
- * THREE-WAY on every case -- ours, an independent oracle (reference.c) and the LIVE EXPORT -- and
- * every case compares the HRESULT, the WHOLE DESTINATION against a sentinel fill, AND *pcch. All
+ * Three-way on every case -- ours, an independent oracle (reference.c) and the live export -- and
+ * every case compares the HRESULT, the whole destination against a sentinel fill, and *pcch. All
  * three are load-bearing:
  *
  *   * %00 and a too-small buffer must leave the destination COMPLETELY UNTOUCHED, which only a
@@ -13,18 +13,18 @@
  *     result length, so *pcch is a separate observable and off by one in either direction is a bug.
  *   * URL_UNESCAPE_INPLACE must not write *pcch at all.
  *
- * THE FOUR AXES THAT MATTER, and why each is here rather than sampled:
+ * The four axes that matter, and why each is here rather than sampled:
  *
- *   1. EVERY CODE UNIT IN BOTH ESCAPE POSITIONS. The hex set is 22 ASCII characters out of 65536,
+ *   1. Every code unit in both escape positions. The hex set is 22 ASCII characters out of 65536,
  *      and an implementation that accepted one more -- a full-width digit, say, or a character the
  *      OS tables call a hex digit -- would pass any corpus of realistic URLs. So both positions are
  *      swept over all 65535 non-NUL code units.
- *   2. EVERY BUFFER SIZE AROUND THE RESULT LENGTH. The size test is STRICT and its failure must not
+ *   2. Every buffer size around the result length. The size test is strict and its failure must not
  *      touch the destination, so every capacity from 1 to result+3 is driven for several shapes.
- *   3. THE FLAG CROSS PRODUCT, including the delegated ones. The native domain is
+ *   3. The flag cross product, including the delegated ones. The native domain is
  *      {0, INPLACE, DONT_UNESCAPE_EXTRA_INFO, both}; AS_UTF8 and every other single bit must come
  *      back byte-identical too, through the fallback.
- *   4. OVERLAP AT EVERY RELATIVE PLACEMENT. The shipped function stages through a temporary, so
+ *   4. Overlap at every relative placement. The shipped function stages through a temporary, so
  *      overlap is well-defined; ours writes directly when the destination is at or below the source
  *      and delegates otherwise, and the only way to know both halves are right is to drive every
  *      placement.

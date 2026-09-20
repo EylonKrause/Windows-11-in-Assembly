@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar _wcsupr_s. Not fast; just correct.
 // Contract derived in probes/wus.c and fuzz-confirmed against the live export
 // (1,000,000 cases, 0 mismatches):
-//   * the fold is EXACTLY the 26 ASCII letters a-z (swept over all 65535 code units; it is NOT
+//   * the fold is exactly the 26 ASCII letters a-z (swept over all 65535 code units; it is NOT
 //     RtlUpcaseUnicodeChar, which differs in 947 cases);
 //   * success -> 0, upcased in place, nothing past the terminator touched;
 //   * if the string does not terminate strictly inside numberOfElements -> EINVAL (22) AND

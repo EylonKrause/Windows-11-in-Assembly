@@ -1,6 +1,6 @@
 /* changes/289-widechartomultibyte/probes/contract.c
  *
- * WHAT THE LIVE EXPORT ACTUALLY DOES -- asked, not assumed.
+ * What the live export actually does -- asked, not assumed.
  *
  * The documentation for WideCharToMultiByte says several things about CP_UTF8 that the shipped
  * code does not do, and the disassembly of kernelbase!WideCharToMultiByte (RVA 0x00054A80 in
@@ -18,7 +18,7 @@
  *   8  lpDefaultChar / lpUsedDefaultChar non-NULL            -> error, or used?
  *   9  negative cchWideChar other than -1                    -> ?
  *  10  the measuring mode (cbMultiByte == 0)                 -> value, and is lpMultiByteStr read?
- *  11  a destination that is too small                       -> return, error, and WHAT IS WRITTEN
+ *  11  a destination that is too small                       -> return, error, and what is written
  *  12  a lone surrogate, with and without WC_ERR_INVALID_CHARS
  *  13  is the last error preserved on success?
  *  14  cchWideChar longer than the string                    (is the count authoritative?)

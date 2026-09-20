@@ -2,18 +2,18 @@
  *
  * OURS vs the LIVE ntdll!RtlCrc32.
  *
- * THE WORK IS PROPORTIONAL TO THE LENGTH and there is no early exit -- every byte enters the CRC --
+ * The work is proportional to the length and there is no early exit -- every byte enters the crc --
  * so the subject of every row is simply its size. What the rows are chosen AROUND is the two block
  * boundaries: 192 bytes, where the short three-way split begins, and 3072, where the long one does.
  * A row set that sampled only round numbers would miss the sizes where a split has just become
  * possible or just stopped being possible, which is exactly where a three-way implementation can
  * lose to a serial one.
  *
- * THE SHORT ROWS CALL SIXTEEN TIMES PER TIMED OP, for the reason change 261 established by
+ * The short rows call sixteen times per timed op, for the reason change 261 established by
  * measuring it: an empty call through this harness costs 2.32 ns, which is most of what a 16-byte
  * CRC measures. Their labels say so.
  *
- * EVERY ROW PRINTS THE CRC IT COMPUTED, checked against the live export before anything is timed.
+ * Every row prints the crc it computed, checked against the live export before anything is timed.
  * A checksum is the easiest thing in this project to get subtly wrong and the hardest to notice:
  * one wrong constant gives a perfectly plausible 32-bit number at a perfectly plausible speed.
  */

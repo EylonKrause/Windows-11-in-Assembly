@@ -1,23 +1,23 @@
 /* changes/281-strchriw/probes/widerfold.c
  *
- * MY OWN CONTRACT PROBE HAD THE BLIND SPOT THIS PROJECT KEEPS FINDING.
+ * My own contract probe had the blind spot this project keeps finding.
  *
- * probes/contract.c concluded that StrChrIW's equality is EXACTLY the ordinal upcase table, with
+ * probes/contract.c concluded that StrChrIW's equality is exactly the ordinal upcase table, with
  * "0 disagreements over 3892 candidate pairs". Then the correctness corpus disagreed on four
  * needles out of 65535 -- U+1D2C, U+1D2E, U+1D43, U+1D47 -- where the live export finds a plain
  * 'a' or 'b' and the ordinal table says they are unrelated characters.
  *
  * The reason contract.c could not see it is the reason changes 097 and 100 shipped broken: THE
- * CORPUS COULD NOT EXPRESS THE CASE. It built its candidate pairs from CharUpperW, CharLowerW,
+ * Corpus could not express the case. It built its candidate pairs from CharUpperW, CharLowerW,
  * RtlUpcaseUnicodeChar and RtlDowncaseUnicodeChar of each code unit -- so a pair that NONE of those
- * four functions relates, such as (U+1D2C MODIFIER LETTER CAPITAL A, 'a'), was never asked about.
+ * four functions relates, such as (U+1D2C modifier letter capital a, 'a'), was never asked about.
  * Zero disagreements over the pairs it could generate, and it generated the wrong pairs.
  *
- * U+1D2C is MODIFIER LETTER CAPITAL A. A LINGUISTIC collation folds it onto 'A'; an ordinal upcase
+ * U+1D2C is modifier letter capital a. a linguistic collation folds it onto 'a'; an ordinal upcase
  * does not. So the question this file has to settle is the one that decides whether this change can
  * exist at all:
  *
- *     IS StrChrIW's EQUALITY A LINGUISTIC FOLD?
+ *     Is StrChrIW's equality a linguistic fold?
  *
  * If it is, the 43 ns per character is a collation this project does not own, and change 281 parks
  * exactly as 274 and 276 did. If it is an ordinal fold with a small set of extra equivalences, the

@@ -1,9 +1,9 @@
 /* changes/261-rtlfindnextforwardrunclear/correctness.c
  *
- * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll exports, for BOTH
+ * Three-way: ours vs an independent oracle vs the live ntdll exports, for both
  * RtlFindNextForwardRunClear and RtlFindLastBackwardRunClear.
  *
- * BOTH THE LENGTH AND THE START ARE COMPARED, and the start is pre-filled with a poison value so a
+ * Both the length and the start are compared, and the start is pre-filled with a poison value so a
  * case where the export leaves it alone is distinguishable from one where it writes something.
  * That matters here: "nothing found" still writes the pointer, and the two forms write DIFFERENT
  * values -- SizeOfBitMap forward, zero backward -- so an implementation that returned the right
@@ -11,13 +11,13 @@
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap x every FromIndex, both exports. Nothing sampled: this
  *      covers every arrangement of runs and every position inside, before and after them.
- *   2. FromIndex AT EVERY POSITION in and around a single planted run, which is the case the
+ *   2. FromIndex at every position in and around a single planted run, which is the case the
  *      contract is really about -- the forward form clips the start and the backward form clips
  *      the end, and an implementation that reported the run's true extent would pass a corpus that
  *      only ever asked from outside it.
  *   3. THE SLACK: a run reaching the end of the buffer, with the bitmap declared at every size
  *      inside that run.
- *   4. A GUARD PAGE at the end of the buffer at odd ULONG counts -- the vector step reads 32 bytes.
+ *   4. a guard page at the end of the buffer at odd ulong counts -- the vector step reads 32 bytes.
  *   5. RANDOMISED at several densities, with FromIndex everywhere including past the end.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -143,7 +143,7 @@ int main(void)
             ULONG nw, sz, k, f;
             for (nw = 1; nw <= 41; ++nw) {
                 ULONG* buf = (ULONG*)(base + si.dwPageSize) - nw;
-                /* THE BACKWARD FORM IS ONLY ASKED AT AN EVEN ULONG COUNT, and that is not a
+                /* The backward form is only asked at an even ulong count, and that is not a
                    convenience -- it is a property of the SHIPPED export. RtlFindLastBackwardRunClear
                    tests the starting bit with
 

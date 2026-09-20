@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 192 (RtlAreBitsClear) and 193 (RtlIsTextUnicode).
+Rem  live-run proof for changes 192 (RtlAreBitsClear) and 193 (RtlIsTextUnicode).
 REM  Sacrificial single-threaded child; no system process is touched, nothing on
 REM  disk is modified. 193 compares the BOOL and the rewritten *lpi on every case.
 REM ===========================================================================

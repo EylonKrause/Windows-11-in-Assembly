@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_strrchriw against the live shlwapi!StrRChrIW.
  *
- * THE ROWS ARE THE FOUR DISPATCH SHAPES AND THE TWO WAYS A BACKWARD SEARCH ENDS.
+ * The rows are the four dispatch shapes and the two ways a backward search ends.
  *
  * A backward search is not a forward search run in reverse when it comes to timing: the LAST match
  * is the one returned, so a match near the END is the cheap case and a match near the START is the

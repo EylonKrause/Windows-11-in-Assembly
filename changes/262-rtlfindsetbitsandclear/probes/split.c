@@ -1,6 +1,6 @@
 /* changes/262-rtlfindsetbitsandclear/probes/split.c
  *
- * WHERE DOES THE GENERAL PATH'S TIME GO?
+ * Where does the general path's time go?
  *
  * Three rows of eighteen sit just under the gate -- 256 bits at 0.97x, 1 Kbit at 0.96x, and the
  * N=1024 mutation at 0.90x -- and there are two completely different explanations available:
@@ -10,7 +10,7 @@
  *   (b) the search is comfortably faster and the wrapper -- a frame, a call, a return and the
  *       parameter shuffle around it -- is eating the margin, in which case the call has to go.
  *
- * GUESSING BETWEEN THOSE TWO IS HOW TIME GETS SPENT ON THE WRONG CODE, so this measures them
+ * Guessing between those two is how time gets spent on the wrong code, so this measures them
  * apart, on the exact subjects the failing rows use:
  *
  *   1. ntdll!RtlFindSetBitsAndClear      -- what has to be beaten
@@ -18,10 +18,10 @@
  *   3. wia_findsetbits (change 256)      -- our search alone, no wrapper at all
  *   4. wia_findsetbitsandclear (262)     -- our search plus this change's wrapper
  *
- * (4) minus (3) IS THE WRAPPER, measured rather than estimated. (1) minus (2) is what the shipped
+ * (4) minus (3) Is the wrapper, measured rather than estimated. (1) minus (2) is what the shipped
  * code pays for the same privilege, which is the fair thing to compare it against.
  *
- * WHAT IT FOUND, AND WHAT IT CORRECTED. The wrapper is a flat 0.79 ns at every size, and change
+ * What it found, and what it corrected. The wrapper is a flat 0.79 ns at every size, and change
  * 256's search has a fixed cost of about 7 ns that is nearly constant from 128 bits to 1 Kbit --
  * so below 512 bits the search merely TIES the shipped code and the wrapper turns a tie into a
  * loss. That is (a), not (b).
@@ -98,7 +98,7 @@ static void row_pat(const char* label, ULONG bits, ULONG n, ULONG pat)
 /* NOT FOUND: a full scan that writes nothing */
 static void row(const char* label, ULONG bits, ULONG n) { row_pat(label, bits, n, 0xA5A5A5A5u); }
 
-/* FOUND AT BIT ZERO: the search is trivial, so the row is almost entirely the MUTATION -- which is
+/* Found at bit zero: the search is trivial, so the row is almost entirely the mutation -- which is
    the other thing that could be wrong. Note this one is NOT repeatable: each call consumes N bits,
    so it is only meaningful as a first-call comparison, and it is printed apart from the rest. */
 static void row_found(const char* label, ULONG bits, ULONG n)
@@ -151,7 +151,7 @@ int main(void)
     row_found("64 Kbit ones, N=1024",  65536, 1024);
     row_found("64 Kbit ones, N=30000", 65536, 30000);
 
-    /* ---- THE FILL, ISOLATED ----------------------------------------------------------------
+    /* ---- The fill, isolated ----------------------------------------------------------------
        A mutating call cannot be timed twice on the same bitmap, but a PAIR can: over an all-ones
        bitmap, and-clear followed by clear-and-set returns it to exactly what it was. Timing that
        self-inverting pair against the SAME pair of READ-ONLY searches -- which do the identical
@@ -160,7 +160,7 @@ int main(void)
         volatile uint64_t sink = 0;
         static const ULONG NS[8] = { 8, 64, 128, 192, 256, 512, 1024, 30000 };
         int k;
-        /* THE READ-ONLY BASELINE IS NOT A VALID SUBTRAHEND and the columns that used it are gone:
+        /* The read-only baseline is not a valid subtrahend and the columns that used it are gone:
            RtlFindClearBits over an ALL-ONES bitmap finds nothing and scans all 64 Kbit, so the
            "read-only pair" does hundreds of ns more searching than the mutating pair, and the
            difference came out NEGATIVE. What is printed is what can honestly be compared: the two

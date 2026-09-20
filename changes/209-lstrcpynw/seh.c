@@ -1,7 +1,7 @@
 // changes/209-lstrcpynw/seh.c
 // The exception wrapper for kernelbase!lstrcpynW, and the argument checks.
 //
-// WHY THIS FILE EXISTS. probes/lcp.c established that lstrcpynW SWALLOWS A FAULTING SOURCE: an
+// Why this file exists. probes/lcp.c established that lstrcpynW swallows a faulting source: an
 // unterminated string running into an unmapped page returns NULL, with the characters that WERE
 // readable already in the destination. That is not incidental -- it is the documented behaviour, and
 // a reimplementation that simply faulted would be a crash where the shipped function returns a value.
@@ -11,7 +11,7 @@
 //   * a __try/__except that converts an access violation into NULL, leaving whatever the core had
 //     already copied in place.
 //
-// THIS COSTS NOTHING ON THE FAST PATH. x64 structured exception handling is table-driven: the
+// This costs nothing on the fast path. x64 structured exception handling is table-driven: the
 // unwind data lives in .pdata/.xdata and no prologue instruction, register or stack slot is spent
 // unless an exception actually fires. The wrapper compiles to the argument tests and a tail call.
 //

@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 270 (advapi32!ConvertSidToStringSidW).
+Rem  live-run proof for change 270 (advapi32!ConvertSidToStringSidW).
 REM
 REM  This export ALLOCATES. Every success hands the caller a LocalAlloc block
 REM  that the caller frees through the ordinary, UNPATCHED LocalFree, so the
@@ -12,7 +12,7 @@ REM  whatever it was before), what happened to the output pointer (a poison valu
 REM  distinguishes "left alone" from "cleared" from "written"), LocalSize and
 REM  LocalFlags, and a hash of every byte of the block.
 REM
-REM  CHANGE 067 IS LINKED IN, NOT COPIED: this change is an envelope over it, and
+Rem  change 067 Is linked in, not copied: this change is an envelope over it, and
 REM  probes/contract.c established that advapi32's formatter and ntdll's produce
 REM  the same text for every shape of SID and refuse the same ones. probe.c comes
 REM  with it, because 067 reads the revision, the count and the last

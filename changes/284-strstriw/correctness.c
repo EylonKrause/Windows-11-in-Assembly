@@ -2,12 +2,12 @@
  *
  * Three-way: ours vs an independent scalar model vs the LIVE shlwapi export.
  *
- * THE CORPORA ARE INHERITED FROM CHANGE 283 ON PURPOSE. Every one of that change's corpora 7-13
+ * The corpora are inherited from change 283 On purpose. Every one of that change's corpora 7-13
  * exists because a mutant survived, and one of them caught a defect in the shipped implementation
  * rather than in a mutant. Rebuilding this gate from the "obvious" cases would walk into the same
  * holes, so the shapes come over from the start and are adapted to a FORWARD, first-match search:
  *
- *   * interior near-misses at EVERY index, with the vector filter neutralised;
+ *   * interior near-misses at every index, with the vector filter neutralised;
  *   * a match planted where the scan must NOT find it -- for a forward scan, below the haystack
  *     pointer and below the resumed scan bound, which is what the bottom edge mask is for;
  *   * every member of every filter dispatch class, because a four-register filter asked to hold a
@@ -216,7 +216,7 @@ int main(void)
         }
     }
 
-    /* 7. every needle length x EVERY interior index, as a one-character near-miss with the filter
+    /* 7. every needle length x every interior index, as a one-character near-miss with the filter
           neutralised, plus the repaired control, on both dispatch paths */
     {
         long before = cases;
@@ -290,7 +290,7 @@ int main(void)
                cases - before);
     }
 
-    /* 9. A MATCH PLANTED BELOW THE HAYSTACK POINTER, AT EVERY ALIGNMENT.
+    /* 9. a match planted below the haystack pointer, at every alignment.
      *
      * The forward block scan reads aligned 32-byte blocks, so the block containing the haystack
      * pointer almost always extends BELOW it, and the bottom edge mask is the only thing stopping a
@@ -316,7 +316,7 @@ int main(void)
                "     found-control above it: %ld\n", cases - before);
     }
 
-    /* 10. one needle per filter dispatch class, planted with EVERY member of its set.
+    /* 10. one needle per filter dispatch class, planted with every member of its set.
      *
      * probes/partners.c (change 283) measured that only nine partner counts occur: 0, 2, 3, 4, 5, 6,
      * 7, 8 and the 255 bitmap sentinel. A four-register filter asked to hold a five-member set must
@@ -446,7 +446,7 @@ int main(void)
                "      control: %ld\n", cases - before);
     }
 
-    /* 14. THE EMPTY NEEDLE OVER A HAYSTACK THAT CONTAINS A NUL-MATCHING CODE UNIT.
+    /* 14. The empty needle over a haystack that contains a nul-matching code unit.
      *
      * Corpus 5 asks for an empty needle over "abcXYZabc" and gets NULL, and the first draft of this
      * change concluded that an empty needle is refused -- the way change 283 correctly measured for
@@ -456,7 +456,7 @@ int main(void)
      * of them empty needles over haystacks that happened to contain a soft hyphen.
      *
      *     StrStrIW  with an empty needle -> the FIRST code unit matching a NUL, or NULL
-     *     StrRStrIW with an empty needle -> ALWAYS NULL
+     *     StrRStrIW with an empty needle -> always NULL
      *
      * So the two exports of this family genuinely differ here, and inheriting either answer is wrong.
      * A zero width space is ignorable but does NOT match a NUL, and still gives NULL, which pins the

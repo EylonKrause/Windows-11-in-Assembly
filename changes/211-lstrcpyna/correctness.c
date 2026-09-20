@@ -3,18 +3,18 @@
 //
 // Three-way: our assembly+SEH wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// THREE THINGS DRIVE THE SHAPE OF THIS TEST.
+// Three things drive the shape of this test.
 //
-// 1. The destination is TERMINATED, NOT PADDED. Every case therefore compares the WHOLE destination
+// 1. The destination is terminated, not padded. Every case therefore compares the whole destination
 //    buffer against a poison fill, not just the copied prefix -- a strncpy-shaped implementation
 //    would zero-fill the tail and pass a prefix-only check.
-// 2. A FAULTING SOURCE IS PART OF THE CONTRACT: it returns NULL with the readable prefix already
+// 2. a faulting source is part of the contract: it returns NULL with the readable prefix already
 //    copied. The page-guard section below builds exactly that -- an unterminated string ending at a
 //    PAGE_NOACCESS boundary -- and compares our result against the LIVE export byte for byte,
 //    including how much of the destination each one filled in before giving up. That is what the
 //    page-safe copy in impl.asm exists to get right; a 32-byte load straddling the boundary would
 //    fault before storing and leave less behind.
-// 3. A NARROW character is ONE BYTE, so the source can sit at ANY offset in a page and a 32-byte
+// 3. a narrow character is one byte, so the source can sit at any offset in a page and a 32-byte
 //    chunk covers 32 characters rather than 16. Both change where the page-safe path engages, so the
 //    page-guard section walks every source length 1..96 -- three full chunk widths -- rather than
 //    relying on the two-byte alignment the wide form always had.
@@ -91,7 +91,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY byte offset through a 32-byte chunk, for source and destination independently. A
+    // ---- every byte offset through a 32-byte chunk, for source and destination independently. A
     // ---- narrow character imposes no alignment at all, so the chunked path has to be correct from
     // ---- any starting address, not merely from an even one.
     {
@@ -153,7 +153,7 @@ int main(void){
     // An UNTERMINATED source ending exactly at a PAGE_NOACCESS page. The live export swallows the
     // fault and returns NULL with the readable prefix already copied; ours must do the same, and
     // must have copied exactly as much. The oracle cannot model a fault, so this compares against
-    // the LIVE export only. EVERY bound 1..n is walked, not a sampled subset, because the decisive
+    // the LIVE export only. every bound 1..n is walked, not a sampled subset, because the decisive
     // case is the single value n == srclen+1 where the shipped loop reads one past what it copies.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);

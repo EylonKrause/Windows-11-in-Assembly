@@ -1,8 +1,8 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 258 (ntdll!RtlFindClearRuns).
+Rem  live-run proof for change 258 (ntdll!RtlFindClearRuns).
 REM
-REM  ONE export, but its two forms are patched and driven SEPARATELY, each with
+Rem  one export, but its two forms are patched and driven separately, each with
 REM  its own counter: SortByLength selects between a 64-bit word scan and a
 REM  byte scan whose emission order is the thing being matched, so a harness
 REM  that mixed them could pass while one of them was wrong.

@@ -65,7 +65,7 @@ static int skip_rootlen(const wchar_t* p)
     return (int)(out - p);
 }
 
-/* THE STRUCTURAL PREFIX -- what RemoveBackslashEx actually protects. Measured as its own fixed point
+/* The structural prefix -- what RemoveBackslashEx actually protects. Measured as its own fixed point
    in probes/pcabsx3.c: 0 disagreements over 97 656 strings. The server and share are NOT protected,
    which is what separates it from change 240's root (that one protects them) and from
    PathCchSkipRoot (which protects them AND includes the trailing separator). Three conventions in one
@@ -104,7 +104,7 @@ static HRESULT model_add(wchar_t* p, size_t cch, PWSTR* pe, size_t* pr)
     if (cch == 0) return HR_BUF;
     int n = 0; while (p[n]) ++n;
     if (n == 0 || is_sep(p[n-1])) {
-        /* nothing to append. NO UPPER CEILING ON THIS PATH -- measured: it accepts SIZE_MAX. */
+        /* nothing to append. No upper ceiling on this path -- measured: it accepts SIZE_MAX. */
         if (cch < (size_t)n + 1) return HR_BUF;
         if (pe) *pe = p + n;
         if (pr) *pr = cch - (size_t)n;
@@ -129,7 +129,7 @@ static HRESULT model_rem(wchar_t* p, size_t cch, PWSTR* pe, size_t* pr)
     if (pr) *pr = 0;
     if (!p) return E_INVALIDARG;
     int n = 0; while (p[n]) ++n;
-    /* NO UPPER CEILING AT ALL here -- measured: SIZE_MAX is accepted at every length. */
+    /* No upper ceiling at all here -- measured: SIZE_MAX is accepted at every length. */
     if (cch == 0 || cch < (size_t)n + 1) return E_INVALIDARG;
     int e = n;
     if (n && is_sep(p[n-1])) --e;
@@ -137,7 +137,7 @@ static HRESULT model_rem(wchar_t* p, size_t cch, PWSTR* pe, size_t* pr)
     if (e == n)              hr = S_FALSE;         /* no trailing separator to take */
     else if (e < protect(p)) hr = S_FALSE;         /* it would cut into the structural prefix */
     else { p[e] = 0; hr = S_OK; }
-    /* `end` is reported EITHER WAY, and it is where the terminator WOULD go -- "C:\" reports +2 while
+    /* `end` is reported either way, and it is where the terminator would go -- "c:\" reports +2 while
        declining, and "\" reports +0. One formula: n minus one if the path ends in a separator. */
     if (pe) *pe = p + e;
     if (pr) *pr = cch - (size_t)e;

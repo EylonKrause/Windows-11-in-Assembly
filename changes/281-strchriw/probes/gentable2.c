@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/gentable2.c
  *
- * THE RELATION IS SYMMETRIC BUT NOT TRANSITIVE, SO IT HAS NO CLASSES.
+ * The relation is symmetric but not transitive, so it has no classes.
  *
  * probes/gentable.c extracted a canonical representative per code unit and called the result
  * "classes". probes/context.c then proved the relation really is decided one character at a time --
@@ -12,15 +12,15 @@
  *
  * That is a TOLERANCE relation, not an equivalence relation. It has no classes, so "the members of
  * the needle's class" is not a well-defined object and every structure built on it is wrong. The
- * gate said so: 66 mismatches where OURS AGREED WITH LIVE and only the class-based model claimed a
+ * gate said so: 66 mismatches where ours agreed with live and only the class-based model claimed a
  * match.
  *
- * What IS well defined is the MATCH SET OF A FIXED NEEDLE: S(n) = { w : StrChrIW finds w when
+ * What is well defined is the match set of a fixed needle: S(n) = { w : StrChrIW finds w when
  * searching for n }. The implementation only ever needs S(needle), so indexing by needle instead of
  * by class fixes the design without changing the inner loop at all.
  *
  * gentable.c could not build that, because a haystack scan returns only the FIRST match. This
- * enumerates the WHOLE set: scan, record, resume past the hit, repeat. The relation is symmetric,
+ * enumerates the whole set: scan, record, resume past the hit, repeat. The relation is symmetric,
  * so the result is checked both ways as it is built.
  *
  * Writes foldsets.c.

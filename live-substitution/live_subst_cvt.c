@@ -8,15 +8,15 @@
  *
  * The mechanism is the repository's usual one: resolve the real export, make its page writable,
  * overwrite the prologue with a 14-byte `jmp qword ptr [rip+0]; <abs64>` into our assembly through
- * a counting wrapper, FlushInstructionCache, then call THE SAME SYSTEM FUNCTION POINTER again. The
+ * a counting wrapper, FlushInstructionCache, then call the same system function pointer again. The
  * image mapping is copy-on-write, so only this process's private copy changes, and the original
  * bytes go back before exit.
  *
  * =================================================================================================
- * WHY 289 AND 290 ARE DRIVEN WITH FAST-PATH INPUT ONLY, AND WHY THAT IS A FINDING RATHER THAN A
+ * Why 289 And 290 Are driven with fast-path input only, and why that is a finding rather than a
  * CONVENIENCE.
  *
- * Both of those changes implement CP_UTF8 and TAIL-CALL THE REAL EXPORT for everything else -- a
+ * Both of those changes implement CP_UTF8 and tail-call the real export for everything else -- a
  * different code page, a flag they do not handle, an lpDefaultChar. That is the right design for a
  * linked-in replacement and it is what makes them tractable at all.
  *

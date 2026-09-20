@@ -1,6 +1,6 @@
 /* changes/034-rtlutf8tounicoden/bench.c
  *
- * THIS TABLE USED TO BE ASCII ONLY, and for a UTF-8 decoder that was the wrong table to publish.
+ * This table used to be ASCII only, and for a UTF-8 decoder that was the wrong table to publish.
  *
  * Every row was ASCII input, which is the one case the original fast path handled, so the 3.61x it
  * reported was the speed of a path a caller decoding Hebrew, Greek, Cyrillic, CJK or emoji never
@@ -17,7 +17,7 @@
  *   4-byte    F0..F3, the four-byte block: sixteen bytes, four surrogate PAIRS
  *   mixed     ASCII alternating with two-byte -- what European and Middle Eastern prose looks like
  *             once it has spaces and punctuation in it, and the commonest non-ASCII input there is
- *   U+FFFD    EF BF BD repeated: the three-byte block again, and also what this decoder's own
+ *   U+fffd    ef bf bd repeated: the three-byte block again, and also what this decoder's own
  *             substitution of malformed input produces, so it is the shape of re-decoded text
  *
  * The destination is generous on every row. The overflow paths are a correctness question, and

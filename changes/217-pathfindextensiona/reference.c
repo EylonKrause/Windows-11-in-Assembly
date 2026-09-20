@@ -2,7 +2,7 @@
 // Oracle for shlwapi!PathFindExtensionA. Not fast; just obviously right.
 //
 // The rule, verified against the LIVE export with 0 mismatches over 2015539 enumerated strings:
-//   the last '.' after the last STOPPER, where a stopper is a BACKSLASH **or a SPACE** -- else a
+//   the last '.' after the last stopper, where a stopper is a backslash **or a space** -- else a
 //   pointer to the terminating NUL. '/' and ':' do NOT stop the search, even though
 //   PathFindFileNameA treats all three as separators.
 //

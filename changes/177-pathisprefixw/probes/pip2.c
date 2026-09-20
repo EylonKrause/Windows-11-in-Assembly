@@ -1,16 +1,16 @@
 /* changes/177-pathisprefixw/probes/pip2.c
  *
- * RE-CONFIRMING THE IDENTITY, now that the thing it was blocked on has landed.
+ * Re-confirming the identity, now that the thing it was blocked on has landed.
  *
  * This change was parked with an unusually strong note: not "we could not derive it" but
  *
  *     PathIsPrefixW(pre, path)  ==  ( PathCommonPrefixW(path, pre, NULL) == wcslen(pre) )
  *
- * "fuzz-verified against BOTH live exports (2M cases, 0 mismatches)" -- and blocked, because
+ * "fuzz-verified against both live exports (2M cases, 0 mismatches)" -- and blocked, because
  * PathCommonPrefixW was itself parked at 99.3 %. Change 167 has now landed bit-exact, so the
  * blockage is gone and this function is a one-line composition over it.
  *
- * A RECORDED CLAIM IS NOT A MEASUREMENT, so this re-establishes the identity from scratch against
+ * a recorded claim is not a measurement, so this re-establishes the identity from scratch against
  * the two live exports rather than taking the old note's word for it, and pins the one thing the
  * identity cannot settle on its own: what happens when either argument is NULL, since wcslen(NULL)
  * is not something the right-hand side can evaluate.
@@ -126,7 +126,7 @@ int main(void)
                "   is SYMMETRIC when achPath is NULL, so the order in the identity does not matter\n\n",
                bad_rev - r0);
         CHECK(bad - b0 == 0, "%ld exhaustive pairs break the identity", bad - b0);
-        /* THE SWAPPED MODEL AGREES EVERYWHERE TOO, and that is a finding rather than a failure.
+        /* The swapped model agrees everywhere too, and that is a finding rather than a failure.
            With achPath NULL, PathCommonPrefixW is SYMMETRIC in its first two arguments -- it has to
            be: the components are compared symmetrically, the UNC skip applies to both or to neither,
            and the matched prefix has the same LENGTH measured from either side, so the only thing

@@ -1,6 +1,6 @@
 // live-substitution/live_subst_last7.c
 //
-// LIVE-RUN PROOF for the last seven uncovered landed changes, across FOUR DLLs:
+// Live-run proof for the last seven uncovered landed changes, across four DLLs:
 //
 //   ntdll        076 RtlCrc64            100 RtlLargeIntegerToChar
 //                295 RtlUnicodeStringToInteger
@@ -12,7 +12,7 @@
 // one process rather than one corpus driving seven routines. Three things in it are worth reading
 // before the code.
 //
-// ---- 1. THE kernel32 EXPORTS ARE THUNKS, AND PATCHING ONE WOULD CORRUPT ITS NEIGHBOUR ----------
+// ---- 1. The kernel32 exports are thunks, and patching one would corrupt its neighbour ----------
 // kernel32!FileTimeToSystemTime is not a function; it is `jmp qword ptr [rip+disp32]` onto
 // kernelbase, and that is SIX bytes. The 14-byte patch every other harness here installs would run
 // six bytes into whatever follows -- the next export's thunk. Nothing would fail at patch time; the
@@ -23,7 +23,7 @@
 // path exercised is thunk -> our assembly, which is exactly what a caller of kernel32 would get.
 // It prints the target it chose for each routine so the substitution is auditable.
 //
-// ---- 2. FoldStringW IS FIVE FUNCTIONS BEHIND ONE ENTRY POINT --------------------------------
+// ---- 2. FoldStringW is five functions behind one entry point --------------------------------
 // Change 288 implements MAP_FOLDDIGITS and DECLINES the other four flags with ERROR_INVALID_FLAGS,
 // because they are the only 1:1 mapping -- MAP_FOLDCZONE turns one input unit into up to eighteen.
 // That exclusion is declared, so it is driven and COUNTED rather than quietly skipped: a slice of
@@ -39,10 +39,10 @@
 // says so and drops those cases rather than taking the whole run down with it.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copies -- never a live system process, never a file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of the seven is used by the loader, the heap or the CRT, and
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of the seven is used by the loader, the heap or the CRT, and
 //       nothing else in this process runs while the patch is in place.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the whole corpus is
 //       re-run through the restored exports.
@@ -429,7 +429,7 @@ int main(void){
     }
 
     wia_crc64_init();
-    /* Change 288's fold table is BUILT FROM THE LIVE EXPORT, so this call has to happen while the
+    /* Change 288's fold table is built from the live export, so this call has to happen while the
      * export is still the shipped one. Installing the patch first would have it build its table by
      * asking OUR implementation, whose table is empty at that moment -- a circular initialisation
      * that produces a table of zeros and an implementation that agrees with itself perfectly.

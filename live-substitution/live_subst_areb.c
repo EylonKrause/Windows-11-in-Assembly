@@ -1,26 +1,26 @@
 // live-substitution/live_subst_areb.c
 // LIVE-RUN PROOF for change 259 (ntdll!RtlAreBitsSet and ntdll!RtlAreBitsClear).
 //
-// The two exports are patched ONE AT A TIME, each driven through its own name with its own counter.
+// The two exports are patched one at a time, each driven through its own name with its own counter.
 // They are separate code in ntdll and one implementation serves both here, so a wrapper routing one
 // through the other would otherwise go unnoticed -- the same reason changes 249 and 250 patched each
 // half of their pair alone.
 //
-// A PREDICATE HAS ONLY TWO ANSWERS, which makes a careless corpus very easy to pass: an
+// a predicate has only two answers, which makes a careless corpus very easy to pass: an
 // implementation that always said NO would agree with the live export on nearly every random range
 // over a random bitmap, because almost none of them is uniform. So the corpus is built to produce
-// BOTH answers and the run reports how many of each it got -- a pass with no YES at all would have
+// both answers and the run reports how many of each it got -- a pass with no YES at all would have
 // proved nothing about the loop, only about the refusals.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself -- and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or the heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_areb_live.bat
@@ -88,7 +88,7 @@ static void build_case(long i)
     rs = 0x452821E638D01377ull ^ ((unsigned long long)i * 0x9E3779B97F4A7C15ull);
     rs ^= rs >> 29; rs *= 0xBF58476D1CE4E5B9ull; rs ^= rs >> 32;
     if (!rs) rs = 1;
-    /* THREE of the five shapes are UNIFORM, so the answer is YES for most ranges inside them --
+    /* Three of the five shapes are uniform, so the answer is yes for most ranges inside them --
        a corpus of random bitmaps alone would answer NO almost every time and test nothing. */
     for (k = 0; k < WORDS; ++k)
         buf[k] = (shape == 0) ? 0xFFFFFFFFu

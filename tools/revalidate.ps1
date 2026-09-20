@@ -2,14 +2,14 @@
 # ---------------------------------------------------------------------------------------------
 # Re-prove every landed change against the CURRENT System32 binaries.
 #
-# WHY THIS EXISTS. Every change in this repository is bit-exact against a specific build of
+# Why this exists. Every change in this repository is bit-exact against a specific build of
 # ntdll / ucrtbase / shlwapi / kernelbase / crypt32 on this machine. A Windows update can replace
 # any of those binaries, and a serviced function is free to change behaviour: a new edge case, a
 # different error code, a widened character table. Nothing warns you. The correctness harnesses
 # already compare against the LIVE export via GetProcAddress, so re-running them is a complete
 # answer to "does our assembly still match what Windows now ships".
 #
-# WHAT "RE-APPLY" CAN AND CANNOT MEAN HERE -- read this before expecting more than it does:
+# What "re-apply" can and cannot mean here -- read this before expecting more than it does:
 #   * This repository does NOT install its assembly into Windows. It cannot: System32 binaries are
 #     catalog-signed, Windows Resource Protection + TrustedInstaller own them, and Windows Update
 #     reverts in-place edits. A modified system DLL would fail signature validation.
@@ -148,7 +148,7 @@ if ($Only.Count) {
 
 $fails = @(); $regressions = @(); $done = 0
 
-# A change's own RESULTS.md records whether it LANDED or is PARKED, and a PARKED change is one we
+# a change's own RESULTS.md records whether it landed or is parked, and a parked change is one we
 # ALREADY KNOW ties or loses on some size class -- that is precisely why it was never merged as a
 # win. Reporting those classes as "speed regressions" on every sweep is noise, and noise is what
 # buries a real one: before this split, every run listed eight regressions of which six were simply
@@ -205,7 +205,7 @@ foreach ($d in $dirs) {
     # worst kind of harness bug: it manufactures exactly the signal the sweep exists to detect,
     # which trains you to ignore it.
     #
-    # Rule 2 therefore looks for a NON-ZERO count and comes BEFORE the PASS rules, so a log that
+    # Rule 2 therefore looks for a non-zero count and comes before the pass rules, so a log that
     # prints "PASS" somewhere and real mismatches elsewhere still fails. Rule 5 accepts the
     # "0 mismatches" / "bit-exact" phrasing as the positive result it is, leaving the bare-word
     # rule as a last resort for a harness that says neither.
@@ -220,9 +220,9 @@ foreach ($d in $dirs) {
     $geo = '-'
     if ($txt -match 'geomean[^)]*\)\s*:\s*([\d.]+)x') { $geo = $matches[1] }
 
-    # THE ROW LABEL IS NOT ONE TOKEN, AND ASSUMING IT WAS MADE THIS GATE INERT FOR 109 OF 288
+    # The row label is not one token, and assuming it was made this gate inert for 109 Of 288
     # CHANGES. `(\S+)` matches a single word, so it reads "4096" in `4096  12.3  20.1  1.63x ...`
-    # and NOTHING AT ALL in `bad32 64 ...`, `COPY 64 Kbit, target 8 (byte-aligned) ...` or
+    # and nothing at all in `bad32 64 ...`, `Copy 64 Kbit, target 8 (byte-aligned) ...` or
     # `m:a+4 8191 ...`. Those benches parsed to ZERO rows, so $worst stayed null, $reg stayed empty,
     # and every one of them was reported LANDS on the strength of correctness and a geomean alone --
     # including 260-rtlcopybitmap, which has EIGHT rows below parity on bench #3. A lazy label
@@ -248,7 +248,7 @@ foreach ($d in $dirs) {
         elseif ($reg.Count)                                              { 'REGRESSED' }
         else                                                             { 'LANDS' }
 
-    # BENCH_UNPARSED IS LISTED WITH THE FAILURES ON PURPOSE. It is not a wrong answer, it is a
+    # BENCH_UNPARSED is listed with the failures on purpose. It is not a wrong answer, it is a
     # gate that could not run -- which is worse, because a wrong answer is visible and an inert
     # gate reads as a pass. It has to be as loud as a real failure or it will be ignored again.
     if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT','BENCH_UNPARSED') { $fails += "$name ($status)" }

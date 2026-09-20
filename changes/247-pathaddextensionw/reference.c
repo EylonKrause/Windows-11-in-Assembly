@@ -8,23 +8,23 @@
  * rather than summarised: that change SHIPPED WRONG, with only the backslash stopping the backward
  * scan, and was wrong on 295 513 of 2 015 539 enumerated strings until the SPACE was added.
  *
- * WHAT THE PROBE ESTABLISHED, all of it against the live export:
+ * What the probe established, all of it against the live export:
  *
- *   * THE DEFAULT EXTENSION IS L".exe", not the empty string. `"" + NULL` comes back as ".exe". The
+ *   * The default extension is L".exe", not the empty string. `"" + NULL` comes back as ".exe". The
  *     disassembly pointed at a static string and its bytes are 2E 00 65 00 78 00 65 00 00 00.
- *   * THE APPEND POINT IS EXACTLY PathFindExtensionW'S, over 55 987 enumerated strings on the
+ *   * The append point is exactly PathFindExtensionW'S, over 55 987 enumerated strings on the
  *     alphabet ". \ space a b :" to length 6, with zero disagreements -- including that the appended
  *     text lands exactly at that pointer.
- *   * IF THE PATH ALREADY HAS AN EXTENSION the function returns FALSE and writes nothing.
- *   * THE BOUND IS ON THE RESULT: n + extlen <= 259 appends, >= 260 refuses, where n is the number of
+ *   * If the path already has an extension the function returns FALSE and writes nothing.
+ *   * The bound is on the result: n + extlen <= 259 appends, >= 260 refuses, where n is the number of
  *     characters before the append point. Swept over path lengths 250..262 against extension lengths
  *     0..5; the boundary tracks the SUM, not either operand.
- *   * A REFUSAL WRITES NOTHING AT ALL. A 300-character path comes back byte-for-byte unchanged, with
+ *   * a refusal writes nothing at all. a 300-character path comes back byte-for-byte unchanged, with
  *     the poison past its terminator intact.
- *   * AN EMPTY EXTENSION returns TRUE and writes nothing -- not even the terminator already there.
- *   * AN EXTENSION WITHOUT A LEADING DOT is appended verbatim: "file" + "zzz" -> "filezzz".
+ *   * An empty extension returns TRUE and writes nothing -- not even the terminator already there.
+ *   * An extension without a leading dot is appended verbatim: "file" + "zzz" -> "filezzz".
  *   * pszPath NULL returns FALSE, with or without an extension.
- *   * AN UNTERMINATED EXTENSION AT A GUARD PAGE FAULTS -- lstrlenW does not swallow it, so an
+ *   * An unterminated extension at a guard page faults -- lstrlenW does not swallow it, so an
  *     implementation must not swallow it either.
  */
 #include <windows.h>

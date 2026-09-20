@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlIsZeroMemory.
  *
- * WHAT THIS COSTS IS HOW FAR IT GETS BEFORE IT CAN ANSWER, and probes/contract.c established that
+ * What this costs is how far it gets before it can answer, and probes/contract.c established that
  * the shipped export STOPS at the first non-zero byte -- one megabyte costs 1.55 ns with the
  * non-zero byte first and 51424 ns with it last. So "where the first non-zero byte is" is the
  * subject of every row, and a row set that only measured all-zero buffers would describe a
@@ -13,11 +13,11 @@
  *   byte near the   the scan runs almost to the end -- the one that would expose a tail that
  *   end             re-reads or a final vector that is not overlapping
  *
- * THE SHORT ROWS CALL SIXTEEN TIMES PER TIMED OP, for the reason change 261 established by
+ * The short rows call sixteen times per timed op, for the reason change 261 established by
  * measuring it: an empty call through this harness costs 2.32 ns, which is most of what a 32-byte
  * scan measures. Their labels say so.
  *
- * EVERY ROW PRINTS WHAT IT ANSWERED and it is checked against the live export before anything is
+ * Every row prints what it answered and it is checked against the live export before anything is
  * timed -- a predicate that answered from the wrong place would still produce a plausible time.
  */
 #include "bench.h"
@@ -62,7 +62,7 @@ static void add(const char* label, size_t n, long set_at)
     int k = nc;
     ctxs[k].p = pool;
     ctxs[k].n = n;
-    /* REPETITIONS ARE CHOSEN BY HOW MUCH WORK THE CALL DOES, not by how big the buffer is. A row
+    /* Repetitions are chosen by how much work the call does, not by how big the buffer is. a row
        whose non-zero byte is at offset 0 answers immediately whatever its length, so it measures
        the harness -- 2.32 ns of empty call, per change 261 -- rather than the code, and it read
        1.00x-1.02x until it was repeated like the genuinely short rows. */
@@ -121,7 +121,7 @@ int main(void)
     }
     if (bad) { printf("\n%d rows DISAGREE -- not benchmarking\n", bad); return 1; }
 
-    /* EACH ROW IS TIMED WITH ITS OWN BYTE IN PLACE, which is why this does not call
+    /* Each row is timed with its own byte in place, which is why this does not call
        wia_bench_compare: that helper times every row from one prepared state, and here the state
        IS the subject -- where the first non-zero byte sits is the whole difference between a row
        that reads nothing and a row that reads a megabyte. The verdict rule is the harness's own:

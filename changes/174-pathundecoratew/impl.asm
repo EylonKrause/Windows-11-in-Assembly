@@ -10,7 +10,7 @@
 ;
 ;   (a) It is looked for only in the LAST COMPONENT -- after the last backslash.
 ;       "C:\dir[1]\file.txt" is left alone.
-;   (b) THE GROUP MUST HUG THE EXTENSION. Its ']' has to be the character immediately before
+;   (b) The group must hug the extension. Its ']' has to be the character immediately before
 ;       the LAST '.' of that component -- or immediately before the end of the string when the
 ;       component has no '.' at all. This is the rule that decides the awkward cases, and it is
 ;       NOT "the first group that looks right":
@@ -18,7 +18,7 @@
 ;           "a[1].b[2].c"  -> "a[1].b.c"   (the group before the LAST dot -- not the first one)
 ;           "a[1]x[2]"     -> "a[1]x"      (no dot, so the group before the end)
 ;           "file[1]x.txt" -> unchanged    (nothing hugs the dot)
-;   (c) The contents must be DECIMAL DIGITS, and there may be NONE:
+;   (c) The contents must be decimal digits, and there may be none:
 ;           "file[].txt"   -> "file.txt"   (empty brackets DO count)
 ;           "file[a].txt", "file[1a].txt", "file[-1].txt", "file[ ].txt" -> unchanged
 ;   (d) The '[' must NOT be the first character of the component:
@@ -37,10 +37,10 @@
 ; scanned came from it. Within 32 bytes of a page end it steps one character and retries.
 ;
 ;
-; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; Conjunct (b) below -- the group's ']' must sit immediately before the LAST '.' of the component --
 ; is an extension position by another name, and it carried the same gap that change 132 shipped with:
-; A SPACE STOPS THE EXTENSION SCAN EXACTLY AS A BACKSLASH DOES.
+; a space stops the extension scan exactly as a backslash does.
 ;
 ; This change never cited 132, which is why the first audit of that bug (changes 140, 143 and 144)
 ; did not reach it. A second, STRUCTURAL sweep -- every landed oracle that computes an extension
@@ -51,7 +51,7 @@
 ;     live PathUndecorateW vs the corrected rule :    0
 ;     and the narrow sibling agrees with the wide one on every one of them
 ;
-; THE TWO USES OF THE BACKSLASH HAD TO BE SEPARATED. It was doing double duty here: delimiting the
+; The two uses of the backslash had to be separated. It was doing double duty here: delimiting the
 ; COMPONENT for conjunct (d) -- the '[' may not be the component's first character -- and bounding
 ; the extension search for conjunct (b). Only the second takes the space, so the scan now tracks two
 ; positions: `comp` past the last backslash, and `stop` past the last backslash OR space.
@@ -197,7 +197,7 @@ scan_done_at_cursor:
         mov       rdx, r9                        ; assume no usable dot
         cmp       r11, 0
         jl        have_ext                       ; no '.' anywhere (r11 is the -1 sentinel, so
-                                                 ; this test MUST be signed)
+                                                 ; this test must be signed)
         cmp       r11, rbx
         jb        have_ext                       ; the '.' is before the last STOPPER -- backslash
                                                  ;   OR space. Using `comp` here, which is

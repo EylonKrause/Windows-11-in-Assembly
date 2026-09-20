@@ -5,15 +5,15 @@
  * pinnable contract -- no locale, no code page, no grammar -- and ranks them by cost per byte, which
  * is the only number that decides whether a target is worth a contract derivation.
  *
- * WHAT IS DELIBERATELY NOT HERE. Anything whose name says locale or encoding (RtlIdnToUnicode,
+ * What is deliberately not here. Anything whose name says locale or encoding (RtlIdnToUnicode,
  * RtlCustomCPToUnicodeN, RtlConsoleMultiByteToUnicodeN), anything that allocates as its main job
  * (the lookaside and memory-zone family), and the hash-table and memory-stream families, which are
  * data structures rather than byte loops.
  *
  * METHOD, and the two mistakes this file is written to avoid:
- *   * RUN IT ON AN IDLE MACHINE. Every row is a min-of-N, which is robust to a slow sample but not
+ *   * Run it on an idle machine. Every row is a min-of-N, which is robust to a slow sample but not
  *     to sustained load.
- *   * EVERY ROW PRINTS WHAT IT ACTUALLY DID -- the return value and, where there is one, the output
+ *   * Every row prints what it actually did -- the return value and, where there is one, the output
  *     length. A survey row whose subject does not do the work its label claims is this project's
  *     most expensive recurring mistake: a subject whose escapable characters sat in the wrong URL
  *     segment made an earlier survey measure a no-op for a whole commit, and a 16 KB stack local
@@ -36,7 +36,7 @@ typedef void  (NTAPI *F_CopyU)(USTR*, USTR*);
 typedef LONG  (NTAPI *F_AppS)(ASTR*, const ASTR*);
 typedef ULONG (NTAPI *F_FindSet)(RBM*, ULONG, ULONG);
 typedef ULONG (NTAPI *F_NumSet)(RBM*);
-/* RtlCopyBitMap(Source, Destination, TargetBit, NumberOfBits) -- FOUR parameters, SOURCE FIRST.
+/* RtlCopyBitMap(Source, Destination, TargetBit, NumberOfBits) -- four parameters, source first.
    Called with three, it copied nothing: the row measured 1.98 ns and printed a destination first
    word of 00000000 against a source of A5A5A5A5. Caught by the row stating what it returned. */
 typedef void  (NTAPI *F_CopyBM)(RBM*, RBM*, ULONG, ULONG);

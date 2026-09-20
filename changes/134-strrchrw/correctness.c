@@ -26,7 +26,7 @@ int main(void){
     { static wchar_t b[16]; b[0]=L'a';b[1]=L'b';b[2]=0;b[3]=L'c';b[4]=L'b';b[5]=0;b[6]=0;
       chk(b,0,L'b',"embedded-NUL unbounded"); chk(b,b+5,L'b',"range spans NUL");
       chk(b,b+2,L'b',"range before NUL");     chk(b,b+6,L'b',"range past both NULs"); }
-    // SEEKING THE NUL ITSELF, IN THE BOUNDED FORM. This is the combination the gate never drew:
+    // Seeking the NUL itself, in the bounded form. This is the combination the gate never drew:
     // it asked for a NUL only with end == NULL, and it scanned ranges spanning NULs only for 'b'.
     // Both halves were here; the product of them was not, and live substitution found the defect
     // that lived in exactly that product -- 364 of 20000 cases, every one of them (wMatch == 0,

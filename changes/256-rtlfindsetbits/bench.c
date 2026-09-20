@@ -2,21 +2,21 @@
  *
  * OURS vs the LIVE ntdll!RtlFindSetBits and ntdll!RtlFindClearBits.
  *
- * BOTH EXPORTS ARE MEASURED SEPARATELY even though one implementation serves both, because they
- * are FIVE TIMES APART on the same failing full scan -- 0.132 ns/byte against 0.026 in
+ * Both exports are measured separately even though one implementation serves both, because they
+ * are five times apart on the same failing full scan -- 0.132 ns/byte against 0.026 in
  * discovery/ntdll_bitmap.c. A single "bitmap search" row would average that away and hide which of
  * the two the work actually helps. (That gap belongs to the SUBJECT and not to one export being
  * worse: probes/topbit.c shows the two timings SWAP when the pattern is rotated one bit, because
  * both skip loops are driven by the sign bit and one of the two exports inverts the word. Which
  * makes measuring them separately more important, not less -- a row is timing a particular path.)
  *
- * AND THE ROWS SAY WHETHER THE SEARCH SUCCEEDS, because the two cases have nothing in common. A
+ * And the rows say whether the search succeeds, because the two cases have nothing in common. a
  * search that fails examines every bit; a search that succeeds in the first word examines one. The
  * survey's headline row is a FAILURE -- a request for 64 consecutive set bits in a bitmap whose
  * longest set run is two -- and it is the expensive case, so it is kept and labelled rather than
  * quietly replaced by a cheaper one.
  *
- * THE HINT GETS ITS OWN ROWS. The search wraps: [hint, size) and then from the beginning. A run
+ * The hint gets its own rows. The search wraps: [hint, size) and then from the beginning. a run
  * that sits just BEFORE a high hint is therefore the worst case for a correct implementation --
  * it scans to the end, finds nothing, and scans again -- and that row is measured rather than
  * assumed to be rare.

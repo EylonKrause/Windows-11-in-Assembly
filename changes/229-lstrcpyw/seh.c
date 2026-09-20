@@ -1,14 +1,14 @@
 // changes/229-lstrcpyw/seh.c
 // The exception wrapper for kernelbase!lstrcpyW, and the NULL checks.
 //
-// WHY THIS FILE EXISTS. probes/cpyw.c measured the shipped export against both bad arguments and it
+// Why this file exists. probes/cpyw.c measured the shipped export against both bad arguments and it
 // swallows both, exactly as the narrow form does:
 //
 //     an unterminated source at a NOACCESS page : 80 of 80 distances RETURNED NULL, 0 faulted
 //     a destination too small                   : 80 of 80 rooms RETURNED NULL, 0 faulted
 //
 // So the copy stays in assembly and this supplies the NULL checks -- a NULL source returns NULL and
-// LEAVES THE DESTINATION ALONE, which is why the check must precede the core -- and a __try/__except
+// Leaves the destination alone, which is why the check must precede the core -- and a __try/__except
 // that converts an access violation into NULL, leaving whatever the core had already copied. That
 // partial matches the shipped one because the core page-clamps both pointers and stops on the same
 // character.

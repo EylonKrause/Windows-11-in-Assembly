@@ -8,11 +8,11 @@
 // path -- observed as exit code 9 with no output. Changes 150 and 178 record the same trap.
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ucrtbase -- never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
-//   (1) VALIDATE FIRST against the LIVE export over a fuzz corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither function is used by the loader/heap.
+//   (1) Validate first against the live export over a fuzz corpus before any patch.
+//   (2) Patch only when idle: single-threaded, and neither function is used by the loader/heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.
 //
 // Build: build_crt_s_live.bat

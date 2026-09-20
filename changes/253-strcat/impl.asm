@@ -16,7 +16,7 @@
 ;       strncat, the SAME work        207.28 ns   0.052 ns/byte    3.9x cheaper than strcat
 ;       memcpy,  the SAME bytes        25.85 ns   0.006 ns/byte     33x cheaper than strcat
 ;
-; THE SHIPPED CODE IS SWAR, NOT SIMD, IN BOTH HALVES. The destination scan:
+; The shipped code is SWAR, not simd, in both halves. The destination scan:
 ;
 ;     000ED71A  mov rax, qword ptr [rcx]                  eight bytes at a time
 ;     000ED720  movabs r9, 0x7efefefefefefeff             the classic has-zero trick
@@ -29,23 +29,23 @@
 ; and the copy is the same trick with a store bolted on -- load eight, test for a zero byte, store
 ; eight (0x0ED7C2..0x0ED7F1). Eight bytes per iteration through a four-instruction dependent chain
 ; is about one byte per cycle, which is exactly what 0.200 ns/byte says. There is no AVX anywhere in
-; either routine -- AND, AS THE BENCHMARK WENT ON TO SHOW, THAT IS NOT PURELY AN OVERSIGHT.
+; either routine -- and, as the benchmark went on to show, that is not purely an oversight.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
 ;
-;   * THE RETURN IS dst, on every path. The disassembly ends `mov rax, r11`, but it has TWO
+;   * The return is dst, on every path. The disassembly ends `mov rax, r11`, but it has two
 ;     `mov r11, rcx` sites on different paths, so it was checked over sixteen dst x src shapes
 ;     rather than read off one of them.
 ;   * NULL FAULTS, both arguments. Undefined in the standard is still SOME behaviour in the shipped
 ;     binary, and this one raises. So NULL is not in the corpora and this implementation is free to
 ;     fault too -- it does, at the same first touch. (It is also why the short path may not adjust
 ;     rsp without unwind data: a fault there is a REACHABLE state, not a hypothetical one.)
-;   * AN EMPTY SOURCE WRITES EXACTLY ONE TERMINATOR AND NOTHING ELSE. Probed with a destination
+;   * An empty source writes exactly one terminator and nothing else. Probed with a destination
 ;     pre-filled with 0xAA past its terminator: byte [3] became 00 and every byte beyond it was
 ;     untouched.
 ;
-; THAT LAST ONE SHAPES THE WHOLE IMPLEMENTATION, and it is the difference between a search and a
+; That last one shapes the whole implementation, and it is the difference between a search and a
 ; copy. Change 252 could read thirty-two bytes wherever it liked, because reading is invisible; here
 ; every byte written past strlen(src)+1 is corruption of a caller's buffer that no return value
 ; would ever reveal. So the copy is EXACT: the tail writes precisely L bytes through an overlapping
@@ -56,7 +56,7 @@
 ; over-write raises rather than merely differing.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW THE LONG PATH WORKS, and what is composed rather than rewritten.
+; How the long path works, and what is composed rather than rewritten.
 ;
 ;   n = wia_strlen(dst)          <- change 032, landed. The destination scan is already an AVX2
 ;                                   routine in this repository; there is no reason to write a
@@ -67,13 +67,13 @@
 ; source twice, and while both passes would be fast it is strictly more work than reading each block
 ; once, testing it for a terminator, and storing it.
 ;
-; PAGE SAFETY ON THE READ uses the same idiom as changes 032 and 001: align down, load the aligned
+; Page safety on the read uses the same idiom as changes 032 and 001: align down, load the aligned
 ; block, and shift the terminator mask right by the start's offset within it. An aligned load never
 ; crosses a page, and thereafter every block the loop advances into is one the previous block PROVED
 ; the string continues into. No probe, no branch, no clamp.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE SHORT-STRING PATH, AND THE WRONG DIAGNOSIS THAT CAME FIRST.
+; The short-string path, and the wrong diagnosis that came first.
 ;
 ; The first version was the composition above and nothing else, and the benchmark rejected it:
 ;
@@ -82,21 +82,21 @@
 ;       W: empty + 4 ch   8.56 ns vs 7.59 ns    0.89x   WORSE
 ;       W: empty + 32 ch  9.74 ns vs 7.94 ns    0.82x   WORSE
 ;
-; while the large rows were already 3.7x to 7.6x. THE FIRST DIAGNOSIS WAS THAT THE OVERHEAD WAS THE
-; TWO FUNCTION CALLS AND THE VZEROUPPER, so a fast path was written that inlined both calls and the
+; while the large rows were already 3.7x to 7.6x. The first diagnosis was that the overhead was the
+; Two function calls and the vzeroupper, so a fast path was written that inlined both calls and the
 ; tail ladder and used only VEX-128 instructions -- a routine that never writes a 256-bit register
 ; never dirties the upper state and so needs no VZEROUPPER at all, which is a real saving and not
-; merely a skipped instruction. IT MADE NO DIFFERENCE: 7.71 -> 7.96 ns, inside the noise. The
+; merely a skipped instruction. It made no difference: 7.71 -> 7.96 ns, inside the noise. The
 ; diagnosis was wrong and the fix built on it was worthless.
 ;
-; THE ACTUAL COST IS THE VECTOR-TO-GPR ROUND TRIP. Finding a terminator with SIMD means
-; VPCMPEQB -> VPMOVMSKB -> TZCNT, and that crossing costs the better part of ten cycles of pure
+; The actual cost is the vector-to-gpr round trip. Finding a terminator with simd means
+; Vpcmpeqb -> vpmovmskb -> tzcnt, and that crossing costs the better part of ten cycles of pure
 ; LATENCY before the first branch can even be evaluated. strcat needs TWO of them, one per string,
 ; serialised by the branch between them. The shipped SWAR code needs NEITHER: its has-zero test is
 ; four integer ops that never leave the general-purpose domain, so for a four-byte append it answers
 ; in about three cycles while the vector version is still waiting on its first mask. VECTORISING A
-; FOUR-BYTE COPY IS NOT SLOW BECAUSE OF OVERHEAD AROUND IT; SIMD IS THE WRONG INSTRUMENT AT THAT
-; SIZE, AND NO AMOUNT OF TRIMMING THE APPROACH FIXES IT. Microsoft's choice of SWAR is not simply an
+; Four-byte copy is not slow because of overhead around it; simd is the wrong instrument at that
+; Size, and no amount of trimming the approach fixes it. Microsoft's choice of SWAR is not simply an
 ; oversight -- it is the right call for short strings and the wrong one past about a hundred bytes.
 ;
 ; So the short path below does not vectorise at all. It is the same SWAR has-zero test, applied to
@@ -106,7 +106,7 @@
 ; TAIL-JUMPS to the vector version and arrives with rsp and both arguments exactly as a call would
 ; have left them.
 ;
-; THE TWO SWAR CONSTANTS LIVE IN .const RATHER THAN IN REGISTERS. That is not cosmetic: holding them
+; The two SWAR constants live in .const rather than in registers. That is not cosmetic: holding them
 ; costs two registers, and with the destination pointer, the source pointer, the running value, the
 ; temporary and the alignment shift there were not two to spare. As rip-relative memory operands
 ; they are L1 hits folded into the `sub` and the `and` that already had to happen.
@@ -189,9 +189,9 @@ l1:     movzx     Td, byte ptr [S]
 ENDM
 
 ; ---------------------------------------------------------------------------------------------
-; cpz_tail -- copy EXACTLY edx bytes (1..32) from rsi to rdi. The VECTOR path's tail.
+; cpz_tail -- copy exactly edx bytes (1..32) from rsi to rdi. The VECTOR path's tail.
 ;
-; A LEAF with no prologue and no unwind data on purpose: an internal `call` from inside a PROC FRAME
+; a leaf with no prologue and no unwind data on purpose: an internal `call` from inside a proc frame
 ; would push eight bytes the parent's unwind info does not describe, and an exception taken there
 ; would unwind wrong. As a leaf with no unwind data the unwinder pops the return address and resumes
 ; in the parent at the rsp its prologue codes describe.

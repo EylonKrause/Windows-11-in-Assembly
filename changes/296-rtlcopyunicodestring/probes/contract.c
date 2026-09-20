@@ -1,6 +1,6 @@
 /* changes/296-rtlcopyunicodestring/probes/contract.c
  *
- * THROWAWAY PROBE. Nothing here is a gate; this file exists to turn "MSDN says" into "this machine
+ * Throwaway probe. Nothing here is a gate; this file exists to turn "msdn says" into "this machine
  * does". Every answer it prints was then written into reference.c, and correctness.c re-proves all
  * of them against the live export on every build.
  *

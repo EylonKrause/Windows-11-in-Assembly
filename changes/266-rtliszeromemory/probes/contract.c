@@ -1,6 +1,6 @@
 /* changes/266-rtliszeromemory/probes/contract.c
  *
- * WHAT DOES ntdll!RtlIsZeroMemory ACTUALLY PROMISE?
+ * What does ntdll!RtlIsZeroMemory actually promise?
  *
  *     BOOLEAN RtlIsZeroMemory(const VOID* Buffer, SIZE_T Length)
  *
@@ -8,7 +8,7 @@
  * a VPTEST scan of the same shape measured 125 GB/s in change 259. That is the whole reason it is a
  * target, and it says nothing about the rules, which is what this file is for.
  *
- * A PREDICATE HAS ONLY TWO ANSWERS, WHICH MAKES A CARELESS CORPUS VERY EASY TO PASS -- the lesson
+ * a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
  * change 259 wrote down for RtlAreBitsSet. An implementation that always said NO would agree with
  * the live export on nearly every random buffer, so the questions below are the ones where the two
  * answers are NOT obvious:

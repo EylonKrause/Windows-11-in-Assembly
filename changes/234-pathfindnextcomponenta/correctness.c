@@ -7,7 +7,7 @@
 // conflate and the export uses both: an empty string gives NULL, a string with no separator gives
 // the terminator.
 //
-// THE RUNS ARE ENUMERATED ON PURPOSE. The doubled-separator rule advances exactly ONE more, never
+// The runs are enumerated on purpose. The doubled-separator rule advances exactly one more, never
 // the whole run, so "skip the separators" -- the obvious implementation -- is correct on one and
 // two backslashes and wrong from three onward. A corpus that only ever puts single separators
 // between components cannot see that, which is why the alphabet below is mostly separators and the
@@ -80,7 +80,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY byte value: only 0x5C may be a separator ------------------------------------------
+    // ---- every byte value: only 0x5C may be a separator ------------------------------------------
     for (int v = 1; v < 256; ++v) {
         s[0]='a'; s[1]=(char)v; s[2]='b'; s[3]=0;   chk(s, "byte value in the middle");
         s[0]=(char)v; s[1]='b'; s[2]=0;             chk(s, "byte value first");

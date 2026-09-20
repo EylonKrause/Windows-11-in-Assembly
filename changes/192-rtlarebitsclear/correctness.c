@@ -40,7 +40,7 @@ int main(void){
     CHECK(one(1,0,1),           "a one-bit bitmap");
     CHECK(one(1,0,2),           "a one-bit bitmap, len 2");
 
-    // ---- a single set bit, swept across EVERY position of a word and across word borders ----
+    // ---- a single set bit, swept across every position of a word and across word borders ----
     for(int bit=0; bit<200; ++bit){
         for(int i=0;i<300;i++) buf[i]=0;
         buf[bit>>5] |= 1u<<(bit&31);

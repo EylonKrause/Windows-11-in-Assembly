@@ -1,5 +1,5 @@
 ; changes/086-cryptstringtobinary-hexraw/impl.asm
-; BOOL wia_s2bh(LPCSTR s, DWORD cch, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2bh(LPCSTR s, dword cch, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=cch, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_HEXRAW (hex text -> binary). crypt32's is scalar and

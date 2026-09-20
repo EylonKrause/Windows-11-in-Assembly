@@ -227,7 +227,7 @@ int main(void){
                 one(a, b, 1); ++cases;
                 b[3 + pos] = (char)FOLD[v];
                 one(a, b, 1); ++cases;
-                /* and with the byte in BOTH, so only the fold class matters */
+                /* and with the byte in both, so only the fold class matters */
                 b[3 + pos] = (char)v;
                 one(a, b, 1); ++cases;
             }

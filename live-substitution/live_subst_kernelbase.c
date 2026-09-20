@@ -4,19 +4,19 @@
 //
 // The shipped routine copies at 3.37 GB/s. Ours is a page-safe AVX2 copy at 42.65 GB/s.
 //
-// WHAT MUST BE PROVED LIVE, and it is not the happy path:
-//   * the destination is TERMINATED, NOT PADDED -- so every case compares the WHOLE destination
+// What must be proved live, and it is not the happy path:
+//   * the destination is terminated, not padded -- so every case compares the whole destination
 //     against a poison fill, because a strncpy-shaped implementation would zero the tail and still
 //     pass a prefix-only check;
 //   * nMax is used UNSIGNED: -1 copies the whole string rather than meaning "empty";
 //   * nMax == 0 writes nothing at all, not even a terminator;
-//   * AND THE ONE THE DESIGN TURNS ON -- it SWALLOWS A FAULTING SOURCE, returning NULL with the
+//   * And the one the design turns on -- it swallows a faulting source, returning NULL with the
 //     readable prefix already copied. The shipped loop tests the source character BEFORE the bound,
 //     so with nMax-1 exactly equal to the source length it reads one PAST the last character it
 //     copies and faults there. The corpus below builds exactly that: unterminated strings ending at
 //     a PAGE_NOACCESS boundary, with bounds swept across the faulting point.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // kernelbase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // FOR 210 the corpus has to reach all three ignore-case tiers. The implementation skips folding
@@ -456,7 +456,7 @@ int main(void){
     }
 
     // ===================== 225 lstrlenA =====================
-    // THE GUARD PAGE IS THE PROOF HERE, not a footnote.
+    // The guard page is the proof here, not a footnote.
     //
     // A length function is the easiest thing in this repository to validate wrongly. Every string
     // in a heap buffer has slack behind it, so an implementation that reads one 32-byte block too
@@ -465,7 +465,7 @@ int main(void){
     // it does NOT crash: probes/lena.c measured the shipped export returning 0 rather than faulting,
     // at every tail from 1 to 80. So the over-read would turn a correct 3 into a 0, silently.
     //
-    // This block therefore sweeps EVERY tail distance 1..300 before a PAGE_NOACCESS page, twice:
+    // This block therefore sweeps every tail distance 1..300 before a PAGE_NOACCESS page, twice:
     // terminated, where the answer must be the length and an over-reader returns 0; and
     // unterminated, where the answer must be 0 and a non-swallowing implementation takes the
     // process down. Both are run against the live export under the patch, so the comparison is with
@@ -558,11 +558,11 @@ int main(void){
     }
 
     // ===================== 227 lstrcpyA =====================
-    // BOTH GUARD PAGES, and that pairing is the whole proof.
+    // Both guard pages, and that pairing is the whole proof.
     //
     // lstrcpyA has NO bound, so it always runs off the end of a destination too small for the
     // source. probes/cpya.c measured what that does: it returns NULL rather than faulting, and the
-    // destination is filled EXACTLY to its last writable byte -- 80 of 80 rooms. The same holds on
+    // destination is filled exactly to its last writable byte -- 80 of 80 rooms. The same holds on
     // the source side. So an implementation that page-clamps only the SOURCE passes every ordinary
     // corpus, returns the right NULL, and still leaves a DIFFERENT number of bytes in the caller's
     // buffer. Nothing crashes and no return value differs; only the bytes do.
@@ -646,7 +646,7 @@ int main(void){
                     if (memcmp(wa, wc, room) != 0) ++mism;
                     ++cases; ++dstfault;
                 }
-                /* BOTH guarded: the clamp has to take the smaller remainder */
+                /* both guarded: the clamp has to take the smaller remainder */
                 for (int stail = 1; stail <= 70; ++stail) {
                     char* sp = (gsrc+pg) - stail;
                     for (int i = 0; i < stail-1; ++i) sp[i] = (char)('a' + i % 23);
@@ -692,14 +692,14 @@ int main(void){
     }
 
     // ===================== 229 lstrcpyW =====================
-    // THE SPLIT CHARACTER is what this block is for, and it is a question the narrow sibling could
+    // The split character is what this block is for, and it is a question the narrow sibling could
     // not ask. lstrcpyW has no bound, so it runs off the end of a destination too small for the
     // source, returning NULL with the destination filled to its last writable character. When that
     // destination has an ODD number of writable bytes the last character cannot be stored whole --
-    // and probes/cpyw.c measured that the export writes WHOLE CHARACTERS ONLY, never half of one.
+    // and probes/cpyw.c measured that the export writes whole characters only, never half of one.
     //
     // An implementation whose page clamp rounds in BYTES rather than CHARACTERS passes every
-    // ordinary corpus, returns the right NULL, and leaves ONE EXTRA BYTE in the caller's buffer.
+    // ordinary corpus, returns the right NULL, and leaves one extra byte in the caller's buffer.
     // Nothing crashes; no return value differs. Only an odd-width destination at a guard page sees
     // it, so every width from 1 to 201 bytes is swept here, odd and even.
     printf("[229 lstrcpyW]  kernelbase (both guards + EVERY destination width in BYTES)\n");
@@ -766,7 +766,7 @@ int main(void){
                     if (memcmp(da, dc, 300*sizeof(wchar_t)) != 0) ++mism;
                     ++cases; ++srcfault;
                 }
-                /* EVERY destination width in BYTES -- odd and even */
+                /* every destination width in BYTES -- odd and even */
                 for (int i = 0; i < 400; ++i) src[i] = (wchar_t)(L'A' + i % 26);
                 src[400] = 0;
                 for (int wbytes = 1; wbytes <= 201; ++wbytes) {
@@ -809,11 +809,11 @@ int main(void){
     }
 
     // ===================== 228 lstrcatA =====================
-    // THE DESTINATION GUARD PAGE is the sweep that matters here, and it is one lstrcpy cannot have.
+    // The destination guard page is the sweep that matters here, and it is one lstrcpy cannot have.
     // lstrcat READS the destination before it writes it, so there are THREE ways to go wrong rather
     // than two, and probes/cata.c measured the shipped export swallowing every one of them:
     //
-    //     an UNTERMINATED DESTINATION at a NOACCESS page : 80 of 80 tails RETURNED NULL, 0 faulted
+    //     an unterminated destination at a NOACCESS page : 80 of 80 tails returned NULL, 0 faulted
     //     an unterminated SOURCE at a NOACCESS page      : 80 of 80 tails RETURNED NULL, 0 faulted
     //     a DESTINATION too small for the append         : 79 of 79 rooms RETURNED NULL, 0 faulted
     //
@@ -824,8 +824,8 @@ int main(void){
     // DIFFERENT failure -- a destination terminated exactly ON the last writable byte, where the scan
     // succeeds and the append has no room at all.
     //
-    // Every case compares the WHOLE DESTINATION against a poison fill rather than as a string,
-    // because the result is TERMINATED, NOT PADDED, and because an empty append writes a terminator
+    // Every case compares the whole DESTINATION against a poison fill rather than as a string,
+    // because the result is terminated, not padded, and because an empty append writes a terminator
     // over an existing one -- a store that is invisible in the bytes but observable on a read-only
     // page, which is why this implementation falls into the copy with a one-byte length instead of
     // branching around it.
@@ -902,7 +902,7 @@ int main(void){
                     }
                 }
 
-                /* THE SWEEP lstrcpy DOES NOT HAVE: an UNTERMINATED DESTINATION at every distance from
+                /* The sweep lstrcpy does not have: an unterminated destination at every distance from
                    a NOACCESS page. The scan runs off the end; the export returns NULL having written
                    nothing, and so must we -- byte for byte. */
                 for (int tail = 1; tail <= 200; ++tail) {
@@ -919,7 +919,7 @@ int main(void){
                     ++cases; ++dstfault;
                 }
 
-                /* the destination TERMINATED EXACTLY AT THE EDGE: the scan succeeds and there is no
+                /* the destination terminated exactly at the edge: the scan succeeds and there is no
                    room for even one appended byte, which is a different failure from the one above */
                 for (int tail = 1; tail <= 200; ++tail) {
                     char* wa = (gda+pg) - tail;
@@ -957,7 +957,7 @@ int main(void){
                     ++cases; ++srcfault;
                 }
 
-                /* a DESTINATION TOO SMALL at every room: filled to the same byte, or the clamp is wrong */
+                /* a destination too small at every room: filled to the same byte, or the clamp is wrong */
                 for (int i = 0; i < 400; ++i) csrc[i] = (char)('A' + i % 26);
                 csrc[400] = 0;
                 for (int room = 1; room <= 200; ++room) {
@@ -977,7 +977,7 @@ int main(void){
                     ++cases; ++roomcase;
                 }
 
-                /* EVERY non-NUL byte value, in the destination and in the source, as a single byte and
+                /* every non-NUL byte value, in the destination and in the source, as a single byte and
                    as a hundred-byte run -- the narrow siblings in this repository resolve 0x00..0x7F
                    and 0x80..0xFF through different tables, and an ASCII-only corpus cannot tell a
                    byte-blind scan from a table-driven one */
@@ -998,7 +998,7 @@ int main(void){
                     ++cases; ++bytev;
                 }
 
-                /* every NULL combination, and a NULL source must LEAVE THE DESTINATION ALONE */
+                /* every NULL combination, and a NULL source must leave the destination alone */
                 {
                     memset(cda, '#', 16); memcpy(cda, "keepme", 7);
                     memset(cdc, '#', 16); memcpy(cdc, "keepme", 7);
@@ -1045,14 +1045,14 @@ int main(void){
     }
 
     // ===================== 230 lstrcatW =====================
-    // THE SPLIT CHARACTER, and it is a question the narrow sibling cannot ask. lstrcatW has no bound,
+    // The split character, and it is a question the narrow sibling cannot ask. lstrcatW has no bound,
     // so it runs off the end of a destination too small for the append, returning NULL with the
     // destination filled to its last writable CHARACTER. When the room left after the existing string
     // is an ODD number of bytes, the last character cannot be stored whole -- and change 229 measured
-    // the copy-family export writing WHOLE CHARACTERS ONLY, never half of one.
+    // the copy-family export writing whole characters only, never half of one.
     //
     // An implementation whose page clamp rounds in BYTES rather than CHARACTERS passes every ordinary
-    // corpus, returns the right NULL, and leaves ONE EXTRA BYTE in the caller's buffer. Nothing
+    // corpus, returns the right NULL, and leaves one extra byte in the caller's buffer. Nothing
     // crashes and no return value differs. Only an odd-width destination at a guard page sees it, so
     // every width from 1 to 201 bytes is swept here, odd and even.
     //
@@ -1134,7 +1134,7 @@ int main(void){
                     }
                 }
 
-                /* THE SWEEP lstrcpy DOES NOT HAVE: an UNTERMINATED DESTINATION at every distance */
+                /* The sweep lstrcpy does not have: an unterminated destination at every distance */
                 for (int tail = 1; tail <= 150; ++tail) {
                     wchar_t* wa = (wchar_t*)(gda+pg) - tail;
                     wchar_t* wc = (wchar_t*)(gdc+pg) - tail;
@@ -1149,7 +1149,7 @@ int main(void){
                     ++cases; ++dstfault;
                 }
 
-                /* terminated EXACTLY on the last writable character: the scan succeeds and the append
+                /* terminated exactly on the last writable character: the scan succeeds and the append
                    has no room, which is a different failure from the one above */
                 for (int tail = 1; tail <= 150; ++tail) {
                     wchar_t* wa = (wchar_t*)(gda+pg) - tail;
@@ -1187,7 +1187,7 @@ int main(void){
                     ++cases; ++srcfault;
                 }
 
-                /* EVERY destination width in BYTES -- odd and even. The odd ones are the whole point:
+                /* every destination width in BYTES -- odd and even. The odd ones are the whole point:
                    the last character cannot be stored whole, and a clamp that rounds in bytes leaves
                    one extra byte behind with the same return value and no fault. */
                 for (int i = 0; i < 400; ++i) wsrc[i] = (wchar_t)(L'A' + i % 26);
@@ -1213,7 +1213,7 @@ int main(void){
                     if (wbytes & 1) ++oddw; else ++evenw;
                 }
 
-                /* EVERY code unit in both strings. The narrow sibling could only ask this of 255
+                /* every code unit in both strings. The narrow sibling could only ask this of 255
                    values; here it is all 65535 non-NUL ones, placed in the destination and in the
                    source, so a scan that treats any unit as special is visible. */
                 for (int v = 1; v <= 0xFFFF; ++v) {
@@ -1236,7 +1236,7 @@ int main(void){
                     ++cases; ++unitv;
                 }
 
-                /* every NULL combination, and a NULL source must LEAVE THE DESTINATION ALONE */
+                /* every NULL combination, and a NULL source must leave the destination alone */
                 {
                     for (int i = 0; i < 16; ++i) { wda[i] = 0x2A2A; wdc[i] = 0x2A2A; }
                     memcpy(wda, L"keepme", 7*sizeof(wchar_t));
@@ -1287,23 +1287,23 @@ int main(void){
 
 
     // ===================== 244 HashData =====================
-    // THE EXPORT PATCHED HERE IS kernelbase's, and that is the point: shlwapi!HashData is a jmp
-    // thunk through api-ms-win-core-url-l1-1-0 into this body, so patching it here redirects BOTH
+    // The export patched here is kernelbase's, and that is the point: shlwapi!HashData is a jmp
+    // thunk through api-ms-win-core-url-l1-1-0 into this body, so patching it here redirects both
     // names at once -- a caller going through shlwapi lands in our assembly too.
     //
-    // WHAT HAS TO BE PROVED LIVE, and none of it is the happy path:
+    // What has to be proved live, and none of it is the happy path:
     //
-    //   * THE OVERLAP FALLBACK. The fast path holds twelve digest lanes in registers and advances
+    //   * The overlap fallback. The fast path holds twelve digest lanes in registers and advances
     //     each group across the whole source, which is valid only because the digest bytes are
     //     independent chains -- and that independence fails when the digest overlaps the source,
     //     because the shipped inner loop RE-READS src[i] for every lane. probes/overlap.c measured
     //     the grouped shape agreeing on 760 of 760 disjoint placements and disagreeing on all 1641
     //     overlapping ones. So every relative placement is driven here, under the patch, against
     //     what Windows actually does rather than against an oracle's opinion of it.
-    //   * cbHash == 0 WRITES NOTHING AT ALL and cbData == 0 writes the SEED and nothing else, so
-    //     every case compares the WHOLE BUFFER against a poison fill with a canary past the digest.
+    //   * cbHash == 0 Writes nothing at all and cbData == 0 writes the seed and nothing else, so
+    //     every case compares the whole BUFFER against a poison fill with a canary past the digest.
     //     A digest-only comparison cannot tell "wrote the same bytes back" from "wrote nothing".
-    //   * THE FIVE CODE PATHS. cbHash 1..4 each have their own leaf kernel with a different register
+    //   * The five code paths. cbHash 1..4 each have their own leaf kernel with a different register
     //     set and no saved registers at all; cbHash >= 5 uses a framed twelve-lane kernel; a last
     //     group of four or fewer uses a four-lane kernel. The sweep below crosses every one of those
     //     boundaries rather than sampling around them.
@@ -1379,7 +1379,7 @@ int main(void){
                     ++cases; ++seedonly;
                 }
 
-                /* THE OVERLAP SWEEP: every relative placement of source and digest in one buffer */
+                /* The overlap sweep: every relative placement of source and digest in one buffer */
                 {
                     static const DWORD ON[] = { 1, 5, 13, 24 };
                     static const DWORD OM[] = { 1, 4, 13, 20 };
@@ -1443,25 +1443,25 @@ int main(void){
     }
 
     // ===================== 245 UrlUnescapeW =====================
-    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlUnescapeW is a
+    // The export patched here is kernelbase's, and that covers both names: shlwapi!UrlUnescapeW is a
     // jmp thunk through api-ms-win-core-url-l1-1-0 into this body.
     //
-    // WHAT THE CORPUS HAS TO REACH, and none of it is the happy path:
+    // What the corpus has to reach, and none of it is the happy path:
     //
-    //   * BOTH FAILURE PATHS MUST LEAVE THE DESTINATION UNTOUCHED -- %00 anywhere in the input, and a
+    //   * Both failure paths must leave the destination untouched -- %00 anywhere in the input, and a
     //     buffer that is merely EQUAL to the result length rather than greater. So every case here
-    //     compares the WHOLE destination against a sentinel fill AND *pcchUnescaped, not the string.
+    //     compares the whole destination against a sentinel fill AND *pcchUnescaped, not the string.
     //     Those two rules are also why the implementation has a measuring pass at all.
-    //   * THE %00 PATTERN SCAN. When the caller's buffer is larger than the input, the measuring pass
+    //   * The %00 pattern scan. When the caller's buffer is larger than the input, the measuring pass
     //     is replaced by a vector scan for the three characters '%','0','0' -- sound because a '%'
     //     can never be swallowed by a preceding escape, its payload being hex digits. Both branches
     //     are driven: capacities above the input length take the scan, capacities at or below it take
     //     the full walk.
-    //   * THE IN-PLACE FORM, which is tested before all argument validation and never writes *pcch.
-    //   * EVERY 32-BYTE BLOCK BOUNDARY, because the scan is a 16-character block and the copy a
+    //   * The in-place form, which is tested before all argument validation and never writes *pcch.
+    //   * Every 32-BYTE block boundary, because the scan is a 16-character block and the copy a
     //     32-byte move: lengths 0..200 with an escape walked across every position.
     //
-    // WHAT DOES NOT RUN UNDER THE PATCH, and why that is stated rather than hidden. Two input
+    // What does not run under the patch, and why that is stated rather than hidden. Two input
     // classes are DELEGATED by the implementation to the original body: any flag outside
     // {INPLACE, DONT_UNESCAPE_EXTRA_INFO}, and an overlap with the destination ABOVE the source. Both
     // leave through a tail jump to the address installed by wia_uue_set_fallback -- and once this
@@ -1589,7 +1589,7 @@ int main(void){
                     cases += 4;
                 }
 
-                /* THE DELEGATED CLASSES, and only while the export is still the real one. Under the
+                /* The delegated classes, and only while the export is still the real one. Under the
                    patch the fallback address is our own code, so these would not fall back at all. */
                 if (pass == 0) {
                     static const DWORD DF[] = { 0x00040000, 0x02040000 };
@@ -1662,10 +1662,10 @@ int main(void){
     // zero, and an HRESULT-to-Win32 mapping -- and three observables that the Ex form does not have:
     // a BOOL, GetLastError, and the clear itself.
     //
-    // THERE IS NO DELEGATION HAZARD HERE, unlike change 245. This envelope calls OUR 243 core
+    // There is no delegation hazard here, unlike change 245. This envelope calls our 243 core
     // directly, not the export, so patching PathCanonicalizeW cannot send it back through itself.
     //
-    // WHAT IS COMPARED, AND WHAT IS NOT. The BOOL, the result string and its terminator,
+    // What is compared, and what is not. The BOOL, the result string and its terminator,
     // GetLastError, and that nothing is written at or past MAX_PATH. NOT the bytes between the
     // terminator and MAX_PATH: the shipped body leaves the trace of its own character-by-character
     // walk there and a vectorised one leaves a different trace. That is change 243's documented
@@ -1853,20 +1853,20 @@ int main(void){
     }
 
     // ===================== 247 PathAddExtensionW =====================
-    // WHAT HAS TO BE PROVED LIVE, and the third one is why every case compares the whole buffer:
+    // What has to be proved live, and the third one is why every case compares the whole buffer:
     //
-    //   * THE DEFAULT EXTENSION IS L".exe", not the empty string. A NULL pszExt on an extensionless
+    //   * The default extension is L".exe", not the empty string. a NULL pszExt on an extensionless
     //     path REWRITES it, which is the one genuine surprise in this function; the corpus below
     //     drives NULL alongside every explicit extension.
-    //   * THE APPEND POINT IS PathFindExtensionW'S RULE, and this repository has already shipped that
+    //   * The append point is PathFindExtensionW'S rule, and this repository has already shipped that
     //     rule wrong once -- change 132 stopped its backward scan only at a backslash and needed a
     //     SPACE as well, wrong on 295513 of 2015539 enumerated strings. So every enumerated sweep
     //     here uses an alphabet CARRYING A SPACE. An alphabet without one would validate the same
     //     mistake a second time.
-    //   * A REFUSAL WRITES NOTHING AT ALL, and an EMPTY extension writes nothing either -- not even
+    //   * a refusal writes nothing at all, and an empty extension writes nothing either -- not even
     //     the terminator already there. Neither is distinguishable from writing the same bytes back
     //     unless the whole buffer is compared against a poison fill.
-    //   * THE BOUND IS ON THE RESULT: n + extlen <= 259 appends, >= 260 refuses. Both sides of that
+    //   * The bound is on the result: n + extlen <= 259 appends, >= 260 refuses. Both sides of that
     //     boundary are driven at every extension length.
     //
     // No delegation and no fallback pointer: this implementation calls OUR change-132 code, not the
@@ -2019,10 +2019,10 @@ int main(void){
         }
     }
     // ===================== 248 UrlUnescapeA =====================
-    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlUnescapeA is a
+    // The export patched here is kernelbase's, and that covers both names: shlwapi!UrlUnescapeA is a
     // jmp thunk through api-ms-win-core-url-l1-1-0 into this body.
     //
-    // AND UNLIKE CHANGE 245, THERE IS NOTHING THIS SECTION CANNOT RUN UNDER THE PATCH. The wide form
+    // And unlike change 245, there is nothing this section cannot run under the patch. The wide form
     // delegates two input classes to the original body through a fallback pointer, so those had to be
     // proved in the validate-first pass only -- once the export is patched, its "fallback" is our own
     // code. The narrow form delegates nothing:
@@ -2036,19 +2036,19 @@ int main(void){
     //     and inside it -- is STAGED through a buffer in seh.c rather than delegated, because the
     //     shipped function stages every call and so every placement of the two is well defined.
     //
-    // FOUR THINGS THE CORPUS HAS TO REACH, three of which are asymmetries with the wide form:
+    // Four things the corpus has to reach, three of which are asymmetries with the wide form:
     //
     //   * %00 TRUNCATES on the non-in-place path and returns S_OK ("a%00b" -> "a", cch = 1), because
     //     the shipped code calls its walk and then DISCARDS the HRESULT, measuring the temporary with
-    //     a strlen. IN PLACE the same walk is TAIL-CALLED and the E_INVALIDARG survives. One function,
+    //     a strlen. In place the same walk is tail-called and the E_INVALIDARG survives. One function,
     //     two paths, two answers for one input -- so both are driven, on the same strings.
-    //   * THE SIZE TEST IS STRICT and its failure must leave the destination UNTOUCHED, so every case
-    //     compares the WHOLE destination against a sentinel fill and *pcchUnescaped, never the string.
-    //   * BOTH ROUTES THROUGH THE ENVELOPE: a buffer bigger than the source takes ONE pass (the result
+    //   * The size test is strict and its failure must leave the destination untouched, so every case
+    //     compares the whole destination against a sentinel fill and *pcchUnescaped, never the string.
+    //   * Both routes through the envelope: a buffer bigger than the source takes one pass (the result
     //     can never be longer than the input, so the size test cannot fail and nothing needs
     //     measuring); a buffer at or below it takes TWO. Capacities are swept from 1 past the result
     //     so both are driven at every shape.
-    //   * A FAULTING SOURCE IS SWALLOWED. lstrlenA is SEH-wrapped, so an unterminated source at a
+    //   * a faulting source is swallowed. lstrlenA is SEH-wrapped, so an unterminated source at a
     //     PAGE_NOACCESS page returns S_OK with an empty result where the WIDE form faults. Under the
     //     patch that fault has to unwind out of our assembly scan and through our C __except and
     //     still produce the shipped answer -- which is the single case in this section that a
@@ -2242,7 +2242,7 @@ int main(void){
                     cases += 4;
                 }
 
-                /* THE SWALLOWED FAULT, and this is the case that only a live run can settle: under
+                /* The swallowed fault, and this is the case that only a live run can settle: under
                    the patch the access violation unwinds out of our assembly scan, through our C
                    __except, and out of a PATCHED export's frame -- and still has to produce the
                    shipped S_OK with an empty result. */
@@ -2316,35 +2316,35 @@ int main(void){
     }
 
     // ===================== 249 UrlHashA =====================
-    // THE EXPORT PATCHED HERE IS kernelbase's, and that covers both names: shlwapi!UrlHashA is a jmp
+    // The export patched here is kernelbase's, and that covers both names: shlwapi!UrlHashA is a jmp
     // thunk through api-ms-win-core-url-l1-1-0 into this body.
     //
-    // AND IT COVERS A THIRD CALLER THAT IS NOT A THUNK AT ALL. kernelbase!UrlHashW (RVA 0x12F7B0) is
+    // And it covers a third caller that is not a thunk at all. kernelbase!UrlHashW (rva 0x12F7B0) is
     // a wide-to-narrow converter -- a 65-byte inline string builder at [rsp+0x20], the conversion at
-    // 0x4AF18 -- that finishes with `call 0x12F750`, a DIRECT INTERNAL CALL to the same address the
+    // 0x4AF18 -- that finishes with `call 0x12F750`, a direct internal call to the same address the
     // UrlHashA export names. So a patch written over the first bytes of that address is on
-    // UrlHashW's path too, and the wide export starts running our assembly WITHOUT ITSELF BEING
+    // UrlHashW's path too, and the wide export starts running our assembly without itself being
     // PATCHED. This section proves that rather than asserting it: it drives UrlHashW under the patch
     // and reads the SAME counter, and nothing else in this harness has that shape.
     //
-    // WHAT IS BEING PROVED IS A SEAM, NOT AN ALGORITHM. Change 249 is six instructions between two
+    // What is being proved is a seam, not an algorithm. Change 249 is six instructions between two
     // changes that are already patched and proved in this same harness -- 225 for the length,
     // 244 for the hash. So the corpus is aimed at what the seam can get wrong:
     //
-    //   * THE ARGUMENTS ACROSS TWO CALLS. The url, the digest and cbHash live in rbx, rsi and rdi
+    //   * The arguments across two calls. The url, the digest and cbHash live in rbx, rsi and rdi
     //     across a call to change 225's SEH wrapper and then a call to change 244's kernel.
-    //   * EVERY KERNEL CHANGE 244 HAS. cbHash 1..4 are four separate LEAF kernels, 5 and 13 are the
+    //   * Every kernel change 244 Has. cbHash 1..4 are four separate leaf kernels, 5 and 13 are the
     //     first case of each twelve-lane pass, and above 256 the seed WRAPS. All are driven.
-    //   * THE OVERLAP FALLBACK. Change 244's grouped kernel is wrong on all 1641 overlapping
+    //   * The overlap fallback. Change 244's grouped kernel is wrong on all 1641 overlapping
     //     placements its own probe enumerated, because the shipped inner loop re-reads the source
     //     byte for every digest lane. UrlHashA hands the caller's pointers straight through, so the
     //     fallback has to be reachable from here -- and the ORDER matters as well as the answer: the
     //     shipped envelope takes the length BEFORE the worker seeds the digest, so a digest that
     //     lands on the url must not change the number of bytes hashed.
-    //   * THE SWALLOWED FAULT. lstrlenA is SEH-wrapped, so an unterminated url at a PAGE_NOACCESS
+    //   * The swallowed fault. lstrlenA is SEH-wrapped, so an unterminated url at a PAGE_NOACCESS
     //     page returns S_OK with the IDENTITY SEED. Under the patch that access violation unwinds
     //     out of our assembly, through change 225's C __except, and out of a patched export's frame.
-    //   * AND THAT IT IS STILL HashData. Every disjoint case is compared against the live HashData
+    //   * And that it is still HashData. Every disjoint case is compared against the live HashData
     //     export on the same bytes as well, because "UrlHashA is HashData behind lstrlenA" is the
     //     claim that lets this change reuse change 244's kernel at all.
     printf("[249 UrlHashA]  kernelbase (every 244 kernel, the overlap fallback, the swallowed "
@@ -2439,7 +2439,7 @@ int main(void){
                     cases += 2;
                 }
 
-                /* THE SWALLOWED FAULT */
+                /* The swallowed fault */
                 {
                     SYSTEM_INFO si; GetSystemInfo(&si);
                     char* g = (char*)VirtualAlloc(0, si.dwPageSize * 2,
@@ -2474,7 +2474,7 @@ int main(void){
                     printf("  patched prologue: %02X %02X (expect FF 25)\n",
                            ((unsigned char*)p_uha)[0], ((unsigned char*)p_uha)[1]);
                 } else {
-                    /* THE WIDE EXPORT, under the narrow one's patch and never patched itself. Its
+                    /* The wide export, under the narrow one's patch and never patched itself. Its
                        answer must still match ours on the converted text, AND the counter must move,
                        which is what proves the direct internal call at 0x12F81F lands on the patch. */
                     LONG before_wide = c_uha;
@@ -2531,11 +2531,11 @@ int main(void){
     }
 
     // ===================== 167 PathCommonPrefixW =====================
-    // THE EXPORT PATCHED HERE IS kernelbase's, and this section also PROVES that shlwapi!
+    // The export patched here is kernelbase's, and this section also proves that shlwapi!
     // PathCommonPrefixW reaches it: every case is driven through the shlwapi name while only the
     // kernelbase body is patched, and the counter has to move.
     //
-    // WHAT IS BEING PROVED IS A CONTRACT THAT WAS PARKED AS UNDERIVABLE. This change sat at 99.3 %
+    // What is being proved is a contract that was parked as underivable. This change sat at 99.3 %
     // for a long time -- 784 of 116281 exhaustive pairs resisted every rule that could be fitted
     // from the outside, and its RESULTS.md concluded that reproducing it "requires reproducing that
     // root parser first" and that the next step was to derive PathSkipRootW. There is no root
@@ -2544,13 +2544,13 @@ int main(void){
     // exactly 2 as 3. So the corpus here is deliberately the SAME exhaustive set that used to leave
     // 784 residuals, plus the four pairs RESULTS.md called mutually contradictory, driven live.
     //
-    // AND THE CASE-FOLD IS THE OTHER HALF. This change's go/no-go established that the matching is
+    // And the case-fold is the other half. This change's go/no-go established that the matching is
     // exactly RtlUpcaseUnicodeChar -- 0 differences over 65534 code-unit pairs, against 947 for a
     // plain ASCII fold -- which is what made it reachable at all when StrChrIW and its family were
     // scoped out as collation-based. The vector loop compares RAW units and folds a block only once
     // the raw compare has already failed, so the corpus carries case-differing paths to drive it.
     //
-    // BOTH OBSERVABLES ON EVERY CASE: the returned int AND the whole achPath buffer against a
+    // Both observables on every case: the returned int and the whole achPath buffer against a
     // sentinel fill. The buffer is independent of the return three times over -- achPath is cleared
     // even when the answer is 0, a result of 3 can write only 2 characters because the copy stops at
     // pszFile1's own terminator, and a result of 260 or more writes nothing at all.
@@ -2625,7 +2625,7 @@ int main(void){
                     }
                 }
 
-                /* long paths, and long paths differing ONLY in case -- the block-fold path */
+                /* long paths, and long paths differing only in case -- the block-fold path */
                 {
                     static wchar_t a[600], b[600];
                     for (int n = 1; n <= 300; ++n) {
@@ -2697,7 +2697,7 @@ int main(void){
     }
 
     // ===================== 177 PathIsPrefixW =====================
-    // PARKED NOT AS "WE COULD NOT DERIVE IT" BUT AS "WE DERIVED IT, AND IT IS SOMETHING PARKED".
+    // Parked not as "we could not derive it" but as "we derived it, and it is something parked".
     // This change established, black-box and against both live exports, that
     //
     //     PathIsPrefixW(pre, path)  ==  ( PathCommonPrefixW(path, pre, NULL) == wcslen(pre) )
@@ -2706,7 +2706,7 @@ int main(void){
     // has now landed bit-exact, so this section patches an export whose entire body is two other
     // landed changes: 167 for the walk and 001 for the length.
     //
-    // THE OBSERVABLE IS A SINGLE BOOL, which is the difficulty. A corpus of random path pairs is
+    // The observable is a single BOOL, which is the difficulty. a corpus of random path pairs is
     // almost entirely FALSE, and an implementation that returned FALSE unconditionally would sail
     // through it. So the corpus is weighted: the same exhaustive 116281 pairs 167 was parked on, and
     // then every prefix of a 300-character path at every cut, with and without a trailing separator,
@@ -2827,7 +2827,7 @@ int main(void){
     }
 
     // ===================== 251 PathIsSameRootW =====================
-    // TWO EXPORTS ARE PATCHED HERE, SEPARATELY, because this change has two halves that can fail
+    // Two exports are patched here, separately, because this change has two halves that can fail
     // independently: the ROOT SKIP -- derived from kernelbase!PathCchSkipRoot's disassembly and
     // refuted against the live export over 210720 cases before any assembly was written -- and the
     // three lines of arithmetic that sit between it and change 167's walk.
@@ -2839,13 +2839,13 @@ int main(void){
     // PathIsSameRootW. A failure in the first is a failure of the root parser; a failure in the
     // second with the first passing is a failure of the arithmetic.
     //
-    // WHY THE ROOT PARSER NEEDED DERIVING AT ALL. This is the blocker that parked change 163, whose
+    // Why the root parser needed deriving at all. This is the blocker that parked change 163, whose
     // note recorded "leading backslash runs are non-monotonic in length, so no single rule fits".
     // They are non-monotonic -- 1, 2, 3, 3, 3, ... -- and it IS one rule: the UNC walk consumes the
     // separator after the SERVER even when the server is empty, and the one after the SHARE only
     // when the share is not. The corpus below is saturated with exactly those shapes.
     //
-    // AND OURS SHORT-CIRCUITS WHERE THE SHIPPED ONE DOES NOT. The shipped code calls
+    // And ours short-circuits where the shipped one does not. The shipped code calls
     // PathCommonPrefixW BEFORE it tests whether the root is NULL, so a relative path pays for the
     // whole walk and then throws it away; ours tests the root first. That is unobservable -- the
     // walk has no side effects with achPath NULL -- and it is where the 335x row in the benchmark
@@ -3010,18 +3010,18 @@ int main(void){
     }
 
     // ===================== 240 PathCchRemoveFileSpec =====================
-    // EVERY case compares the HRESULT AND THE WHOLE BUFFER against a poison fill, because three
+    // Every case compares the HRESULT and the whole buffer against a poison fill, because three
     // separately measured facts make anything less insufficient here:
     //
-    //   * it CLEARS A SLOT PER REMOVED SEPARATOR rather than writing one terminator at the cut, so a
-    //     wrong implementation produces the SAME STRING and a different BUFFER;
-    //   * S_FALSE writes NOTHING AT ALL, which a string comparison cannot tell from writing the same
+    //   * it clears a slot per removed separator rather than writing one terminator at the cut, so a
+    //     wrong implementation produces the same string and a different buffer;
+    //   * S_FALSE writes nothing at all, which a string comparison cannot tell from writing the same
     //     terminator back;
-    //   * cch bounds the HIGHEST INDEX WRITTEN, including writes that land on the existing terminator
+    //   * cch bounds the highest index written, including writes that land on the existing terminator
     //     and are therefore invisible in the buffer -- 567 UNC shapes differ from "result+1" for
     //     exactly that reason.
     //
-    // THE CORPUS IS ENUMERATED, NOT SAMPLED, because the protected root is NOT PathCchSkipRoot's
+    // The corpus is enumerated, not sampled, because the protected root is not PathCchSkipRoot's
     // root. They differ by one on every UNC path with anything after the share, and SkipRoot declines
     // outright on 15355 of 21845 enumerated strings -- so a corpus of realistic paths would agree
     // with the wrong rule everywhere it was looked at.
@@ -3070,7 +3070,7 @@ int main(void){
                     }
                 }
 
-                /* LENGTH AS A DIMENSION, in three root shapes */
+                /* Length as a dimension, in three root shapes */
                 for (int shape = 0; shape < 3; ++shape) {
                     for (int n = 20; n <= 2000; n += 37) {
                         static wchar_t s[2100];
@@ -3143,8 +3143,8 @@ int main(void){
     }
 
     // ===================== 243 PathCchCanonicalizeEx =====================
-    // THE COMPARISON STOPS AT THE TERMINATOR, and that is a measured decision rather than a weakening.
-    // The shipped implementation canonicalises DIRECTLY IN THE CALLER'S BUFFER and truncates as it
+    // The comparison stops at the terminator, and that is a measured decision rather than a weakening.
+    // The shipped implementation canonicalises directly in the caller's buffer and truncates as it
     // pops, so it leaves its own scratch behind the answer: "C:\a\.." comes back as "C:\" followed by
     // the leftover "\" of the "C:\a\" it built on the way. Demanding those bytes would forbid any
     // vectorised store, since a 32-byte store necessarily writes cells a per-character loop does not.
@@ -3152,7 +3152,7 @@ int main(void){
     // whether anything was written at all, which is where this contract actually hides:
     // cch 0 leaves the buffer untouched, cch 1 empties it, and every error path empties it.
     //
-    // THE DOMAIN IS dwFlags == 0, so the nonzero values must TAIL-JUMP TO THE ORIGINAL, and proving
+    // The domain is dwFlags == 0, so the nonzero values must tail-jump to the original, and proving
     // that under the patch is the interesting part. The export is a five-byte jmp thunk to the real
     // body, so patching the thunk leaves the body intact and the body can serve as the fallback --
     // resolved BEFORE patching, since afterwards the thunk points at us. If the export were not a
@@ -3223,7 +3223,7 @@ int main(void){
                     }
                 }
 
-                /* LENGTH AS A DIMENSION, in four shapes, across the MAX_PATH result cap. With
+                /* Length as a dimension, in four shapes, across the MAX_PATH result cap. With
                    dwFlags 0 a result of 260 characters or more is ERROR_FILENAME_EXCED_RANGE however
                    large cch is, so the sweep has to cross 259 rather than stop short of it. */
                 for (int shape = 0; shape < 4; ++shape) {
@@ -3320,14 +3320,14 @@ int main(void){
     }
 
     // ===================== 241 PathCchAddBackslashEx + PathCchRemoveBackslashEx =====================
-    // FOUR OBSERVABLES PER CALL, all load-bearing: the HRESULT, the WHOLE BUFFER against a poison fill,
+    // Four observables per call, all load-bearing: the HRESULT, the whole buffer against a poison fill,
     // ppszEnd and pcchRemaining. The out-parameters are written on the FAILURE path too, so they are
     // seeded with a 0xDEAD sentinel rather than zero -- an implementation that left them alone would
     // otherwise pass -- and `end` is reported even when the call DECLINES, pointing at where the
     // terminator WOULD go, so "C:\" reports +2 while returning S_FALSE.
     //
     // The corpus is ENUMERATED over separators, a letter, a colon and a question mark, because the
-    // protected prefix here is the STRUCTURAL prefix only: "C:\", "\", "\\" and "\\?\C:\" keep their
+    // protected prefix here is the structural prefix only: "C:\", "\", "\\" and "\\?\c:\" keep their
     // separator while "\\srv\" and "\\srv\shr\" lose it, so the server and share are NOT protected --
     // which is neither change 240's root nor PathCchSkipRoot's, and no corpus of realistic paths would
     // separate the three.
@@ -3394,7 +3394,7 @@ int main(void){
                     }
                 }
 
-                /* LENGTH AS A DIMENSION, with and without a trailing separator, so both the short
+                /* Length as a dimension, with and without a trailing separator, so both the short
                    vector path and the 64-byte loop run at every size */
                 for (int trail = 0; trail < 2; ++trail) {
                     for (int n = 8; n <= 3000; n += 61) {
@@ -3479,7 +3479,7 @@ int main(void){
     }
 
     // ===================== 242 PathCchAppendEx + PathCchCombineEx =====================
-    // TWO EXPORTS, ONE CONTRACT: both are a JOIN followed by canonicalisation, measured against
+    // Two exports, one contract: both are a join followed by canonicalisation, measured against
     // PathCchCanonicalizeEx(join(base, more)) on the live export over 789,770 pairs with 0 mismatches.
     // So the corpus here is a CROSS PRODUCT rather than a list of paths: the join's rules live in the
     // relationship between the two arguments, and the three that decide it -- the seam separator being
@@ -3487,10 +3487,10 @@ int main(void){
     // being the one two-separator `more` that does NOT replace the base -- are invisible unless both
     // sides vary together.
     //
-    // APPEND WORKS IN PLACE, so its buffer is reseeded from the base before every call, and the
+    // Append works in place, so its buffer is reseeded from the base before every call, and the
     // comparison covers the string and its terminator. Combine writes a separate buffer.
     //
-    // NEITHER OF THESE IS A JMP THUNK, unlike PathCchCanonicalizeEx: PathCchAppendEx begins
+    // Neither of these is a jmp thunk, unlike PathCchCanonicalizeEx: PathCchAppendEx begins
     // "mov [rsp+8],rbx" and PathCchCombineEx "mov r11,rsp", i.e. the export IS the body. So patching
     // them leaves nothing to delegate to, and the nonzero-dwFlags delegation is proved in the
     // validate-first pass -- where the fallback is the real export -- while only dwFlags 0, the
@@ -3577,7 +3577,7 @@ int main(void){
                     }
                 }
 
-                /* LENGTH AS A DIMENSION, across the MAX_PATH result cap, in three base shapes */
+                /* Length as a dimension, across the MAX_PATH result cap, in three base shapes */
                 for (int shape = 0; shape < 3; ++shape) {
                     for (int n = 8; n <= 300; n += 11) {
                         static wchar_t s[600];

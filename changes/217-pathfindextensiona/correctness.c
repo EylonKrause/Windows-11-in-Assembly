@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE CORPUS IS EXHAUSTIVE, AND THIS FUNCTION IS WHY.
+// The corpus is exhaustive, and this function is why.
 //
 // Probing it is what caught the missing SPACE rule in change 132 -- landed code that had been
 // passing its own "600k path fuzz" for weeks while disagreeing with the live PathFindExtensionW on

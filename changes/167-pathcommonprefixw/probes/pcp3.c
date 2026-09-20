@@ -32,7 +32,7 @@ static int ref(const wchar_t* a, const wchar_t* b, wchar_t* o){
         /* identical strings */
         r = (c==2) ? 3 : c;
     } else {
-        /* Did the common prefix stop exactly on a component boundary in BOTH strings?
+        /* Did the common prefix stop exactly on a component boundary in both strings?
            An EMPTY trailing component does not count -- "\" vs "\\" yields 0, not 1. */
         int abnd = (a[c]==L'\\' || a[c]==0);
         int bbnd = (b[c]==L'\\' || b[c]==0);

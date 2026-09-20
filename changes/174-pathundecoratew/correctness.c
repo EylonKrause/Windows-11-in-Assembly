@@ -72,7 +72,7 @@ int main(void){
     }
 
 
-    // ---- EXHAUSTIVE WITH A SPACE IN THE ALPHABET ---------------------------------------------
+    // ---- Exhaustive with a space in the alphabet ---------------------------------------------
     // Added 2026-09-15. Eight landed changes in this repository turned out to share one missing
     // rule: a SPACE stops the extension scan exactly as a backslash does. Change 132 shipped
     // without it, 140/143/144 inherited it, and 158/159/160/174 were found by a structural sweep
@@ -92,12 +92,12 @@ int main(void){
         }
     }
 
-    // EVERY code unit inside the brackets -- pins "digits only, possibly none"
+    // every code unit inside the brackets -- pins "digits only, possibly none"
     for(int c=1;c<65536;c++){
         s[0]=L'f'; s[1]=L'['; s[2]=(wchar_t)c; s[3]=L']'; s[4]=L'.'; s[5]=L't'; s[6]=0;
         CHECK(one(s), "bracket-content sweep");
     }
-    // EVERY code unit immediately after the ']' -- pins "must be '.' or the terminator"
+    // every code unit immediately after the ']' -- pins "must be '.' or the terminator"
     for(int c=1;c<65536;c++){
         s[0]=L'f'; s[1]=L'['; s[2]=L'1'; s[3]=L']'; s[4]=(wchar_t)c; s[5]=L't'; s[6]=0;
         CHECK(one(s), "post-bracket sweep");

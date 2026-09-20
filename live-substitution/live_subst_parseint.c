@@ -4,7 +4,7 @@
 //
 //   108 atoi   109 _atoi64   110 strtol   111 strtoul   112 _strtoi64   113 _strtoui64
 //
-// THREE OBSERVABLES, NOT ONE. The four `strtoX` entries write an `endptr` -- the first character
+// Three observables, not one. The four `strtoX` entries write an `endptr` -- the first character
 // they did not consume -- and set `errno` to ERANGE on overflow. A parser can return the right
 // number, stop in the wrong place, and say nothing about the overflow, and a gate that compared
 // only the value would pass all three mistakes. The endptr is compared as an OFFSET from the
@@ -12,7 +12,7 @@
 // with a sentinel before every call so "left the caller's value alone" is distinguishable from
 // "set it to zero".
 //
-// THE CORPUS IS BUILT AROUND WHERE INTEGER PARSERS GO WRONG, which is not the middle of the range:
+// The corpus is built around where integer parsers go wrong, which is not the middle of the range:
 //   * every base from 0 to 36, and base 0's auto-detection of "0x" and a leading "0";
 //   * "0x" with NO hex digit after it -- the documented "no conversion" case, where *endptr must be
 //     the ORIGINAL pointer and the value 0;
@@ -22,14 +22,14 @@
 //     189's finding, and invisible to any corpus of positive numbers;
 //   * leading whitespace from the C-locale set {09 0A 0B 0C 0D 20}, signs, and empty input.
 //
-// NOTHING IS PRINTED WHILE THE PATCH IS ON: the CRT's own printf parses and formats, and `atoi` is
+// Nothing is printed while the patch is on: the CRT's own printf parses and formats, and `atoi` is
 // exactly the kind of primitive it may reach for.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ucrtbase -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE, and emit nothing while patched.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle, and emit nothing while patched.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_parseint_live.bat
@@ -53,7 +53,7 @@ enum { F_ATOI, F_ATOI64, F_STRTOL, F_STRTOUL, F_STRTOI64, F_STRTOUI64, NFN };
 static volatile LONG counts[NFN];
 static volatile LONG iph_calls;
 
-/* AN INVALID BASE TERMINATES THE PROCESS UNLESS A HANDLER IS INSTALLED, and the first run of this
+/* An invalid base terminates the process unless a handler is installed, and the first run of this
  * file died at exactly that: `rnd() % 37` produces base 1, which is not 0 and not in 2..36, so
  * ucrt's strtol reports it through _invalid_parameter and the default handler raised
  * STATUS_STACK_BUFFER_OVERRUN (0xC0000409) before a single line of output was flushed.
@@ -232,7 +232,7 @@ int main(void){
     static char logmid[6000], logpost[6000];
 
     printf("== LIVE SUBSTITUTION: six ucrtbase integer parsers (108-113) ==\n");
-    /* BEFORE ANY CALL: an invalid base otherwise terminates the process. */
+    /* Before any call: an invalid base otherwise terminates the process. */
     _set_invalid_parameter_handler(iph);
     fflush(stdout);
     h=LoadLibraryW(L"ucrtbase.dll");
@@ -258,7 +258,7 @@ int main(void){
     printf("  [pre-patch]  %d cases x 6 parsers recorded from the SHIPPED exports\n",NCASE);
     fflush(stdout);
 
-    /* ---------- NOTHING PRINTED FROM HERE UNTIL THE RESTORE ---------- */
+    /* ---------- Nothing printed from here until the restore ---------- */
     for(i=0;i<NFN;++i)
         if(!patch_on(&p[i],liveP[i],ours[i])){
             for(--i;i>=0;--i) patch_off(&p[i]);

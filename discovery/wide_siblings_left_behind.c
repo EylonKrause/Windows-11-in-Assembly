@@ -18,7 +18,7 @@
  *
  *     strstr / wcsstr          wcscpy / wcsncpy          strcpy / strcat
  *
- * So the question this file asks is simply: WAS ANY OF THEM LEFT BEHIND TOO? It times each pair on
+ * So the question this file asks is simply: Was any of them left behind too? It times each pair on
  * identical work and reports ns per character for both, because the pair only tells you anything
  * when the two are measured the same way. A wide routine costing about the same per CHARACTER as
  * its narrow sibling is doing twice the bytes for the same money and is vectorised; one costing
@@ -29,7 +29,7 @@
  * measured `strstr` and PARKED it ("ties/loses below ~2 KB"). If `wcsstr` is scalar, the wide one
  * is a target even though the narrow one was not -- which is precisely the 148/149 shape.
  *
- * RUN ON AN IDLE MACHINE, and not during a revalidation sweep. min-of-N.
+ * Run on an idle machine, and not during a revalidation sweep. min-of-N.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

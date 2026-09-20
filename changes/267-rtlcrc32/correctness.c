@@ -2,19 +2,19 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlCrc32.
  *
- * THE ORACLE IS BITWISE AND SHARES NOTHING WITH THE IMPLEMENTATION. impl.asm uses the SSE4.2 CRC32
+ * The oracle is bitwise and shares nothing with the implementation. impl.asm uses the SSE4.2 CRC32
  * instruction in three parallel chains and recombines them through a linear-algebra table; the
  * oracle shifts one bit at a time through the polynomial probes/identify.c derived. If the table
  * construction were wrong, the two would part company immediately -- which is the point.
  *
- * A CRC IS A 32-BIT VALUE, SO A WRONG IMPLEMENTATION IS OVERWHELMINGLY LIKELY TO BE OBVIOUSLY
+ * a crc is a 32-BIT value, so a wrong implementation is overwhelmingly likely to be obviously
  * WRONG, but the ways it can be subtly wrong are all about BOUNDARIES, and that is where the
  * corpora go:
  *
- *   1. EVERY LENGTH from 0 to 4000. That crosses 192 (where the short blocks begin), 3072 (where
+ *   1. every LENGTH from 0 to 4000. That crosses 192 (where the short blocks begin), 3072 (where
  *      the long blocks begin), and every remainder either leaves behind -- the 8/4/2/1 tail is
  *      exercised at every possible residue, not at a few chosen ones.
- *   2. EVERY LENGTH again with a NON-ZERO initial CRC, because the initial value only enters the
+ *   2. Every length again with a non-zero initial crc, because the initial value only enters the
  *      FIRST of the three chains and an implementation that seeded the wrong chain, or seeded all
  *      three, would pass every test that started from zero.
  *   3. CHAINING: the CRC of a buffer computed in one call must equal the same buffer computed in

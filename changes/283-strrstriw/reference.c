@@ -1,6 +1,6 @@
 /* changes/283-strrstriw/reference.c
  *
- * THE SCALAR MODEL for shlwapi!StrRStrIW, written from the measured contract:
+ * The scalar model for shlwapi!StrRStrIW, written from the measured contract:
  *
  *   * the comparison is PER CHARACTER over change 281's relation, not a collation over spans --
  *     probes/contract.c: "ab<SOFT HYPHEN>cd" does not contain "abc";
@@ -9,7 +9,7 @@
  *     the string, hlen-1, NOT hlen-nlen. This model said hlen-nlen in its first version and was
  *     wrong, together with impl.asm, and the two agreeing with each other is precisely why the gate
  *     is three-way against the LIVE export as well: probes/pastnul.c measured the export matching
- *     {Q, SOFT HYPHEN} at the last character of "zzzq", because the soft hyphen is one of the 3238
+ *     {Q, soft hyphen} at the last character of "zzzq", because the soft hyphen is one of the 3238
  *     code units that match a NUL (change 282) and the comparison runs straight through the
  *     terminator. So a needle LONGER than the whole string can match too;
  *   * an empty needle, an empty string, and any NULL argument give NULL.

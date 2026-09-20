@@ -1,27 +1,27 @@
 // live-substitution/live_subst_int2ustr.c
 // LIVE-RUN PROOF for change 278 (ntdll!RtlIntegerToUnicodeString).
 //
-// WHAT IS COMPARED IS THE WHOLE DESTINATION, not the status. probes/contract.c measured that a
+// What is compared is the whole destination, not the status. probes/contract.c measured that a
 // refusal leaves the UNICODE_STRING COMPLETELY untouched -- Length keeps whatever the caller had in
 // it, and not one character is written -- so an implementation that helpfully zeroed Length on the
 // way out would pass any check that only looked at the NTSTATUS. That is change 268's rule, which
 // found 154 mismatches in change 016 that were nothing but a single 00 past the end of a string.
 //
-// THE CORPUS IS THE BASES AND THE BOUNDARIES. Two converters are under test: base 10 is
+// The corpus is the bases and the boundaries. Two converters are under test: base 10 is
 // length-first and two digits at a time, and bases 2, 8 and 16 share a shift-and-mask loop. A corpus
 // of plausible decimal numbers would exercise one of the two. So every case draws a base from the
 // five legal ones AND the illegal ones, a value from the digit-count boundaries as often as from
 // anywhere, and a MaximumLength from AROUND the room rule -- which is Length+2 here and Length+1 in
 // the routine change 067 owns, one byte apart in the same DLL.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_int2ustr_live.bat
@@ -106,7 +106,7 @@ static unsigned digits_of(ULONG v, ULONG b)
 {
     unsigned n = 1;
     ULONG base = b ? b : 10;
-    /* BASE 1 WOULD LOOP FOREVER: v /= 1 never decreases. One case in seven draws an ILLEGAL base
+    /* Base 1 Would loop forever: v /= 1 never decreases. One case in seven draws an illegal base
        from rnd() % 40, which includes 1, and the first version of this harness hung in the
        pre-patch pass having printed only its header. The length of a refused call is never used, so
        any sane number will do -- but it has to terminate. */

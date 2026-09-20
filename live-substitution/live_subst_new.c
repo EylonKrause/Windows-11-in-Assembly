@@ -4,11 +4,11 @@
 //
 // Freeze-safety protocol (per Eylon's zero-tolerance directive after repeated PC freezes):
 //   (0) SACRIFICIAL CHILD: this is a standalone single-threaded console exe. A fault here
-//       kills only this process, never the PC. It patches only ITS OWN per-process (COW)
+//       kills only this process, never the PC. It patches only its own per-process (cow)
 //       copy of ucrtbase -- never a live system process.
-//   (1) RUN OURS FIRST: before any hot-patch, each wia_* is validated standalone against its
+//   (1) Run ours first: before any hot-patch, each wia_* is validated standalone against its
 //       scalar reference over the fuzz corpus. If ANY mismatch, that function is NOT patched.
-//   (2) PATCH ONLY WHEN IDLE: the target isn't executing on any other thread (single-threaded
+//   (2) Patch only when idle: the target isn't executing on any other thread (single-threaded
 //       process), and these particular functions are never called by Windows' loader/heap/CRT
 //       internals, so nothing async can be mid-execution in the 14-byte prologue during the
 //       write. The window is tiny: patch -> verify loop -> unpatch, nothing else in between.
@@ -104,7 +104,7 @@ int main(void){
     {
         typedef char* (__cdecl *fn)(char*);
         fn sys=(fn)p_sr;
-        // (1) VALIDATE OURS STANDALONE before patching
+        // (1) Validate ours standalone before patching
         int vpre=0; char a[300],b[300],s[300];
         for(int t=0;t<3000;t++){ int len=t%256; for(int i=0;i<len;i++){ char c=(char)(rnd()|1); s[i]=c?c:2;} s[len]=0;
             memcpy(a,s,len+1); memcpy(b,s,len+1); wia_strrev(a); ref_strrev(b); if(strcmp(a,b))vpre++; }

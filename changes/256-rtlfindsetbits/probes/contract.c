@@ -3,7 +3,7 @@
  * ntdll!RtlFindSetBits and ntdll!RtlFindClearBits -- "find the first run of N consecutive set (or
  * clear) bits, starting the search at HintIndex".
  *
- * WHY THESE TWO, AND WHY TOGETHER. discovery/ntdll_bitmap.c put RtlFindSetBits at 0.132 ns/byte on
+ * Why these two, and why together. discovery/ntdll_bitmap.c put RtlFindSetBits at 0.132 ns/byte on
  * a 64 Kbit bitmap -- the most expensive row left in the family after RtlFindLongestRunClear, which
  * became change 255 -- and its mirror RtlFindClearBits at 0.026, FIVE TIMES cheaper for the same
  * failing full scan.
@@ -13,10 +13,10 @@
  * wrong. probes/topbit.c rotates the pattern by one bit and the two timings SWAP -- both exports
  * skip words with the same sign-bit-driven loop, and RtlFindSetBits inverts the word, so the same
  * data sends one of them down the fast path and the other down the slow one. The pair is still
- * worth one change, and for a better reason: BOTH have a one-cycle-per-word path and a
+ * worth one change, and for a better reason: both have a one-cycle-per-word path and a
  * five-cycle-per-word path, and the data picks.
  *
- * THE HINT IS THE WHOLE CONTRACT QUESTION. The documented behaviour is "the search begins at
+ * The hint is the whole contract question. The documented behaviour is "the search begins at
  * HintIndex", and the obvious reading -- search forward from the hint and stop at the end -- is one
  * of three possibilities. It might also WRAP, restarting at bit 0 and searching up to the hint;
  * and if it wraps, a run that STRADDLES the wrap point either counts or does not. Those three
@@ -24,7 +24,7 @@
  * them, so an implementation could be built on the wrong one and pass a careless corpus. This asks
  * directly, with runs placed specifically before and after the hint.
  *
- * AND THE DEGENERATE ARGUMENTS MATTER HERE MORE THAN USUAL, because "find zero bits" and "find more
+ * And the degenerate arguments matter here more than usual, because "find zero bits" and "find more
  * bits than exist" both have a defensible answer of either 0 or -1, and the caller cannot tell which
  * without asking.
  */

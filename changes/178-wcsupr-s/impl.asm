@@ -7,7 +7,7 @@
 ;
 ; Contract (derived in probes/wus.c, fuzz-confirmed bit-exact against the live export over
 ; 1,000,000 cases):
-;   * THE FOLD IS EXACTLY THE 26 ASCII LETTERS a-z. Swept over all 65535 code units, exactly 26
+;   * The fold is exactly the 26 ASCII letters a-z. Swept over all 65535 code units, exactly 26
 ;     change, mapping U+0061..U+007A -> U+0041..U+005A. It is NOT RtlUpcaseUnicodeChar, which
 ;     differs in 947 cases. Same finding as change 050 for the unbounded form.
 ;   * Success -> 0, upcased in place, nothing past the terminator touched.
@@ -19,8 +19,8 @@
 ;     `_invalid_parameter_noinfo` -- the convention changes 150-157 established -- so a caller
 ;     with a handler installed sees identical observable behaviour.
 ;
-; IT VALIDATES FIRST, THEN FOLDS -- AND THAT DECIDES THE STRUCTURE
-;   On the EINVAL path, NOTHING except str[0] is modified. A fused scan-and-fold pass (the
+; It validates first, then folds -- and that decides the structure
+;   On the EINVAL path, nothing except str[0] is modified. A fused scan-and-fold pass (the
 ;   shape changes 047 and 168 use) is therefore WRONG here: it upcases characters as it goes
 ;   and only discovers the missing terminator at the end, leaving partially folded text behind.
 ;   That was measured, not guessed -- the fused version returned the right 22 but left

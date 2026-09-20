@@ -2,8 +2,8 @@
  *
  * The contract of shlwapi/kernelbase!UrlHashA, measured against the live export.
  *
- * WHY THIS ONE, AND WHY IT IS SMALL. The disassembly settles most of it before a probe runs.
- * kernelbase!UrlHashA (RVA 0x12F750) is TWENTY-TWO INSTRUCTIONS:
+ * Why this one, and why it is small. The disassembly settles most of it before a probe runs.
+ * kernelbase!UrlHashA (rva 0x12F750) is twenty-two instructions:
  *
  *     0012F768  test rcx, rcx / je    pszUrl  NULL -> 0x80070057
  *     0012F76D  test rdx, rdx / je    pbHash  NULL -> 0x80070057
@@ -11,12 +11,12 @@
  *     0012F782  call 0x0C0A10         the hash worker, (pszUrl, len, pbHash, cbHash)
  *     0012F787  xor eax, eax          S_OK, UNCONDITIONALLY -- the worker's result is discarded
  *
- * and kernelbase!UrlHashW (RVA 0x12F7B0) is a WIDE-TO-NARROW CONVERTER THAT THEN CALLS UrlHashA:
+ * and kernelbase!UrlHashW (rva 0x12F7B0) is a wide-to-narrow converter that then calls UrlHashA:
  * a 65-byte inline string builder at [rsp+0x20] with its capacity 0x41 written at [rsp+0x70], the
  * conversion at 0x4AF18, and then `call 0x12F750` -- which IS UrlHashA. So there is one hash in this
  * pair, not two, and a patch on the narrow export is a patch on both.
  *
- * WHAT THE WORKER AT 0xC0A10 IS. discovery/README.md records it as "byte-identical to the HashData
+ * What the worker at 0xC0A10 is. discovery/README.md records it as "byte-identical to the HashData
  * export at 0xBB750 down to the same permutation table", and that is very slightly overstated. The
  * two instruction streams were diffed for this change: the worker is the export's body MINUS the
  * export's own two NULL checks and MINUS its trailing `xor eax, eax` -- it returns nothing, and its
@@ -30,17 +30,17 @@
  * what sections 3 and 4 below are for: if UrlHashA's digest is not bit-identical to HashData's on
  * the same bytes, the composition is wrong and the change does not exist.
  *
- * THE FOUR THINGS ONLY A PROBE CAN SETTLE:
+ * The four things only a probe can settle:
  *   1. cbHash = 0, and cbHash larger than any digest anyone would ask for -- the disassembly does
  *      not validate cbHash at all, so whatever the worker does with it IS the contract.
- *   2. A FAULTING URL. lstrlenA is SEH-wrapped; the survey recorded that an unterminated URL at a
+ *   2. a faulting url. lstrlenA is SEH-wrapped; the survey recorded that an unterminated url at a
  *      PAGE_NOACCESS boundary returns S_OK with the identity seed. Asked directly here.
  *   3. OVERLAP of pszUrl and pbHash. Change 244 measured that the shipped hash loop re-reads the
- *      source byte for EVERY digest lane, so a digest write landing on the source changes what the
+ *      source byte for every digest lane, so a digest write landing on the source changes what the
  *      remaining lanes consume -- wrong on all 1641 overlapping placements of a grouped
  *      implementation. UrlHashA hands the caller's own pointers straight through, so that hazard
  *      arrives here too.
- *   4. THAT UrlHashW REALLY IS UrlHashA. Same digest for the same ASCII text, and the same answer
+ *   4. That UrlHashW really is UrlHashA. Same digest for the same ASCII text, and the same answer
  *      for the arguments the narrow one refuses.
  *
  * Read-only with respect to the system: nothing is patched, nothing is written to disk.
@@ -136,7 +136,7 @@ int main(void)
         CHECK(bad == 0, "%lu cbHash values did not return S_OK", (unsigned long)bad);
     }
 
-    /* ============ 3. THE COMPOSITION CLAIM: UrlHashA == lstrlenA + HashData ============ */
+    /* ============ 3. The composition claim: UrlHashA == lstrlenA + HashData ============ */
     {
         static const char* U[] = {
             "", "a", "ab", "abc", "http://example.com/", "HTTP://EXAMPLE.COM/",
@@ -236,7 +236,7 @@ int main(void)
         CHECK(bad == 0, "%d overlapping placements were not reproducible", bad);
     }
 
-    /* ============ 6. THE FAULTING URL -- does lstrlenA's swallow show through? ============ */
+    /* ============ 6. The faulting url -- does lstrlenA's swallow show through? ============ */
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         {

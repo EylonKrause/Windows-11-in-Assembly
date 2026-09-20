@@ -7,7 +7,7 @@
 ; this family that is NOT collation, which is why it is reachable when StrStrIW, StrChrIW and
 ; StrCmpLogicalW are not.
 ;
-; THE SEARCH IS A NAIVE O(n*m) SCAN THAT SHIFTS ITS WINDOW BY ONE CHARACTER, in both modes:
+; The search is a naive O(n*m) scan that shifts its window by one character, in both modes:
 ;
 ;     000A2128  movzx eax, word ptr [rdx]            the needle character
 ;     000A212B  cmp word ptr [rdi + rdx], ax         the haystack character
@@ -18,7 +18,7 @@
 ; character (0x0A2301: index by high byte, then high nibble, then low nibble).
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE FOLD IS THE SAME TABLE AS CHANGE 252's, WHICH WAS NOT OBVIOUS AND HAD TO BE MEASURED.
+; The fold is the same table as change 252's, which was not obvious and had to be measured.
 ;
 ; The disassembly folds ASCII inline and then SHORT-CIRCUITS: `cmp r9w, r14w` with r14d = 0xC0, and
 ; anything below that is left alone. That looked like it must differ from RtlUpcaseUnicodeChar --
@@ -30,7 +30,7 @@
 ;
 ; So the `< 0xC0` short-circuit is an OPTIMISATION, not a different table, and change 252's
 ; case-partner table (casemate.c, derived from change 210's OS-built upcase table) transfers here
-; EXACTLY -- including the property the vector filter depends on, that no case-equivalence class has
+; exactly -- including the property the vector filter depends on, that no case-equivalence class has
 ; more than two members.
 ;
 ; That probe also corrected a factual error in change 252's own header, which had claimed U+017F
@@ -38,7 +38,7 @@
 ; case folding. See 252's RESULTS.md for the correction.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE REFUSAL CONTRACT, measured (probes/errors.c). This is a Win32 API, so unlike change 252's
+; The refusal contract, measured (probes/errors.c). This is a Win32 API, so unlike change 252's
 ; target it does not merely compute -- it validates, sets a last-error and returns -1, and every one
 ; of those refusals is observable:
 ;
@@ -52,25 +52,25 @@
 ;     0x00F00000                 -> -1, ERROR_INVALID_FLAGS (1004)
 ;   needle longer than haystack  -> -1, last error UNTOUCHED (an ordinary miss, not an error)
 ;
-; `bIgnoreCase > 1` IS THE ONE WORTH THE PROBE. Every Win32 convention says a BOOL is "nonzero is
+; `bIgnoreCase > 1` Is the one worth the probe. Every Win32 convention says a BOOL is "nonzero is
 ; true", and this one rejects 2 AND rejects -1 -- so a caller passing the result of a bit test gets
 ; ERROR_INVALID_PARAMETER. A reimplementation that wrote `test r8d, r8d / jnz insensitive` would be
 ; wrong on an input real code produces. It is an UNSIGNED compare against 1.
 ;
-; THE FOUR MODES, measured on "abcXYZabcXYZ" and on overlapping matches in "aaaa":
+; The four modes, measured on "abcXYZabcXYZ" and on overlapping matches in "aaaa":
 ;
 ;   FIND_FROMSTART   the FIRST index where the needle matches          "aa" in "aaaa" -> 0
 ;   FIND_FROMEND     the LAST index where the needle matches           "aa" in "aaaa" -> 2
 ;   FIND_STARTSWITH  0 if it matches at 0, else -1
 ;   FIND_ENDSWITH    n-m if it matches there, else -1                  "aa" in "aaaa" -> 2
-;   an EMPTY needle  FROMSTART/STARTSWITH -> 0;  FROMEND/ENDSWITH -> n
+;   an empty needle  fromstart/startswith -> 0;  fromend/endswith -> n
 ;
-; AND THE STRINGS ARE COUNTED, NOT TERMINATED, when a length is given: with cchSource = 5 over
+; And the strings are counted, not terminated, when a length is given: with cchSource = 5 over
 ; {a,b,0,c,d} a needle of {0,c} is FOUND, at index 2. A length of -1 means "measure it", and that is
 ; the only case where a NUL matters -- change 001's wia_wcslen does the measuring.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT SEARCHES. The same two-anchor block filter as change 252, and for the same reasons: compare
+; How it searches. The same two-anchor block filter as change 252, and for the same reasons: compare
 ; sixteen positions against one needle character and, in the same iteration, sixteen positions
 ; further along against another; only where both agree can a match begin. The far anchor is CHOSEN
 ; rather than fixed at m-1 -- the last position whose character differs from the first -- because a
@@ -93,7 +93,7 @@ PUBLIC wia_findstringordinal
 
 EXTERN wia_wcslen:PROC          ; change 001, for a cch of -1
 EXTERN wia_casemate:WORD        ; change 252's case-partner table (casemate.c)
-; No EXTERN SetLastError. The last error lives in the TEB at gs:[0x68], and setting it is ONE STORE
+; No extern SetLastError. The last error lives in the teb at gs:[0x68], and setting it is one store
 ; -- which is exactly what the shipped code does: `mov ecx, 0x3ec / call 0x178A8` at 0x0A215E goes
 ; to RtlSetLastWin32Error, whose entire body is that store. Calling the exported SetLastError
 ; instead cost about a nanosecond on every call, which is invisible on a 4000-character search and
@@ -187,7 +187,7 @@ fo_vsel ENDP
 ; The near anchor is needle[0]; the far one is the LAST position whose character differs from it,
 ; falling back to m-1 when every character is the same -- a needle like that matches at the first
 ; position it is tested against, so the fallback costs nothing. Insensitively, "differs" means "is
-; in a DIFFERENT CASE CLASS": choosing 'A' against a near anchor of 'a' would add a second test that
+; in a different case class": choosing 'a' against a near anchor of 'a' would add a second test that
 ; admits exactly the positions the first one already did.
 ;
 ; Change 252 measured what happens without this. With the far anchor fixed at m-1, a needle shaped
@@ -249,7 +249,7 @@ fo_anchors ENDP
 ; Case-sensitively: two compares and an AND. Insensitively: four compares, two ORs and an AND --
 ; and it is EXACT, not a superset, because a case-equivalence class in the NT ordinal table never
 ; holds more than two members (change 252, probes/classsize.c: 64563 classes, 63590 of them
-; singletons, 973 pairs, NOTHING larger). There is no fold on the haystack at all.
+; singletons, 973 pairs, nothing larger). There is no fold on the haystack at all.
 ; ---------------------------------------------------------------------------------------------
 fo_mask PROC
         vmovdqu   ymm0, ymmword ptr [rsi + rbx*2]
@@ -346,7 +346,7 @@ wia_findstringordinal PROC FRAME
         jnz       fo_eflags
         mov       dword ptr [rsp + 64], edx
 
-        ; --- resolve the lengths. -1 means "measure it", and that is the ONLY place a NUL matters:
+        ; --- resolve the lengths. -1 means "measure it", and that is the only place a NUL matters:
         ;     with an explicit length these are COUNTED strings and an embedded NUL is searchable. ---
         cmp       r14d, -1
         jne       fo_have_n
@@ -418,10 +418,10 @@ fo_fs_next:
         jmp       fo_fs_blk
 ; -- The scalar tail, INLINED rather than calling the verifier per position. --
 ; The first version called fo_vsel for each candidate, which is right for the block loop (a handful
-; of candidates in a whole block) and badly wrong here (one indirect call for EVERY position). On a
+; of candidates in a whole block) and badly wrong here (one indirect call for every position). On a
 ; sixteen-character search that is thirteen calls against the shipped code's single tight loop, and
 ; it measured 0.44x. The mode is tested ONCE, at the top.
-; -- ONE BLOCK, ONE ANCHOR: the short-haystack path. --
+; -- One block, one anchor: the short-haystack path. --
 ; When fewer than sixteen START positions remain, the two-anchor loop cannot run -- the far anchor's
 ; read would pass the end. But the NEAR anchor's read often still fits, and when it does, one vector
 ; compare replaces the entire scalar walk: a sixteen-character haystack has thirteen start positions
@@ -537,7 +537,7 @@ fo_fs_tc_no:
 
         ; ============================= FIND_FROMEND =============================
         ; The same filter run BACKWARDS -- blocks from the end, and the HIGHEST candidate within a
-        ; block via BSR rather than the lowest via TZCNT. NOT "search forwards and keep the last
+        ; block via bsr rather than the lowest via tzcnt. Not "search forwards and keep the last
         ; hit": that would scan the whole string even when the answer is in the final block.
 fo_fromend:
         mov       ebx, r14d

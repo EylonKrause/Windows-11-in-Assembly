@@ -1,23 +1,23 @@
 /* changes/289-widechartomultibyte/correctness.c
  *
- * THE GATE. Three-way on every case: our assembly, reference.c, and the LIVE
+ * The gate. Three-way on every case: our assembly, reference.c, and the live
  * kernelbase!WideCharToMultiByte resolved with GetProcAddress. A single mismatch fails.
  *
- * WHAT IS COMPARED ON EVERY CASE -- all four of these, not merely the return value:
+ * What is compared on every case -- all four of these, not merely the return value:
  *   1  the return value;
  *   2  GetLastError() afterwards, against a SENTINEL written before the call, so "the shipped code
  *      leaves the last error alone on success" is something this gate PROVES rather than assumes;
- *   3  EVERY BYTE of the destination out to cbMultiByte plus 128 bytes of slack, not merely the
+ *   3  every BYTE of the destination out to cbMultiByte plus 128 bytes of slack, not merely the
  *      first `ret` of them. Change 016 compared only up to the produced length and shipped an
  *      implementation that wrote zeros past the end of the string; change 268's whole-buffer
  *      compare is what found it. The slack is what catches a write past the CAPACITY;
  *   4  *lpUsedDefaultChar wherever one is passed.
  *
  * THE CORPUS covers, by construction: empty input; length 1; every length from 0 to far more than
- * twice the vector width (16 characters); EVERY destination capacity from 0 to past the exact
+ * twice the vector width (16 characters); every destination capacity from 0 to past the exact
  * requirement, so the overflow boundary is crossed one byte at a time; unaligned source and
  * unaligned destination, including an ODD (byte-misaligned) source pointer; buffers ending exactly
- * at a page boundary with PAGE_NOACCESS after, on BOTH sides; the non-ASCII character at every
+ * at a page boundary with PAGE_NOACCESS after, on both sides; the non-ASCII character at every
  * position of an otherwise-ASCII string; a surrogate pair at every position; strings with no
  * non-ASCII character at all; the measuring mode at every one of those; and a large randomised
  * fuzz set with a FIXED seed.
@@ -150,7 +150,7 @@ static unsigned long long rs = 0x9E3779B97F4A7C15ull;
 static unsigned rnd(void) { rs ^= rs << 13; rs ^= rs >> 7; rs ^= rs << 17; return (unsigned)(rs >> 32); }
 
 /* Reserve two pages, commit the first read-write, leave the second PAGE_NOACCESS. Data ending at
- * the returned pointer ends EXACTLY at the boundary. */
+ * the returned pointer ends exactly at the boundary. */
 static unsigned char* guard_page(void)
 {
     unsigned char* p = (unsigned char*)VirtualAlloc(NULL, 8192, MEM_RESERVE, PAGE_NOACCESS);
@@ -172,7 +172,7 @@ int main(void)
     if (!live) { printf("CORRECTNESS: FAILED (cannot resolve kernelbase!WideCharToMultiByte)\n"); return 1; }
 
     printf("== 289 WideCharToMultiByte -- ours vs reference.c vs live kernelbase ==\n");
-    /* WHERE THE TAIL CALL ACTUALLY LANDS. The import table binds `__imp_WideCharToMultiByte` to
+    /* Where the tail call actually lands. The import table binds `__imp_WideCharToMultiByte` to
      * KERNEL32's export, and kernel32!WideCharToMultiByte is one instruction -- `jmp qword ptr
      * [rip+disp32]` -- into kernelbase. So the check is not "is the pointer equal" but "does the
      * pointer reach the live export", and the thunk is decoded here rather than assumed. */
@@ -202,7 +202,7 @@ int main(void)
         const unsigned char* ltl = (const unsigned char*)wia_wc2mb_lat_len();
         const unsigned char* sh  = (const unsigned char*)wia_wc2mb_shift_table();
         long bad = 0, reachable = 0;
-        /* THE 175 UNREACHABLE INDICES ARE SKIPPED, and that is a statement about the encoder, not
+        /* The 175 Unreachable indices are skipped, and that is a statement about the encoder, not
          * a hole in the check. The index packs four characters' lengths at two bits each, so the
          * code 3 would mean "four bytes" -- which only a surrogate PAIR produces, and pairs never
          * reach this block at all; the surrogate block takes them. The assembler emits nothing for
@@ -250,7 +250,7 @@ int main(void)
         fails += bad;
     }
 
-    /* --- 1. every class, every length 0..120, EVERY capacity 0..3n+4 ------------------------- */
+    /* --- 1. every class, every length 0..120, every capacity 0..3n+4 ------------------------- */
     before = cases;
     for (c = 0; c < CLASSES; ++c)
         for (n = 0; n <= 120; ++n) {
@@ -276,7 +276,7 @@ int main(void)
         }
     printf("  [2] long lengths 121..1200, seven capacities each           : %ld cases\n", cases - before);
 
-    /* --- 3. one non-ASCII character, then a surrogate PAIR, at EVERY position ---------------- */
+    /* --- 3. one non-ASCII character, then a surrogate PAIR, at every position ---------------- */
     before = cases;
     {
         static const wchar_t PLANT[6] = { 0x00A0, 0x07FF, 0x0800, 0xFFFD, 0xD800, 0xDC00 };
@@ -387,7 +387,7 @@ int main(void)
         }
     printf("  [6] an embedded NUL at every position                       : %ld cases\n", cases - before);
 
-    /* --- 7. PAGE SAFETY: the SOURCE ends exactly at a PAGE_NOACCESS boundary ------------------ */
+    /* --- 7. Page safety: the source ends exactly at a PAGE_NOACCESS boundary ------------------ */
     before = cases;
     {
         unsigned char* end = guard_page();
@@ -407,7 +407,7 @@ int main(void)
     }
     printf("  [7] SOURCE ending exactly at a PAGE_NOACCESS boundary       : %ld cases\n", cases - before);
 
-    /* --- 8. PAGE SAFETY: the DESTINATION ends exactly at a PAGE_NOACCESS boundary ------------- */
+    /* --- 8. Page safety: the destination ends exactly at a PAGE_NOACCESS boundary ------------- */
     before = cases;
     {
         unsigned char* end = guard_page();
@@ -442,7 +442,7 @@ int main(void)
     }
     printf("  [8] DESTINATION ending exactly at a PAGE_NOACCESS boundary  : %ld cases\n", cases - before);
 
-    /* --- 9. THE DISPATCH BOUNDARY, driven from the refusing side ------------------------------ */
+    /* --- 9. The dispatch boundary, driven from the refusing side ------------------------------ */
     before = cases;
     {
         static const UINT  CPS[8]   = { 65001, 65000, 1200, 1201, 12000, 12001, 1252, 0 };

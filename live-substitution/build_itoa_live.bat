@@ -7,7 +7,7 @@ REM  dec2b.c is linked ONCE: all four changes ship the identical file (same md5)
 REM  and it defines wia_dec2b/wia_dec2b_init, so linking more than one copy is a
 REM  duplicate-symbol error rather than a choice.
 REM
-REM  /MD so the process uses the SAME ucrtbase this harness patches.
+Rem  /md so the process uses the same ucrtbase this harness patches.
 REM ===========================================================================
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

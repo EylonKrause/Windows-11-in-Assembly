@@ -1,13 +1,13 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 271 (advapi32!ConvertSidToStringSidA).
+Rem  live-run proof for change 271 (advapi32!ConvertSidToStringSidA).
 REM
 REM  The same five comparisons as the wide form's harness -- the BOOL,
 REM  GetLastError, what happened to the output pointer, LocalSize and LocalFlags,
 REM  and a hash of every byte of the block -- with the block one byte per
 REM  character rather than two.
 REM
-REM  THE NARROWING IS WHAT IS ON TRIAL HERE. VPACKUSWB saturates, so a character
+Rem  the narrowing is what is on trial here. Vpackuswb saturates, so a character
 REM  at or above 0x100 would come back as 0xFF rather than as itself, and only a
 REM  byte comparison shows that. probes/contract.c established that a SID string
 REM  is ASCII over every shape of SID and under four thread locales; this gate

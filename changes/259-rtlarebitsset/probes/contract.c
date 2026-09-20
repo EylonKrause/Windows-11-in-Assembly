@@ -3,7 +3,7 @@
  * ntdll!RtlAreBitsSet (RVA 0x0F5970) and ntdll!RtlAreBitsClear -- "are all the bits in this range
  * set (or clear)?"
  *
- * WHY THESE TWO. discovery/ntdll_bitmap2.c exists because the FIRST bitmap survey asked this pair a
+ * Why these two. discovery/ntdll_bitmap2.c exists because the first bitmap survey asked this pair a
  * question they could answer immediately: it measured 1.60 ns and 2.20 ns, and both rows returned
  * 0, meaning NO. A range check that answers no stops at the first bit that disagrees, which on
  * those subjects is inside the first word -- those rows timed a two-word function. Asked the
@@ -12,7 +12,7 @@
  *      RtlAreBitsSet   0..60000 over an all-ones bitmap      745.65 ns    0.099 ns/byte
  *      RtlAreBitsClear 0..60000 over an all-zero bitmap      741.05 ns    0.099 ns/byte
  *
- * and the middle loop in the disassembly is SIX INSTRUCTIONS PER 32-BIT WORD:
+ * and the middle loop in the disassembly is six instructions per 32-BIT word:
  *
  *      000F5A05  add rdx, 4        ; the next DWORD
  *      000F5A09  mov eax, [rdx]
@@ -23,19 +23,19 @@
  *
  * Four bytes per iteration at about two cycles is 0.099 ns/byte, which is what the row says.
  *
- * WHAT HAS TO BE PINNED. The disassembly appears to answer all of it, and that is exactly why it
+ * What has to be pinned. The disassembly appears to answer all of it, and that is exactly why it
  * is asked here instead: a rule read out of a branch is a guess about what the branch is for.
  *
- *   1. IS THE SECOND ARGUMENT A LENGTH OR AN END INDEX? `lea r11d, [r8-1] / add r11d, r9d` reads
+ *   1. Is the second argument a length or an end index? `lea r11d, [r8-1] / add r11d, r9d` reads
  *      like start + length - 1, but the same instruction serves an end-exclusive form.
  *   2. LENGTH ZERO. `cmp r8d, 1 / ja main / jne FALSE` reads as "zero is FALSE" -- which is not the
  *      vacuous truth a reader would assume, so it is worth a row of its own.
- *   3. DOES A RANGE PAST THE END REFUSE OR CLAMP? `sub eax, r9d / cmp eax, r8d / jb FALSE` reads as
+ *   3. Does a range past the end refuse or clamp? `sub eax, r9d / cmp eax, r8d / jb FALSE` reads as
  *      a refusal, so a range one bit too long over an all-ones bitmap must be FALSE and not TRUE.
- *   4. A START AT OR PAST SizeOfBitMap.
+ *   4. a start at or past SizeOfBitMap.
  *   5. THE SLACK past SizeOfBitMap must never be consulted -- a buffer whose bits above the
  *      declared size are all ones must not make a too-long range come back TRUE.
- *   6. THE SINGLE-BIT PATH, which is a separate branch (`bt`) and could disagree with the general
+ *   6. The single-bit path, which is a separate branch (`bt`) and could disagree with the general
  *      one at the same bit.
  */
 #define WIN32_LEAN_AND_MEAN

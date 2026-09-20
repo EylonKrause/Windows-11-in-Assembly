@@ -16,7 +16,7 @@
      * terminated only, or padded strncpy-style;
      * NULL source / NULL destination;
      * does it swallow a faulting source (SEH in the contract), and
-     * THE ORDERING QUESTION: does it read the source BEFORE testing the bound? 209's loop is shaped
+     * The ordering question: does it read the source before testing the bound? 209's loop is shaped
        the way it is because the shipped code reads one character past the last one it copies, so a
        source that ends exactly at a guard page faults at n == srclen+1 -- a case where a
        bound-first loop would quietly succeed and DIFFER from Windows.

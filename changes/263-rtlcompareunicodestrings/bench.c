@@ -2,16 +2,16 @@
  *
  * OURS vs the LIVE ntdll!RtlCompareUnicodeStrings.
  *
- * WHAT A COMPARISON COSTS IS HOW FAR IT GETS BEFORE IT CAN ANSWER, so every row states where its
+ * What a comparison costs is how far it gets before it can answer, so every row states where its
  * answer comes from. Two strings that are equal are the expensive case -- the whole of both is
  * read -- and a pair differing in the first character is the cheap one, and a row that only
  * measured one of them would describe a different function from the one callers use.
  *
- * FOUR ROWS EXIST TO ATTACK THIS IMPLEMENTATION SPECIFICALLY, because its case-insensitive path
+ * Four rows exist to attack this implementation specifically, because its case-insensitive path
  * compares the RAW characters first and folds only a block that disagrees:
  *
  *   equal, CI              the fold is never computed at all -- the best case for the design
- *   case-only difference   EVERY block disagrees raw and EVERY block has to be folded -- the worst
+ *   case-only difference   every block disagrees raw and every block has to be folded -- the worst
  *                          case, and the one that would expose a per-character table lookup
  *   non-ASCII, CI          the differing block leaves the in-vector fold and goes to the table,
  *                          which is the slow path kept for correctness rather than speed
@@ -20,11 +20,11 @@
  *
  * A row that only tested ASCII would report the fast fold as if it were the whole story.
  *
- * THE SMALL ROWS CALL SIXTEEN TIMES PER TIMED OP, for the reason change 261 established by
+ * The small rows call sixteen times per timed op, for the reason change 261 established by
  * measuring it: an empty call through this harness costs 2.32 ns, which is most of what a short
  * call measures, so a row that small compares the harness against itself. Their labels say so.
  *
- * EVERY ROW PRINTS WHAT IT RETURNED, and the subject table checks it against the live export before
+ * Every row prints what it returned, and the subject table checks it against the live export before
  * anything is timed -- a comparison that answered from the wrong place would still produce a
  * plausible time.
  */

@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 168-176 (shlwapi), 212 (PathFindFileNameA), 213 (StrRChrA), 214-216 (the narrow span family), 217+132 (BOTH PathFindExtension halves), 218 (StrTrimA), 219 (PathStripPathA), 220 (StrChrA), 221 (PathRemoveBlanksA), 222 (PathRemoveExtensionA), 223 (PathUndecorateA), 224 (PathRenameExtensionA), 226 (PathRemoveArgsA), 231 (StrCatBuffA), 232 (PathRemoveBackslashA), 233 (PathQuoteSpacesA), 234 (PathFindNextComponentA), 235 (PathIsFileSpecA), 236 (PathCommonPrefixA), 237 (PathIsPrefixA), 238 (PathMakePrettyA).
+Rem  live-run proof for changes 168-176 (shlwapi), 212 (PathFindFileNameA), 213 (StrRChrA), 214-216 (the narrow span family), 217+132 (both PathFindExtension halves), 218 (StrTrimA), 219 (PathStripPathA), 220 (StrChrA), 221 (PathRemoveBlanksA), 222 (PathRemoveExtensionA), 223 (PathUndecorateA), 224 (PathRenameExtensionA), 226 (PathRemoveArgsA), 231 (StrCatBuffA), 232 (PathRemoveBackslashA), 233 (PathQuoteSpacesA), 234 (PathFindNextComponentA), 235 (PathIsFileSpecA), 236 (PathCommonPrefixA), 237 (PathIsPrefixA), 238 (PathMakePrettyA).
 REM  Hot-patches the real shlwapi exports in THIS process's own copy-on-write
 REM  copy, proving Windows executes our assembly, then reverts and VERIFIES the
 REM  restore byte-for-byte. Sacrificial single-threaded child; no system process

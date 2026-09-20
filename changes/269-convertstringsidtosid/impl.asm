@@ -2,34 +2,34 @@
 ;   BOOL wia_str2sid(const wchar_t* s, PSID* out)      [Win64: rcx, rdx -> eax]
 ;
 ; advapi32!ConvertStringSidToSidW. discovery/sid_inet_bstr.c measured it at 275.78 ns for a
-; five-sub-authority SID and 463.28 ns for eight -- about 45 NANOSECONDS PER DECIMAL NUMBER, against
+; five-sub-authority SID and 463.28 ns for eight -- about 45 Nanoseconds per decimal number, against
 ; the single-figure nanoseconds change 114 takes to parse the four numbers of an IPv4 address.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE CONTRACT IS NOT THE DOCUMENTED ONE, and six probes were needed to establish it. The full
+; The contract is not the documented one, and six probes were needed to establish it. The full
 ; account is in RESULTS.md and in reference.c, whose grammar agrees with the live export over 36508
 ; cases with zero disagreements. The six things that shape THIS file:
 ;
-;   1. TWO NUMBER PARSERS. The revision and the identifier authority skip leading whitespace and
+;   1. Two number parsers. The revision and the identifier authority skip leading whitespace and
 ;      take an optional single '+'; a sub-authority takes neither. They also have different DIGIT
 ;      SETS -- the lenient one accepts the whole Unicode decimal-digit set, the strict one only the
 ;      ASCII and fullwidth digits -- so both are table lookups rather than range tests, and the
 ;      tables are built from the OS by classify.c.
 ;
-;   2. THE BASE CARRIES. A `0x` on the REVISION makes every later field hexadecimal, and there the
+;   2. The base carries. a `0x` on the revision makes every later field hexadecimal, and there the
 ;      prefix becomes optional. A `0x` anywhere else affects only its own field. One flag, set once.
 ;
-;   3. A SUB-AUTHORITY SATURATES at 0xFFFFFFFF; the authority REFUSES above 48 bits and the revision
+;   3. a sub-authority saturates at 0xFFFFFFFF; the authority refuses above 48 bits and the revision
 ;      above 255. One accumulator serves all three: it clamps at a limit passed in and reports
 ;      whether the clamp bit, and the caller decides whether that is a value or an error.
 ;
-;   4. THE COUNT STOPS AT 254, because 8 + 4*254 is 1024, and the refusal there is
+;   4. The count stops at 254, because 8 + 4*254 is 1024, and the refusal there is
 ;      ERROR_ARITHMETIC_OVERFLOW rather than ERROR_INVALID_SID.
 ;
-;   5. EXACTLY TWO CHARACTERS is an alias, looked up in a table built from the OS -- a third of the
+;   5. Exactly two characters is an alias, looked up in a table built from the OS -- a third of the
 ;      66 entries resolve through this machine or this domain, so it cannot be transcribed.
 ;
-;   6. ON FAILURE THE OUTPUT POINTER IS LEFT ALONE -- except after an SDDL terminator. `)`, `,` and
+;   6. On failure the output pointer is left alone -- except after an sddl terminator. `)`, `,` and
 ;      `;` following a COMPLETE SID make the call fail with ERROR_INVALID_SID and set the pointer to
 ;      NULL, because the parser underneath has a mode that stops at them and the public wrapper
 ;      rejects the trailing text afterwards. Three characters out of 65535; found by sweeping every
@@ -45,7 +45,7 @@
 ;   [rsp+1056]       the revision
 ;   [rsp+1064]       the identifier authority
 ;
-; NOTHING IS PUSHED INSIDE THE BODY: a push after .endprolog moves rsp in a way the unwind data does
+; Nothing is pushed inside the body: a push after .endprolog moves rsp in a way the unwind data does
 ; not describe. That is change 268's note and it applies here for the same reason.
 ;
 ; ISA: baseline x64. There is nothing to vectorise in a six-number parse; what makes it fast is that

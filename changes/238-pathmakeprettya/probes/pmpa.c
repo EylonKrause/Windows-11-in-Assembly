@@ -47,7 +47,7 @@ static PMP pmp;
 #define POISON 0xCD
 static char buf[8192];
 
-/* Run one case and describe the WHOLE observable result. */
+/* Run one case and describe the whole observable result. */
 static void show(const char* in, const char* tag)
 {
     int n = (int)strlen(in);

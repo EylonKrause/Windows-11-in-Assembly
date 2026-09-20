@@ -3,17 +3,17 @@
  * Gate 1 for change 247: wia_pathaddextensionw must be indistinguishable from the live
  * shlwapi!PathAddExtensionW.
  *
- * THREE-WAY on every case -- ours, an independent oracle (reference.c) and the LIVE EXPORT -- with
+ * Three-way on every case -- ours, an independent oracle (reference.c) and the live export -- with
  * THREE observables, all of them load-bearing:
  *
  *   * the BOOL;
- *   * the WHOLE buffer against a poison fill. A refusal writes NOTHING AT ALL and an empty extension
+ *   * the whole buffer against a poison fill. a refusal writes nothing at all and an empty extension
  *     writes nothing either, not even the terminator already there -- neither of which a string
  *     comparison can tell from writing the same bytes back;
  *   * a canary past the buffer, because the bound this function enforces is on the RESULT and an
  *     implementation that bounded the INPUT instead would append past MAX_PATH.
  *
- * THE ALPHABET CARRIES A SPACE, AND THAT IS THE POINT. The append point is PathFindExtensionW's, and
+ * The alphabet carries a space, and that is the point. The append point is PathFindExtensionW's, and
  * change 132 SHIPPED WRONG with only the backslash stopping its backward scan -- wrong on 295 513 of
  * 2 015 539 enumerated strings until the space was added. An alphabet without a space would validate
  * that same mistake all over again, so every enumerated sweep here includes one.
@@ -226,7 +226,7 @@ int main(void)
                 static wchar_t live[BUF + TAIL];
                 int ra, rb, rc;
                 for (int i = 0; i < n; ++i) p[i] = (i % 5 == 4) ? L'\\' : (wchar_t)(L'a' + i % 23);
-                /* THE LAST THREE CHARACTERS ARE PINNED, and the first version of this block did not
+                /* The last three characters are pinned, and the first version of this block did not
                    pin them: it wrote a '.' at n-3 over a filler that plants a backslash every fifth
                    character, so for some n a backslash landed AFTER the dot and shadowed it. The
                    scan then found no extension, the live export appended, and the append ran off the

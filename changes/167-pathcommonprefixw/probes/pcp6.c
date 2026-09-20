@@ -1,6 +1,6 @@
 /* changes/167-pathcommonprefixw/probes/pcp6.c
  *
- * THE RULE, READ OUT OF THE BINARY -- and tested against the live export over the same exhaustive
+ * The rule, read out of the binary -- and tested against the live export over the same exhaustive
  * corpus that left the black-box derivation at 99.3 %.
  *
  * This change was parked because 784 of 116281 exhaustive pairs over {a, b, \, :} resisted every
@@ -10,8 +10,8 @@
  *     "Next step if resumed: derive PathSkipRootW first ... it very likely underlies
  *      PathCommonPrefixW, PathIsPrefixW and PathIsSameRootW alike"
  *
- * THAT HYPOTHESIS IS WRONG, and the disassembly says so in one line: kernelbase!PathCommonPrefixW
- * (RVA 0x0CBD10) NEVER CALLS PathSkipRootW, or any root parser at all. Its entire root handling is
+ * That hypothesis is wrong, and the disassembly says so in one line: kernelbase!PathCommonPrefixW
+ * (Rva 0x0CBD10) never calls PathSkipRootW, or any root parser at all. Its entire root handling is
  * two inline tests for a doubled leading backslash:
  *
  *     000CBD43  cmp word ptr [rcx], 0x5c    / je 0x0CBE2C      f1 starts with '\'
@@ -29,7 +29,7 @@
  *     000CBDED  mov ebp, 3
  *     000CBDF2  sar rsi, 1          ; -> characters
  *     000CBDF5  cmp esi, 2
- *     000CBDF8  cmovne ebp, esi     ; if the length is EXACTLY 2, the answer is 3
+ *     000CBDF8  cmovne ebp, esi     ; if the length is exactly 2, the answer is 3
  *
  * ANY computed prefix length of two becomes three. Not "two identical 2-character strings", and
  * nothing to do with 'C' or ':'.
@@ -56,7 +56,7 @@ static int fails = 0;
 #define CHECK(c, ...) do { if (!(c)) { if (++fails <= 30) { printf("  FAIL: "); \
                             printf(__VA_ARGS__); printf("\n"); } } } while (0)
 
-/* The case-fold: change 167's go/no-go established it is EXACTLY CharUpperW / RtlUpcaseUnicodeChar,
+/* The case-fold: change 167's go/no-go established it is exactly CharUpperW / RtlUpcaseUnicodeChar,
    0 differences over all 65534 code-unit pairs, against 947 for a plain ASCII fold. */
 static wchar_t up(wchar_t c)
 {
@@ -164,7 +164,7 @@ int main(void)
         printf("\n");
     }
 
-    /* --- 2. THE EXHAUSTIVE CORPUS: all pairs over {a, b, \, :} to length 4 --- */
+    /* --- 2. The exhaustive corpus: all pairs over {a, b, \, :} to length 4 --- */
     {
         static const wchar_t A[] = L"ab\\:";
         static wchar_t s[8][400];

@@ -1,6 +1,6 @@
 /* changes/273-inet-addr/probes/overflow.c
  *
- * HOW DOES THE ACCUMULATOR OVERFLOW? THE PREVIOUS PROBE COULD NOT TELL.
+ * How does the accumulator overflow? The previous probe could not tell.
  *
  * probes/bytes.c asked what "0x" followed by k digits returns, and built the digits out of ONES:
  *

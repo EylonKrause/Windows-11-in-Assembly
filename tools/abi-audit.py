@@ -72,7 +72,7 @@ GPRNAME = re.compile(r'^(%s)$' % '|'.join(sorted(GPR, key=len, reverse=True)), r
 PUSH = re.compile(r'^push\s+(\w+)\s*$', re.I)
 INSTR = re.compile(r'^([a-z][a-z0-9]*)\s+(.*)$', re.I)
 
-# A LABEL ON THE SAME LINE HID THE INSTRUCTION BEHIND IT (found 2026-09-16, while mutation-testing
+# a label on the same line hid the instruction behind it (found 2026-09-16, while mutation-testing
 # change 261). This tree writes `f_f1:   mov r12d, 7` -- label and instruction on one line -- and
 # INSTR is anchored, so `f_f1:` failed to match and the write to r12 was never seen. The dynamic
 # gate caught that deliberate clobber and this scan reported PASS, which is the wrong way round for

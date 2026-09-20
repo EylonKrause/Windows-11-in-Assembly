@@ -13,7 +13,7 @@
      * whether the destination is padded (strncpy-style) or just terminated;
      * NULL source / NULL destination;
      * overlap;
-     * AND THE BIG ONE: MSDN says lstrcpyn catches exceptions and returns NULL on failure. If it
+     * And the big one: Msdn says lstrcpyn catches exceptions and returns NULL on failure. If it
        really does, a faulting source is part of the contract and a plain copy cannot reproduce it.
        That is tested last, against a PAGE_NOACCESS guard, because it is the difference between a
        viable target and an SEH-wrapped one.                                                       */

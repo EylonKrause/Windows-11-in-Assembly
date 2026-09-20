@@ -3,7 +3,7 @@
 // Pool offsets are COMPUTED with guaranteed spacing (see change 228 for why hand-placed ones are a
 // trap). The destination is re-terminated every iteration by both sides.
 //
-// THE CASE MIX. StrCatBuff is a bounded scan plus a bounded copy, so the axes are the destination
+// The case mix. StrCatBuff is a bounded scan plus a bounded copy, so the axes are the destination
 // length, the source length, and how the bound sits relative to them. The "bound already exceeded"
 // row matters because that is the case where the shipped function does the scan and then writes
 // nothing at all -- pure scan cost, no copy.

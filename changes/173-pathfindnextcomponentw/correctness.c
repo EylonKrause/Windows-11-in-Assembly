@@ -59,13 +59,13 @@ int main(void){
         }
     }
 
-    // EVERY code unit as the middle character -- pins the separator set to exactly U+005C
+    // every code unit as the middle character -- pins the separator set to exactly U+005C
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=(wchar_t)c; s[2]=L'b'; s[3]=0;
         CHECK(one(s), "separator-set sweep");
     }
 
-    // the separator at EVERY position, for many lengths, at 16 unaligned start offsets,
+    // the separator at every position, for many lengths, at 16 unaligned start offsets,
     // plus the no-separator case (which must return the terminator, not NULL)
     {
         static wchar_t buf[600];

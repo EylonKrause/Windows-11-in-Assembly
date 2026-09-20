@@ -1,20 +1,20 @@
 /* changes/281-strchriw/probes/sortkey.c
  *
- * TWO QUESTIONS THE IMPLEMENTATION CANNOT BE WRITTEN WITHOUT.
+ * Two questions the implementation cannot be written without.
  *
  * probes/foldtable.c took the fold relation straight from StrChrIW -- 59321 classes over 65535 code
  * units, largest class 3237 -- and probes/locale.c proved it locale-invariant. So the relation is a
  * fixed object this project can own. Two things still have to be measured before any assembly:
  *
- * 1. THE CLASS SIZE DISTRIBUTION, because it decides the shape of the inner loop.
+ * 1. The class size distribution, because it decides the shape of the inner loop.
  *
  *    The needle is fixed for a whole call, so the fast path can compare each haystack character
  *    against the MEMBERS of the needle's class -- k vector compares per sixteen characters, no table
  *    access at all. That works only if k is small. One class has 3237 members and obviously cannot
- *    be done that way; the question is whether it is the ONLY one, and what the largest of the rest
+ *    be done that way; the question is whether it is the only one, and what the largest of the rest
  *    is. That number is the width of the member table and the width of the vector path.
  *
- * 2. A CHEAP WAY TO BUILD THE TABLE AT INIT.
+ * 2. a cheap way to build the table at init.
  *
  *    foldtable.c needed 87.7 seconds, because it asked StrChrIW itself 65535 times. A gate that
  *    takes 88 seconds to start is a gate that gets run less often. The relation looks like
@@ -23,7 +23,7 @@
  *    the same bytes. 65536 sort keys is milliseconds, not minutes.
  *
  *    But "looks like" is what made probes/contract.c wrong. So the sort-key partition is checked
- *    against the ground truth from StrChrIW, character by character, and has to agree EXACTLY --
+ *    against the ground truth from StrChrIW, character by character, and has to agree exactly --
  *    it may not split a class the export unites, and it may not unite two the export separates.
  */
 #define WIN32_LEAN_AND_MEAN

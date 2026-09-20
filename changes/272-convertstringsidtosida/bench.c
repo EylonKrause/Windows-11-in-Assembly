@@ -2,20 +2,20 @@
  *
  * Gate 2: time wia_str2sida against the live advapi32!ConvertStringSidToSidA.
  *
- * EVERY ROW ALLOCATES AND FREES on both sides, because the contract returns a LocalAlloc block the
+ * Every row allocates and frees on both sides, because the contract returns a LocalAlloc block the
  * caller frees.
  *
- * THE ROWS ARE THE SHAPES THE IMPLEMENTATION DISTINGUISHES. Two of them are this change's own and
+ * The rows are the shapes the implementation distinguishes. Two of them are this change's own and
  * exist nowhere in change 269:
  *
- *   "a high byte"     an input containing a byte at or above 0x80, which is the ONLY path that
+ *   "a high byte"     an input containing a byte at or above 0x80, which is the only path that
  *                     consults the code page. Without this row the fallback is never timed, and a
  *                     fallback that were slower than the shipped export would land unnoticed --
  *                     which is exactly the defect class change 210 and change 269's first bench had.
  *   "1024 characters" an input past the point where the widened copy stops being the frame and
  *                     starts being an allocation.
  *
- * EVERY ROW IS PRE-FLIGHTED against a per-row table of what the live export must return.
+ * Every row is pre-flighted against a per-row table of what the live export must return.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -82,7 +82,7 @@ int main(void)
     if (wia_sid_alias_init())    { printf("the alias table failed to build\n"); return 1; }
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    /* NINE-DIGIT SUB-AUTHORITIES, NOT ONE-DIGIT ONES. The first version of this row filled 1020
+    /* Nine-digit sub-authorities, not one-digit ones. The first version of this row filled 1020
        characters with "-1"-style fields, which is 500-odd sub-authorities -- and the limit is 254,
        so the row was an ERROR_ARITHMETIC_OVERFLOW refusal wearing the name of the longest ACCEPTED
        input. The pre-flight below refused to benchmark it, which is the whole reason the pre-flight

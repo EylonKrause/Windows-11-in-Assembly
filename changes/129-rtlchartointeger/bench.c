@@ -1,6 +1,6 @@
 // changes/129-rtlchartointeger/bench.c
 //
-// WHY THIS BENCH WAS REWRITTEN.
+// Why this bench was rewritten.
 //
 // The first version had FOUR rows -- "1234567890", "0xDEADBEEF", "42" and "  -2147483648" -- and it
 // parked the change on one of them ("42" at 0.81x on Zen3). Four rows is not enough to decide either
@@ -50,7 +50,7 @@ int main(void)
         { "4294967296",                10 },   /* wraps mod 2^32 with no error -- measured contract */
         { "18446744073709551615",      10 },   /* 20 digits, wraps repeatedly */
 
-        /* --- base 0 and its three LOWERCASE-ONLY prefixes ------------------------------------- */
+        /* --- base 0 and its three LOWERCASE-only prefixes ------------------------------------- */
         { "0xDEADBEEF",                 0 },   /* the genuine win: ntdll costs ~2x its decimal path */
         { "0x7f",                       0 },   /* the same path, short -- a regression row */
         { "0b1011011110110111",         0 },

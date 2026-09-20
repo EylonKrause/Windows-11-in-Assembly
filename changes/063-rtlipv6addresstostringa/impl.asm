@@ -165,11 +165,11 @@ htail:
 
 finish:
         mov       byte ptr [r8], 0
-        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD.
+        ; The shipped export writes a second terminator, at the end of the field.
         ;
         ; RtlIpv6AddressToStringA always stores a zero at destination byte 45 -- the end of the
         ; 46-character maximum an IPv6 address can render to -- as well as the one after the
-        ; text. probes/tail.c asks the export at six address shapes and finds EXACTLY TWO zeros
+        ; text. probes/tail.c asks the export at six address shapes and finds exactly TWO zeros
         ; every time: one at the returned offset and one at 45, which never moves.
         ;
         ; This implementation wrote only the first, and live substitution caught it on ALL 20000

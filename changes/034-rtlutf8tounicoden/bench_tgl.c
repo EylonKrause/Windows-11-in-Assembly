@@ -1,11 +1,11 @@
 /* changes/034-rtlutf8tounicoden/bench_tgl.c
  *
- * THE PARENT'S bench.c CANNOT SEE WHAT THIS VARIANT EXISTS TO FIX, so this file replaces it for the
+ * The parent's bench.c cannot see what this variant exists to fix, so this file replaces it for the
  * Tiger Lake variant only. bench.c is NOT edited: it is the table `RESULTS.md` publishes, taken on
  * a machine with no AVX-512, and `build_tgl.bat` points here instead.
  *
- * WHAT WAS WRONG WITH THE OLD TABLE. Its six classes are ASCII, 2-byte, 3-byte, 4-byte, "mixed"
- * and U+FFFD. FIVE OF THE SIX ARE HOMOGENEOUS -- every character the same width -- and the sixth,
+ * What was wrong with the old table. Its six classes are ASCII, 2-byte, 3-byte, 4-byte, "mixed"
+ * and u+fffd. Five of the six are homogeneous -- every character the same width -- and the sixth,
  * "mixed", is ASCII alternating with two-byte sequences, which is precisely the one mixture the
  * AVX2 file has a kernel for. So the table covers each width on its own, plus the one mixture that
  * has a kernel, and nothing else. `discovery/utf8_width_mixtures.c` measured the classes it cannot
@@ -13,7 +13,7 @@
  * hole. A table that only contains the input a fast path was written for cannot say whether the
  * function is fast or whether the corpus was.
  *
- * SO THIS TABLE ADDS, and every one of them is a class the AVX2 blocks fall out of:
+ * So this table adds, and every one of them is a class the AVX2 blocks fall out of:
  *
  *   e0ed    three-byte sequences whose lead is 0xE0 or 0xED -- Devanagari, Bengali, Tamil, Thai,
  *           and the top of the Hangul block. The AVX2 three-byte kernel DECLINES both leads by
@@ -132,7 +132,7 @@ int main(void)
     for (c = 0; c < CLASSES; ++c) {
         for (li = 0; li < LENS; ++li) {
             int n = L[li];
-            /* THE WORST ALIGNMENT A 64-BYTE-LOAD KERNEL CAN HAVE, on purpose: the source starts at
+            /* The worst alignment a 64-BYTE-LOAD kernel can have, on purpose: the source starts at
                offset 63 of a 4K-aligned block, so every wide load straddles a cache line; the
                destination starts 2 bytes off its own 64-byte boundary. See probes/tglaxes.c. */
             unsigned char* sb = (unsigned char*)_aligned_malloc((size_t)n + 256, 4096);

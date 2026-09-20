@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/bench.c
  *
- * ELEVEN ROWS, AND THREE OF THEM ARE THE ONES THAT COULD SINK THIS CHANGE.
+ * Eleven rows, and three of them are the ones that could sink this change.
  *
  * The win here is structural rather than instruction-level: the conversion itself is changes 016
  * and 034, already measured, and what this change removes is the shipped code's SECOND PASS over
@@ -110,7 +110,7 @@ int main(void)
         cs[r].system = ow_sys; cs[r].ctx = &cw[i]; ++r;
     }
 
-    /* THE TIGHT DESTINATION, and it has to be built out of MULTI-BYTE input to be tight at all.
+    /* The tight destination, and it has to be built out of multi-byte input to be tight at all.
        With ASCII the result is exactly 2N bytes, which IS the 2N + 2 bound, so no sufficient
        destination is ever below the bound and the row would silently measure the fast path again
        -- the first version of this file did exactly that and printed the same number twice.
@@ -128,7 +128,7 @@ int main(void)
         cs[r].system = ow_sys; cs[r].ctx = &cw[K]; ++r;
     }
 
-    /* AND THE OTHER DIRECTION'S SIZING PASS: a source long enough that three bytes per character
+    /* And the other direction's sizing pass: a source long enough that three bytes per character
        might not fit the Length field at all, which is the only thing that makes this direction
        measure before it converts. 30000 characters is past the 21844 the bound allows. */
     {

@@ -1,6 +1,6 @@
 /* changes/263-rtlcompareunicodestrings/reference.c
  *
- * THE INDEPENDENT ORACLE for RtlCompareUnicodeStrings.
+ * The independent oracle for RtlCompareUnicodeStrings.
  *
  * It shares nothing with impl.asm but the contract. impl.asm compares sixteen characters at a time
  * with VPCMPEQW, folds a disagreeing block in-vector when every character in it is ASCII, and only
@@ -8,20 +8,20 @@
  *
  * THE RULES, as probes/contract.c measured them:
  *
- *   * THE RETURN IS THE DIFFERENCE, NOT A SIGN. `A` against `Z` is -25, U+FFFF against U+0000 is
+ *   * The return is the difference, not a sign. `a` against `Z` is -25, u+ffff against U+0000 is
  *     65535, and U+0000 against U+FFFF is -65535. An implementation returning -1/0/1 would satisfy
  *     every caller that writes `< 0` and none that stores the result.
- *   * THE FIRST DIFFERING CHARACTER DECIDES, and the difference is of the two characters ZERO
+ *   * The first differing character decides, and the difference is of the two characters zero
  *     EXTENDED from sixteen bits.
- *   * WHEN THE COMMON PREFIX IS EQUAL, THE ANSWER IS len1 - len2, IN CHARACTERS: "abc" against
+ *   * When the common prefix is equal, the answer is len1 - len2, in characters: "abc" against
  *     "abcdef" is -3, not -1 and not -6. A difference inside the common part still wins over the
  *     lengths -- "abz" against "abcd" is 23.
- *   * THE LENGTHS ARE IN CHARACTERS. The first run of the discovery probe passed 2 for a single
+ *   * The lengths are in characters. The first run of the discovery probe passed 2 for a single
  *     character and every character came back different from itself.
- *   * CASE-INSENSITIVE RETURNS THE UPCASED DIFFERENCE: `a` against `B` is -1, which is A - B. It is
+ *   * Case-insensitive returns the upcased difference: `a` against `B` is -1, which is a - B. It is
  *     not the raw difference of 31, so the fold happens BEFORE the subtraction and not merely as an
  *     equality test.
- *   * A NULL POINTER WITH LENGTH ZERO IS NEVER READ.
+ *   * a NULL pointer with length zero is never read.
  *
  * The fold is RtlUpcaseUnicodeChar exactly -- discovery/rtl_cmpstrings_probe.c enumerated a dense
  * sweep of character pairs and found no pair the table disagreed about in either direction -- so the

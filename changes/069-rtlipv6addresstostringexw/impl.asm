@@ -1,5 +1,5 @@
 ; changes/069-rtlipv6addresstostringexw/impl.asm
-; NTSTATUS wia_v6exw(const void* Addr, ULONG ScopeId, USHORT Port, wchar_t* Str, ULONG* Size)
+; NTSTATUS wia_v6exw(const void* Addr, ulong ScopeId, ushort Port, wchar_t* Str, ulong* Size)
 ;   [rcx=Addr(16), edx=ScopeId, r8w=Port(net), r9=Str, [rsp+28h]=Size -> eax]
 ;
 ; Wide (UTF-16) sibling of 068. Reuses the validated 064 wide IPv6 core (wia_v6fmtw), then

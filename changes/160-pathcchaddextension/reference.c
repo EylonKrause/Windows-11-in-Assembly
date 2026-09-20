@@ -1,5 +1,5 @@
 // changes/160-pathcchaddextension/reference.c
-// CORRECTED 2026-09-15: the extension rule inherited from change 132 was INCOMPLETE -- a SPACE
+// Corrected 2026-09-15: the extension rule inherited from change 132 was incomplete -- a space
 // stops the backward scan exactly as a backslash does. This oracle and the implementation were
 // wrong together on 46158 of 335923 enumerated strings; see discovery/extension_space_audit2.c.
 // Oracle for kernelbase!PathCchAddExtension, built from probe evidence. The order of the checks is
@@ -36,7 +36,7 @@ HRESULT ref_pathcchaddext(wchar_t* path, size_t cch, const wchar_t* ext)
         wchar_t c = body[m];
         if (c == L' ' || c == L'\\' || c == L'.') return E_INVALIDARG;
     }
-    /* AND THE BODY HAS A LENGTH LIMIT: at most 255 characters; 256 or more is E_INVALIDARG. It is
+    /* And the body has a length limit: at most 255 characters; 256 or more is E_INVALIDARG. It is
        checked here, with the rest of the validation, so it beats the S_FALSE below as well as
        every size failure. It is the BODY that is limited, not the whole argument: with a leading
        dot the boundary is a total of 257, without one 256, and both are a body of 256. Measured in

@@ -11,17 +11,17 @@
  * output of ~crc. So the parameters are DERIVED here rather than matched against a table of
  * popular ones:
  *
- *   1. THE STANDARD TEST VECTOR "123456789" against every common CRC-32 variant. If one matches,
+ *   1. The standard test vector "123456789" against every common CRC-32 variant. If one matches,
  *      that is a hypothesis and not yet a conclusion.
  *   2. THE POLYNOMIAL, read out of the function directly: feed a single 1 bit and see which bits
  *      come back. For a reflected CRC with a zero accumulator, one byte 0x01 produces the
  *      polynomial's own bit pattern after eight shifts, which pins it without guessing.
- *   3. THE INITIAL VALUE, by asking for the CRC of an EMPTY buffer: whatever comes back is the
+ *   3. The initial value, by asking for the crc of an empty buffer: whatever comes back is the
  *      init run through the output transform, with no message to confuse it.
- *   4. THE OUTPUT TRANSFORM, by checking whether CRC(init=X) of an empty buffer is X or ~X.
+ *   4. The output transform, by checking whether CRC(init=X) of an empty buffer is X or ~x.
  *   5. CHAINING: is the third argument really a running CRC? If CRC(b, n2, CRC(a, n1, 0)) equals
  *      CRC(ab, n1+n2, 0) then it is, and an implementation may process a buffer in pieces.
- *   6. And the hypothesis is then CONFIRMED OR REJECTED over a few thousand random buffers
+ *   6. And the hypothesis is then confirmed or rejected over a few thousand random buffers
  *      against a from-scratch bitwise implementation of the derived parameters -- which is the
  *      only step that actually proves anything.
  */

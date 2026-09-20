@@ -23,7 +23,7 @@
 // writes through via its exported _errno / _invalid_parameter_noinfo. With the static CRT the live
 // export __fastfails (exit 9, no output).
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // ucrtbase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // Build: build_fmt32_s_live.bat

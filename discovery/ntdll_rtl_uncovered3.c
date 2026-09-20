@@ -8,7 +8,7 @@
  * plausible is measured here: name comparisons, a parse, a validator, the size calculators and the
  * UTF-8 string wrappers.
  *
- * WHAT IS DELIBERATELY NOT HERE, and why -- so that nobody measures them again hoping for a
+ * What is deliberately not here, and why -- so that nobody measures them again hoping for a
  * different answer:
  *
  *   * RtlComputeCrc32 measured 0.012 ns/byte in the third sweep, which is 81 GB/s. That is faster
@@ -22,7 +22,7 @@
  *   * RtlNormalizeString and RtlIsNormalizedString are Unicode normalisation: locale-adjacent by
  *     definition, and the same question that ended lstrcmp_is_linguistic.c.
  *
- * WHAT THIS SWEEP CONCLUDED, so that nobody has to run it again:
+ * What this sweep concluded, so that nobody has to run it again:
  *
  *   * RtlUnicodeStringToUTF8String (0.099 ns/byte) and RtlUTF8StringToUnicodeString (0.213) are
  *     REAL TARGETS, and this project already converted the N-forms they wrap, as changes 016 and
@@ -36,11 +36,11 @@
  *   * RtlStringFromGUID allocates.
  *
  * METHOD, and the mistakes this file is written to avoid:
- *   * RUN IT ON AN IDLE MACHINE. Every row is a min-of-N.
- *   * EVERY ROW PRINTS WHAT IT ACTUALLY DID -- the return value and the output where there is one.
+ *   * Run it on an idle machine. Every row is a min-of-N.
+ *   * Every row prints what it actually did -- the return value and the output where there is one.
  *     A survey row whose subject does not do the work its label claims is this project's most
  *     expensive recurring mistake.
- *   * A ROW WHOSE COST DOES NOT SCALE WITH A LENGTH is reported per CALL and marked, because
+ *   * a row whose cost does not scale with a length is reported per call and marked, because
  *     dividing it by a byte count invents a number.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -164,7 +164,7 @@ int main(void)
     asout.Buffer = (PSTR)malloc(20000);  asout.Length = 0; asout.MaximumLength = 20000;
     usout.Buffer = (PWSTR)malloc(40000); usout.Length = 0; usout.MaximumLength = 40000;
 
-    /* THESE TWO REFUSE ANYTHING 64 CHARACTERS OR LONGER, and the first version of this file asked
+    /* These two refuse anything 64 Characters or longer, and the first version of this file asked
        them about two identical 4000-character strings. They answered "not equal" in 7.9 ns and the
        row reported 0.001 ns/byte -- eight terabytes a second, which is the survey measuring a
        REFUSAL and calling it a comparison. That is exactly the mistake this file's own header

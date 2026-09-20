@@ -3,10 +3,10 @@
 //
 // Measured in probes/pifsa.c against the live export:
 //
-//   * EXACTLY TWO byte values are separators: 0x5C and 0x3A. Confirmed at the FIRST, MIDDLE and
+//   * Exactly two byte values are separators: 0x5C and 0x3A. Confirmed at the first, middle and
 //     LAST positions -- 2 of 255 at each -- so neither is position-dependent. A forward slash is
 //     not one: "a/b" and "/" are both TRUE.
-//   * THE EMPTY STRING IS TRUE, and that is the one case a natural model gets wrong. The first
+//   * The empty string is TRUE, and that is the one case a natural model gets wrong. The first
 //     version of the probe's model required a non-empty string and that single case was its only
 //     mismatch in 488281 enumerated strings.
 //   * NULL returns 0.

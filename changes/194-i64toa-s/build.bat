@@ -1,6 +1,6 @@
 @echo off
 REM changes/194-i64toa-s/build.bat -- assemble, gate on correctness, then benchmark.
-REM /MD is REQUIRED: errno and the invalid-parameter handler must be UCRTBASE's -- the same ones
+Rem /md is required: errno and the invalid-parameter handler must be UCRTBASE's -- the same ones
 REM our assembly writes through via its exported _errno / _invalid_parameter_noinfo.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

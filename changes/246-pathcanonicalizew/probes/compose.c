@@ -1,9 +1,9 @@
 /* changes/246-pathcanonicalizew/probes/compose.c
  *
- * THE WHOLE CHANGE IN ONE PROBE: is shlwapi!PathCanonicalizeW exactly
+ * The whole change in one probe: is shlwapi!PathCanonicalizeW exactly
  * PathCchCanonicalizeEx(dst, MAX_PATH, src, 0) with a BOOL wrapper?
  *
- * WHY THAT IS THE QUESTION. The disassembly says it should be, and says it plainly:
+ * Why that is the question. The disassembly says it should be, and says it plainly:
  *
  *     kernelbase!PathCchCanonicalizeEx  RVA 0F5780:  jmp 0x10C30      <- one instruction
  *     kernelbase!PathCanonicalizeW      RVA 0F0F0:
@@ -12,7 +12,7 @@
  *         0000F100  test rdx, rdx / je            <- pszSrc NULL
  *         0000F108  xor  r9d, r9d                 <- dwFlags = 0
  *         0000F10B  mov  edx, 0x104               <- cch = MAX_PATH
- *         0000F110  call 0x10C30                  <- THE SAME BODY
+ *         0000F110  call 0x10C30                  <- the same body
  *         0000F115  test eax, eax / js            <- HRESULT < 0 ?
  *         0000F119  lea  eax, [rbx + 1]           <- TRUE
  *         0000F131  mov  ecx, eax                 <- the failure mapping:
@@ -28,7 +28,7 @@
  *
  * FOUR OBSERVABLES, because a BOOL alone would hide most of a disagreement:
  *   * the BOOL;
- *   * the WHOLE destination buffer against a poison fill -- the failure paths clear pszDst[0] and
+ *   * the whole destination buffer against a poison fill -- the failure paths clear pszDst[0] and
  *     write nothing else, which a string comparison cannot tell from writing the same bytes back;
  *   * GetLastError(), which is the only place the HRESULT survives;
  *   * and the ORDER of the two NULL checks, which is observable because pszDst[0] is cleared between

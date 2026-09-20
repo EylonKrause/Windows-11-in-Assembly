@@ -6,10 +6,10 @@
    EVERY COMPARISON COVERS FOUR THINGS: the HRESULT, the whole buffer against a poison fill, ppszEnd,
    and pcchRemaining. All four are load-bearing:
 
-     * the OUT-PARAMETERS ARE WRITTEN ON THE FAILURE PATH -- set to NULL and 0 -- so they are seeded
+     * the out-parameters are written on the failure path -- set to NULL and 0 -- so they are seeded
        with a 0xDEAD sentinel rather than zero, because a function that leaves them untouched when it
        fails is a different function and zero-initialising would hide it;
-     * `end` IS REPORTED EVEN WHEN THE CALL DECLINES, and it is where the terminator WOULD go rather
+     * `end` Is reported even when the call declines, and it is where the terminator would go rather
        than where it is: "C:\" reports +2 while returning S_FALSE, and "\" reports +0;
      * `rem` is cch minus that offset, so it is wrong in a different way than `end` if the model is
        off by one;
@@ -203,7 +203,7 @@ int main(void){
                "%ld calls\n", cases);
     }
 
-    /* ---- THE DRIVE LETTER over all 65536 wchar values ----------------------------------------- */
+    /* ---- The drive letter over all 65536 wchar values ----------------------------------------- */
     {
         wchar_t s[16];
         long cases = 0;

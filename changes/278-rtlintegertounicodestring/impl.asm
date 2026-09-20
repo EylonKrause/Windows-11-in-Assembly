@@ -14,27 +14,27 @@
 ; --------------------------------------------------------------------------------------------------
 ; THE CONTRACT, measured in probes/contract.c and not assumed from the documentation:
 ;
-;   1. ONLY BASES 0, 2, 8, 10 AND 16 ARE ACCEPTED, and 0 means 10. Every other value from 1 to
+;   1. Only bases 0, 2, 8, 10 And 16 Are accepted, and 0 means 10. Every other value from 1 to
 ;      0xFFFFFFFF -- including 4, 32 and 36 -- is STATUS_INVALID_PARAMETER. The sweep asked 0..20
 ;      one at a time rather than trusting the documented set.
-;   2. NO PREFIX, and the hexadecimal digits are UPPERCASE. Zero is "0" in every base.
-;   3. THE ROOM RULE IS MaximumLength >= Length + 2. Not Length+1 -- and that is worth saying,
+;   2. No prefix, and the hexadecimal digits are uppercase. Zero is "0" in every base.
+;   3. The room rule is MaximumLength >= Length + 2. Not Length+1 -- and that is worth saying,
 ;      because change 067 found the analogous rule in RtlConvertSidToUnicodeString IS Length+1, and
 ;      at exactly Length+1 that one writes no terminator at all. Two routines in the same DLL, two
 ;      different rules; the only way to know which is which is to ask each.
-;   4. A TERMINATOR IS ALWAYS WRITTEN, inside MaximumLength, and Length excludes it.
-;   5. ON ANY FAILURE THE DESTINATION IS COMPLETELY UNTOUCHED -- not Length, not one character.
+;   4. a terminator is always written, inside MaximumLength, and Length excludes it.
+;   5. On any failure the destination is completely untouched -- not Length, not one character.
 ;   6. The value is UNSIGNED: 0xFFFFFFFF is "4294967295", never "-1".
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE IMPLEMENTATION IS TWO CONVERTERS, BOTH LENGTH-FIRST.
+; The implementation is two converters, both length-first.
 ;
 ; Knowing the length before writing anything is what removes the scratch buffer and the reversal
 ; pass that a digit-at-a-time loop needs -- change 067's finding, and the reason its rewrite was
 ; worth 3.4x on the number itself.
 ;
 ;   BASE 10 is change 067's method: digits10 from one BSR, a byte from a table indexed by the bit
-;   length and one compare against a power of ten; then the digits are emitted TWO AT A TIME,
+;   length and one compare against a power of ten; then the digits are emitted two at a time,
 ;   backwards, as a single dword store from a table of pre-packed UTF-16 pairs, dividing by 100 with
 ;   a multiply. probes/decimal.c in change 067 proved (v * 51EB851Fh) >> 37 == v/100 for all
 ;   4294967296 values of v, and digits10 exact over the same domain.

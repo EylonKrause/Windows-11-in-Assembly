@@ -1,23 +1,23 @@
 /* changes/281-strchriw/correctness.c
  *
- * Gate 1 for shlwapi!StrChrIW: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the returned
+ * Gate 1 for shlwapi!StrChrIW: Ours vs the scalar model vs the live export, on the returned
  * pointer -- compared as an OFFSET, so that "found it in the right place" and "found it at all" are
  * the same question.
  *
- * THE CORPUS IS BUILT WHERE A VECTORISED, PAGE-ALIGNED SEARCH GOES WRONG:
+ * The corpus is built where a vectorised, page-aligned search goes wrong:
  *
- *   * EVERY ONE OF THE 65536 NEEDLES, each searched for in a string containing its case partner.
+ *   * Every one of the 65536 Needles, each searched for in a string containing its case partner.
  *     That is the whole equivalence rule, asked one code unit at a time rather than sampled.
- *   * EVERY ALIGNMENT. The implementation aligns the pointer DOWN to 32 bytes and discards the mask
+ *   * Every alignment. The implementation aligns the pointer down to 32 bytes and discards the mask
  *     of everything before the true start; if that mask were off by one lane it would find a match
  *     in the bytes BEFORE the string. Every start offset 0..31 is swept, with a planted match in
  *     the discarded region.
- *   * EVERY MATCH POSITION in strings of every length up to 200, because the first-match rule and
+ *   * Every match position in strings of every length up to 200, because the first-match rule and
  *     the block boundary interact: a match in block 2 must not be beaten by a terminator in block 1
  *     and vice versa.
- *   * THE TERMINATOR IN EVERY LANE, because the loop finds the match and the end of the string in
+ *   * The terminator in every lane, because the loop finds the match and the end of the string in
  *     the SAME pass and has to decide which came first.
- *   * AND A GUARD PAGE. A 32-byte load reaches past the terminator by construction. The only proof
+ *   * And a guard page. a 32-byte load reaches past the terminator by construction. The only proof
  *     that it never reaches into an unmapped page is to put one there: every string length 0..64 is
  *     placed so that its terminator is the last readable byte before a PAGE_NOACCESS page.
  */
@@ -80,7 +80,7 @@ int main(void)
                "     separate this relation from its neighbours\n");
     }
 
-    /* 1. EVERY needle, searched for in a string holding a REAL member of its class.
+    /* 1. every needle, searched for in a string holding a REAL member of its class.
      *
      * The partner comes from the measured fold, not from a case function. probes/contract.c built
      * its pairs from CharUpperW/CharLowerW/RtlUpcase/RtlDowncase and therefore could never ask
@@ -126,7 +126,7 @@ int main(void)
                cases - before);
     }
 
-    /* 3. EVERY ALIGNMENT, with a planted match in the region the mask must discard */
+    /* 3. every ALIGNMENT, with a planted match in the region the mask must discard */
     {
         long before = cases;
         static wchar_t pad[256];
@@ -180,7 +180,7 @@ int main(void)
         printf("  5. surrogate pairs as code units: %ld\n", cases - before);
     }
 
-    /* 6. THE GUARD PAGE. Every length 0..64, with the terminator as the last readable code unit
+    /* 6. The guard page. Every length 0..64, with the terminator as the last readable code unit
      *    before a PAGE_NOACCESS page. A 32-byte load reaches past the terminator by construction;
      *    this is the only proof it never reaches past the PAGE. */
     {

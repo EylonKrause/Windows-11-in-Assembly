@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_charupperbuffw and wia_charlowerbuffw against the live user32 exports.
  *
- * THE ROWS ARE THE TWO PATHS AND THE LENGTHS THAT CROSS BETWEEN THEM. A 16-character block with no
+ * The rows are the two paths and the lengths that cross between them. a 16-character block with no
  * code unit at or above 0x80 is handled entirely in registers; any block with a high code unit falls
  * back to the table for that block. So a bench of ASCII alone would measure one path and report it
  * as the function -- which is the defect change 210 shipped and change 269's first bench had.
@@ -10,7 +10,7 @@
  *   ASCII            the in-register range subtract
  *   all high         the table, every block
  *   one high in 64   the worst realistic mixture: one block of 16 falls back, the rest do not
- *   BOTH DIRECTIONS  because the lower form has its own range ('A'..'Z' plus 0x20) and its own
+ *   Both directions  because the lower form has its own range ('a'..'z' plus 0x20) and its own
  *                    table, and discovery measured it 50% slower than the upper one
  *
  * Short rows are timed x16: discovery/rtl_integer_char.c put a single character at 8.25 ns and

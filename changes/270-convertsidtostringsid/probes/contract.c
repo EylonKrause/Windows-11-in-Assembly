@@ -1,6 +1,6 @@
 /* changes/270-convertsidtostringsid/probes/contract.c
  *
- * IS advapi32!ConvertSidToStringSidW THE SAME FORMATTER AS ntdll!RtlConvertSidToUnicodeString?
+ * Is advapi32!ConvertSidToStringSidW the same formatter as ntdll!RtlConvertSidToUnicodeString?
  *
  * discovery/sid_inet_bstr.c measured them side by side on the same SID:
  *
@@ -13,10 +13,10 @@
  * LocalAlloc, in the same way change 268 is an envelope over 016 and 034 -- and the ceiling is
  * about 92 ns, or 1.97x.
  *
- * "IF THEY AGREE" IS THE WHOLE QUESTION AND IT IS NOT A SAFE ASSUMPTION. Change 268 was built on
+ * "If they agree" is the whole question and it is not a safe assumption. Change 268 was built on
  * exactly this bet about two functions documented as a pair, and found FOUR behaviours where they
  * differ. Change 269 found six places where one export disagreed with its own documentation. So
- * nothing here is inferred from the family: every SID shape is formatted by BOTH and the two
+ * nothing here is inferred from the family: every SID shape is formatted by both and the two
  * strings are compared byte for byte.
  *
  * THE QUESTIONS, in the order they decide the implementation:

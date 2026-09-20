@@ -4,7 +4,7 @@
 // The shipped narrow parser measures 82 ns against its own wide sibling's 23 ns for identical work.
 // Ours is a table-driven parse with one branchless validity test.
 //
-// WHAT MUST BE PROVED LIVE, beyond the happy path:
+// What must be proved live, beyond the happy path:
 //   * a BRACED string is REJECTED (1705). That is the opposite of ntdll!RtlGUIDFromString, which
 //     requires the braces, so getting it backwards would be an easy and invisible mistake;
 //   * StringUuid == NULL is a SUCCESS that writes the nil UUID;
@@ -14,7 +14,7 @@
 // The corpus is three-quarters valid and one-quarter malformed across assorted shapes, so both the
 // accept and reject paths run in bulk under the patch.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // rpcrt4 only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // FOR 208 there is one extra thing to prove. The wide implementation narrows its 36 UTF-16 cells to

@@ -16,7 +16,7 @@
 ;
 ; Both parsers were fuzzed in the SAME run (probes/../188-wcstol/probes/wcstol.c) against their own
 ; live exports, value + *endptr + errno: 1,500,000 cases each, 0 mismatches. The same run refuted
-; the ASCII-only-prefix-zero variant for BOTH of them on 1579 cases, so the quirk is not specific
+; the ASCII-only-prefix-zero variant for both of them on 1579 cases, so the quirk is not specific
 ; to the signed form.
 ;
 ; Shape: identical to change 188 -- the digit loop has NO CALL on any path, with the classifier
@@ -254,7 +254,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. IN: r10d = code unit. OUT: eax = 1 if it is a decimal digit with VALUE 0
+; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; The prefix sites need only this question, not a full 0..35 classification.
 ; ---------------------------------------------------------------------------

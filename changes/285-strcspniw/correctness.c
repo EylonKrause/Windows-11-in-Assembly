@@ -2,14 +2,14 @@
  *
  * Three-way: ours vs an independent scalar model vs the LIVE shlwapi export.
  *
- * THE CORPUS SHAPES ARE INHERITED FROM CHANGES 283 AND 284 ON PURPOSE. Each of those changes ended up
+ * The corpus shapes are inherited from changes 283 And 284 On purpose. Each of those changes ended up
  * with corpora that exist only because a mutant survived, and two of them caught real defects in a
  * shipped implementation rather than in a mutant. Rebuilding this gate from the "obvious" cases would
  * walk into the same holes, so the shapes come over from the start and are adapted to a SET-based span:
  *
  *   * every alignment, because the block scan masks the bytes below the string pointer;
  *   * a match planted where the scan must NOT find it -- below the string pointer;
- *   * EVERY MEMBER of EVERY dispatch class of the relation, because this change expands a set member's
+ *   * Every member of every dispatch class of the relation, because this change expands a set member's
  *     whole pool slot and only the last member of a slot exposes an off-by-one there;
  *   * the guard page with the terminator as the last readable code unit;
  *   * a NON-ZERO buffer after the terminator, so "it never reads past" is proved rather than assumed;
@@ -36,7 +36,7 @@ static int failures;
 #define CGJ  0x034F     /* COMBINING GRAPHEME JOINER -- another member of that same set */
 #define ZWSP 0x200B     /* ZERO WIDTH SPACE -- matches ONLY ITSELF (n = 0) */
 
-/* THE FILLER, AND WHY IT IS CHECKED RATHER THAN CHOSEN.
+/* The filler, and why it is checked rather than chosen.
  *
  * Three corpora in this file were written with a filler that turned out to be IN the set under test,
  * which makes every answer 0 and the whole corpus vacuous -- it passes, it proves nothing, and the
@@ -256,7 +256,7 @@ int main(void)
                cases - before);
     }
 
-    /* 7. EVERY MEMBER of EVERY dispatch class, as a set member and in the string.
+    /* 7. Every member of every dispatch class, as a set member and in the string.
      *
      * A set member with 2..8 partners has its whole pool slot copied into the accept list, so an
      * off-by-one there is only visible through the LAST member of the slot. probes/relation.c (via
@@ -281,9 +281,9 @@ int main(void)
                 for (k = 0; k < 40; ++k) s[k] = (wchar_t)FILL;
                 plant(s, 40, 25, (wchar_t)mem, set);              /* 25 planted, 40 absent */
             }
-            /* AND THE NEIGHBOURS, which is what a one-too-far walk of the pool slot reads.
+            /* And the neighbours, which is what a one-too-far walk of the pool slot reads.
              * probes/pooltail.c measured it: a slot holds eight words, so for a member with n = 8 the
-             * entry at [n] is the FIRST WORD OF THE NEXT SLOT -- U+02B9's is U+02BA, which its set
+             * entry at [n] is the first word of the next slot -- U+02B9's is U+02BA, which its set
              * does not accept. Fifteen slots are like that, so walking one member too far is a genuine
              * false-match bug, and planting only MEMBERS of the set could never catch it. */
             for (mem = (r > 4 ? r - 4 : 1); mem <= (unsigned)r + 10 && mem < 65536; ++mem) {
@@ -295,7 +295,7 @@ int main(void)
                "     sentinel) as a set member, present and absent: %ld\n", cases - before);
     }
 
-    /* 8. THE CHUNK BOUNDARY. The accept list is scanned four members at a time, so a set whose
+    /* 8. The chunk boundary. The accept list is scanned four members at a time, so a set whose
      * expansion lands exactly on 4, or just over it, exercises the loop's edge. A member with n
      * partners contributes n entries, so sets are built to hit the boundary deliberately.
      */
@@ -325,7 +325,7 @@ int main(void)
                "     member and across a block boundary: %ld\n", cases - before);
     }
 
-    /* 9. THE ACCEPT-LIST CAP. Sixteen entries is the cap, and beyond it the whole call takes the
+    /* 9. The accept-list cap. Sixteen entries is the cap, and beyond it the whole call takes the
      * scalar path -- so the answer must be identical on both sides of that line. A one-character set
      * member with four partners contributes four entries, so four such members fill the list exactly.
      */
@@ -420,7 +420,7 @@ int main(void)
                cases - before);
     }
 
-    /* 13. AN EMPTY SET, OVER EVERY CODE UNIT.
+    /* 13. An empty set, over every code unit.
      *
      * An empty set expands to nothing, and the implementation appends a single zero entry rather than
      * special-casing it. A mutant that drops that append broadcasts whatever the uninitialised stack
@@ -446,7 +446,7 @@ int main(void)
                cases - before);
     }
 
-    /* 14. A LONG STRING WITH A MULTI-CHUNK SET, so the answer lies beyond the first window.
+    /* 14. a long string with a multi-chunk set, so the answer lies beyond the first window.
      *
      * The scan divides the string into windows of 4, 8, 16, ... blocks and the count is measured from
      * the string base, not from the current window. A mutant that measured it from the window survived
@@ -459,7 +459,7 @@ int main(void)
         static wchar_t s[600], set[24];
         for (k = 0; k < 20; ++k) set[k] = (wchar_t)(L'M' + k);
         set[20] = 0;
-        /* THE FILLER MUST NOT BE IN THE SET, and the first version of this corpus got that wrong: it
+        /* The filler must not be in the set, and the first version of this corpus got that wrong: it
          * filled with 'z', and the set runs U+004D..U+0060 which includes 'Z' -- so case-insensitively
          * every single character of the string was already a match, every answer was 0, and every
          * answer therefore lay in the FIRST window. probes/windiag.c printed it: ours 0, live 0, for
@@ -477,9 +477,9 @@ int main(void)
                "      window: %ld\n", cases - before);
     }
 
-    /* 15. SENTINEL SETS WHOSE BITMAP DOES NOT CONTAIN A NUL.
+    /* 15. Sentinel sets whose bitmap does not contain a NUL.
      *
-     * probes/pooltail.c found eleven distinct 255-sentinel sets, and TEN OF THEM DO NOT ACCEPT A NUL --
+     * probes/pooltail.c found eleven distinct 255-sentinel sets, and ten of them do not accept a NUL --
      * only the 3238-member ignorable set does. Every sentinel case in the corpus above used that one,
      * so the scalar bitmap loop's own terminator test was never needed: the bitmap stopped the loop for
      * free. A mutant removing that test therefore survived both gates. With one of the other ten, a
@@ -531,10 +531,10 @@ int main(void)
                "%ld\n", cases - before);
     }
 
-    /* 16. THE SCALAR POOL LOOP AT THE EDGE OF A SLOT.
+    /* 16. The scalar pool loop at the edge of a slot.
      *
      * A pool slot is eight words wide, so for a set member with EIGHT partners the entry just past its
-     * members is the FIRST WORD OF THE NEXT SLOT -- probes/pooltail.c measured fifteen code units for
+     * members is the first word of the next slot -- probes/pooltail.c measured fifteen code units for
      * which that neighbour is NOT accepted by the set, U+02B9's being U+02BA. A mutant walking one
      * member too far is therefore a genuine false-match bug.
      *

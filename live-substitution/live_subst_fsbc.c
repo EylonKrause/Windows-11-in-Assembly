@@ -1,30 +1,30 @@
 // live-substitution/live_subst_fsbc.c
 // LIVE-RUN PROOF for change 262 (ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet).
 //
-// The two exports are patched ONE AT A TIME, each driven through its own name with its own counter.
+// The two exports are patched one at a time, each driven through its own name with its own counter.
 //
-// WHAT IS COMPARED IS THE ANSWER *AND* THE BITMAP THE CALL LEFT BEHIND. These functions mutate, and
+// What is compared is the answer *and* the bitmap the call left behind. These functions mutate, and
 // the mutation is the half this change adds, so a run that only checked return values would be
 // testing change 256 and calling it change 262. The whole buffer is folded into a 64-bit FNV-1a
 // hash after every call and the hash is compared; two different 2 KB buffers colliding on 64 bits
 // is not a risk worth engineering around, and a difference of even one bit changes it.
 //
-// EVERY CASE REBUILDS ITS BITMAP FROM THE CASE INDEX, and here that is not merely hygiene the way
+// Every case rebuilds its bitmap from the case index, and here that is not merely hygiene the way
 // it was for the read-only changes -- it is the only way the corpus means anything. A call CONSUMES
 // what it finds: run the same case twice on one buffer and the second call is a different question
 // from the first. Change 252's harness carried PRNG state across its passes and reported 14285
 // differences with its counter at ZERO -- the shipped export disagreeing with itself -- and a
 // mutating export would produce that failure from a single missed reset.
 //
-// THE THREE ARMS ARE COUNTED AND THE RUN FAILS IF ANY IS EMPTY: found-and-wrote, not-found, and
+// The three arms are counted and the run fails if any is empty: found-and-wrote, not-found, and
 // NumberToFind = 0. Only the first writes anything at all, so a corpus that never found a run would
 // have proved nothing about the mutation, which is the entire subject.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or the heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_fsbc_live.bat
@@ -104,7 +104,7 @@ static void build_case(long i)
     cur_size = 1 + (rnd() % (WORDS * 32));
     /* small sizes on purpose: 64 bits or fewer is a completely different path in our code */
     if ((rnd() & 7) == 0) cur_size = 1 + (rnd() % 70);
-    /* N = 0 IS ASKED FOR DELIBERATELY, one case in sixteen. Leaving it to a range that happens to
+    /* N = 0 Is asked for deliberately, one case in sixteen. Leaving it to a range that happens to
        include zero produced 33 cases in 30000 -- the census caught that, which is what a census is
        for. N = 0 is one of the two paths that must write nothing at all, and it is the one an
        implementation is most likely to get wrong by mutating "zero bits" through a loop that runs

@@ -1,19 +1,19 @@
 // changes/250-rtlipv6stringtoaddressexw/bench.c
 // Gate 2: time wia_ip6exw against the live ntdll!RtlIpv6StringToAddressExW.
 //
-// THE CASE MIX. This function is an envelope over change 166, so the rows have to separate the part
+// The case mix. This function is an envelope over change 166, so the rows have to separate the part
 // this change wrote from the part it linked:
 //
-//   * THE ADDRESS SHAPE drives change 166's core -- "::" alone, a full eight groups, an embedded
+//   * The address shape drives change 166's core -- "::" alone, a full eight groups, an embedded
 //     IPv4 tail, and the "::" compression shift, which is the one piece of real work in there;
-//   * THE ENVELOPE FIELDS drive the six instructions that are new: brackets, a %scope of varying
+//   * The envelope fields drive the six instructions that are new: brackets, a %scope of varying
 //     length, and a :port at each of the three bases;
-//   * AND THE FAILURE ROWS, which are not an afterthought. A parser is asked to reject far more
+//   * And the failure rows, which are not an afterthought. a parser is asked to reject far more
 //     often than it is asked to accept, and the two costs are completely different: a refusal after
 //     the address has already parsed is the whole envelope plus a wasted core call. An implementation
 //     tuned only on valid input can regress on exactly the input a caller feeds it most.
 //
-// NOTHING TO RESTORE ANYWHERE. Every subject is read-only and each call writes only to its own
+// Nothing to restore anywhere. Every subject is read-only and each call writes only to its own
 // 16-byte address, its ULONG and its USHORT -- so unlike changes 228, 230, 238, 245 and 247 there is
 // no memcpy to charge to either side and no store-to-load hazard to place. The OUTPUTS still rotate
 // across eight page-aligned slots, because an output written by one call and overwritten by the next
@@ -89,7 +89,7 @@ int main(void){
     for (int i = 0; i < N; ++i) {
         C[i].s = S[i];
         C[i].idx = 0;
-        /* STAGGERED WITHIN THE PAGE, NOT ALL AT OFFSET 0 -- and this was measured, not assumed. With
+        /* Staggered within the page, not all at offset 0 -- and this was measured, not assumed. With
            a flat page per output, every one of the 24 outputs a row owns started at page offset 0,
            so every store in every row fell in the SAME L1 set: classic 4K aliasing. It showed up as
            rows that were slower than strictly harder rows -- "::" at 18.07 ns against "[::1]:80" at
@@ -133,7 +133,7 @@ int main(void){
         printf("\n");
     }
 
-    /* WARM EVERY ROW'S WHOLE ROTATION, BOTH SIDES, BEFORE THE TABLE -- and this is not superstition,
+    /* Warm every row's whole rotation, both sides, before the table -- and this is not superstition,
        it was measured. The rows are timed in order, and each one owns 24 pages of arena (a 16-byte
        address, a ULONG and a USHORT x eight rotating slots). The per-row diagnostic above touches
        only slot 0 of each, so at table time the FIRST row's pages are both cold and the longest
@@ -151,7 +151,7 @@ int main(void){
             }
     }
 
-    /* DOES THE SLOW NUMBER FOLLOW THE ROW OR THE POSITION? "::" reported 18.15 ns while "[::1]:80",
+    /* Does the slow number follow the row or the position? "::" reported 18.15 ns while "[::1]:80",
        which parses strictly more, reported 12.80 -- so one of the two is measuring something that is
        not the function. This block times the same three rows in three different orders. If a row's
        number moves when only its POSITION moves, the table is reporting its own layout. */
@@ -173,7 +173,7 @@ int main(void){
         printf("\n");
     }
 
-    /* AND HOW MUCH OF EACH ROW IS THE CORE? Times change 166's wia_ip6w on exactly the substring
+    /* And how much of each row is the core? Times change 166's wia_ip6w on exactly the substring
        this envelope hands it, in this same harness, so the two numbers are comparable and the
        envelope's own marginal cost is a subtraction rather than a guess. */
     {

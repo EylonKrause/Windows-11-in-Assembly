@@ -2,12 +2,12 @@
  *
  * OURS vs the LIVE ntdll!RtlFindClearRuns.
  *
- * THIS FUNCTION HAS TWO COSTS, NOT ONE, and a table that mixed them would be meaningless. With
+ * This function has two costs, not one, and a table that mixed them would be meaningless. With
  * SortByLength FALSE the scan stops the instant the array is full, so the cost is "how far in are
  * the first N runs" and the bitmap's size barely enters into it. With SortByLength TRUE the longest
  * runs cannot be known without seeing all of them, so the cost is the whole bitmap, every time.
  * discovery/ntdll_bitmap.c measured the same call on the same bitmap at 144.83 ns and 14399.10 ns
- * on that one BOOLEAN. So every shape below is measured BOTH WAYS, and the two forms are separate
+ * on that one BOOLEAN. So every shape below is measured both WAYS, and the two forms are separate
  * rows rather than an average.
  *
  * THE SHAPES, chosen the same way change 255's were -- a run search's cost depends on the bitmap's
@@ -26,11 +26,11 @@
  *                     32, which is the worst case for the sorted form's `x &= x >> 1` skip test.
  *   all clear      -- one run covering everything, and the fast path for both forms.
  *
- * AND THE CAPACITY IS PART OF THE SUBJECT, not a detail: SizeOfRunArray = 1 is what
+ * And the capacity is part of the subject, not a detail: SizeOfRunArray = 1 is what
  * RtlFindLongestRunClear passes, and a larger array makes the sorted form's insertion longer and
  * the unsorted form's scan longer. Rows at 1, 8 and 64 are all here.
  *
- * EVERY ROW STATES WHAT IT FOUND before the table -- the number of runs and the first entry ours
+ * Every row states what it found before the table -- the number of runs and the first entry ours
  * and the live export agreed on. A run search whose answer is not what the row's name implies would
  * still produce a perfectly plausible time.
  */

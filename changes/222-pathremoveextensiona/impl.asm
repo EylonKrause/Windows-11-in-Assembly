@@ -6,8 +6,8 @@
 ; 3.83x the wide cost for HALF the bytes (discovery/shlwapi_narrow2.c). Change 140 converted the wide
 ; form.
 ;
-; ---- TWO INHERITED FACTS, BOTH RE-MEASURED RATHER THAN ASSUMED -------------------------------------
-; 1. THE SPACE RULE. Change 132 shipped a PathFindExtension rule with only the backslash stopping the
+; ---- Two inherited facts, both re-measured rather than assumed -------------------------------------
+; 1. The space rule. Change 132 shipped a PathFindExtension rule with only the backslash stopping the
 ;    backward scan; a SPACE stops it too, and that omission made it wrong on 295513 of 2015539
 ;    enumerated strings. Changes 140, 143 and 144 inherited it verbatim and were all corrected in the
 ;    same session. Change 217 confirmed the corrected rule for the narrow FIND. Whether it holds for
@@ -18,9 +18,9 @@
 ;        live PathRemoveExtensionA vs the CORRECTED rule : 0 mismatches
 ;        live PathRemoveExtensionA vs the rule 140 shipped with : 46158 mismatches
 ;
-; 2. THE MAX_PATH GUARD. Change 140 recorded that the wide REMOVE has a length limit its find-only
+; 2. The MAX_PATH guard. Change 140 recorded that the wide remove has a length limit its find-only
 ;    sibling does not. The narrow one has it too, and at the same place: probing every length from
-;    250 to 268 shows 259 truncated and 260 LEFT COMPLETELY UNTOUCHED, whatever the path contains.
+;    250 to 268 shows 259 truncated and 260 Left completely untouched, whatever the path contains.
 ;
 ; And it is BYTE-WISE here: every byte value 0x01..0xFF was placed where a lead byte would swallow
 ; the character after it, and 0 of 254 misbehave (GetACP() is 1252, which has no lead bytes).
@@ -37,7 +37,7 @@
 ;
 ; The write is a SINGLE BYTE -- the terminator, at the extension position. Nothing past it is
 ; touched: "file.txt" becomes "file" with "txt" and the original terminator still sitting in the
-; buffer, so correctness.c compares the WHOLE buffer rather than the resulting string.
+; buffer, so correctness.c compares the whole buffer rather than the resulting string.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen 4.
 
@@ -130,7 +130,7 @@ pe_done:
         jz        pe_next                           ; terminator not reached yet
 
         ; rbx = the terminator's address, rax = the extension's address or 0 for none.
-        ; THE MAX_PATH GUARD COMES FIRST: at 260 characters or more the export leaves the buffer
+        ; The MAX_PATH guard comes first: at 260 characters or more the export leaves the buffer
         ; completely alone, whatever the path contains. Measured at every length from 250 to 268.
         mov       r8, rbx
         sub       r8, rsi                           ; the length

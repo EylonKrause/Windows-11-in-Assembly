@@ -45,7 +45,7 @@ wia_strtoui64 PROC
         mov       rdi, rcx
         mov       r14, rdx
         mov       r15d, r8d
-        ; ---- AN INVALID BASE IS A REPORTED ERROR, NOT A FAILED PARSE ----
+        ; ---- An invalid base is a reported error, not a failed parse ----
         ;
         ; The valid set is 0 and 2..36. ucrtbase answers anything else -- 1, 37, a negative, 100 --
         ; with value 0, *endptr = nptr, errno = EINVAL (22) AND one invalid-parameter report, for
@@ -57,7 +57,7 @@ wia_strtoui64 PROC
         ; Found by live substitution on 567 of 30000 cases -- every one of them base 1, with the
         ; value and the endptr agreeing and only errno and the handler count differing. The handler
         ; is only observable because that harness installs one: without it an invalid base
-        ; TERMINATES THE PROCESS, which is how the first run of that harness died.
+        ; Terminates the process, which is how the first run of that harness died.
         cmp       r15d, 1
         je        bad_base
         cmp       r15d, 36

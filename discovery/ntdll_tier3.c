@@ -4,7 +4,7 @@
  * bind, ranked by fan-in and then timed.
  *
  * The fan-in numbers come from the two import sweeps in revalidation/*-imports-cache.json, so they
- * count DISTINCT LIVE MODULES that bind the name, not guesses:
+ * count distinct live modules that bind the name, not guesses:
  *
  *      RtlUpcaseUnicodeChar        32        RtlCopyUnicodeString        31
  *      RtlUnicodeStringToInteger   25        RtlMultiByteToUnicodeSize   12

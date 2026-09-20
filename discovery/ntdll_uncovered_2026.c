@@ -1,6 +1,6 @@
 /* discovery/ntdll_uncovered_2026.c
  *
- * WHERE IS THE REMAINING HEADROOM IN ntdll's Rtl* SURFACE?
+ * Where is the remaining headroom in ntdll's Rtl* surface?
  *
  * A coverage map over ntdll's export table says: 1038 Rtl* exports, of which 294 fall in the
  * string / memory / bit / number / time families this project targets, of which 204 are not covered
@@ -8,7 +8,7 @@
  * streams, environment blocks, security descriptors -- but several are exactly the shape this
  * project is good at, and one group stands out:
  *
- *     THE REPOSITORY COVERS THE BITMAP READERS AND NOT ONE BITMAP WRITER.
+ *     The repository covers the bitmap readers and not one bitmap writer.
  *
  * Changes 255-262 cover RtlFindLongestRunClear, RtlAreBitsSet/Clear, RtlNumberOfSetBits,
  * RtlFindSetBits, RtlFindClearRuns, RtlFindNextForwardRunClear and RtlFindSetBitsAndClear. Every
@@ -18,7 +18,7 @@
  * This sweep times that group and the other plausible uncovered candidates so a target is chosen on
  * a measurement rather than on a name. Nothing is asserted; every line prints what it measured.
  *
- * A number here is only a REASON TO LOOK. Change 129 parked at 1.10x because ntdll's short-input
+ * a number here is only a reason to look. Change 129 parked at 1.10x because ntdll's short-input
  * parse was already lean, and changes 005/006 parked for the same reason. The cost of a call that
  * is mostly call overhead cannot be optimised away by anyone.
  */

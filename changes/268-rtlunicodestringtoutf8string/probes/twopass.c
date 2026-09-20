@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/twopass.c
  *
- * WHERE DOES THE TIGHT-DESTINATION ROW'S TIME ACTUALLY GO?
+ * Where does the tight-destination row's time actually go?
  *
  * The bench's `-> u16 tight` row is the one case in this change that takes two passes over the
  * input, and with two-byte sequences it came out at 9253 ns against the shipped code's 4300 --

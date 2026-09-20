@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  2ND PC BUILD -- AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+Rem  2ND PC build -- amd Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 REM  Builds impl_2ndpc.asm against this change's UNMODIFIED correctness.c and
 REM  bench.c, so the 2nd-PC variant passes exactly the same two gates as the
 REM  original: bit-exact vs the live system export, then no regressed size class.

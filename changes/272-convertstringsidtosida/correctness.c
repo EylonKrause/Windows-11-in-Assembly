@@ -1,23 +1,23 @@
 /* changes/272-convertstringsidtosida/correctness.c
  *
- * Gate 1 for advapi32!ConvertStringSidToSidA: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the
+ * Gate 1 for advapi32!ConvertStringSidToSidA: Ours vs the scalar model vs the live export, on the
  * BOOL, GetLastError(), what happened to the output pointer, and every byte of the SID.
  *
- * WHAT THIS GATE HAS TO CATCH THAT CHANGE 269's DOES NOT is the widening, and it has two halves
+ * What this gate has to catch that change 269's does not is the widening, and it has two halves
  * that fail in different ways:
  *
- *   * THE ASCII FAST PATH. probes/asciilen.c licensed it by measuring all 22 code pages Windows can
+ *   * The ASCII fast path. probes/asciilen.c licensed it by measuring all 22 code pages Windows can
  *     use as an ACP over every byte 0x00..0x7F -- zero counterexamples -- so a string with no high
  *     byte is widened by zero extension with no code page consulted. The failure mode is the SCAN,
  *     not the arithmetic: it finds the length and the "any byte at or above 0x80" answer in one
  *     pass, with the first block loaded ALIGNED DOWN, so it is wrong at exactly the offsets nobody
- *     picks. Every string here is therefore run at EVERY alignment 0..63 within its buffer, and a
+ *     picks. Every string here is therefore run at every alignment 0..63 within its buffer, and a
  *     separate sweep runs strings of every length 0..200 against a guard page.
  *
  *   * THE FALLBACK. Any byte at or above 0x80 goes to MultiByteToWideChar, and every byte 0x80..0xFF
  *     is asked in each of six field positions, exactly as probes/codepage.c asked the live pair.
  *
- * AND THE LENGTH BOUNDARY. The widened copy is on the stack up to 1022 characters and allocated past
+ * And the length boundary. The widened copy is on the stack up to 1022 characters and allocated past
  * that, so every length from 1000 to 1050 is asked -- a boundary a corpus of realistic SIDs never
  * goes near. A megabyte of junk is asked too, because probes/asciilen.c established the shipped
  * export answers it rather than crashing, and that is where a fixed buffer dies.
@@ -133,7 +133,7 @@ int main(void)
     if (wia_sid_alias_init())    { printf("the alias table failed to build\n"); return 1; }
     printf("== CORRECTNESS: ConvertStringSidToSidA ==\n");
 
-    /* 1. the shapes, each at EVERY alignment 0..63 -- the scan's first block is aligned down */
+    /* 1. the shapes, each at every alignment 0..63 -- the scan's first block is aligned down */
     {
         long before = cases;
         static const char* SH[] = {
@@ -167,7 +167,7 @@ int main(void)
         printf("  3. every printable ASCII pair against the alias table: %ld\n", cases - before);
     }
 
-    /* 4. EVERY LENGTH ACROSS THE STACK/HEAP BOUNDARY. The widened copy is the frame up to 1022
+    /* 4. Every length across the stack/heap boundary. The widened copy is the frame up to 1022
           characters and an allocation past it, and a corpus of realistic SIDs never goes near. */
     {
         long before = cases;

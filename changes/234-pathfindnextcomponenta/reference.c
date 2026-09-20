@@ -4,10 +4,10 @@
 // Every rule re-derived against the NARROW export in probes/pfnca.c, not inherited from change 173:
 //
 //   * NULL and the EMPTY STRING both return NULL, and those are the only NULLs.
-//   * EXACTLY ONE byte value is a separator: 0x5C. Sweeping all 255 non-NUL values between two
+//   * exactly ONE byte value is a separator: 0x5C. Sweeping all 255 non-NUL values between two
 //     letters, only the backslash moves the answer -- a forward slash is not a separator.
 //   * With no separator the answer is a pointer to the TERMINATOR, not NULL.
-//   * THE DOUBLED-SEPARATOR QUIRK: when the byte after the first separator is ALSO a separator,
+//   * The doubled-separator quirk: when the byte after the first separator is also a separator,
 //     advance exactly ONE more, never the whole run. Measured with leading runs of 1..6: the
 //     offset is 1, then 2, and stays 2 however long the run gets. "Skip the run" is the obvious
 //     implementation and it is wrong from three separators onward.

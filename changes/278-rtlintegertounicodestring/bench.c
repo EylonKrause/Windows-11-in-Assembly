@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_int2ustr against the live ntdll!RtlIntegerToUnicodeString.
  *
- * THE ROWS ARE THE BASES AND THE DIGIT COUNTS, because that is what the implementation
+ * The rows are the bases and the digit counts, because that is what the implementation
  * distinguishes: base 10 goes through a length-first, two-digits-at-a-time converter and the three
  * power-of-two bases share a shift-and-mask loop. A bench of base 10 alone would measure one of the
  * two and report it as the function.

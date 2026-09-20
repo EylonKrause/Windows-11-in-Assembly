@@ -1,11 +1,11 @@
 /* changes/255-rtlfindlongestrunclear/reference.c
  *
- * THE INDEPENDENT ORACLE for RtlFindLongestRunClear.
+ * The independent oracle for RtlFindLongestRunClear.
  *
  * It shares nothing with impl.asm but the contract. impl.asm reads sixty-four bits at a time, finds
  * the longest run inside a word without looping over its runs (`x &= x >> 1` until empty), skips
  * whole words with a POPCNT bound, and carries a partial run across word boundaries. This walks the
- * bitmap ONE BIT AT A TIME.
+ * bitmap one bit at a time.
  *
  * That is the right shape for an oracle here for a specific reason: every hard part of the
  * implementation is a boundary -- the carry between words, the masking of the slack past

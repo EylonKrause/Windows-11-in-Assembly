@@ -4,7 +4,7 @@ REM  Live substitution for nine ucrtbase string primitives:
 REM    032 strlen  033 strcmp  036 wcsspn  037 wcscspn  039 strspn
 REM    040 strcspn 041 wcsncmp 044 _wcsnicmp 045 _strnicmp
 REM
-REM  /MD so the process uses the SAME ucrtbase this harness patches -- with the
+Rem  /md so the process uses the same ucrtbase this harness patches -- with the
 REM  static CRT the patched export and the CRT the test itself runs on would be
 REM  two different copies, and the run would prove nothing about either.
 REM ===========================================================================

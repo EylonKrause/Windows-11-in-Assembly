@@ -1,6 +1,6 @@
 // changes/294-strchr/probes/smallband.c
 //
-// THE BAND THAT DECIDES THE VERDICT, measured on its own, PER START ALIGNMENT.
+// The band that decides the verdict, measured on its own, per start alignment.
 //
 // bench.c's big rows are 3-4x wins and nothing about them is in doubt. The verdict rests on
 // 16..160 bytes, where the whole call is a few nanoseconds and the margin over the shipped export

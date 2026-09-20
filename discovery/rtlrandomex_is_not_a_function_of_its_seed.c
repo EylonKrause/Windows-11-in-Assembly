@@ -1,12 +1,12 @@
 /* discovery/rtlrandomex_is_not_a_function_of_its_seed.c
  *
- * ntdll!RtlRandomEx CANNOT BE REIMPLEMENTED BIT-EXACTLY. This file is the measurement that kills it, in
+ * ntdll!RtlRandomEx cannot be reimplemented bit-exactly. This file is the measurement that kills it, in
  * the shape of discovery/lstrcmp_is_linguistic.c and discovery/strstra_not_bytewise.c -- a candidate that
  * looked excellent on the numbers and died on its contract, recorded rather than deleted so it is not
  * picked up again.
  *
  * ------------------------------------------------------------------------------------------------------
- * WHY IT LOOKED LIKE THE BEST TARGET LEFT
+ * Why it looked like the best target left
  *
  * discovery/uncovered_2026b.c timed two PRNGs with the same harness, the same prototype `ULONG f(ULONG*)`
  * and the same call shape:
@@ -20,7 +20,7 @@
  * this project has.
  *
  * ------------------------------------------------------------------------------------------------------
- * WHAT IT ACTUALLY IS: THE RETURNED VALUE IS NOT A FUNCTION OF THE SEED
+ * What it actually is: The returned value is not a function of the seed
  *
  * Measured, in one process:
  *
@@ -37,7 +37,7 @@
  * not ours. That is not a function this project can reimplement; it is not a function at all in the sense
  * the gates require.
  *
- * AND IT IS NOT EVEN REPRODUCIBLE ACROSS PROCESSES. The obvious last hope was that the table is seeded
+ * And it is not even reproducible across processes. The obvious last hope was that the table is seeded
  * deterministically at process start, so that at least the FIRST call with a given seed would be a
  * function of that seed. Section 5 captures exactly that -- the first RtlRandomEx call of the process,
  * taken at the top of main before anything else in this program touches the table -- and two consecutive
@@ -55,12 +55,12 @@
  * it. A check placed after the state it means to observe has been mutated is not a check. It was moved to
  * the top of main.)
  *
- * AND THE GATE MUST NOT BE WEAKENED TO ACCOMMODATE IT. The tempting move is to gate on distribution or on
+ * And the gate must not be weakened to accommodate it. The tempting move is to gate on distribution or on
  * the seed update instead of on the value, and that is precisely the "gate that cannot fail" this project
  * refused for change 288's missing live substitution. A gate that cannot fail is not evidence.
  *
  * ------------------------------------------------------------------------------------------------------
- * THE ONE GENUINELY USEFUL FINDING: THE SEED UPDATE *IS* RtlUniform, EXACTLY
+ * The one genuinely useful finding: The seed update *is* RtlUniform, exactly
  *
  *      uniform (         1) -> 7FFFFFB1, seed becomes 7FFFFFB1
  *      randomex(         1) -> 5214F3A1, seed becomes 7FFFFFB1     <-- same seed out, different value
@@ -125,7 +125,7 @@ int main(void)
     randomex = (F_rng)GetProcAddress(nt, "RtlRandomEx");
     if (!uniform || !randomex) { printf("not exported\n"); return 2; }
 
-    /* THE VERY FIRST RtlRandomEx CALL OF THIS PROCESS, captured before anything else in this program
+    /* The very first RtlRandomEx call of this process, captured before anything else in this program
        touches the shuffle table. It has to happen here, at the top of main, because every later call
        advances the table -- the first draft of this file put the check in section 5 and it measured
        nothing at all, which is worth stating: a section placed after the state it wants to observe has

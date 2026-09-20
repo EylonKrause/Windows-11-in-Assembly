@@ -1,10 +1,10 @@
 /* changes/067-rtlconvertsidtounicodestring/correctness.c
  *
- * Gate 1 for ntdll!RtlConvertSidToUnicodeString: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on
- * the NTSTATUS, Out->Length, Out->MaximumLength AND EVERY BYTE OF THE DESTINATION BUFFER.
+ * Gate 1 for ntdll!RtlConvertSidToUnicodeString: Ours vs the scalar model vs the live export, on
+ * the NTSTATUS, Out->Length, Out->MaximumLength and every byte of the destination buffer.
  *
  * ------------------------------------------------------------------------------------------------
- * WHAT THE OLD GATE MISSED, AND WHY IT MISSED IT
+ * What the old gate missed, and why it missed it
  *
  * The version this replaces ran 3,000,000 random SIDs and reported PASS. It drew its sub-authority
  * count as
@@ -23,20 +23,20 @@
  * corpus whose surrogate class could only land on the direction that has no surrogates).
  *
  * ------------------------------------------------------------------------------------------------
- * THE OTHER THREE THINGS THIS GATE DOES THAT THE OLD ONE DID NOT
+ * The other three things this gate does that the old one did not
  *
- *   * IT COMPARES THE WHOLE DESTINATION, not the string up to Length. Change 268's whole-buffer
+ *   * It compares the whole destination, not the string up to Length. Change 268's whole-buffer
  *     comparison found change 016 storing sixteen bytes and advancing by fewer -- 154 mismatches,
  *     every one a single 00 past the end of the string, invisible to any check that stops at the
  *     produced length. The destination here is poison-filled before every call, and all of it is
  *     compared, on failing calls too: STATUS_BUFFER_OVERFLOW must leave it untouched.
  *
- *   * IT PUTS THE SID AGAINST A GUARD PAGE. changes/270-.../probes/truncated.c established that a
+ *   * It puts the SID against a guard page. changes/270-.../probes/truncated.c established that a
  *     short SID is a REFUSAL when its sub-authority array runs off the end and a FAULT when only
  *     its identifier authority does. Both are reproduced here, for every count, with the live
  *     export as the judge.
  *
- *   * IT CHECKS THE ASSEMBLER-GENERATED TABLES against the definitions they are supposed to
+ *   * It checks the assembler-generated tables against the definitions they are supposed to
  *     satisfy. They are produced by REPT arithmetic, which is exactly the kind of thing that is
  *     wrong silently; change 267's first table construction WAS wrong.
  */
@@ -82,7 +82,7 @@ static void one(const unsigned char* sid, USHORT ml)
     if (ro != ry || ro != rr) bad = 1;
     if (uo.Length != uy.Length || uo.Length != ur.Length) bad = 1;
     if (uo.MaximumLength != uy.MaximumLength) bad = 1;
-    /* the WHOLE buffer, on success and on failure alike */
+    /* the whole buffer, on success and on failure alike */
     if (memcmp(bo, by, sizeof bo) != 0) bad = 1;
     if (memcmp(bo, br, sizeof br) != 0) bad = 1;
 
@@ -209,7 +209,7 @@ int main(void)
     printf("== CORRECTNESS: RtlConvertSidToUnicodeString ==\n");
     if (check_tables()) return 1;
 
-    /* 1. THE COUNT, EXHAUSTIVELY 0..255 -- the sweep the old corpus could not express */
+    /* 1. The count, exhaustively 0..255 -- the sweep the old corpus could not express */
     {
         long before = cases;
         for (i = 0; i < 256; ++i) sub[i] = 4000000000u + i;
@@ -220,7 +220,7 @@ int main(void)
         printf("  1. every sub-authority count 0..255 (the limit is 15): %ld\n", cases - before);
     }
 
-    /* 2. THE REVISION, EXHAUSTIVELY 0..255 */
+    /* 2. The revision, exhaustively 0..255 */
     {
         long before = cases;
         for (i = 0; i <= 255; ++i) {
@@ -230,7 +230,7 @@ int main(void)
         printf("  2. every revision 0..255 (the only legal one is 1): %ld\n", cases - before);
     }
 
-    /* 3. THE IDENTIFIER AUTHORITY around the 2^32 boundary and the digit-count boundaries */
+    /* 3. The identifier authority around the 2^32 boundary and the digit-count boundaries */
     {
         long before = cases;
         static const unsigned long long AS[] = {
@@ -300,7 +300,7 @@ int main(void)
                cases - before);
     }
 
-    /* 7. randomised, with the count drawn over its WHOLE byte range */
+    /* 7. randomised, with the count drawn over its whole byte range */
     {
         long before = cases;
         for (i = 0; i < 400000 && failures < 12; ++i) {

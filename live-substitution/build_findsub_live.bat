@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 252 (ntdll!RtlFindUnicodeSubstring).
+Rem  live-run proof for change 252 (ntdll!RtlFindUnicodeSubstring).
 REM
 REM  Sacrificial single-threaded child; it patches only its own copy-on-write
 REM  copy of ntdll. No system process is touched, nothing on disk is modified,

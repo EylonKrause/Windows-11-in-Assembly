@@ -1,36 +1,36 @@
 // live-substitution/live_subst_strchriw.c
 // LIVE-RUN PROOF for change 281 (shlwapi!StrChrIW).
 //
-// WHAT IS COMPARED IS THE RETURNED OFFSET, so "found it" and "found it in the right place" are the
+// What is compared is the returned offset, so "found it" and "found it in the right place" are the
 // same question and a null can never accidentally agree with a pointer.
 //
-// ALL FOUR DISPATCH PATHS ARE DRIVEN, because the needle decides which one runs and they share
+// All four dispatch paths are driven, because the needle decides which one runs and they share
 // almost no code:
 //
-//   * 56825 needles match ONLY THEMSELVES        -> one broadcast, one VPCMPEQW per 16 code units
+//   * 56825 needles match only themselves        -> one broadcast, one vpcmpeqw per 16 code units
 //   * 5390 needles have 2..8 partners            -> four broadcasts when <= 4; an inline list at 5-8
 //   * 3320 needles have more than eight, sharing
 //     only eleven distinct sets between them     -> an 8 KB membership bitmap, one BT per code unit
 //
-// THE RELATION IS SYMMETRIC BUT NOT TRANSITIVE -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2,
+// The relation is symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2,
 // but U+D7B0 does not match U+D7B1, 168 intransitive triples in all. An earlier implementation
 // grouped code units into classes and was wrong in 66 of 206096 gate cases, so this harness draws
 // needles from every one of the four shapes explicitly rather than hoping a random draw reaches
 // them: the bitmap needles are 3320 of 65535, which a uniform draw would hit about five per cent of
 // the time and a short corpus might miss entirely.
 //
-// EVERY ALIGNMENT IS DRIVEN TOO. The implementation aligns its pointer DOWN to 32 bytes and masks
+// Every alignment is driven too. The implementation aligns its pointer down to 32 bytes and masks
 // off everything before the true start; if that mask were off by one lane it would report a match
 // in memory BEFORE the string. Each case picks its own start offset.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       shlwapi -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_strchriw_live.bat

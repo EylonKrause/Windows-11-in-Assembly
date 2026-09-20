@@ -119,7 +119,7 @@ int main(void){
                 int n=0; while(p[n]) ++n;
                 int comp = 0;
                 for(int i=0;i<n;i++) if(p[i]==L'\\') comp = i+1;
-                /* v3: the group must sit IMMEDIATELY BEFORE THE EXTENSION, i.e. its ']' is the
+                /* v3: the group must sit immediately before the extension, i.e. its ']' is the
                    character just before the LAST '.' of the last component (or just before the
                    end of the string when that component has no '.'). That is what decides
                    "a[1].b[2].c" -> "a[1].b.c": the winner is not the first qualifying group,

@@ -6,7 +6,7 @@
 // table whenever a chunk holds anything above 0x7F. The NON-ASCII class exists precisely to keep
 // that fallback honest -- an implementation that only ever benchmarked ASCII would hide it.
 //
-// AND UNTIL 2026-09-16 THE ROW THAT SAID SO DID NOT DO IT. Every pair here was built with
+// And until 2026-09-16 the row that said so did not do it. Every pair here was built with
 // `B[i] = A[i]` -- the two strings IDENTICAL -- and the implementation's first tier is
 //
 //      equal raw  =>  equal folded, in any alphabet  =>  advance 16
@@ -31,7 +31,7 @@ static FN sys;
 
 typedef struct { const wchar_t* a; const wchar_t* b; int n; int ic; int reps; } CASE;
 
-/* THE SHORT ROWS ARE TIMED x16, which is change 261's remedy for this harness's own floor.
+/* The short rows are timed x16, which is change 261's remedy for this harness's own floor.
  *
  * An empty call through wia_bench_compare costs 2.32 ns on this machine (261's probes/floor.c
  * proved it), so a 13-character compare -- whose real work is about three nanoseconds -- is more
@@ -51,7 +51,7 @@ static uint64_t op_sys (void* c){ CASE* k=(CASE*)c; uint64_t s=0; int i;
 
 static wchar_t A13[16], B13[16], A64[80], B64[80], A4K[4200], B4K[4200], AU[4200], BU[4200];
 
-/* THE NEW PAIRS ARE HEAP-ALLOCATED, AND THAT IS NOT A STYLE CHOICE. Declaring four more 8400-byte
+/* The new pairs are heap-allocated, and that is not a style choice. Declaring four more 8400-byte
    statics moved every array declared above them and shifted rows that had not changed at all:
    "13 chars, ci" went 5.36 -> 6.09 ns and both 4000-character ci rows went 121 -> 152, on identical
    inputs and identical code. That is the same 4K-aliasing family that parked changes 142, 228, 230

@@ -3,8 +3,8 @@
  * oleaut32 is the last System32 DLL in this project's default set with ZERO conversions: 417
  * exports, none replaced, and two passing mentions in the whole of discovery/. Its shaped-candidate
  * list is 65 names. This measures the ones that could plausibly be byte loops and asks, for each,
- * the only question that decides whether a target exists: IS THE COST THE LOOP, OR SOMETHING NO
- * ASSEMBLY CAN REMOVE?
+ * the only question that decides whether a target exists: Is the cost the loop, or something no
+ * Assembly can remove?
  *
  * For oleaut32 there are two such somethings, and almost every candidate has one of them:
  *
@@ -21,16 +21,16 @@
  *   LOCALE_INVARIANT, which is the best case for us, so a row that is still slow there is slow
  *   because of the machinery rather than the data.
  *
- * WHAT IS DELIBERATELY NOT HERE. The SafeArray family (a descriptor data structure, not a byte
+ * What is deliberately not here. The SafeArray family (a descriptor data structure, not a byte
  * loop), the VarFormat family and VarTokenizeFormatString (a grammar), the TypeLib and IDispatch
  * families (registry and COM), and the marshalling entry points.
  *
  * METHOD, and the mistakes this file is written to avoid:
- *   * RUN IT ON AN IDLE MACHINE. Every row is a min-of-N, robust to a slow sample, not to load.
- *   * EVERY ROW PRINTS WHAT IT ACTUALLY DID -- the returned value or length. A survey row whose
+ *   * Run it on an idle machine. Every row is a min-of-N, robust to a slow sample, not to load.
+ *   * Every row prints what it actually did -- the returned value or length. a survey row whose
  *     subject does not do the work its label claims is this project's most expensive recurring
  *     mistake, and it is invisible until the row is made to state itself.
- *   * EVERY BSTR IS FREED. A survey that leaks a BSTR per iteration measures the allocator warming
+ *   * Every BSTR is freed. a survey that leaks a BSTR per iteration measures the allocator warming
  *     up, then measures it degrading, and the min-of-N hides which.
  */
 #define WIN32_LEAN_AND_MEAN

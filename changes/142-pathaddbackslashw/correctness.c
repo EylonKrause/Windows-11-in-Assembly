@@ -1,6 +1,6 @@
 // changes/142-pathaddbackslashw/correctness.c
 // Bit-exact fuzz of wia_pathaddbackslashw vs live shlwapi!PathAddBackslashW + oracle: the returned
-// POINTER and the WHOLE buffer, over every length x alignment, both trailing-character cases, the
+// POINTER and the whole buffer, over every length x alignment, both trailing-character cases, the
 // MAX_PATH boundary (which returns NULL here), and long strings that already end with a backslash.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -7,7 +7,7 @@
 ; iteration -- 65 ns to append 254 wide characters.
 ;
 ; Contract: identical to strncat_s in wchar_t units, all eight paths, including the three that differ
-; from wcsncpy_s -- `count == 0` with a NULL src writes NOTHING and skips the dst walk entirely, the
+; from wcsncpy_s -- `count == 0` with a NULL src writes nothing and skips the dst walk entirely, the
 ; same call with a VALID src still runs the walk and can still report an unterminated destination,
 ; and an unterminated dst writes only dst[0].
 ;
@@ -156,7 +156,7 @@ wc_c0_dst:
         jz        wc_einval
         test      r8, r8
         jnz       wc_walk                           ; src non-NULL: the ordinary dst walk
-        ; A NULL SOURCE WITH count == 0 STILL VALIDATES THE DESTINATION -- the narrow sibling 156
+        ; a NULL source with count == 0 Still validates the destination -- the narrow sibling 156
         ; had the identical defect and the identical fix. Returning 0 here is right only when the
         ; destination is ALREADY a valid string within `size`: with dst = L"A" and size = 1 there
         ; is no terminator in dst[0..size), and the shipped export returns EINVAL, sets dst[0] = 0

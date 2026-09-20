@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 285 (shlwapi!StrCSpnIW).
+Rem  live-run proof for change 285 (shlwapi!StrCSpnIW).
 REM
 REM  The shipped export costs 2971 ns over 511 code units -- the most expensive of
 REM  the remaining StrXxxIW family.

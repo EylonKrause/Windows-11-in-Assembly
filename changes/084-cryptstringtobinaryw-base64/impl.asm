@@ -1,5 +1,5 @@
 ; changes/084-cryptstringtobinaryw-base64/impl.asm
-; BOOL wia_s2bw(LPCWSTR s, DWORD cch, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2bw(LPCWSTR s, dword cch, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=cch, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; Wide sibling of 082: crypt32!CryptStringToBinaryW for CRYPT_STRING_BASE64 (wide base64 -> binary).

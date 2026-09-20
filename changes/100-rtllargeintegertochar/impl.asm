@@ -1,5 +1,5 @@
 ; changes/100-rtllargeintegertochar/impl.asm
-; NTSTATUS wia_litoc(PLARGE_INTEGER Value, ULONG Base, LONG Length, PCHAR String)
+; NTSTATUS wia_litoc(PLARGE_INTEGER Value, ulong Base, long Length, pchar String)
 ;   [rcx=&Value, edx=Base, r8d=Length, r9=String -> eax]
 ;
 ; Reimplements ntdll!RtlLargeIntegerToChar: the 64-bit sibling of RtlIntegerToChar (097).

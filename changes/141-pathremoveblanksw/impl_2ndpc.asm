@@ -7,7 +7,7 @@
 ; PC. Same exported symbol (`wia_pathremoveblanksw`), so this change's existing
 ; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured here, the Zen 3 implementation failed the gate on the shortest
 ; size class:
@@ -22,7 +22,7 @@
 ;
 ; Three repeat runs gave 0.97x / 1.03x / 0.95x -- the class sits exactly on the
 ; 0.97x gate, so it fails about as often as it passes. Note the bench memcpy's
-; the input on BOTH sides, so the real gap is only ~0.6 ns of routine time.
+; the input on both sides, so the real gap is only ~0.6 ns of routine time.
 ;
 ; Cause: the move step, not the scans. The bench string is 16 chars with two
 ; leading blanks, so `lead` = 2 and the routine shifts 15 wchars (the remainder
@@ -39,7 +39,7 @@
 ;     bytes >= 16 : two 16-byte (xmm)  accesses, at +0 and at +n-16
 ;     bytes >=  8 : two  8-byte (gpr)  accesses, at +0 and at +n-8
 ;     bytes <   8 : the original word loop (at most 3 iterations)
-; Each pair touches EXACTLY [p, p+n) -- the overlap is in the middle, never off
+; Each pair touches exactly [p, p+n) -- the overlap is in the middle, never off
 ; either end -- so nothing outside the moved range is read or written.
 ; Everything else in the routine is unchanged.
 ;
@@ -53,10 +53,10 @@
 ;   yet. (A plain forward copy would also be safe for dst < src, but loading
 ;   first makes the ladder correct regardless of direction.)
 ;
-; CONTRACT PRESERVED EXACTLY (the subtle parts this change originally pinned)
+; Contract preserved exactly (the subtle parts this change originally pinned)
 ;   * Only SPACE (0x0020) is stripped -- a tab is NOT.
 ;   * There is NO MAX_PATH guard here, unlike PathRemoveExtensionW (change 140).
-;   * The ORDER is MOVE FIRST, then terminate -- the reverse of StrTrimW
+;   * The order is move first, then terminate -- the reverse of StrTrimW
 ;     (change 139). The whole remainder including trailing blanks AND the
 ;     terminator is shifted down, and only afterwards is the NUL written that
 ;     drops the trailing blanks. That is observable in the bytes left past the

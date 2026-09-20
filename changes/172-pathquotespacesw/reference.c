@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar PathQuoteSpacesW. Not fast; just correct.
 // Contract derived in probes/pqs.c and fuzz-confirmed against the live export
 // (1,000,000 cases, 0 mismatches):
-//   hasSpace = any psz[i] == U+0020 (EXACTLY U+0020 -- one of 65535 code units; tab does NOT
+//   hasSpace = any psz[i] == U+0020 (exactly U+0020 -- one of 65535 code units; tab does NOT
 //              count, and neither does any other Unicode whitespace)
 //   hasSpace && n <= 257 -> shift up one char, quote at [0] and [n+1], NUL at [n+2], TRUE
 //   otherwise            -> buffer untouched, FALSE

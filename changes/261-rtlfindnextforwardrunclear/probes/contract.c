@@ -8,7 +8,7 @@
  *      RtlFindNextForwardRunClear from 1                 400.95 ns   0.100 ns/byte
  *      RtlFindLastBackwardRunClear from 65535            420.30 ns   0.053 ns/byte
  *
- * and the forward scan is SEVEN INSTRUCTIONS PER 32-BIT WORD:
+ * and the forward scan is seven instructions per 32-BIT word:
  *
  *      000DB3B0  not r10d
  *      000DB3B3  test r10d, r10d
@@ -24,19 +24,19 @@
  * thirty-two.
  *
  * ------------------------------------------------------------------------------------------------
- * WHAT HAS TO BE PINNED. Both return a LENGTH and write a START through a pointer, and the
+ * What has to be pinned. Both return a length and write a start through a pointer, and the
  * interesting questions are all about what happens at the edges of the search.
  *
- *   1. IF FromIndex IS ALREADY INSIDE A CLEAR RUN, does the answer start at FromIndex or at the
+ *   1. If FromIndex is already inside a clear run, does the answer start at FromIndex or at the
  *      run's true beginning? The two are different by as much as the run is long, and a caller
  *      walking a bitmap with the result would loop forever on one reading and not the other.
- *   2. THE BACKWARD FORM: is FromIndex included, and does it report the run it lands in or the last
+ *   2. The backward form: is FromIndex included, and does it report the run it lands in or the last
  *      one strictly before it? And does the length run to FromIndex or to the run's true end?
- *   3. NOTHING FOUND: what length, and is the start pointer written at all? A caller that trusts an
+ *   3. nothing FOUND: what length, and is the start pointer written at all? A caller that trusts an
  *      untouched pointer reads whatever it happened to contain.
- *   4. FromIndex AT OR PAST SizeOfBitMap.
- *   5. A RUN THAT REACHES THE END of the bitmap -- the slack past SizeOfBitMap must not extend it.
- *   6. AN ENTIRELY CLEAR and an entirely set bitmap, and SizeOfBitMap = 0.
+ *   4. FromIndex at or past SizeOfBitMap.
+ *   5. a run that reaches the end of the bitmap -- the slack past SizeOfBitMap must not extend it.
+ *   6. An entirely clear and an entirely set bitmap, and SizeOfBitMap = 0.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -5,11 +5,11 @@
  * observable outputs and three of them are not the return value:
  *
  *      the return value,  GetLastError(),  every byte of the destination up to the capacity,
- *      and that NOTHING was written at or past the capacity.
+ *      and that nothing was written at or past the capacity.
  *
- * WHY THE CORPUS LOOKS LIKE THIS.
+ * Why the corpus looks like this.
  *
- * 1.  A RANDOM BYTE FUZZ IS NOT ENOUGH, and change 034 wrote down why: it draws each byte's class
+ * 1.  a random byte fuzz is not enough, and change 034 wrote down why: it draws each byte's class
  *     independently, so sixteen bytes that happen to be eight clean two-byte sequences has a
  *     probability of about 1e-11 per position.  Every vector block would be untested.  So the
  *     corpus is explicit about the classes: pure ASCII, pure two-, three- and four-byte runs, and
@@ -17,28 +17,28 @@
  *     MIXED-WIDTH classes: ASCII+2, ASCII+3, ASCII+4, 2+3, 3+4, and all four widths rotating.
  *     discovery/utf8_width_mixtures.c is the file that proved a run-only decoder collapses on them.
  *
- * 2.  EVERY LENGTH from 0 to 200 and EVERY CAPACITY from 0 to 2x the length, so that a block
+ * 2.  Every length from 0 to 200 and every capacity from 0 to 2x the length, so that a block
  *     boundary falls inside every class at some length and the room guard of every block is the
  *     one that decides where the output stops.
  *
- * 3.  A MALFORMED BYTE PLANTED AT EVERY POSITION of every class -- eight of them, one per way a
+ * 3.  a malformed byte planted at every position of every class -- eight of them, one per way a
  *     sequence can be wrong -- because the maximal-subpart rule is the part that is not guessable
  *     and the part every vector block must decline.
  *
- * 4.  THE SOURCE ENDS AT A PAGE BOUNDARY with the next page PAGE_NOACCESS.  gen16 reads EIGHTEEN
+ * 4.  The source ends at a page boundary with the next page PAGE_NOACCESS.  gen16 reads eighteen
  *     bytes to consume at most sixteen and the three-byte block reads twenty-eight to consume
  *     twenty-four; their guards are the only thing keeping those loads inside the caller's buffer,
  *     and with the source in a static array an over-read is invisible.
  *
- * 5.  THE DESTINATION ENDS AT A PAGE BOUNDARY TOO, with its capacity as the last thing before an
+ * 5.  The destination ends at a page boundary too, with its capacity as the last thing before an
  *     unmapped page.  A block that stores sixteen bytes and advances by fewer would otherwise
  *     write into slack no assertion looks at.
  *
- * 6.  THE PARAMETER AND FLAG MATRIX, which is where this function hides most of its contract:
+ * 6.  The parameter and flag matrix, which is where this function hides most of its contract:
  *     the alias rule, the 0x0F flag mask, the precedence of ERROR_INVALID_PARAMETER over
  *     ERROR_INVALID_FLAGS, and of ERROR_INSUFFICIENT_BUFFER over ERROR_NO_UNICODE_TRANSLATION.
  *
- * 7.  THE DISPATCH BOUNDARY: for every code page that is not 65001, ours must be
+ * 7.  The dispatch boundary: for every code page that is not 65001, ours must be
  *     INDISTINGUISHABLE from the shipped export, because it tail-calls it.
  *
  * 8.  The two assembler-generated tables, checked against the same rules written in C.
@@ -376,7 +376,7 @@ static void dispatch_boundary(void)
     static wchar_t a[64], b[64];
     int i, j, cch, wrong = 0;
     DWORD fl;
-    /* THE FIRST CALL FOR A CODE PAGE IS NOT THE SAME AS THE SECOND: it loads that code page's NLS
+    /* The first call for a code page is not the same as the second: it loads that code page's NLS
        table, and that one-time work leaves the last error at 0 where a warm call leaves it alone.
        cp 50220 (ISO-2022-JP) showed it.  Both sides must therefore be measured warm. */
     for (i = 0; i < (int)(sizeof CP / sizeof CP[0]); ++i)

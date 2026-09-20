@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/isequiv.c
  *
- * IS "StrChrIW MATCHES" EVEN AN EQUIVALENCE RELATION?
+ * Is "StrChrIW matches" even an equivalence relation?
  *
  * Everything built so far assumes it is. probes/foldtable.c took a canonical representative per
  * code unit and called the result "classes"; tables.c groups members; impl.asm compares against the
@@ -8,7 +8,7 @@
  * TRANSITIVE, and nothing has checked that it is.
  *
  * The gate is now pointing at exactly that hole. It reported 66 mismatches in 206096 where OURS
- * AGREED WITH LIVE (both NULL) and the MODEL claimed a match -- meaning the table says two code
+ * Agreed with live (both NULL) and the model claimed a match -- meaning the table says two code
  * units share a class and the live export, asked directly, says they do not. probes/unfindable.c
  * ruled out the easy explanation: there are ZERO code units the export cannot find in a string of
  * themselves.

@@ -1,6 +1,6 @@
 /* changes/287-getstringtypew/reference.c
  *
- * THE SCALAR MODEL for GetStringTypeW, from the contract measured in probes/contract.c:
+ * The scalar model for GetStringTypeW, from the contract measured in probes/contract.c:
  *
  *     BOOL GetStringTypeW(DWORD dwInfoType, LPCWCH lpSrcStr, int cchSrc, LPWORD lpCharType)
  *
@@ -9,7 +9,7 @@
  *   * the class of a code unit is a pure, context-free, locale-invariant function of that code unit --
  *     20000 random strings and seven thread locales said so, which is the only reason a table is legal;
  *   * cchSrc > 0 is a COUNT of code units, and exactly that many words are written;
- *   * cchSrc == -1 means NUL-terminated AND INCLUDES THE TERMINATOR: for a three-character string a
+ *   * cchSrc == -1 means NUL-terminated and includes the terminator: for a three-character string a
  *     fourth word is written, the class of U+0000;
  *   * cchSrc == 0 is refused, and so are a NULL source and a NULL destination;
  *   * an embedded NUL under an explicit count is just another code unit, classified like any other.

@@ -2,14 +2,14 @@
  *
  * THREE-WAY: ours, an independent oracle (reference.c, whose permutation table is recovered at
  * runtime from the live HashData export rather than carried as a constant), and the LIVE
- * shlwapi!UrlHashA -- compared on the HRESULT and on THE WHOLE BUFFER against a poison fill.
+ * shlwapi!UrlHashA -- compared on the HRESULT and on the whole buffer against a poison fill.
  *
  * The whole buffer, not the first cbHash bytes, for two reasons measured before this was written:
  * cbHash is not validated anywhere in the shipped envelope, so "writes nothing past cbHash" is a
  * property to test rather than assume; and the overlap cases write INSIDE the URL, where the
  * question is exactly which bytes.
  *
- * A FOURTH COMPARISON THAT IS THE POINT OF THE CHANGE: every disjoint case is also checked against
+ * a fourth comparison that is the point of the change: every disjoint case is also checked against
  * the live HashData export on the same bytes. UrlHashA is supposed to BE HashData behind lstrlenA,
  * and that equivalence is what lets this change reuse change 244's kernel instead of re-deriving a
  * measured algorithm. If it ever stops holding, this harness says so rather than the change quietly

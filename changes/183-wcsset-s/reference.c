@@ -4,7 +4,7 @@
 // side by side against the live exports (1,000,000 cases each, 0 mismatches). The two are the
 // same shape, but that was measured rather than assumed -- the byte/wide pairs in this CRT are
 // not always identical (see change 050 vs 048 for a counter-example in the fold set).
-//   * numberOfElements == 0 -> EINVAL (22), NOTHING written;
+//   * numberOfElements == 0 -> EINVAL (22), nothing written;
 //   * no terminator inside the bound -> PARTIAL FILL of numberOfElements-1 cells, then
 //     str[0] = 0, return EINVAL (22);
 //   * otherwise -> fill every cell before the terminator, keep it, return 0.

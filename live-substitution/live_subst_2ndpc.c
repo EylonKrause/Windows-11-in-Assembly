@@ -11,16 +11,16 @@
 //                    PathRemoveBlanksW            (change 141)
 //
 // FREEZE-SAFETY PROTOCOL (unchanged from live_subst_new.c, per Eylon's directive):
-//   (0) SACRIFICIAL CHILD: a standalone single-threaded console exe. It patches only ITS
+//   (0) Sacrificial child: a standalone single-threaded console exe. It patches only its
 //       OWN per-process (copy-on-write) copy of the DLL -- never a live system process,
 //       never the file on disk. A fault here kills only this process, never the PC. A
 //       user-mode fault cannot bugcheck: that needs kernel-mode code, of which there is
 //       none anywhere in this repository.
-//   (1) VALIDATE FIRST: every wia_* is checked against the LIVE EXPORT over a fuzz corpus
+//   (1) Validate first: every wia_* is checked against the live export over a fuzz corpus
 //       BEFORE any patch is installed. This is a stronger oracle than reference.c, since
 //       it is the very function we are about to displace. If ANY mismatch is seen, that
 //       function is NOT patched.
-//   (2) PATCH ONLY WHEN IDLE: the process is single-threaded and does nothing else, so
+//   (2) Patch only when idle: the process is single-threaded and does nothing else, so
 //       nothing can be mid-execution inside the 14-byte prologue while it is written. The
 //       window is tiny: patch -> verify loop -> unpatch. (Threads are deliberately NOT
 //       suspended -- suspending a lock-holder would deadlock.)

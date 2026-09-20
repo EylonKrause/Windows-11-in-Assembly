@@ -6,7 +6,7 @@
  * as many as eighteen. Those flags are separate problems and this gate asserts that our code DECLINES
  * them rather than leaving the restriction to the corpus.
  *
- * WHAT IS COMPARED: the return value, every output word, THE WORD JUST PAST THE END, and GetLastError on
+ * What is compared: the return value, every output word, the word just past the end, and GetLastError on
  * every refusal. The last of those matters because the implementation writes the error straight to the
  * TEB at gs:[68h] instead of calling SetLastError -- a stable offset, but one this gate verifies rather
  * than trusts.
@@ -234,7 +234,7 @@ int main(void)
             if (ra != rb || ra != 0 || ea != eb) {
                 printf("  FAIL dest == src: %d/%d err %lu/%lu\n", ra, rb, ea, eb); ++failures;
             }
-            /* EVERY overlap, in BOTH directions, at four lengths.
+            /* every overlap, in both directions, at four lengths.
              *
              * The first draft of this loop tested one length (8) and one direction (dest above src) at
              * offsets 1..8, and two mutants survived it by exploiting exactly what it did not reach.
@@ -291,7 +291,7 @@ int main(void)
                 }
             }
         }
-        /* THE SCOPE, ASSERTED: every other flag combination must be declined by OUR code, and the live
+        /* The scope, asserted: every other flag combination must be declined by our code, and the live
            export accepts most of them -- so this is the one place the two deliberately differ, and it
            is checked rather than assumed. */
         for (k = 0; k < (int)(sizeof(badflags) / sizeof(badflags[0])); ++k) {
@@ -338,7 +338,7 @@ int main(void)
         }
     }
 
-    /* 7. THE NULL DESTINATION AND THE WHOLE REFUSAL ORDER.
+    /* 7. The NULL destination and the whole refusal order.
      *
      * This section exists because of a mutation survivor. Mutant #10 deleted the NULL-destination
      * refusal from impl.asm and sections 1-6 above still passed 66,410 cases with 0 mismatches: not one
@@ -349,7 +349,7 @@ int main(void)
      * Worse, the refusal had never been measured. It was written into impl.asm from the natural
      * assumption that a NULL destination must be refused, and reference.c took the same ordering from
      * impl.asm rather than from the export -- so the three-way comparison was blind to it. An
-     * assumption held by BOTH sides of a comparison is invisible to that comparison; only asking the
+     * assumption held by both sides of a comparison is invisible to that comparison; only asking the
      * export settles it, which is what probes/nulldest.c did.
      *
      * It found TWO things wrong. A NULL destination with a too-small cchDest gives 87, not 122 -- the

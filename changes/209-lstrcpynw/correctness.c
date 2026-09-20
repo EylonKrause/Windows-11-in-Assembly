@@ -3,12 +3,12 @@
 //
 // Three-way: our assembly+SEH wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
-// TWO THINGS DRIVE THE SHAPE OF THIS TEST.
+// Two things drive the shape of this test.
 //
-// 1. The destination is TERMINATED, NOT PADDED. Every case therefore compares the WHOLE destination
+// 1. The destination is terminated, not padded. Every case therefore compares the whole destination
 //    buffer against a poison fill, not just the copied prefix -- a strncpy-shaped implementation
 //    would zero-fill the tail and pass a prefix-only check.
-// 2. A FAULTING SOURCE IS PART OF THE CONTRACT: it returns NULL with the readable prefix already
+// 2. a faulting source is part of the contract: it returns NULL with the readable prefix already
 //    copied. The page-guard section below builds exactly that -- an unterminated string ending at a
 //    PAGE_NOACCESS boundary -- and compares our result against the LIVE export character for
 //    character, including how much of the destination each one filled in before giving up. That is

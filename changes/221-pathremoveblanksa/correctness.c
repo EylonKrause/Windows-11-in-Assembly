@@ -3,14 +3,14 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// EVERY CASE COMPARES THE WHOLE BUFFER, and this function returns NOTHING, so the buffer is the only
+// Every case compares the whole buffer, and this function returns nothing, so the buffer is the only
 // observable there is. It writes only what it must -- nothing at all when there is nothing to strip,
 // one terminator when only the trailing end goes, a move when only the leading end does -- and the
-// ORDER of the two writes is observable: it MOVES first and CUTS second, the opposite of StrTrimA
+// Order of the two writes is observable: it moves first and cuts second, the opposite of StrTrimA
 // (change 218), which leaves a different tail behind.
 //
 // The other thing driving the shape: the first load is aligned DOWN with the leading bits cleared,
-// so every case runs at EVERY start offset within a 32-byte block, with BLANKS planted in front of
+// so every case runs at every start offset within a 32-byte block, with BLANKS planted in front of
 // the string -- which is what a mis-cleared first mask would find.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -74,7 +74,7 @@ int main(void){
             CHECK(one_all_offsets(S[i]), "named shapes at every start offset");
     }
 
-    // ---- EVERY byte value, in every role that matters -------------------------------------------
+    // ---- every byte value, in every role that matters -------------------------------------------
     // A blank is 0x20 and nothing else; a tab is NOT a blank. Every other value must survive at both
     // ends, and must stop the run when it appears inside one.
     {

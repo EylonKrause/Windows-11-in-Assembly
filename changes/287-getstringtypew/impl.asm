@@ -11,7 +11,7 @@
 ; lstrcmp_is_linguistic.c killed it, on the evidence that lstrcmpA and lstrcmpiA time identically.)
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE ONE QUESTION THAT DECIDED WHETHER THIS COULD BE WRITTEN, AND IT IS THE SAME QUESTION AS 281's.
+; 2. The one question that decided whether this could be written, and it is the same question as 281's.
 ;
 ; A classification that depended on a character's NEIGHBOURS, or on the thread LOCALE, cannot be a
 ; table, and no amount of AVX2 reproduces it -- which is how changes 274 and 276 died on collation.
@@ -26,7 +26,7 @@
 ; So it is a lookup, and the rest is making the lookup fast.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. WHY THE TABLE IS TWO-LEVEL, WHICH WAS ALSO MEASURED.
+; 3. Why the table is two-level, which was also measured.
 ;
 ; A flat table is 65536 WORDs -- 128 KB per info type, 384 KB for three. That does not fit L2, and a
 ; table that thrashes L2 is a slow implementation of a fast idea. probes/tableshape.c measured the
@@ -46,7 +46,7 @@
 ;
 ;   (a) map the info type to 0, 1 or 2 and refuse anything else -- the export refuses CT_CTYPE1|CT_CTYPE2,
 ;       0 and 8, so this is a contract requirement and not a convenience;
-;   (b) cch < 0 means NUL-terminated AND INCLUDES THE TERMINATOR: a three-character string gets four
+;   (b) cch < 0 means NUL-terminated and includes the terminator: a three-character string gets four
 ;       words. The length is found 16 code units at a time;
 ;   (c) the loop is unrolled by eight and each unit costs ONE load from a flat 65536-entry table and
 ;       one store. The two-level layout described above is 4x smaller and was tried first: measured, it
@@ -58,7 +58,7 @@
 ; The iterations are independent, so the loop is throughput-bound rather than latency-bound and the
 ; unroll is what matters.
 ;
-; AND ONE MEASURED NEGATIVE RESULT, KEPT BECAUSE IT WAS NOT OBVIOUS. Two loads per unit against three
+; And one measured negative result, kept because it was not obvious. Two loads per unit against three
 ; load ports is a 0.67-cycle floor and this loop runs at about 0.9, so it is close to its limit and the
 ; limit is the load count. The obvious fix is to read the source with ONE 16-byte vector load per eight
 ; units and pull the indices out with VPEXTRW, which touches no load port: one load per unit instead of
@@ -162,7 +162,7 @@ t_have:
 
         ; ---- the one table base for this info type.
         ;
-        ; A FLAT 65536-ENTRY TABLE, NOT THE TWO-LEVEL ONE, AND THE BENCH IS WHY. The two-level
+        ; a flat 65536-ENTRY table, not the two-level one, and the bench is why. The two-level
         ; directory-and-page layout is 4x smaller -- 32000 bytes against 131072 -- and this change was
         ; built on it first for that reason. Measured, it came out at 180 ns for 511 code units, only
         ; 2.25x the shipped export, because every unit cost a compare, a branch and TWO dependent
@@ -177,7 +177,7 @@ t_have:
         imul      eax, eax, 131072
         add       r11, rax
 
-        ; ---- (b) the count. cch < 0 means NUL-terminated AND INCLUDES THE TERMINATOR, so the length
+        ; ---- (b) the count. cch < 0 means NUL-terminated and includes the terminator, so the length
         ; is measured and then one more word is written -- measured: a three-character string with
         ; cch = -1 produces four words, the fourth being the class of U+0000.
         mov       r12d, r8d

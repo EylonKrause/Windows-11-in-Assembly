@@ -3,18 +3,18 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// WHAT DRIVES THE SHAPE OF THIS TEST.
+// What drives the shape of this test.
 //
-// 1. THE RULE IS NOT LOCAL. A colon separates only when it is the sole colon in its run, so no
+// 1. The rule is not local. a colon separates only when it is the sole colon in its run, so no
 //    bounded window of characters decides the answer and no sampled corpus can establish the rule.
 //    The test is therefore EXHAUSTIVE over the alphabet that makes every separator interaction
 //    reachable -- {a, backslash, slash, colon} at every length 0..9, 349525 strings -- and then over
 //    a wider alphabet at every length 0..7.
-// 2. THE FIRST LOAD IS ALIGNED DOWN. impl.asm rounds the path pointer down to a 32-byte boundary and
+// 2. The first load is aligned down. impl.asm rounds the path pointer down to a 32-byte boundary and
 //    shifts the leading bytes out of the mask, so the number of bytes the first block covers depends
-//    on the pointer's low five bits. Every case below is therefore run at EVERY start offset within
+//    on the pointer's low five bits. Every case below is therefore run at every start offset within
 //    a 32-byte block, not at whichever offset the compiler happened to choose.
-// 3. THE SCAN MUST NOT OUTRUN THE TERMINATOR'S PAGE. The byte-at-a-time export stops at the NUL; an
+// 3. The scan must not outrun the terminator's page. The byte-at-a-time export stops at the NUL; an
 //    aligned 32-byte load must never touch the page after it. The guard-page section places the
 //    terminator at the very last byte of a mapped page whose successor is PAGE_NOACCESS.
 #define WIN32_LEAN_AND_MEAN
@@ -104,7 +104,7 @@ int main(void){
         printf("  exhaustive {a,\\,/,:,.,sp,z,0xE9} 0..7: %ld strings\n", n);
     }
 
-    // ---- EVERY BYTE VALUE next to a separator: no byte may act as a DBCS lead byte ------------------
+    // ---- Every byte value next to a separator: no byte may act as a dbcs lead byte ------------------
     {
         for (int b = 1; b < 256; ++b) {
             char s[8];

@@ -1,21 +1,21 @@
 /* changes/258-rtlfindclearruns/reference.c
  *
- * THE INDEPENDENT ORACLE for RtlFindClearRuns.
+ * The independent oracle for RtlFindClearRuns.
  *
  * It shares nothing with impl.asm but the contract. impl.asm scans sixty-four bits at a time for
  * the sorted form and drives the unsorted form off a packed table that answers a whole byte in one
- * load; this walks the bitmap ONE BIT or ONE BYTE AT A TIME with nothing packed, nothing skipped
+ * load; this walks the bitmap one bit or one byte at a time with nothing packed, nothing skipped
  * and no bit tricks at all.
  *
- * THE SELECTION RULE, as probes/contract.c and probes/enumorder.c measured it:
+ * The selection rule, as probes/contract.c and probes/enumorder.c measured it:
  *
- *   * SORTED returns the LONGEST runs, by length DESCENDING, and a tie goes to the EARLIER run.
+ *   * Sorted returns the longest runs, by length descending, and a tie goes to the earlier run.
  *     A stable sort by descending length expresses both halves at once, which is why this uses one
  *     rather than a comparison mentioning the start index: the tie-break is not a secondary key, it
  *     is the order the runs were found in, and stability is exactly that.
  *
- *   * UNSORTED returns the FIRST runs found and stops when the array is full -- but THE ORDER THEY
- *     ARE FOUND IN IS NOT LEFT TO RIGHT. ntdll scans a byte at a time and, within a byte, emits
+ *   * Unsorted returns the first runs found and stops when the array is full -- but the order they
+ *     Are found in is not left to right. ntdll scans a byte at a time and, within a byte, emits
  *     first the run carried in from earlier bytes, then the runs strictly inside the byte LONGEST
  *     FIRST (ties to the lowest position); the run at the top of the byte is not emitted there at
  *     all, it becomes the carry. So a byte holding a one-bit run at 1 and a two-bit run at 3
@@ -56,7 +56,7 @@ ULONG ref_findclearruns(void* bmv, REF_RUN* out, ULONG cap, BOOLEAN sorted)
     if (!bm || !bm->Buffer || bm->SizeOfBitMap == 0 || cap == 0) return 0;
 
     if (!sorted) {
-        /* THE FOUND ORDER, byte by byte, exactly as the shipped scan produces it */
+        /* The found order, byte by byte, exactly as the shipped scan produces it */
         ULONG k, nbytes = (bm->SizeOfBitMap + 7) >> 3, carry = 0, cstart = 0;
         for (k = 0; k < nbytes; ++k) {
             unsigned b = ((const unsigned char*)bm->Buffer)[k], m;

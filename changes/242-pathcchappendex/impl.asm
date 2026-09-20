@@ -1,31 +1,31 @@
 ; changes/242-pathcchappendex/impl.asm
 ; kernelbase!PathCchAppendEx and kernelbase!PathCchCombineEx, dwFlags == 0, in AVX2 assembly.
 ;
-; BOTH FUNCTIONS ARE A JOIN FOLLOWED BY CANONICALISATION. That is measured, not assumed:
+; Both functions are a join followed by canonicalisation. That is measured, not assumed:
 ; probes/compose.c compares each against PathCchCanonicalizeEx(join(base, more)) on the LIVE export over
 ; 789,770 pairs -- three crossed alphabets plus 63 pairs against every cch from 0 to 30 -- with 0
 ; mismatches. So this file is the JOIN plus change 243's walk, and RESULTS.md carries the derivation of
 ; both.
 ;
-; THE JOINED STRING IS NEVER MATERIALISED. Canonicalisation is a streaming walk over a read pointer, so
+; The joined string is never materialised. Canonicalisation is a streaming walk over a read pointer, so
 ; the walk runs over the effective base, then switches its read pointer to the effective `more` and keeps
 ; going. Everything else falls out of the shared write cursor: a ".." at the start of `more` pops into
-; the base's output, the trailing-dot strip lands on the last component of the WHOLE join, and the final
+; the base's output, the trailing-dot strip lands on the last component of the whole join, and the final
 ; fixups see the whole answer. A scratch buffer would have had to be 64 KB to be correct, because a long
 ; base whose `more` pops it away still has a short answer.
 ;
-; FOR APPEND THE OUTPUT BUFFER IS THE BASE, so that segment is walked IN PLACE. That is safe by the same
+; For append the output buffer is the base, so that segment is walked in place. That is safe by the same
 ; argument the walk already relies on: canonicalisation only ever drops characters, so the write cursor
 ; never passes the read cursor, and the seam separator is written after the base is fully consumed. It is
 ; also why this file does NOT empty the buffer on entry the way change 243 does -- that would destroy the
 ; base before reading it -- and empties it on the error paths instead, which is the same observable.
 ;
-; THE PREFIX CAN STRADDLE THE SEAM. "\\?" + "C:" joins to "\\?\C:", which canonicalises to "C:\", so the
+; The prefix can straddle the seam. "\\?" + "C:" joins to "\\?\c:", which canonicalises to "c:\", so the
 ; extended-prefix test cannot be run on the base alone. The first eight characters of the joined stream
 ; are gathered into a small buffer and classified there, and the segment plan is then advanced past
 ; whatever the classification consumed -- which may land inside `more`.
 ;
-; THE DOMAIN IS dwFlags == 0, for the reason change 243 recorded: flag 0x01 is not a post-step but a
+; The domain is dwFlags == 0, for the reason change 243 recorded: flag 0x01 is not a post-step but a
 ; different backward walk. Nonzero flags tail-jump to the original implementation.
 ;
 ; Gates: correctness.c (three-way against reference.c and the live exports), bench.c, tools/abi-check.
@@ -60,7 +60,7 @@ HR_EXCED    EQU     0800700CEh
 
         .code
 
-; IS_LETTER_JMP CH, S1, S2, NOTLETTER -- CH is preserved; S1 and S2 are scratch; all three distinct.
+; IS_LETTER_JMP ch, S1, S2, notletter -- ch is preserved; S1 and S2 are scratch; all three distinct.
 ; A drive letter is an ISO-8859-1 letter: change 243's probes/letter.c measured all 65536 code units and
 ; found exactly 114 accepted, so this is neither ASCII nor IsCharAlphaW.
 IS_LETTER_JMP MACRO CH, S1, S2, NOTLETTER
@@ -231,7 +231,7 @@ cb_have_more:
         mov     rsi, r9                         ; two or more: `more` replaces, with no exception here
         jmp     walk_start
 cb_rooted:
-        ; segment 1 is base's ROOT, WITHOUT its trailing separator, and `more` KEEPS its separator.
+        ; segment 1 is base's root, without its trailing separator, and `more` keeps its separator.
         ; root_nosep hands r9 to IS_LETTER_JMP as scratch, so `more` is parked first -- carrying a live
         ; value through a call in a register the callee documents as clobbered is what sent this walk
         ; reading from address 2.
@@ -297,7 +297,7 @@ cb_delegate_unset:
         ret
 
 ; ---------------------------------------------------------------------------------------------------
-; THE SHARED WALK -- change 243's contract, reading a two-segment stream.
+; The shared walk -- change 243's contract, reading a two-segment stream.
 walk_start::
         ; --- the extended prefix, classified on the JOINED stream ---------------------
         call    gather8                         ; rsp[0..15] = up to 8 characters, ecx = how many,
@@ -333,7 +333,7 @@ pfx_no_seam:
 
 ; ---- the per-segment fast path ---------------------------------------------------------------------
 ; A segment with no dot component is copied verbatim, in one vectorised pass. The test is change 243's:
-; scan for the two-character pattern "\." plus the first-character case, with BLOCKS OVERLAPPING BY ONE
+; scan for the two-character pattern "\." plus the first-character case, with blocks overlapping by one
 ; CHARACTER so the pattern cannot straddle a block boundary. A segment of at most 256 characters also
 ; cannot hold a component over the per-component cap, so one length test covers both.
 ; Without this the walk was correct but paid a per-component dispatch for every component of the base --
@@ -439,7 +439,7 @@ sc_separator:
         jmp     walk_loop
 
 sc_dotlike:
-        ; A component starting with a dot. WHAT FOLLOWS IT IS A QUESTION ABOUT THE STREAM, NOT ABOUT THE
+        ; a component starting with a dot. What follows it is a question about the stream, not about the
         ; SEGMENT: a "." at the end of the base is followed by the SEAM separator, so "." + "a" joins to
         ; ".\a" and canonicalises to "a". Reading only within segment 1 would see a trailing dot instead
         ; and produce "\a".
@@ -628,7 +628,7 @@ check_cch PROC
         dec     r11
         lea     r11, [rbx + r11*2]
         ret
-        ; A cch OUTSIDE THE RANGE IS REFUSED WITHOUT TOUCHING THE BUFFER -- where change 243's
+        ; a cch outside the range is refused without touching the buffer -- where change 243's
         ; canonicaliser EMPTIES it for the same rejection. Visible on Combine, whose destination starts
         ; as poison; on Append the base sits in the buffer and hides the difference.
 cc_bad:
@@ -654,7 +654,7 @@ check_cch_quiet ENDP
 ; ---------------------------------------------------------------------------------------------------
 ; more_replaces -- does the string at r8 replace the base outright? al = 0/1.
 ; Two leading separators usually mean yes, but NOT "\\?" or "\\?a": an INCOMPLETE extended prefix is not
-; a root of any kind, and joins with BOTH separators stripped. "\\?\" and everything under it replaces.
+; a root of any kind, and joins with both separators stripped. "\\?\" and everything under it replaces.
         ALIGN 16
 more_replaces PROC
         xor     eax, eax
@@ -701,7 +701,7 @@ is_drive_at_r8 ENDP
 ; ---------------------------------------------------------------------------------------------------
 ; root_nosep -- the root of the string at r8 WITHOUT its trailing separator, in characters, or -1 when
 ; it has none. This is what Combine prepends to a rooted `more`: "C:\a" + "\b" is "C:\b", so the drive
-; root contributes "C:" and NOT "C:\" -- prepending "C:\" would leave a doubled separator, and change
+; root contributes "C:" and not "c:\" -- prepending "c:\" would leave a doubled separator, and change
 ; 243 proved doubled separators SURVIVE canonicalisation, so the difference shows in the answer.
 ; Clobbers rax, rcx, rdx, r9, r10.
         ALIGN 16
@@ -923,7 +923,7 @@ cp_none:
 classify_prefix ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; stream_at -- the character at rax AS THE JOINED STREAM SEES IT. Inside segment 1 that is simply the
+; stream_at -- the character at rax as the joined stream sees it. Inside segment 1 that is simply the
 ; character; at segment 1's end it is the seam separator if one is owed, else segment 2's first
 ; character, else the true end of the stream. Returns eax; clobbers rax.
 ; Callers only ever ask about the character one or two positions ahead, and the two-ahead question is
@@ -960,7 +960,7 @@ sa_end:
         ret
 stream_at ENDP
 
-; stream_consume_sep -- rsi is at a separator AS THE STREAM SEES IT; step past it. Inside segment 1
+; stream_consume_sep -- rsi is at a separator as the stream sees it; step past it. Inside segment 1
 ; that is two bytes; at the boundary it is the seam (switch to segment 2) or segment 2's own first
 ; character (switch and step past it). Clobbers rax.
         ALIGN 16
@@ -1002,7 +1002,7 @@ stream_consume_sep ENDP
 ; find_sep -- rsi -> rdx, the first '\' at or after rsi, or the terminator, or the segment bound.
 ; Clobbers rax, rcx, rdx, ymm0..ymm2.
 ;
-; A SCALAR PROBE FIRST, for eight characters: real components are a handful of characters long, and the
+; a scalar probe first, for eight characters: real components are a handful of characters long, and the
 ; vector path's load -> compare -> compare -> or -> movmsk -> tzcnt chain is about twenty cycles of
 ; LATENCY that the next component's scan cannot start until it resolves, because the scans are serially
 ; dependent through the read pointer.
@@ -1066,7 +1066,7 @@ find_sep ENDP
 ; of OVERLAPPING moves rather than a character loop, because components in a real path are a handful of
 ; characters long and the tail IS the cost. Clobbers rax, rcx, ymm0, ymm1.
         ALIGN 16
-; EVERY LOAD COMES BEFORE EVERY STORE IN ITS CASE, because Append canonicalises IN PLACE and the source
+; Every load comes before every store in its case, because Append canonicalises in place and the source
 ; and destination overlap by as little as one character. The overlapping-tail ladder is otherwise the
 ; same idea as change 243's, but there the two buffers were separate: here, storing the head first and
 ; then loading the tail reads bytes the head store has already overwritten. That is exactly how this

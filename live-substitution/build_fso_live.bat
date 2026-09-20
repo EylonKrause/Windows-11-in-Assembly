@@ -1,12 +1,12 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 254 (kernelbase!FindStringOrdinal).
+Rem  live-run proof for change 254 (kernelbase!FindStringOrdinal).
 REM
 REM  Sacrificial single-threaded child; it patches only its own copy-on-write
 REM  copy of kernelbase. No system process is touched, nothing on disk is
 REM  modified, and the prologue is restored and verified byte-for-byte.
 REM
-REM  BOTH observables are compared -- the returned index AND GetLastError() --
+Rem  both observables are compared -- the returned index and GetLastError() --
 REM  because our implementation writes the last error straight to the TEB at
 REM  gs:[0x68] rather than calling SetLastError, which is what the shipped code
 REM  does too. Writing a TEB field by hand is exactly the kind of thing that

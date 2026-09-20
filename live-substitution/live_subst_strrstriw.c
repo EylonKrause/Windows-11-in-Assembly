@@ -1,26 +1,26 @@
 // live-substitution/live_subst_strrstriw.c
 // LIVE-RUN PROOF for change 283 (shlwapi!StrRStrIW).
 //
-// WHAT IS COMPARED IS THE RETURNED POINTER AS A BYTE OFFSET. Change 282 found a mutant that
+// What is compared is the returned pointer as a byte offset. Change 282 found a mutant that
 // returned a pointer one byte into the middle of a wchar_t and survived both gates, because
 // `p - base` on a wchar_t* divides the odd byte away.
 //
-// THE CONTRACT THIS HARNESS HAS TO RESPECT, all measured by probes/bounds.c:
+// The contract this harness has to respect, all measured by probes/bounds.c:
 //
 //   * `end` bounds only where a match may START, exclusively -- a match beginning below `end` is
 //     returned even though it runs past it;
-//   * THE HAYSTACK IS NUL-TERMINATED and the terminator beats `end`: a NUL at index 4 hides a match
+//   * The haystack is nul-terminated and the terminator beats `end`: a NUL at index 4 hides a match
 //     at 9 however far `end` reaches;
-//   * and the export READS TO THE TERMINATOR REGARDLESS OF `end`. With no terminator it FAULTS. So
+//   * and the export reads to the terminator regardless of `end`. With no terminator it faults. So
 //     every haystack here is terminated, and the guard-page cases put that terminator as the last
 //     readable code unit -- which is the only placement that tests where the scan really stops.
 //
-// AND THE NEEDLES ARE DRAWN TO REACH BOTH FILTER PATHS. The vector filter keys on the needle's
+// And the needles are drawn to reach both filter paths. The vector filter keys on the needle's
 // FIRST character; a first character with more than four partners bypasses the filter entirely and
 // verifies every position. That path is 3321 needles out of 65536, so it is forced rather than left
 // to a uniform draw.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; validate first; patch only when idle;
@@ -91,7 +91,7 @@ static const wchar_t* cur_n;
 static int cur_guard, cur_wide;
 static unsigned wide_needle;
 
-/* THREE SUB-CASES ADDED AFTER MUTATION TESTING, each because a real defect survived this gate.
+/* Three sub-cases added after mutation testing, each because a real defect survived this gate.
  *
  *   cur_nultail  a needle whose TAIL matches a NUL, over a string whose last character matches the
  *                needle's first. The live export matches such a needle ACROSS the terminator, so

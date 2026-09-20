@@ -2,7 +2,7 @@
 ;   NTSTATUS wia_appendasciiztostring(PSTRING dest, PCSZ src)   [Win64: rcx = dest, rdx = src -> eax]
 ;
 ; ntdll!RtlAppendAsciizToString. discovery/ntdll_rtl_uncovered2.c found it at 222.15 ns for 4000
-; bytes -- 0.056 ns/byte, FOUR AND A HALF TIMES the per-byte cost of its own siblings measured in
+; bytes -- 0.056 ns/byte, four and a half times the per-byte cost of its own siblings measured in
 ; the same run:
 ;
 ;       RtlAppendAsciizToString, 4000 bytes        222.15 ns   0.056 ns/byte
@@ -19,29 +19,29 @@
 ; its header. NONE of it was assumed here -- and that was not caution for its own sake, because the
 ; two forms DISAGREE on the rule a reimplementation is most likely to copy across:
 ;
-;   * THIS FORM NEVER WRITES A TERMINATOR. The wide one appends a NUL when MaximumLength leaves room
+;   * This form never writes a terminator. The wide one appends a NUL when MaximumLength leaves room
 ;     for it; this one does not, at any size. Appending "abc" to a 3-byte STRING with MaximumLength
 ;     8 leaves bytes 6 and 7 exactly as they were. An implementation that helpfully terminated would
 ;     corrupt a caller's buffer on every successful call, and would pass any test that only looked
 ;     at Length and the appended bytes.
-;   * IT FITS IF Length + strlen(src) <= MaximumLength, with NO allowance for a terminator: 3 + 3
+;   * It fits if Length + strlen(src) <= MaximumLength, with no allowance for a terminator: 3 + 3
 ;     into MaximumLength 6 SUCCEEDS.
-;   * AND THAT SUM IS COMPUTED WIDE. Length 40000 with a 30000-byte source is REFUSED, where a
+;   * And that sum is computed wide. Length 40000 with a 30000-byte source is refused, where a
 ;     16-bit comparison would wrap to 4464, conclude that it fits, and overrun the buffer. That is
 ;     not a wrong answer, it is a memory-safety bug, and it is the reason the compare below is on
 ;     64-bit registers.
 ;   * src == NULL is STATUS_SUCCESS with nothing changed, and so is an empty source.
-;   * ON FAILURE -- STATUS_BUFFER_TOO_SMALL, 0xC0000023 -- NOTHING is touched: not the buffer, not
+;   * On failure -- STATUS_BUFFER_TOO_SMALL, 0xC0000023 -- nothing is touched: not the buffer, not
 ;     Length, not MaximumLength. So the length has to be known BEFORE anything is written, which is
 ;     why the source is measured first and copied second. Reading it twice is required by the
 ;     contract, not an oversight.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. The page-safe AVX2 strlen this project has used since change 032 -- 64 bytes an
+; How it works. The page-safe AVX2 strlen this project has used since change 032 -- 64 bytes an
 ; iteration, and it never reads across a page boundary it has not already proved it may touch --
 ; then one AVX2 copy. ntdll calls out to strlen and then copies; this does neither.
 ;
-; THE COPY IS NOT A GENERAL MEMCPY. Source and destination are different objects by construction
+; The copy is not a general memcpy. Source and destination are different objects by construction
 ; (the destination is the STRING's own buffer at its own Length), the count is already known, and
 ; there is no overlap to resolve, so it is a plain forward loop with an overlapping tail store.
 ;
@@ -119,7 +119,7 @@ l_found_shift:
         mov       eax, edx                       ; byte length
 
 have_len:
-        ; ONE VZEROUPPER FOR THE SCAN, here rather than on each of its four exits. Every path from
+        ; One vzeroupper for the scan, here rather than on each of its four exits. Every path from
         ; this point either returns or runs the copy, which has a VZEROUPPER of its own.
         vzeroupper
 
@@ -150,7 +150,7 @@ cp_loop:
         jae       cp_loop
         test      rax, rax
         jz        cp_done
-        ; THE TAIL IS ONE OVERLAPPING STORE: at least 32 bytes have been written already, so the
+        ; The tail is one overlapping store: at least 32 bytes have been written already, so the
         ; last 32 bytes of the source can simply be written again, over bytes this same copy just
         ; produced. It cannot reach past the end because the count was checked above.
         lea       r8, [r8 + rax - 32]
@@ -161,7 +161,7 @@ cp_done:
         vzeroupper
         jmp       ok_len
 
-; FEWER THAN 32 BYTES: A LADDER OF OVERLAPPING PAIRS, not a byte loop.
+; Fewer than 32 Bytes: a ladder of overlapping pairs, not a byte loop.
 ;
 ; A 32-byte read is out of the question here -- the source may sit at the end of a page, and a
 ; wide read of a five-byte string would be a fault rather than a slow path (the scan above may

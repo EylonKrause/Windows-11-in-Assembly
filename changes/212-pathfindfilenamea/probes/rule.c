@@ -6,7 +6,7 @@
 
      * '\' and '/' always separate. One sets the answer to i+1 when the next character is neither NUL
        nor '\' nor '/' (a following ':' is fine).
-     * ':' sets the answer to i+1 under the same next-character test, but ONLY when it is the SOLE
+     * ':' sets the answer to i+1 under the same next-character test, but only when it is the SOLE
        colon in its run -- the stretch between two backslash/slash characters. So ":a" gives 1 and
        "a:a" gives 2, while ":a:" and "a::a" both give 0.
      * the answer is the last position that set, or the start of the string.

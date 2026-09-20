@@ -1,6 +1,6 @@
 /* changes/276-varbstrcmp/probes/gap.c
  *
- * IS THERE ROOM BETWEEN VarBstrCmp AND CompareStringW? THIS IS THE DECIDING NUMBER.
+ * Is there room between VarBstrCmp and CompareStringW? This is the deciding number.
  *
  * What the first two probes settled:
  *
@@ -8,13 +8,13 @@
  *     the export tracked the linguistic answer every time; the flag bits pass straight through and
  *     the result is CompareStringW's minus one. The collation is the OS's and is not reimplementable
  *     -- change 210's notes say the same.
- *   * IDENTICAL STRINGS ALWAYS COMPARE EQUAL. Every code unit 1..0xFFFF alone and inside a longer
+ *   * Identical strings always compare equal. Every code unit 1..0xFFFF alone and inside a longer
  *     string, every surrogate and noncharacter asked, under every valid flag and locale: 0 of
  *     131070 not reflexive. The only non-EQ answers came from INVALID locales and flag bits, where
  *     the export returns an ERROR -- which a fast path must not turn into EQ.
  *   * And there is no fast path in the export at all: comparing a BSTR with ITSELF costs 3145 ns at
  *     4000 characters, and two equal strings cost 3224 ns, while a difference at character 0 costs a
- *     flat 33.5 ns at EVERY length.
+ *     flat 33.5 ns at every length.
  *
  * So a replacement would be: a lean wrapper that answers EQ when the operands are byte-identical and
  * otherwise calls CompareStringW. Whether that is faster than the shipped one depends entirely on

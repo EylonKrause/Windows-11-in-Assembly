@@ -143,7 +143,7 @@ static HRESULT model(wchar_t* p, size_t cch)
                against cch, which is how the 567 UNC cases in probes/pcrfs7.c were found. */
     }
 
-    /* cch BOUNDS THE HIGHEST INDEX WRITTEN, not the result and not the input. Measured directly in
+    /* cch bounds the highest index written, not the result and not the input. Measured directly in
        probes/pcrfs7.c: min_cch == (highest index written) + 1 on every one of 87 381 strings. With
        nothing removed the highest write is the existing terminator at n, which is why an untouched
        path still needs cch >= n+1. */

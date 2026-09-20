@@ -1,29 +1,29 @@
 // live-substitution/live_subst_charbuff.c
 // LIVE-RUN PROOF for change 277 (user32!CharUpperBuffW and user32!CharLowerBuffW).
 //
-// BOTH EXPORTS ARE PATCHED AT ONCE, because the pair is the change: they are the same loop with two
+// Both exports are patched at once, because the pair is the change: they are the same loop with two
 // tables and two ranges -- 'a'..'z' minus 0x20 going up, 'A'..'Z' plus 0x20 coming down -- and a
 // proof that patched only one would be a proof about half a change. discovery/rtl_integer_char.c
 // measured the lower form at 1.16 ns per character against the upper one's 0.78, so they are not
 // even the same code underneath.
 //
-// THE TABLES ARE BUILT BEFORE THE PATCH EXISTS, and they have to be: tables.c builds them by asking
+// The tables are built before the patch exists, and they have to be: tables.c builds them by asking
 // CharUpperBuffW and CharLowerBuffW 65536 questions each. Under the patch they would be asking our
 // code what our code should say.
 //
-// WHAT IS COMPARED IS THE RETURN VALUE AND EVERY CHARACTER OF THE BUFFER, including the characters
-// PAST THE COUNT. These exports take a count, not a terminator -- probes/mapping.c measured them
+// What is compared is the return value and every character of the buffer, including the characters
+// Past the count. These exports take a count, not a terminator -- probes/mapping.c measured them
 // mapping straight past an embedded NUL -- so an implementation that rounded the count up to a whole
 // vector block would corrupt what follows, which is change 016's defect exactly and which only a
 // whole-buffer comparison sees.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or the heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: both prologues restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_charbuff_live.bat
@@ -153,7 +153,7 @@ int main(void)
     printf("== LIVE SUBSTITUTION: user32!CharUpperBuffW + CharLowerBuffW (change 277) ==\n");
     printf("  they resolve to %p and %p\n", (void*)live_up, (void*)live_dn);
 
-    /* BEFORE THE PATCH EXISTS: the tables build themselves by asking these very exports. */
+    /* Before the patch exists: the tables build themselves by asking these very exports. */
     if (wia_cub_init()) { printf("  FAIL: the case tables failed to build\n"); return 1; }
 
     for (i = 0; i < NCASE; ++i) {

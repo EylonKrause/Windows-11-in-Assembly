@@ -28,14 +28,14 @@
 ;     mismatches vs a simpler rule      : 76672
 ;
 ; plus 2396745 strings over {a, backslash, slash, colon, dot, space, z, 0xE9}: 0 mismatches. So the
-; narrow form carries the wide rule EXACTLY, run condition included -- and the simpler rule that every
+; narrow form carries the wide rule exactly, run condition included -- and the simpler rule that every
 ; spot check in probes/pffa.c was consistent with is wrong on 76672 strings. Spot checks would never
 ; have found it; only the enumeration did.
 ;
 ; The rule:
 ;   * '\' and '/' are always separators. One sets the answer to i+1 when the next character is
 ;     neither NUL nor '\' nor '/'  (a following ':' is fine).
-;   * ':' sets the answer to i+1 under the same next-character test, but ONLY when it is the sole
+;   * ':' sets the answer to i+1 under the same next-character test, but only when it is the sole
 ;     colon in its RUN -- the stretch between two backslash/slash characters. So ":a" gives 1 and
 ;     "a:a" gives 2, while ":a:" and "a::a" both give 0, and ":\:a" gives 3 because the backslash
 ;     starts a fresh run in which that colon is alone.
@@ -58,7 +58,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt, blsr) + BMI2 (shrx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their low 128 bits are -- and
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are -- and
 ; parking a constant in ymm6, as an earlier cut of change 161 did, silently destroys any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters. See
 ; tools/abi-check. ':' is the rarest of the four and is only compared against, so it becomes a memory

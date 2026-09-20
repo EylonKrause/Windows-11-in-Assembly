@@ -6,7 +6,7 @@
 ;
 ; ntdll!RtlCopyBitMap (RVA 0x13E310) and ntdll!RtlExtractBitMap (RVA 0x1116A0).
 ;
-; THE LARGEST SINGLE ANOMALY IN THE BITMAP FAMILY, and it is not a search
+; The largest single anomaly in the bitmap family, and it is not a search
 ; (discovery/ntdll_bitmap2.c):
 ;
 ;       RtlCopyBitMap 65536 bits, target 0                101.05 ns   0.012 ns/byte
@@ -29,36 +29,36 @@
 ; adjacent input words, and a funnel shift of EIGHT such pairs is three vector instructions.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE CONTRACT, probed rather than assumed (probes/contract.c). These functions MUTATE, so every row
+; The contract, probed rather than assumed (probes/contract.c). These functions mutate, so every row
 ; of that probe fills the destination with a poison byte and reports which bytes moved: "the copy
 ; worked" and "the copy worked and also cleared the rest of the word" look identical otherwise.
 ;
-;   * COPY reads the source from BIT 0 and writes it AT TargetBit. EXTRACT reads AT TargetBit and
+;   * Copy reads the source from bit 0 and writes it at TargetBit. Extract reads at TargetBit and
 ;     writes from BIT 0. They are the same move in opposite directions, which is why one core
 ;     serves both.
-;   * RtlCopyBitMap's FOURTH ARGUMENT IS IGNORED. It is a three-argument function -- r9d is
+;   * RtlCopyBitMap's fourth argument is ignored. It is a three-argument function -- r9d is
 ;     overwritten at 0x13E34A before it is ever read -- and passing 0, 1, 16 or 0xFFFFFFFF as a
 ;     fourth argument gives byte-for-byte identical results. Its count is
 ;         min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit)
 ;     and RtlExtractBitMap's, which really does take four, is
 ;         min(NumberOfBits, Source->SizeOfBitMap - TargetBit, Destination->SizeOfBitMap)
-;   * THAT SUBTRACTION IS DONE IN 32 BITS AND TESTED IN 64, so a TargetBit PAST the destination's
+;   * That subtraction is done in 32 Bits and tested in 64, so a TargetBit past the destination's
 ;     size does not refuse: it wraps to a huge unsigned count and copies the whole source anyway,
 ;     past the declared size. With a 64-bit destination, TargetBit = 64 copies nothing and
-;     TargetBit = 65 writes four bytes at byte 8. REPRODUCED DELIBERATELY: it is what the shipped
+;     TargetBit = 65 writes four bytes at byte 8. REPRODUCED deliberately: it is what the shipped
 ;     export does, and an implementation that "fixed" it would not be a replacement.
-;   * EVERY BIT OUTSIDE THE RANGE IS PRESERVED. Copying five bits into bits 3..7 of a destination
+;   * Every bit outside the range is preserved. Copying five bits into bits 3..7 of a destination
 ;     byte holding 0xCC leaves 0xC4, not 0x18.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. Both exports reduce to one primitive:
+; How it works. Both exports reduce to one primitive:
 ;
 ;       for i in [0, count):  destination bit (dlo + i) = source bit (slo + i)
 ;
 ; with (dlo, slo) = (TargetBit, 0) for COPY and (0, TargetBit) for EXTRACT. Writing `delta` for
 ; slo - dlo, the 32 bits of destination word w come from the source starting at bit w*32 + delta --
 ; and since w advances by one word, that source position advances by exactly 32 bits, so THE SHIFT
-; AMOUNT IS THE SAME FOR EVERY WORD and is computed once.
+; Amount is the same for every word and is computed once.
 ;
 ;   * the DESTINATION is walked in 32-bit words, never 64, because an RTL_BITMAP buffer is an array
 ;     of ULONG and the shipped code touches exactly those words -- a 64-bit store at the end would
@@ -79,7 +79,7 @@
 ;     byte-aligned copy takes a plain 32-byte move instead, because that case is already
 ;     RtlCopyMemory in the shipped code and is running at memory speed.
 ;
-; READING PAST THE SOURCE is the one hazard, and it is bounded rather than hoped: the vector step
+; Reading past the source is the one hazard, and it is bounded rather than hoped: the vector step
 ; touches thirty-six bytes of source for thirty-two of destination, so it runs only while those
 ; thirty-six lie inside the source's ULONG array, and the last few words are produced by a scalar
 ; path that reads the source with an explicit bounds test and treats anything past the end as zero.
@@ -102,7 +102,7 @@ PUBLIC wia_extractbitmap
 ; ---------------------------------------------------------------------------------------------
 wia_copybitmap PROC
         ; count = min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit), in 32 bits,
-        ; and the subtraction is ALLOWED TO WRAP -- see the contract above.
+        ; and the subtraction is allowed to wrap -- see the contract above.
         mov       eax, dword ptr [rdx]        ; Destination->SizeOfBitMap
         sub       eax, r8d
         mov       r10d, dword ptr [rcx]       ; Source->SizeOfBitMap
@@ -110,7 +110,7 @@ wia_copybitmap PROC
         cmova     r10d, eax                   ; count
         mov       r9d, r8d                    ; dlo = TargetBit
         xor       r11d, r11d                  ; slo = 0
-        ; UP TO THREE DESTINATION WORDS, NOT TWO, AND THE ONE BIT IN IT IS THE WHOLE POINT.
+        ; Up to three destination words, not two, and the one bit in it is the whole point.
         ; The parent admits a SPAN of 64 bits here. `COPY 64 bits, target 3` spans 3 + 64 = 67, so
         ; it misses by three bits and takes the full-frame path -- and that single row is the only
         ; thing this variant still loses on, at 0.87x-0.90x over five runs. The payload must still
@@ -148,13 +148,13 @@ wia_extractbitmap ENDP
 
 ; -- GETSRC: the 32 source bits belonging to the destination word at byte offset rdi, into eax.
 ;
-; INLINED AT EVERY SITE RATHER THAN CALLED. It is wanted at four places -- the first destination
+; Inlined at every site rather than called. It is wanted at four places -- the first destination
 ; word, the last one, the single-word case, and the fully checked loop -- and a call at each cost
 ; the short rows about a nanosecond apiece, which on a copy of twenty bits is a quarter of the whole
 ; call. Reads rsi (source), rdi (destination byte offset), rbp (delta) and [rsp+32] (the source
 ; bytes this copy may read); clobbers rax, rcx, rdx, r9, r10, r11.
 ;
-; A READ PAST THE SOURCE IS PREVENTED RATHER THAN TOLERATED. Bits past the end are masked off by
+; a read past the source is prevented rather than tolerated. Bits past the end are masked off by
 ; the count anyway, so their value is irrelevant -- the bound is there so the load cannot fault.
 GETSRC MACRO
         LOCAL   gsneg, gshi, gshave, gsnz, gsdone
@@ -198,13 +198,13 @@ ENDM
 ; bb_short -- the whole copy lands in at most TWO destination words.
 ;   rcx = Source*, rdx = Destination*, r9d = dlo, r11d = slo, r10d = count
 ;
-; NO FRAME, NO SAVED REGISTERS, NO UNWIND DATA. That is the entire reason it exists: a copy of
+; No frame, no saved registers, no unwind data. That is the entire reason it exists: a copy of
 ; twenty bits through the general path is seven pushes, seven pops and a setup that computes the
 ; last destination word, the shift and both masks -- and the whole call is over in about three
 ; nanoseconds, so the prologue IS the function. With the general path those rows measured
 ; 0.67x-0.90x; the work they actually need is one masked read-modify-write.
 ;
-; A 64-BIT WRITE IS ONLY TAKEN WHEN THE COPY REALLY SPANS TWO WORDS, in which case both of them are
+; a 64-BIT write is only taken when the copy really spans two words, in which case both of them are
 ; written by the copy and both therefore exist. A span of one word gets a 32-bit write, because the
 ; word after it may be the last of the caller array.
 ; ---------------------------------------------------------------------------------------------
@@ -280,7 +280,7 @@ sh_have:
         shl       r9d, 2                      ; ... and which word that is
         mov       r8, -1
         bzhi      r8, r8, r10                 ; the low `count` bits -- BZHI leaves -1 alone at 64
-        ; MASK BEFORE SHIFTING, which the parent does the other way round. Masking first is what
+        ; Mask before shifting, which the parent does the other way round. Masking first is what
         ; makes the bits that travel past bit 63 recoverable: after `shl rax, cl` they are gone.
         and       rax, r8
 
@@ -304,7 +304,7 @@ sh_two: and       qword ptr [rdx + r9], r8
         or        qword ptr [rdx + r9], rax
 sh_ret: ret
 
-; A SPAN OF 65..95 BITS: the low two words and then the third.
+; a span of 65..95 bits: the low two words and then the third.
 ;
 ; cl is at least 1 here -- a span above 64 with a payload of at most 64 needs it -- so `64 - cl` is
 ; in 1..63 and the SHLD below is well defined. The third word is real: the span genuinely covers it,
@@ -363,7 +363,7 @@ bb_enter PROC FRAME
         ; RTL_BITMAP has no behaviour to match, only a fault to reproduce. Four tests that can
         ; never fire are four instructions, and on a copy of twenty bits that is measurable.
 
-        ; THE SOURCE READ BOUND IS WHAT THE COPY NEEDS, NOT WHAT THE SOURCE DECLARES. When the
+        ; The source read bound is what the copy needs, not what the source declares. When the
         ; count wraps -- a TargetBit past the size -- the shipped export reads source words beyond
         ; SizeOfBitMap and uses what it finds there, so a bound taken from the declared size would
         ; substitute zeros and disagree. The corpus caught exactly that: EXTRACT of 15 bits from
@@ -377,7 +377,7 @@ bb_enter PROC FRAME
         shl       rax, 2
         mov       dword ptr [rsp + 32], eax   ; the source bytes this copy may read
 
-        ; NEITHER dlo NOR dend IS KEPT IN A REGISTER. Each is wanted exactly twice -- to build the
+        ; Neither dlo nor dend is kept in a register. Each is wanted exactly twice -- to build the
         ; first word mask and the last -- so both are turned into what those masks need, and one of
         ; the two callee-saved registers they would have occupied is never pushed at all.
         mov       rbp, r11
@@ -431,7 +431,7 @@ bb_first:
         add       edi, 4
 
 ; ---- the whole words between the ends ----
-; THE BOUND TESTS ARE HOISTED. The first version tested the destination end AND the source end on
+; The bound tests are hoisted. The first version tested the destination end and the source end on
 ; every 32-byte step -- four instructions of bookkeeping around six of work, and the aligned rows
 ; measured 0.79x-0.86x against RtlCopyMemory because of it. Both bounds advance by exactly 32 bytes
 ; per step, so the number of safe steps is computed once and the loop just counts down.
@@ -463,7 +463,7 @@ bb_bulk:
         jz        bb_va_setup
 
         ; ---------------------------------------------------------------------------------------
-        ; A SHIFT THAT IS A WHOLE NUMBER OF BYTES IS NOT A SHIFT AT ALL.
+        ; a shift that is a whole number of bytes is not a shift at all.
         ;
         ; The bench's "byte-aligned" rows -- target 8, and EXTRACT from 8 -- are the parent's two
         ; worst on this part at 0.62x and 0.58x, and the funnel loop below is the reason. r = 8
@@ -517,16 +517,16 @@ bb_vec: vmovdqu   ymm0, ymmword ptr [rsi + rax]
         jmp       bb_bulk
 
 bb_va_setup:
-        ; A BYTE-ALIGNED COPY SHIFTS NOTHING, and the shipped code reaches RtlCopyMemory here, which
+        ; a byte-aligned copy shifts nothing, and the shipped code reaches RtlCopyMemory here, which
         ; runs at memory speed. FOUR 32-byte moves per iteration: with one the loop spent as much
         ; time counting as copying (0.79x), with two it was still short of RtlCopyMemory (0.94x).
         ;
         ; ---------------------------------------------------------------------------------------
-        ; AND ON THIS PART FOUR IS STILL NOT ENOUGH, WHICH IS WHY THIS VARIANT EXISTS.
+        ; And on this part four is still not enough, which is why this variant exists.
         ;
         ; On bench #1 that loop reached 0.94x of RtlCopyMemory. On Tiger Lake-H it does not come
         ; close: the parent measures 0.62x on the byte-aligned 64 Kbit copy, 0.90x word-aligned and
-        ; 0.85x-0.96x on the aligned rows -- while EVERY SHIFTED ROW WINS 9x-13x. Every losing row
+        ; 0.85x-0.96x on the aligned rows -- while every shifted row wins 9x-13x. Every losing row
         ; is one where the shipped code reaches RtlCopyMemory and this one runs the YMM loop, so the
         ; loss is not in the bitmap work at all. It is the copy.
         ;

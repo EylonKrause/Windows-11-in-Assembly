@@ -1,23 +1,23 @@
 // live-substitution/live_subst_strstriw.c
 // LIVE-RUN PROOF for change 284 (shlwapi!StrStrIW).
 //
-// WHAT IS COMPARED IS THE RETURNED POINTER AS A BYTE OFFSET. Change 282 found a mutant that
+// What is compared is the returned pointer as a byte offset. Change 282 found a mutant that
 // returned a pointer one byte into the middle of a wchar_t and survived both gates, because
 // `p - base` on a wchar_t* divides the odd byte away.
 //
-// THE CONTRACT THIS HARNESS HAS TO RESPECT, all measured by changes/284-strstriw/probes/contract.c:
+// The contract this harness has to respect, all measured by changes/284-strstriw/probes/contract.c:
 //
 //   * the FIRST match is returned, so a corpus must plant more than one and care which comes back;
 //   * the haystack is NUL-terminated and an EMBEDDED NUL ends the search;
-//   * past the terminator the string behaves as an endless run of NULs, and those NULs are NEVER
-//     LOADED: with 'W' after the terminator, {Q,SHY,SHY} is found and {Q,W} is not. 3320 code units
+//   * past the terminator the string behaves as an endless run of NULs, and those NULs are never
+//     Loaded: with 'W' after the terminator, {q,shy,shy} is found and {q,w} is not. 3320 code units
 //     match a NUL, so a needle whose TAIL matches a NUL can match ACROSS the end -- and that is the
 //     only shape in which the candidate bound is observable at all;
 //   * a needle LONGER than the whole string can therefore match;
 //   * a match may START only at a real character: the terminator is not a candidate position;
 //   * an EMPTY needle returns NULL -- the opposite of C strstr.
 //
-// THE SUB-CASES BELOW ARE NOT A GUESS AT WHAT MIGHT MATTER. Change 283's harness passed a build with
+// The sub-cases below are not a guess at what might matter. Change 283's harness passed a build with
 // a wrong candidate bound, and passed mutants that dropped the empty-needle refusal and moved the
 // WIDE threshold, because its draw could not express those cases. Each of the three forced sub-cases
 // here closes one of those holes, and each has an assertion that fails if the draw stops producing
@@ -34,7 +34,7 @@
 // And one that is specific to a FORWARD search: cur_two plants a SECOND match above the first, so
 // returning the wrong one is visible.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; validate first; patch only when idle;
@@ -149,7 +149,7 @@ static void build_case(long i)
     cur_wide = 0; cur_mid = 0; cur_nultail = 0; cur_nulhay = want_nulhay; cur_two = 0;
     if (want_nultail) {                     /* a tail that matches the terminator */
         nl = 2 + (rnd() % 3);
-        /* Half of these make the WHOLE needle NUL-matching, not just its tail. It matters: with a
+        /* Half of these make the whole needle NUL-matching, not just its tail. It matters: with a
            first character that does not match a NUL, maxtail is at most nlen-1 and the cap that
            stops region B at the last real character never binds -- so a mutant removing that cap
            survived this gate while gate 1 caught it. Only maxtail == nlen exercises it. */

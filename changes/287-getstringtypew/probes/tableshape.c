@@ -1,6 +1,6 @@
 /* changes/287-getstringtypew/probes/tableshape.c
  *
- * HOW BIG DOES THE TABLE ACTUALLY HAVE TO BE?
+ * How big does the table actually have to be?
  *
  * probes/contract.c established that all three GetStringTypeW info types are pure, context-free,
  * locale-invariant functions of the code unit. So the implementation is a lookup -- but a flat table is
@@ -10,14 +10,14 @@
  * Unicode tables are almost always heavily redundant, so this probe measures the redundancy rather than
  * guessing at it, and it measures the three things a design decision actually needs:
  *
- *   1. HOW MANY DISTINCT VALUES each type takes. If it is small, a 65536-entry BYTE index into a short
+ *   1. How many distinct values each type takes. If it is small, a 65536-entry byte index into a short
  *      value table halves the size at the cost of a second dependent load.
- *   2. HOW MANY DISTINCT 256-ENTRY PAGES there are, indexing by high byte. This is the classic two-level
+ *   2. How many distinct 256-ENTRY pages there are, indexing by high byte. This is the classic two-level
  *      Unicode layout: a 256-entry directory of page numbers, then the deduplicated pages. If most
  *      pages are identical -- and for a classification table most of them are usually all-zero or all
  *      one value -- this collapses the table to a few kilobytes, which fits L1 and makes the non-ASCII
  *      case fast rather than merely correct.
- *   3. WHETHER THE ASCII RANGE IS SPECIAL. Real text is overwhelmingly below U+0100; if that range has
+ *   3. Whether the ASCII range is special. Real text is overwhelmingly below U+0100; if that range has
  *      few distinct values, a vector fast path can handle it without touching the big table at all.
  *
  * It also prints the full distinct-value list, because those values are the contract: they go into the

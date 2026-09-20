@@ -1,13 +1,13 @@
 /* changes/277-charupperbuffw/probes/mapping.c
  *
- * IS user32's CASE MAPPING THE SAME ONE THIS PROJECT ALREADY OWNS?
+ * Is user32's case mapping the same one this project already owns?
  *
  * discovery/rtl_integer_char.c measured CharUpperBuffW at 0.78 ns per character and CharLowerBuffW
  * at 1.16, where change 015's RtlUpcaseUnicodeString runs at about 0.02 -- roughly forty times the
  * headroom, on a per-character mapping with no allocator and no collation in the way. That is the
  * shape changes 274 and 276 did NOT have, and it is why this one was picked.
  *
- * BUT "CASE MAPPING" IS NOT ONE FUNCTION. Windows has at least three that could disagree:
+ * But "case mapping" is not one function. Windows has at least three that could disagree:
  *
  *     ntdll!RtlUpcaseUnicodeChar     the table change 015 and change 210 already build from
  *     user32!CharUpperBuffW          this one
@@ -148,7 +148,7 @@ int main(void)
         printf("   %d of 65535 map differently in context\n", bad);
     }
     {
-        /* surrogate PAIRS: a real Unicode upcaser would map U+10428 DESERET SMALL AH to U+10400 */
+        /* surrogate pairs: a real Unicode upcaser would map U+10428 deseret small ah to U+10400 */
         static wchar_t pair[4] = { 0xD801, 0xDC28, 0, 0 };
         CharUpperBuffW(pair, 2);
         printf("   the surrogate pair U+10428 -> U+%04X U+%04X %s\n", pair[0], pair[1],

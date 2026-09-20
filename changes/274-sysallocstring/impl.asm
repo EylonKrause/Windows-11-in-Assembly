@@ -5,11 +5,11 @@
 ; 65.65 ns for SysAllocStringLen, which is the same work with the length already known.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE ALLOCATION IS NOT OURS TO MAKE, AND THAT WAS ESTABLISHED BEFORE ANYTHING WAS WRITTEN.
+; The allocation is not ours to make, and that was established before anything was written.
 ;
 ; probes/contract.c built a BSTR by hand -- a four-byte byte-count, the characters, a wide NUL, with
 ; the pointer four bytes into the block, which is exactly the documented layout and exactly what the
-; live export produces. SysFreeString on it does not raise an exception: IT TERMINATES THE PROCESS.
+; live export produces. SysFreeString on it does not raise an exception: It terminates the process.
 ; The probe's first version wrapped that call in __try/__except and the run still died, at exit code
 ; 116, part way through section 4. CoTaskMemRealloc on a REAL BSTR's base pointer fail-fasts too.
 ;
@@ -22,7 +22,7 @@
 ; the count excludes the terminator.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE SCAN IS WHERE THE TIME IS, AND THE SHORTEST ROWS ARE WHERE IT IS NOT. probes/where.c timed
+; The scan is where the time is, and the shortest rows are where it is not. probes/where.c timed
 ; three things at every length -- the export, the export with the OS's own scan factored out, and
 ; the allocator alone with the length already known:
 ;
@@ -34,17 +34,17 @@
 ;
 ; 0.1997 ns per character is about one character per cycle, which is what a byte-at-a-time loop
 ; costs; change 001's wcslen runs at roughly 0.03. But at zero characters the shipped scan costs
-; 0.10 ns -- unmeasurable -- so THE SHORTEST ROW HAS NOTHING TO WIN AND EVERYTHING TO LOSE. Two
+; 0.10 ns -- unmeasurable -- so the shortest row has nothing to win and everything to lose. Two
 ; things follow, and both are in the code below:
 ;
-;   * IT IS A LEAF THAT TAIL-JUMPS. No frame, no saved registers, no call: the length goes in edx,
+;   * It is a leaf that tail-jumps. No frame, no saved registers, no call: the length goes in edx,
 ;     the string stays in rcx, and control jumps straight into SysAllocStringLen. A call frame here
 ;     would cost more than the entire scan it is there to speed up.
-;   * THE FIRST FOUR CHARACTERS ARE PEELED SCALAR. A vector scan has a fixed setup -- an aligned
+;   * The first four characters are peeled scalar. a vector scan has a fixed setup -- an aligned
 ;     load, a compare, a mask, a shift, a tzcnt -- and at zero characters that setup IS the
 ;     regression. Four word compares answer 0..3 characters in one to four instructions.
 ;
-; ISA: AVX2 for the scan past the fourth character. The first block is loaded ALIGNED DOWN and the
+; Isa: AVX2 for the scan past the fourth character. The first block is loaded aligned down and the
 ; bits before the string shifted out, so it cannot touch a page the string does not occupy -- change
 ; 225's rule, and the reason a string ending near a page boundary does not fault.
 
@@ -61,7 +61,7 @@ wia_sysallocstring PROC
         jz        ret_null                        ; measured: NULL in, NULL out
         mov       r8, rcx
 
-        ; THE SCALAR PEEL, EIGHT CHARACTERS DEEP -- see the note above about the zero-character row.
+        ; The scalar peel, eight characters deep -- see the note above about the zero-character row.
         ; Four was not enough: at four characters exactly, the peel fell through and paid the full
         ; vector setup for a sixteen-byte string, and that row measured 0.98x. Eight compares cost
         ; the long rows about two nanoseconds out of a hundred and sixty, and they buy every row

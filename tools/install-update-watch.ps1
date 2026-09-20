@@ -16,7 +16,7 @@
 # The action is tools\on-update.ps1, which is cheap when nothing relevant changed: it only runs
 # the full sweep if one of the six DLLs we reimplement from actually changed, by hash.
 #
-# WHAT THIS DOES NOT DO. It does not touch System32, does not install anything into Windows, and
+# What this does not do. It does not touch System32, does not install anything into Windows, and
 # does not need administrator rights for the work itself. It re-PROVES the repository against the
 # new binaries and shouts if an update broke a contract. Permanently replacing a signed system DLL
 # is a different and much more dangerous thing, and is not automated here - see revalidate.ps1.

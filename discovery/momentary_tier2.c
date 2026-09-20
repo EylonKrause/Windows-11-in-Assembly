@@ -3,12 +3,12 @@
  * TIER 2 of "what does Windows run constantly" -- the next 45 shaped candidates by fan-in after
  * the ones desktop_startup_top.c already settled.
  *
- * HOW THIS LIST WAS BUILT. The union of the desktop and startup import sweeps
+ * How this list was built. The union of the desktop and startup import sweeps
  * (tools/desktop-surface.py, both profiles), minus everything image/tree already covers, minus the
  * known-not-a-target classes, minus the twenty-four already timed. 1665 candidates remain; these
  * are the top of that ranking that are plausibly byte-wise.
  *
- * FOUR OF THE HIGHEST-RANKED ARE TIMED ONLY TO RULE THEM OUT, and they are included rather than
+ * Four of the highest-ranked are timed only to rule them out, and they are included rather than
  * dropped because their fan-in is the highest on the machine and someone will otherwise propose
  * them again:
  *
@@ -21,14 +21,14 @@
  * that is the point: it converts "we should probably do the highest fan-in ones" into a decided
  * question.
  *
- * FOUR THAT ALREADY HAVE THEIR SUBSTRATE IN THIS REPOSITORY, which is what makes them tractable:
+ * Four that already have their substrate in this repository, which is what makes them tractable:
  *
  *   SystemTimeToFileTime   109 modules   changes 127 (RtlTimeFieldsToTime, 1.54x) is its engine
  *   FileTimeToSystemTime    95           changes 126 (RtlTimeToTimeFields, 1.73x) is its engine
  *   strchr                  75           the byte sibling of wcschr, which landed at 2.2x
  *   lstrlenW                61           lstrlenA is already covered; the wide one is not
  *
- * DELIBERATELY ABSENT, with the reason, so the omissions are not mistaken for oversights:
+ * deliberately ABSENT, with the reason, so the omissions are not mistaken for oversights:
  *   strrchr, wcsstr, wcsnlen, strncmp   already in image/KEEP-AS-IS.md as shipped-optimal
  *   lstrcmpW, lstrcmpiW, LCMapStringW   linguistic; discovery/lstrcmp_is_linguistic.c settled it
  *   SetThreadpoolTimer, the token and  kernel objects and transitions; the cost is the ring
@@ -206,7 +206,7 @@ int main(void) {
         /* LoadLibraryW, not GetModuleHandleW. Linking user32.lib does NOT load user32 -- the
          * linker only emits an import for a symbol something actually references, and nothing in
          * this file calls a user32 function directly. So GetModuleHandleW returned NULL here, the
-         * `if (pFRE && u)` guard was false, and the FindResourceExW row SILENTLY DID NOT RUN:
+         * `if (pFRE && u)` guard was false, and the FindResourceExW row silently did not run:
          * discovery/momentary-tier2-timings.md recorded it as "not yet timed cleanly" when the
          * truth was that the probe never asked. Change 298 found this. A guard that skips a
          * measurement without saying so is worse than one that crashes. */

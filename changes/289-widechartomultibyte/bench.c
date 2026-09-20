@@ -1,6 +1,6 @@
 /* changes/289-widechartomultibyte/bench.c
  *
- * The size sweep is a size AND CLASS AND MODE sweep, for the reason change 016's RESULTS.md gives
+ * The size sweep is a size and class and mode sweep, for the reason change 016's RESULTS.md gives
  * at length: a table built only from the input a fast path was written for cannot say whether the
  * function is fast or whether the corpus was. That change published 2.61x on ASCII and was later
  * measured at 0.21x-0.94x on the input UTF-8 actually exists for.

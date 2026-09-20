@@ -1,9 +1,9 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 198-201 -- the bounded 32-bit formatter family.
+Rem  live-run proof for changes 198-201 -- the bounded 32-bit formatter family.
 REM  SIX exports, four implementations: _ltoa_s / _ltow_s are patched and driven
 REM  separately rather than assumed to be _itoa_s / _itow_s.
-REM  /MD is REQUIRED: errno and the invalid-parameter handler must be UCRTBASE's --
+Rem  /md is required: errno and the invalid-parameter handler must be UCRTBASE's --
 REM  the same ones our assembly writes through via its exported _errno /
 REM  _invalid_parameter_noinfo. With the static CRT the live export __fastfails.
 REM  Sacrificial single-threaded child; no system process is touched.

@@ -6,7 +6,7 @@
  * harness floor that every row is timed x8 (change 261's probes/floor.c put an empty call through
  * this harness at 2.32 ns).
  *
- * THE ROWS ARE THE SHAPES THE IMPLEMENTATION DISTINGUISHES -- the four forms, the three bases, the
+ * The rows are the shapes the implementation distinguishes -- the four forms, the three bases, the
  * two ways a parse can end, and the paths that exist only because of what the probes found:
  *
  *   "wrapping accumulator"   a number long enough to overflow 32 bits and still be accepted, which
@@ -14,7 +14,7 @@
  *   "whitespace then junk"   an address followed by text that is never looked at
  *   "a refusal, late"        a well-formed address whose last part is out of range
  *
- * EVERY ROW IS PRE-FLIGHTED against a per-row table of what the live export must return, because a
+ * Every row is pre-flighted against a per-row table of what the live export must return, because a
  * row named for a path it does not reach times something else under that name.
  */
 #define WIN32_LEAN_AND_MEAN

@@ -7,13 +7,13 @@
 ; RtlCompareUnicodeString runs at 0.01.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE COLLATION IS THE OS'S AND IS NOT REIMPLEMENTED. probes/contract.c asked the export nine pairs
+; The collation is the os's and is not reimplemented. probes/contract.c asked the export nine pairs
 ; where a linguistic comparison and an ordinal one DISAGREE -- "a" vs "B", "co-op" vs "coop", "can't"
 ; vs "cant" -- and it tracked CompareStringW every time, never the ordinal answer. The flag bits pass
 ; straight through and the result is CompareStringW's minus one. That is not something to rewrite;
 ; change 210's notes say the same about linguistic comparison.
 ;
-; WHAT IS LEFT IS THAT THE EXPORT COLLATES WHEN IT DOES NOT HAVE TO. probes/gap.c:
+; What is left is that the export collates when it does not have to. probes/gap.c:
 ;
 ;     the SAME pointer twice, 4000 characters   3208.75 ns    it does not compare the pointers
 ;     equal by content, 4000 characters         3208.75 ns    nor the bytes
@@ -25,18 +25,18 @@
 ; it twenty times faster, and the same POINTER twice settles it for nothing.
 ;
 ; --------------------------------------------------------------------------------------------------
-; BUT "IDENTICAL THEREFORE EQUAL" IS ONLY SAFE BECAUSE IT WAS MEASURED. probes/reflexive.c swept
+; But "identical therefore equal" is only safe because it was measured. probes/reflexive.c swept
 ; every code unit 1..0xFFFF alone and inside a longer string, every surrogate, unpaired surrogate and
 ; noncharacter, under every valid flag and several locales: 0 of 131070 placements compare as
 ; anything but EQ with themselves.
 ;
-; AND THE ARGUMENTS STILL HAVE TO BE CHECKED. probes/errors.c found that a NON-EMPTY pair validates
+; And the arguments still have to be checked. probes/errors.c found that a non-empty pair validates
 ; even when the two operands are the same pointer -- `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG,
-; not EQ -- while the EMPTY cases do not validate at all: `"" vs ""` with a bad locale is still EQ,
+; not eq -- while the empty cases do not validate at all: `"" vs ""` with a bad locale is still eq,
 ; and `"abc" vs ""` with a bad flag is still GT. So the empty rules come first and answer from the
 ; lengths alone; the fast path validates before it answers.
 ;
-; THAT VALIDATION COSTS 25.75 ns, which is why the fast path has a LENGTH THRESHOLD of sixteen
+; That validation costs 25.75 ns, which is why the fast path has a length threshold of sixteen
 ; characters. Below it the collation the OS would do costs less than the check, so this file simply
 ; delegates and is a lean wrapper; at and above it the memcmp plus the check beats the collation and
 ; keeps beating it by more the longer the strings get.
@@ -58,7 +58,7 @@ FASTMIN   EQU 16                            ; characters; below this, delegating
 
 .code
 
-; NO REGISTERS ARE SAVED AT ALL, and that is deliberate. The first version pushed six, and the rows
+; No registers are saved at all, and that is deliberate. The first version pushed six, and the rows
 ; that must collate -- where probes/gap.c showed the shipped wrapper has only 1.25 ns of overhead to
 ; give -- measured 0.97x, exactly at the gate's floor. Twelve push/pop instructions on every call is
 ; most of that budget. Nothing needs to survive the call to CompareStringW, because the result is
@@ -89,7 +89,7 @@ got_l:
         mov       r11d, dword ptr [rdx - 4]
         shr       r11d, 1
 got_r:
-        ; THE EMPTY RULES COME FIRST AND DO NOT VALIDATE (probes/errors.c): "" vs "" is EQ even with
+        ; The empty rules come first and do not validate (probes/errors.c): "" vs "" is eq even with
         ; a bad locale, and "abc" vs "" is GT even with an undefined flag bit.
         test      r10d, r10d
         jnz       l_nonempty
@@ -156,7 +156,7 @@ ret_badarg:
         jmp       epi
 
 slow:
-        ; CompareStringW IS CALLED DIRECTLY, not through a helper -- a second call layer is most of
+        ; CompareStringW is called directly, not through a helper -- a second call layer is most of
         ; the 1.25 ns the shipped wrapper spends. This is the whole hot path for every comparison the
         ; fast path does not answer.
         ;   ecx = lcid, edx = flags, r8 = left, r9d = nl, [rsp+32] = right, [rsp+40] = nr

@@ -2,7 +2,7 @@
  *
  * TIER 4 -- the ntdll SID trio and the remaining shaped fan-in leaders.
  *
- * WHY THE SIDs ARE WORTH A SECOND LOOK after tier 2 ruled two of them out.
+ * Why the SIDs are worth a second look after tier 2 ruled two of them out.
  *
  * tier 2 measured advapi32's wrappers and ruled out GetLengthSid (4.85 ns flat) and
  * RtlLengthSid (1.70 ns flat). But it also measured `EqualSid` at 10.30 ns for a five-sub-authority

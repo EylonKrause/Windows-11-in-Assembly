@@ -1,10 +1,10 @@
 /* changes/280-rtllargeintegertochar/probes/div64.c
  *
- * THE REASON THIS CHANGE WAS DEFERRED OUT OF 279, SETTLED BY EXHAUSTIVE PROOF.
+ * The reason this change was deferred out of 279, settled by exhaustive proof.
  *
  * Changes 067, 278 and 279 all rest on one identity: `(v * 0x51EB851F) >> 37 == v / 100`, which
  * change 067's probes/decimal.c verified by running it over ALL 4294967296 values of a 32-bit v.
- * That is a complete proof for a 32-bit domain and it says NOTHING about a 64-bit one. A 64-bit
+ * That is a complete proof for a 32-bit domain and it says nothing about a 64-bit one. A 64-bit
  * value needs a 64-bit reciprocal, and there is no way to run 18446744073709551616 cases.
  *
  * So this change does not divide a 64-bit value by 100. It splits it into 32-bit pieces with ONE
@@ -17,16 +17,16 @@
  * Eight plus eight plus four is twenty, which is exactly the longest decimal answer
  * (18446744073709551615). Every piece is then 32-bit, where 067's proved constant applies.
  *
- * THE ONE 64-BIT CONSTANT IS PROVED HERE, OVER ALL 2^64 VALUES, WITHOUT RUNNING 2^64 CASES.
+ * The one 64-BIT constant is proved here, over all 2^64 values, without running 2^64 cases.
  *
  *      claim:   for all n in [0, 2^64),   umulh(n, M) >> 26  ==  n / 100000000
  *      with     M = 12379400392853802749 = ceil(2^90 / 10^8)
  *
  * Both sides are monotone non-decreasing in n. The right-hand side steps up by one exactly at each
- * multiple of d = 10^8 and nowhere else. So if the two agree at EVERY step -- that is, if
+ * multiple of d = 10^8 and nowhere else. So if the two agree at every step -- that is, if
  * f(k*d) == k and f(k*d - 1) == k-1 for every k -- then they agree everywhere in between, because
  * f is squeezed between two equal values. There are only 2^64 / 10^8 = 184467440737 such k, and
- * this probe checks EVERY ONE OF THEM. That is a complete proof of the identity over the whole
+ * this probe checks every one of them. That is a complete proof of the identity over the whole
  * 64-bit domain, not a sample of it.
  *
  * It also prints the Granlund-Montgomery round-up criterion for the same constant, computed in

@@ -2,16 +2,16 @@
  *
  * OURS vs the LIVE ntdll!RtlInitUTF8String.
  *
- * THE WORK IS THE STRLEN, so the subject is the string's length and every row states it. ntdll
+ * The work is the strlen, so the subject is the string's length and every row states it. ntdll
  * makes a real `call` into its own strlen; this is change 095's inline AVX2 scan, 64 bytes an
  * iteration, aliased to this export.
  *
- * THE SHORT ROWS CALL SIXTEEN TIMES PER TIMED OP, for the reason change 261 established by
+ * The short rows call sixteen times per timed op, for the reason change 261 established by
  * measuring it: an empty call through this harness costs 2.32 ns, and an 8-byte Init is not much
  * more than that, so a row that small would be comparing the harness against itself. Their labels
  * say so.
  *
- * A ROW PAST THE CLAMP IS INCLUDED because it is the one length where the answer stops depending on
+ * a row past the clamp is included because it is the one length where the answer stops depending on
  * the string: 70000 bytes are scanned and 65534 is reported either way. An implementation that
  * stopped scanning at the clamp would be faster and WRONG, so the subject table prints what each
  * row returned.

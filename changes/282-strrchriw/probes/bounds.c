@@ -1,6 +1,6 @@
 /* changes/282-strrchriw/probes/bounds.c
  *
- * DO THE BOUNDED SEARCHES STOP AT A NUL, OR ONLY AT THEIR BOUND?
+ * Do the bounded searches stop at a NUL, or only at their bound?
  *
  * probes/contract.c settled the signatures -- StrChrNIW takes a COUNT and StrRChrIW an EXCLUSIVE
  * END POINTER -- and showed that StrRChrIW walks straight through an embedded NUL: in
@@ -14,7 +14,7 @@
  *
  * Change 281 got caught believing a contract fact measured on one convenient string
  * ("the terminator is never found", from "abcXYZabc", which contains no ignorable character), so
- * each question here is asked with the answer planted on BOTH sides of the bound.
+ * each question here is asked with the answer planted on both sides of the bound.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

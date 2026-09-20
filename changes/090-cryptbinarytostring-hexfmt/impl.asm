@@ -1,9 +1,9 @@
 ; changes/090-cryptbinarytostring-hexfmt/impl.asm
-; BOOL wia_b2shf(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; BOOL wia_b2shf(const byte* pb, dword cb, dword flags, char* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; crypt32!CryptBinaryToStringA for the FORMATTED hex modes:
-;   CRYPT_STRING_HEX (0x4), HEXASCII (0x5), HEXADDR (0xa), HEXASCIIADDR (0xb).
+;   CRYPT_STRING_HEX (0x4), hexascii (0x5), hexaddr (0xa), hexasciiaddr (0xb).
 ; 16 bytes/line: optional "addr\t" (lowercase hex offset, min 4 digits); hex bytes "XX"
 ; single-spaced with a DOUBLE space after byte 8; optional pad-to-col-51 + ASCII column
 ; (0x20..0x7e -> char else '.'); CRLF per line. crypt32's is scalar and glacial (~0.01 GB/s).
@@ -287,7 +287,7 @@ ret_moredata:
         xor       eax, eax
         jmp       epi
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also

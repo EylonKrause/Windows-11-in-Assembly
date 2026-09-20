@@ -1,26 +1,26 @@
 /* changes/269-convertstringsidtosid/classify.c
  *
- * THE TWO CHARACTER CLASSES, BUILT FROM THE OS AND NEVER ASSUMED.
+ * The two character classes, built from the OS and never assumed.
  *
  * probes/authfield.c and probes/digits.c established that this one export contains TWO different
  * number parsers, and that neither of them is "the ASCII digits":
  *
- *   the REVISION and the IDENTIFIER AUTHORITY are read by a lenient routine that skips leading
+ *   the revision and the identifier authority are read by a lenient routine that skips leading
  *   whitespace -- and whitespace here is the full Unicode set, U+1680, U+180E, U+2000..U+200A,
  *   U+2028, U+2029, U+202F, U+205F, U+3000 and U+00A0 as well as the ASCII five -- takes an
- *   optional single '+', and then accepts THE WHOLE UNICODE DECIMAL DIGIT SET. U+0661 (Arabic-Indic
+ *   optional single '+', and then accepts the whole unicode decimal digit set. U+0661 (Arabic-Indic
  *   one), U+0967 (Devanagari), U+0E51 (Thai), U+17E1 (Khmer) and a dozen more blocks are each worth
  *   their face value.
  *
  *   a SUB-AUTHORITY is read by a strict routine that accepts no whitespace, no sign, and only the
  *   ASCII digits and the FULLWIDTH digits U+FF10..U+FF19.
  *
- * NONE OF THAT IS TRANSCRIBED HERE. Both classes are derived at run time by asking the export
+ * None of that is transcribed here. Both classes are derived at run time by asking the export
  * itself, which needs no Unicode knowledge at all and cannot drift when a future Windows adds a
  * digit block. The alternative -- GetStringTypeW's C1_DIGIT and C1_SPACE -- would be a second
  * opinion about what advapi32 does rather than a measurement of it.
  *
- * IT TAKES TWO QUESTIONS PER CODE UNIT, NOT ONE, and the reason is worth recording because the
+ * It takes two questions per code unit, not one, and the reason is worth recording because the
  * first version got it wrong and the self-check caught it. Asking only
  *
  *     S-1-<c>7-1      accepted with authority 7  ->  <c> was skipped

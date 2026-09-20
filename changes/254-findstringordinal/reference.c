@@ -1,6 +1,6 @@
 /* changes/254-findstringordinal/reference.c
  *
- * THE INDEPENDENT ORACLE for FindStringOrdinal.
+ * The independent oracle for FindStringOrdinal.
  *
  * It shares nothing with impl.asm but the contract. impl.asm filters sixteen positions at a time
  * with two chosen vector anchors, folds through a 65536-entry case-partner table built once, and
@@ -14,7 +14,7 @@
  *   * THE DIRECTION is implemented the other way round, so an off-by-one in the backward block walk
  *     cannot be mirrored either -- "keep the last hit" is slow and obviously correct, which is
  *     exactly what an oracle should be;
- *   * THE FOLD calls the LIVE OS function per character rather than reading our table, so a wrong
+ *   * The fold calls the live OS function per character rather than reading our table, so a wrong
  *     or UNINITIALISED table cannot be mirrored. That is not hypothetical: change 065 was accused
  *     of a formatting bug for an entire session because its table had never been built, and the
  *     failure was silent -- correct status, correct size, truncated output.

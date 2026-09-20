@@ -1,24 +1,24 @@
 /* changes/282-strrchriw/correctness.c
  *
- * Gate 1 for shlwapi!StrRChrIW: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the returned
+ * Gate 1 for shlwapi!StrRChrIW: Ours vs the scalar model vs the live export, on the returned
  * offset, so "found it" and "found it in the right place" are one question.
  *
- * THE CORPUS IS BUILT WHERE A BACKWARD, RANGE-MASKED, VECTORISED SEARCH GOES WRONG:
+ * The corpus is built where a backward, range-masked, vectorised search goes wrong:
  *
- *   * BOTH EDGE MASKS, independently and together. The top block discards bytes at or after `end`
+ *   * Both edge masks, independently and together. The top block discards bytes at or after `end`
  *     and the bottom block discards bytes before `start`; when the range fits inside ONE 32-byte
  *     block both apply at once, which is the case a mask written for two separate blocks gets
  *     wrong. Every (start alignment, length) pair up to 80 is swept, so every combination of the
  *     two masks occurs, including every range that lives inside a single block.
- *   * THE LAST MATCH, not the first. A forward scan that happened to return a match would pass any
- *     test with one match in it, so matches are planted at EVERY position of every range.
- *   * EVERY NEEDLE 0..65535, each searched for against a real partner drawn from the MEASURED
+ *   * The last match, not the first. a forward scan that happened to return a match would pass any
+ *     test with one match in it, so matches are planted at every position of every range.
+ *   * Every needle 0..65535, each searched for against a real partner drawn from the measured
  *     relation rather than from a case function -- building a corpus from case functions is what
  *     made change 281's contract probe wrong.
  *   * EMBEDDED NULs, because this export has no terminator: probes/bounds.c measured that
  *     "abcd\0fghijk" with end = start+11 finds 'J' at 9. An implementation that stopped at a NUL
  *     would pass a corpus made only of ordinary strings.
- *   * AND A GUARD PAGE ON BOTH SIDES. The range is explicit, so the scan may not read before
+ *   * And a guard page on both sides. The range is explicit, so the scan may not read before
  *     `start` or at or after `end`. Ranges are placed hard against a PAGE_NOACCESS page at each
  *     end in turn.
  */
@@ -40,10 +40,10 @@ static int failures = 0;
 static long cases = 0, n_hit = 0, n_miss = 0;
 static long n_self = 0, n_small = 0, n_mid = 0, n_big = 0;
 
-/* THE OFFSET IS MEASURED IN BYTES, NOT CODE UNITS, AND THAT IS NOT PEDANTRY.
+/* The offset is measured in bytes, not code units, and that is not pedantry.
  *
  * A mutant that dropped `and ecx, -2` -- the rounding that turns BSR's high-byte index back into
- * the start of the word -- survived BOTH gates. BSR reports the high byte of a matching word, so
+ * the start of the word -- survived both gates. BSR reports the high byte of a matching word, so
  * without that rounding the returned pointer is off by ONE BYTE, into the middle of a wchar_t. And
  * `p - base` on a wchar_t* divides the difference by two, which throws the odd byte away: the two
  * pointers compare EQUAL as code-unit offsets while being different addresses.
@@ -107,7 +107,7 @@ int main(void)
                cases - before);
     }
 
-    /* 2. THE TWO EDGE MASKS: every start alignment x every length, with a match at every position */
+    /* 2. The two edge masks: every start alignment x every length, with a match at every position */
     {
         long before = cases;
         static wchar_t pad[256];
@@ -170,7 +170,7 @@ int main(void)
         printf("  4. empty ranges and NULL arguments: %ld\n", cases - before);
     }
 
-    /* 5. GUARD PAGES AT BOTH ENDS. The scan may not read at or after `end`, nor before `start`. */
+    /* 5. Guard pages at both ends. The scan may not read at or after `end`, nor before `start`. */
     {
         long before = cases;
         GetSystemInfo(&si);

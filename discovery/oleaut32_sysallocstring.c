@@ -12,7 +12,7 @@
  *
  * Before treating that as a target, three things have to be separated, and a single timing cannot
  * do it:
- *   1. does the cost SCALE WITH LENGTH? If it does, it is a loop and the loop is replaceable. If it
+ *   1. does the cost scale with length? If it does, it is a loop and the loop is replaceable. If it
  *      is flat, it is a fixed cost -- a lock, a TLS lookup, a cache miss on a global -- and no
  *      assembly removes it.
  *   2. is the ALLOCATION ITSELF bigger here? SysAllocString allocates len+1 characters; the

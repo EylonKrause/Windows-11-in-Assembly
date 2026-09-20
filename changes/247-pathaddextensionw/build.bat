@@ -6,7 +6,7 @@ set C=%H%..
 cd /d "%H%"
 REM  The append point is change 132's rule, so 132's assembly is assembled and linked alongside --
 REM  the same arrangement 246 uses over 243, and for the same reason: that rule is the one part of
-REM  this function subtle enough to get wrong, and 132 already SHIPPED WRONG on it once.
+Rem  this function subtle enough to get wrong, and 132 already shipped wrong on it once.
 ml64 /nologo /c impl.asm >nul || goto :err
 ml64 /nologo /c /Fopfe132.obj "%C%\132-pathfindextensionw\impl.asm" >nul || goto :err
 cl /nologo /O2 correctness.c reference.c impl.obj pfe132.obj shlwapi.lib /Fe:correctness.exe >nul || goto :err

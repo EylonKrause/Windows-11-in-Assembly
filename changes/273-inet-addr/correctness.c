@@ -1,19 +1,19 @@
 /* changes/273-inet-addr/correctness.c
  *
- * Gate 1 for ws2_32!inet_addr: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT.
+ * Gate 1 for ws2_32!inet_addr: Ours vs the scalar model vs the live export.
  *
  * There is only one thing to compare -- the 32-bit result -- so the whole weight of this gate is in
  * the corpus, and the corpus is built out of the four things the probes found that a plausible
  * generator would never produce:
  *
- *   * THE OVERFLOW TEST IS "DID THE ACCUMULATOR GO DOWN" (probes/accum.c), so the corpus contains
+ *   * The overflow test is "did the accumulator go down" (probes/accum.c), so the corpus contains
  *     numbers with 9 to 24 digits in all three bases, with every leading digit, because whether one
  *     of those is accepted depends on a comparison between two wrapped values and nothing else.
- *   * WHITESPACE ENDS THE ADDRESS AND THE REST IS IGNORED, so every one of the six whitespace bytes
+ *   * Whitespace ends the address and the rest is ignored, so every one of the six whitespace bytes
  *     is placed at every position of several addresses -- and every OTHER byte is placed there too,
  *     since "which bytes end it" is the question.
- *   * THE SINGLE BYTE 0x20 IS AN ADDRESS and nothing else with leading whitespace is.
- *   * EVERY PART'S FIELD BOUNDARY, in all three bases, for all four forms.
+ *   * The single byte 0x20 is an address and nothing else with leading whitespace is.
+ *   * Every part's field boundary, in all three bases, for all four forms.
  *
  * And a guard-page sweep, because the export reads a NUL-terminated string of unbounded length: a
  * string that ends exactly at an unmapped page is where a vectorised scan either stops in time or

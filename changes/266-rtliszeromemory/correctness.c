@@ -2,22 +2,22 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlIsZeroMemory.
  *
- * A PREDICATE HAS ONLY TWO ANSWERS, WHICH MAKES A CARELESS CORPUS VERY EASY TO PASS -- the lesson
+ * a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
  * change 259 wrote down for RtlAreBitsSet. An implementation that always answered "not zero" would
  * agree with the live export on nearly every random buffer, so every corpus here is built to
- * produce BOTH answers, and the harness COUNTS them and fails if either is missing.
+ * produce both answers, and the harness COUNTS them and fails if either is missing.
  *
- *   1. EVERY LENGTH from 0 to 600 over an all-zero buffer, and the same with the LAST byte set --
+ *   1. Every length from 0 to 600 over an all-zero buffer, and the same with the last byte set --
  *      which is the position a scan is most likely to skip, and the one the overlapping final
  *      vector exists for.
- *   2. EVERY LENGTH from 0 to 300 with a single non-zero byte at EVERY position inside it. That is
+ *   2. Every length from 0 to 300 with a single non-zero byte at every position inside it. That is
  *      quadratic on purpose: a vector loop that mishandles one lane, or a tail that starts one
  *      byte late, shows up at exactly one (length, position) pair and nowhere else.
- *   3. A BYTE SET JUST PAST THE END at every length: it must not be seen.
- *   4. A GUARD PAGE, with the buffer ending EXACTLY at an inaccessible page, at every length --
+ *   3. a byte set just past the end at every length: it must not be seen.
+ *   4. a guard page, with the buffer ending exactly at an inaccessible page, at every length --
  *      this is the corpus that proves the overlapping tail and the sub-32-byte ladder never read
  *      a byte the caller did not offer.
- *   5. EVERY BIT of a single byte, so "non-zero" does not quietly mean "0xFF".
+ *   5. every BIT of a single byte, so "non-zero" does not quietly mean "0xFF".
  *   6. RANDOMISED, mostly-zero buffers at many lengths with one to a few bytes set.
  */
 #define WIN32_LEAN_AND_MEAN

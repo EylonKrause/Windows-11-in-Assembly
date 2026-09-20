@@ -1,6 +1,6 @@
 /* changes/027-rtlupcaseunicodetomultibyten/bench.c
  *
- * THIS TABLE USED TO BE `L'a' + (k & 15)` AND NOTHING ELSE, which for an upcase conversion with a
+ * This table used to be `L'a' + (k & 15)` and nothing else, which for an upcase conversion with a
  * TABLE PATH is the wrong table to publish. ASCII is the one case the vector block handles; every
  * character above 0x7F goes through the 65536-entry map, and that path had never been timed.
  *

@@ -1,9 +1,9 @@
 /* changes/283-strrstriw/probes/contract.c
  *
- * IS THE SUBSTRING SEARCH A PER-CHARACTER LOOP, OR A COLLATION COMPARE?
+ * Is the substring search a per-character loop, or a collation compare?
  *
  * Changes 281 and 282 landed the character searches by owning shlwapi's match relation: locale
- * invariant, decided ONE CHARACTER AT A TIME (probes/context.c, 200000 random strings, 0
+ * invariant, decided one character at a time (probes/context.c, 200000 random strings, 0
  * context-dependent matches), symmetric but INTRANSITIVE. A substring search over that relation
  * would be the obvious next thing -- compare needle[k] against hay[i+k] for every k -- and it is
  * exactly the assumption that has to be checked before a line is written.
@@ -11,8 +11,8 @@
  * Because there is a completely different implementation it could have, and one observable
  * consequence tells them apart:
  *
- *     A PER-CHARACTER LOOP requires the match to be the same LENGTH as the needle.
- *     A COLLATION COMPARE DOES NOT. CompareStringW gives IGNORABLE characters zero weight, so
+ *     a per-character loop requires the match to be the same length as the needle.
+ *     a collation compare does not. CompareStringW gives ignorable characters zero weight, so
  *     "ab<SOFT HYPHEN>c" and "abc" compare EQUAL -- and a substring search built on it would find a
  *     three-character needle inside a four-character span.
  *

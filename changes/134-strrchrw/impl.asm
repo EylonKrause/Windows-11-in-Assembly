@@ -24,7 +24,7 @@
 
 .code
 wia_strrchrw PROC
-        ; THE "wMatch == 0 -> NULL" RULE BELONGS TO THE NUL-TERMINATED FORM ALONE, and this early-out
+        ; The "wMatch == 0 -> NULL" rule belongs to the nul-terminated form alone, and this early-out
         ; used to sit here, above the test that picks the form, so it fired for both. In the raw-range
         ; form the range is scanned LITERALLY -- the contract above says so itself, "ignoring embedded
         ; NULs and running past the terminator if asked" -- and a NUL inside that range is an ordinary

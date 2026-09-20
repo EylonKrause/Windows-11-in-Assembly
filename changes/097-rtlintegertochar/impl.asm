@@ -1,5 +1,5 @@
 ; changes/097-rtlintegertochar/impl.asm
-; NTSTATUS wia_itoc(ULONG Value, ULONG Base, LONG Length, PCHAR String)
+; NTSTATUS wia_itoc(ULONG Value, ulong Base, long Length, pchar String)
 ;   [rcx=Value, edx=Base, r8d=Length, r9=String -> eax]
 ;
 ; Reimplements ntdll!RtlIntegerToChar: format an unsigned 32-bit Value in Base (0 -> 10;

@@ -13,7 +13,7 @@
  *       on ladder arms case [1] never touches. A size class that exists only on a contract edge
  *       still has to not regress.
  *
- *   [3] and [4] exist because tables [1] and [2] CANNOT BE TRUSTED ON THEIR OWN, and finding that
+ *   [3] and [4] exist because tables [1] and [2] Cannot be trusted on their own, and finding that
  *       out was most of the work in this change. A wide copy's speed depends on two properties of
  *       the caller's buffers that malloc picks by accident:
  *
@@ -29,7 +29,7 @@
  *       change measured the 128-wchar class, running identical code in five of them, at 5.00,
  *       6.14, 6.30, 6.34, 6.66 and 7.41 ns. So both axes are put IN the gate instead:
  *
- *       [3] sweeps the destination through a 64-byte line with BOTH buffers page-aligned, which
+ *       [3] sweeps the destination through a 64-byte line with both buffers page-aligned, which
  *           forces (dst - src) % 4096 into [0,64) -- the aliasing regime, the adversarial one.
  *       [4] is the same sweep with the source moved to page offset 2048, which is the ordinary
  *           regime two unrelated allocations land in.

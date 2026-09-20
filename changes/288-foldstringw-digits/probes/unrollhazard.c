@@ -1,6 +1,6 @@
 /* changes/288-foldstringw-digits/probes/unrollhazard.c
  *
- * WHY THIS PROBE EXISTS: to turn an argument into a measurement.
+ * Why this probe exists: to turn an argument into a measurement.
  *
  * impl.asm drops its unroll when the buffers overlap, because probes/overlap.c showed the live export
  * behaving exactly like a naive forward one-unit-at-a-time loop and the unrolled loop does not always

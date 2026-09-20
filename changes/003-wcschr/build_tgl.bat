@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  TGL VARIANT BUILD
+Rem  tgl variant build
 REM  Intel Core i9-11900H (Tiger Lake-H / Willow Cove), Win11 25H2 build 26200.9457
 REM  Builds impl_tgl.asm against this change's UNMODIFIED reference.c,
 REM  correctness.c and bench.c, so the variant passes exactly the same two

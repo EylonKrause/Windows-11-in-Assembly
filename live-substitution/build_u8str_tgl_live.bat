@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE SUBSTITUTION, TGL VARIANT OF 034.
+Rem  live substitution, tgl variant of 034.
 REM
 REM  build_u8str_live.bat with exactly one line changed: change 034 is assembled
 REM  from impl_tgl.asm instead of impl.asm.  This harness patches change 268's

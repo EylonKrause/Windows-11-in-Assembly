@@ -1,9 +1,9 @@
 /* changes/272-convertstringsidtosida/probes/asciilen.c
  *
- * TWO THINGS THE IMPLEMENTATION CANNOT BE WRITTEN WITHOUT.
+ * Two things the implementation cannot be written without.
  *
  * ------------------------------------------------------------------------------------------------
- * 1. IS ASCII INVARIANT ACROSS THE ANSI CODE PAGES?
+ * 1. Is ASCII invariant across the ANSI code pages?
  *
  * probes/codepage.c established that ConvertStringSidToSidA(s) is exactly
  * ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...)) -- zero disagreements over every
@@ -14,18 +14,18 @@
  * the shipped ANSI export costs 343.95 ns against 269.14 ns for the wide one, and MultiByteToWideChar
  * is not cheap.
  *
- * BUT A SID STRING IS ASCII. If -- and only if -- every byte below 0x80 widens to the same code
+ * But a SID string is ASCII. If -- and only if -- every byte below 0x80 widens to the same code
  * point under every code page that can be an ACP, then the common case needs no code page at all:
  * it is a byte-to-word zero extension, which is one VPMOVZXBW per sixteen bytes. The fallback for
  * any input containing a byte at or above 0x80 is MultiByteToWideChar, called rather than imitated.
  *
- * "ASCII IS INVARIANT" IS EXACTLY THE KIND OF CLAIM THIS PROJECT HAS BEEN WRONG ABOUT. It is
+ * "ASCII Is invariant" is exactly the kind of claim this project has been wrong about. It is
  * therefore MEASURED, over every byte 0x00..0x7F, against every code page Windows can use as an ACP
  * -- the single-byte ones, the four DBCS ones, and UTF-8, which modern Windows can set as the ACP.
  * One counterexample and the fast path does not exist.
  *
  * ------------------------------------------------------------------------------------------------
- * 2. HOW LONG A STRING DOES IT ACCEPT, AND WHERE DOES THE WIDENED COPY LIVE?
+ * 2. How long a string does it accept, and where does the widened copy live?
  *
  * The wide export takes up to 254 sub-authorities, so a legal SID string can be about 2800
  * characters -- and an ILLEGAL one can be any length at all, because the caller chooses it. A

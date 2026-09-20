@@ -1,15 +1,15 @@
 /* changes/260-rtlcopybitmap/correctness.c
  *
- * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll exports, for BOTH RtlCopyBitMap and
+ * Three-way: ours vs an independent oracle vs the live ntdll exports, for both RtlCopyBitMap and
  * RtlExtractBitMap.
  *
- * THESE FUNCTIONS MUTATE, so WHAT IS COMPARED IS THE WHOLE DESTINATION BUFFER, not the copied
+ * These functions mutate, so what is compared is the whole destination buffer, not the copied
  * range. Every case fills the destination with a poison pattern first and compares every byte of it
  * afterwards, because "the copy worked" and "the copy worked and also cleared the rest of the word"
  * are indistinguishable if only the copied range is examined. The bits before the range, the bits
  * after it, and the words past the end are all part of the contract.
  *
- * AND THE BUFFER IS LARGER THAN THE DECLARED BITMAP, deliberately. A TargetBit past the
+ * And the buffer is larger than the declared bitmap, deliberately. a TargetBit past the
  * destination's size makes the shipped export WRITE PAST SizeOfBitMap -- the count subtraction is
  * done in 32 bits and wraps -- so the corpus has to be able to see those writes rather than crash
  * on them, and the comparison has to cover them.
@@ -20,9 +20,9 @@
  *   2. THE WRAP: a target at, just before and just past the destination's size.
  *   3. LONG copies at every shift, so the vector step runs many times and its seams with the head
  *      and tail words are exercised at every alignment.
- *   4. A GUARD PAGE after the SOURCE, at odd ULONG counts: the vector step reads 36 bytes of
+ *   4. a guard page after the source, at odd ulong counts: the vector step reads 36 bytes of
  *      source for 32 of destination, and that must never reach the page after the array.
- *   5. A GUARD PAGE after the DESTINATION.
+ *   5. a guard page after the destination.
  *   6. RANDOMISED over sizes, targets and lengths.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -234,7 +234,7 @@ int main(void)
     {
         long before = cases;
         int trial;
-        /* EVERY PARAMETER IS BOUNDED SO THE WRAP CASES STAY INSIDE THE BUFFER. When the count
+        /* Every parameter is bounded so the wrap cases stay inside the buffer. When the count
            wraps, the copy writes target + source-size bits, and that is NOT bounded by the declared
            destination size -- so with four scratch arrays laid out next to each other, a write that
            ran past one of them landed in the next and the harness then compared its own damage.

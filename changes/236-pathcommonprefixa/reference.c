@@ -35,7 +35,7 @@ int ref_pathcommonprefixa(const char* a, const char* b, char* out)
     int k, n, j, i, la, wn;
     if (!fold_built) build_fold();
 
-    /* NULL writes NOTHING AT ALL -- not even a terminator. The no-common-prefix case DOES write
+    /* NULL writes nothing at all -- not even a terminator. The no-common-prefix case does write
        one, so the two are distinguishable only with a poison fill. */
     if (!a || !b) return 0;
 
@@ -62,7 +62,7 @@ int ref_pathcommonprefixa(const char* a, const char* b, char* out)
     if (n == 2) n = 3;
 
     if (out) {
-        /* THE MAX_PATH BOUND, and it is on the RESULT rather than on the inputs: 900-character
+        /* The MAX_PATH bound, and it is on the result rather than on the inputs: 900-character
            paths whose common prefix is 15 copy normally, while identical 260-character paths do
            not. A result of 259 writes 259 characters and a terminator -- exactly MAX_PATH bytes --
            and a result of 260 writes ONLY a bare terminator. The returned count is unaffected

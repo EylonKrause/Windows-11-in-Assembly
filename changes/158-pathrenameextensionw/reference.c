@@ -5,7 +5,7 @@
 // SPACE stops the backward scan exactly as a backslash does. This oracle and the
 // implementation were wrong together on 46158 of 335923 enumerated strings; see
 // discovery/extension_space_audit2.c. The rule is: the LAST '.' after the last BACKSLASH
-// **OR SPACE**, with '/' and ':' NOT terminating the search.
+// **Or space**, with '/' and ':' not terminating the search.
 #include <windows.h>
 #include <wchar.h>
 

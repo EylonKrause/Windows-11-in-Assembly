@@ -2,23 +2,23 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll export.
  *
- * WHAT IS COMPARED IS THE WHOLE ARRAY, entry by entry, and the return value -- not just the count.
+ * What is compared is the whole array, entry by entry, and the return value -- not just the count.
  * The sorted form's contract is an ORDERING, so a count comparison would pass an implementation
  * that returned the right runs in the wrong order, and a length comparison would pass one that
  * broke ties the wrong way.
  *
- * AND THE ARRAY IS CHECKED PAST THE RETURNED COUNT. Every buffer is pre-filled with a canary and
+ * And the array is checked past the returned count. Every buffer is pre-filled with a canary and
  * compared in full, so an implementation that wrote more entries than it reported -- or that
  * scribbled past a small array -- is caught rather than flattered.
  *
- * SizeOfRunArray = 0 WITH A RUN PRESENT IS EXCLUDED: probes/contract.c established that the SHIPPED
+ * SizeOfRunArray = 0 With a run present is excluded: probes/contract.c established that the shipped
  * export faults there, so there is no behaviour to match. It is tested against the ORACLE only.
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap, at several capacities, both sorted and not.
  *   2. TIES -- many equal-length runs, which is the only thing that tests the ordering rule.
  *   3. CAPACITY pressure: arrays smaller than, equal to and larger than the number of runs.
- *   4. THE 64-BIT WORD BOUNDARY, where the carry lives.
- *   5. A GUARD PAGE at the end of the buffer, at odd ULONG counts.
+ *   4. The 64-BIT word boundary, where the carry lives.
+ *   5. a guard page at the end of the buffer, at odd ulong counts.
  *   6. RANDOMISED at several densities.
  */
 #define WIN32_LEAN_AND_MEAN

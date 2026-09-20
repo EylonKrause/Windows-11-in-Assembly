@@ -1,6 +1,6 @@
 /* discovery/utf8_nonascii_rows.c
  *
- * CHANGES 016 AND 034 ARE BENCHED ON ASCII ONLY, AND ASCII IS THE CASE THEIR FAST PATHS EXIST FOR.
+ * Changes 016 And 034 Are benched on ASCII only, and ASCII is the case their fast paths exist for.
  *
  * Both are UTF-8 conversions. Both land on their published tables -- 2.61x and 3.61x geomean -- and
  * every row of both tables is ASCII input. That is not a small omission for a UTF-8 converter: the
@@ -12,7 +12,7 @@
  * problem -- the CONVERSION was, at 6585.9 ns against the shipped N-form's 2138.3 ns on the same
  * 4000 bytes of two-byte sequences. That is 0.32x, in a change that publishes 3.61x.
  *
- * So this file asks the question properly, for BOTH directions, across the input classes a real
+ * So this file asks the question properly, for both directions, across the input classes a real
  * caller has, at four lengths, against the live exports. Every row prints what it converted and
  * how many bytes came out, because a row that silently converted nothing would otherwise look
  * like the fastest row in the table.

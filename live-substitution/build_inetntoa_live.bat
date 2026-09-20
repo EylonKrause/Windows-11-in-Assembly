@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 275 (ws2_32!inet_ntoa).
+Rem  live-run proof for change 275 (ws2_32!inet_ntoa).
 REM
 REM  The answer lives in a PER-THREAD buffer that the next call overwrites, so
 REM  every answer is copied the instant it comes back. A harness that kept the
@@ -8,10 +8,10 @@ REM  pointer and compared it later would be comparing a string against whatever
 REM  the most recent call left there, and would pass whatever either
 REM  implementation did.
 REM
-REM  IT RUNS ON FOUR THREADS. A single-threaded harness cannot tell a per-thread
+Rem  it runs on four threads. a single-threaded harness cannot tell a per-thread
 REM  buffer from a per-process one, and "per-thread" is the only part of this
 REM  contract a wrong implementation could satisfy on one thread and break on two.
-REM  The workers are created AFTER the patch is in place and joined BEFORE it is
+Rem  The workers are created after the patch is in place and joined before it is
 REM  removed, so no thread is ever inside the sixteen bytes being written.
 REM
 REM  tls.c is linked in: it owns our thread-local buffer, and the compiler emits

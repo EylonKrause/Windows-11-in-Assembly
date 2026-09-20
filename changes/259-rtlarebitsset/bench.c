@@ -2,18 +2,18 @@
  *
  * OURS vs the LIVE ntdll!RtlAreBitsSet and ntdll!RtlAreBitsClear.
  *
- * THE ANSWER IS THE SUBJECT. A range check that says NO stops at the first bit that disagrees; one
+ * The answer is the subject. a range check that says no stops at the first bit that disagrees; one
  * that says YES has examined every bit in the range. They are different amounts of work wearing one
  * name, and the first bitmap survey measured this pair at 1.60 ns and 2.20 ns -- both answering NO,
- * inside the first word -- and filed it as "not a target". So every row below says WHICH ANSWER IT
- * GOT, and the NO rows say WHERE the disagreement is, because a NO that is one word in and a NO that
+ * inside the first word -- and filed it as "not a target". So every row below says which answer it
+ * Got, and the no rows say where the disagreement is, because a no that is one word in and a no that
  * is eight kilobytes in are also different functions:
  *
  *   YES        the whole range is uniform: the expensive case, and the one worth improving
  *   NO at 0    the first word disagrees: the early exit, where a vector loop can only lose
  *   NO late    the disagreement is near the end: almost the whole range is examined anyway
  *
- * AND BOTH ENDS ARE MEASURED UNALIGNED, because the range's first and last words are masked and the
+ * And both ends are measured unaligned, because the range's first and last words are masked and the
  * middle is not: a row that started and ended on a word boundary would never execute the masks.
  *
  * The short rows are here for the same reason they are in every change in this family: a function

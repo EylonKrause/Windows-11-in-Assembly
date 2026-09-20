@@ -55,7 +55,7 @@ nodash:
         mov       word ptr [rdi], 7Dh                ; '}'
         add       rdi, 2
         mov       word ptr [rdi], 0                  ; NUL
-        ; AND A SECOND NUL AT THE LAST WCHAR THE BUFFER CAN HOLD.
+        ; And a second NUL at the last WCHAR the buffer can hold.
         ;
         ; The shipped export terminates twice: once after the 38 characters, which this already
         ; did, and once at Buffer[MaximumLength/2 - 1] -- the last whole WCHAR the caller's

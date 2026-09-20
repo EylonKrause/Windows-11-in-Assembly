@@ -1,21 +1,21 @@
 // live-substitution/live_subst_strcspniw.c
 // LIVE-RUN PROOF for change 285 (shlwapi!StrCSpnIW).
 //
-// WHAT IS COMPARED IS THE RETURNED COUNT. This export returns an int, not a pointer, so there is no
+// What is compared is the returned count. This export returns an int, not a pointer, so there is no
 // byte-versus-code-unit trap here -- but the count must be exact, including past 16 bits.
 //
-// THE CONTRACT THIS HARNESS RESPECTS, from changes/285-strcspniw/probes/contract.c and
+// The contract this harness respects, from changes/285-strcspniw/probes/contract.c and
 // probes/relation.c:
 //
 //   * the answer is the index of the first character that is in the set, or the length if none;
-//   * the relation is change 281's EXACTLY -- extracted over 786420 pairs with zero disagreements,
+//   * the relation is change 281's exactly -- extracted over 786420 pairs with zero disagreements,
 //     symmetric, and a multi-member set is exactly the UNION of its members' rows;
 //   * an embedded NUL ends the scan; an empty set gives the length; an empty string and any NULL
 //     argument give 0;
 //   * and the virtual NUL that changes 283 and 284 had to model is UNOBSERVABLE here: whether the
 //     terminator counts as a member or merely stops the scan, the answer is the length either way.
 //
-// THE FORCED SUB-CASES ARE CHOSEN FROM WHAT THIS CHANGE'S OWN STRUCTURE CAN GET WRONG, because that is
+// The forced sub-cases are chosen from what this change's own structure can get wrong, because that is
 // where the two previous changes' harnesses were weakest:
 //
 //   * cur_one    -- a set expanding to at most four accept entries, which takes a single unbounded
@@ -30,7 +30,7 @@
 //
 // Each carries an assertion that fails if the draw stops producing it.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG state
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng state
 // across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; validate first; patch only when idle;
@@ -146,7 +146,7 @@ static void build_case(long i)
     } else if (kind == 3) {
         /* A 255-sentinel member alone: the scalar path, bitmap loop only.
          *
-         * HALF OF THESE USE A SENTINEL THAT DOES NOT ACCEPT A NUL. There are eleven distinct sentinel
+         * Half of these use a sentinel that does not accept a NUL. There are eleven distinct sentinel
          * sets and only one -- the 3238-member ignorable set -- contains a NUL. Using only that one
          * leaves the scalar loop's own terminator test unnecessary, because the bitmap stops the loop
          * for free; a mutant removing that test then survives this gate, as one did. U+D7A2 carries

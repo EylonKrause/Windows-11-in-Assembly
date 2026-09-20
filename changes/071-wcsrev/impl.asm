@@ -114,7 +114,7 @@ sl_done:
         ; rax -> NUL wchar. lo = rcx (= s, untouched), hi = rax (one past last wchar).
         mov       rdx, rax                           ; hi
 
-        ; ---- tier 1: 32-byte block swaps, with the LAST PAIR ALLOWED TO OVERLAP ------------------
+        ; ---- tier 1: 32-byte block swaps, with the last pair allowed to overlap ------------------
         ; The old tier 1 swapped 16-byte vpshufb blocks and stopped while at least 32 bytes
         ; remained, handing 16..31 down to the next tier. Widening to 32 needs vperm2i128 to swap
         ; the two 128-bit lanes after vpshufb reverses the eight words inside each, and lets the

@@ -11,7 +11,7 @@
 //   * StringUuid == NULL is SUCCESS: return 0 and write the nil UUID (16 zero bytes);
 //   * every other malformed input -> 1705 with the output GUID NOT TOUCHED.
 //
-// NOTE ON WIDTH: hexval takes an `unsigned`, not a char. Truncating a UTF-16 cell to a byte would
+// Note on width: hexval takes an `unsigned`, not a char. Truncating a UTF-16 cell to a byte would
 // accept U+0130 as '0' and U+FF21 as '!', which is exactly the bug the implementation's saturating
 // vpackuswb narrowing is designed to avoid -- so the oracle must not make that mistake either.
 #include <windows.h>

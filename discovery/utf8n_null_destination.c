@@ -1,6 +1,6 @@
 /* discovery/utf8n_null_destination.c
  *
- * CHANGES 016 AND 034 DO NOT IMPLEMENT THE MEASURING MODE OF THE FUNCTIONS THEY REPLACE.
+ * Changes 016 And 034 Do not implement the measuring mode of the functions they replace.
  *
  * Found while building change 268 (RtlUnicodeStringToUTF8String), whose allocating path has to ask
  * the N-form how big the output will be before it can allocate a buffer for it.
@@ -25,26 +25,26 @@
  * in BYTES of UTF-16, not characters -- while ours answers STATUS_BUFFER_TOO_SMALL with nothing
  * produced.
  *
- * WHY THE GATES DID NOT CATCH IT. Both changes are bit-exact against their live exports over large
+ * Why the gates did not catch it. Both changes are bit-exact against their live exports over large
  * corpora -- and every case in those corpora passes a real destination buffer. The NULL destination
  * is not an edge of the LENGTH, which is what those corpora sweep; it is a different MODE of the
  * same function, and nothing in the corpora asked for it. This is the same shape as the SPACE bug
  * that sat in four landed changes at once: not a subtle arithmetic slip, but a case nobody thought
  * to ask about.
  *
- * WHAT IT MEANS IN PRACTICE. Under live substitution a caller that sizes before converting -- which
+ * What it means in practice. Under live substitution a caller that sizes before converting -- which
  * is what RtlUnicodeStringToUTF8String does internally on its allocating path, and what any careful
  * caller does -- gets STATUS_BUFFER_TOO_SMALL instead of a size, or faults outright if it passes a
  * non-zero size with a NULL pointer. The conversion itself is correct; the mode is missing.
  *
- * THIS FILE IS THE EVIDENCE, not the fix. Fixing it means giving both changes a real sizing pass:
+ * This file is the evidence, not the fix. Fixing it means giving both changes a real sizing pass:
  * straightforward for UTF-16 -> UTF-8, where the output length of each character is decided by
  * three range tests and a surrogate-pair rule, and harder for UTF-8 -> UTF-16, where the count
  * depends on the decoder's exact replacement policy for malformed input -- which has to be
  * reproduced, not approximated, because a size that is one short produces a truncated conversion
  * in the caller's buffer.
  *
- * CHANGE 268 IS BLOCKED ON THAT and is not being landed on top of it.
+ * Change 268 Is blocked on that and is not being landed on top of it.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

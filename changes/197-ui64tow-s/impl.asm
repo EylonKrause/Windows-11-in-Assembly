@@ -10,7 +10,7 @@
 ; entry computes (Radix == 10 && Value < 0) and the unsigned entry passes a hard zero into the same
 ; worker. Every contract detail change 194 read out of the shipped disassembly applies:
 ;
-;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), NOTHING written;
+;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
 ;   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation;
 ;   * SizeInChars <= 1 -> ERANGE (34) before a digit is emitted;
 ;   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0;

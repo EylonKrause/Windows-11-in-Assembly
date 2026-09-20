@@ -7,7 +7,7 @@
 ; PC. Same exported symbol (`wia_setbits`), so this change's existing
 ; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; This change was PARKED on the 5950X and is still parked here, on the bulk-fill
 ; classes:
@@ -23,7 +23,7 @@
 ;
 ; Stable across three repeat runs: 4096 gives 0.91x / 0.88x / 0.88x.
 ;
-; CAUSE -- A ZEN-3-SPECIFIC TUNING DECISION THAT INVERTS ON ZEN 4
+; Cause -- a ZEN-3-SPECIFIC tuning decision that inverts on zen 4
 ; The original dispatches the bulk fill by size and deliberately chooses SSE2
 ; over AVX2 for the middle range. Its own comment says why:
 ;
@@ -41,7 +41,7 @@
 ; (>= 8 and < 256 ULONGs), so the failing class is filled 16 bytes at a time on
 ; a core that would do 32.
 ;
-; THE FIX -- RE-TUNE THE TWO DISPATCH BOUNDARIES FOR THIS CORE
+; The fix -- re-tune the two dispatch boundaries for this core
 ; Only the two dispatch thresholds change; every fill loop is byte-for-byte the
 ; original.
 ;
@@ -56,7 +56,7 @@
 ; The loop-internal comparisons (cmp r11,64 / 32 / 4 inside the unrolled bodies)
 ; are NOT touched; only the two dispatch tests are.
 ;
-; CONTRACT PRESERVED EXACTLY
+; Contract preserved exactly
 ;   * There is NO bounds check whatsoever -- ntdll writes past SizeOfBitMap if
 ;     asked (start=250,num=20 on a 256-bit map sets bits 250..269), so
 ;     SizeOfBitMap is never read. Unchanged here.
@@ -72,7 +72,7 @@
 ;   * Writes exactly the same bytes as the original; only the instruction width
 ;     used to write the interior differs.
 ;
-; VOID wia_setbits(RTL_BITMAP* bm, ULONG StartingIndex, ULONG NumberToSet)
+; Void wia_setbits(RTL_BITMAP* bm, ulong StartingIndex, ulong NumberToSet)
 ;   [Win64: rcx, edx, r8d]
 .code
 wia_setbits PROC

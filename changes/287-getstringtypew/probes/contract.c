@@ -1,6 +1,6 @@
 /* changes/287-getstringtypew/probes/contract.c
  *
- * CAN GetStringTypeW BE A TABLE LOOKUP AT ALL?
+ * Can GetStringTypeW be a table lookup at all?
  *
  *     BOOL GetStringTypeW(DWORD dwInfoType, LPCWCH lpSrcStr, int cchSrc, LPWORD lpCharType)
  *
@@ -8,8 +8,8 @@
  * most expensive uncovered export in that sweep that is not already known to be a collation wall.
  *
  * Everything depends on ONE question, and it is the same question change 281 had to settle about
- * shlwapi's case-insensitive relation: IS THE ANSWER FOR A CODE UNIT INDEPENDENT OF ITS NEIGHBOURS AND
- * OF THE LOCALE? If it is, the whole function is a 65536-entry lookup and vectorises immediately. If
+ * shlwapi's case-insensitive relation: Is the answer for a code unit independent of its neighbours and
+ * Of the locale? If it is, the whole function is a 65536-entry lookup and vectorises immediately. If
  * it is not -- if a character's classification depends on what surrounds it, or on the thread locale --
  * then no table reproduces it and this target is dead, exactly as changes 274 and 276 died on
  * collation, and as lstrcmpiW is already known to be dead.

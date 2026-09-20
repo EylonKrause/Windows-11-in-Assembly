@@ -6,17 +6,17 @@
 ; 19-digit value, because its inner loop issues a 64-bit `div rax, rdi` PER DIGIT.
 ;
 ; The contract's error path could not be fitted black-box: the partial content left in the caller's
-; buffer on ERANGE followed no rule that also explained the size-2 negative case, where NOTHING but
+; buffer on ERANGE followed no rule that also explained the size-2 negative case, where nothing but
 ; buffer[0] is touched. The shipped code settled it (dumpbin /disasm ucrtbase.dll, RVA 0x00079D60
 ; and its shared worker at 0x00076F10):
 ;
 ;   * Buffer == NULL or SizeInChars == 0 -> errno = EINVAL (22), handler, return 22,
-;     and NOTHING is written -- not even Buffer[0].
-;   * Otherwise BUFFER[0] = 0 IS WRITTEN IMMEDIATELY, before any other validation. That is why an
+;     and nothing is written -- not even Buffer[0].
+;   * Otherwise BUFFER[0] = 0 Is written immediately, before any other validation. That is why an
 ;     invalid radix still empties the buffer while size 0 leaves it untouched.
 ;   * negative := (Radix == 10 && Value < 0). For every other radix the 64-bit value is formatted
 ;     UNSIGNED -- _i64toa_s(-1, ..., 16) gives "ffffffffffffffff", exactly as change 057 records.
-;   * IF SizeInChars <= negative + 1 -> ERANGE (34) IMMEDIATELY, with Buffer[0] = 0 and nothing
+;   * If SizeInChars <= negative + 1 -> Erange (34) Immediately, with Buffer[0] = 0 and nothing
 ;     else touched. This is the case no fitted rule reproduced: for a negative value and size 2 it
 ;     fires BEFORE a single digit is emitted.
 ;   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0.

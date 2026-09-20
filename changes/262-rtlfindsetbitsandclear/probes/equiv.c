@@ -1,11 +1,11 @@
 /* changes/262-rtlfindsetbitsandclear/probes/equiv.c
  *
- * IS THE SEARCH HALF EXACTLY RtlFindSetBits / RtlFindClearBits?
+ * Is the search half exactly RtlFindSetBits / RtlFindClearBits?
  *
  * contract.c showed a search that wraps, refuses a run straddling the wrap point, treats a hint
  * past the end as zero and returns the hint rounded down to eight for N = 0 -- which is, word for
  * word, what change 256 measured for the pure read-only pair. The obvious move is to build this
- * change on change 256's core. THE OBVIOUS MOVE IS ALSO HOW THE EIGHT-CHANGE SPACE BUG HAPPENED:
+ * change on change 256's core. The obvious move is also how the eight-change space bug happened:
  * a rule was inherited from a sibling because it looked like the same rule, and it was wrong in
  * four landed changes before anyone enumerated it. Change 237 did this properly -- it MEASURED
  * `PathIsPrefixA(a,b) == (PathCommonPrefixA(a,b,NULL) == strlen(a))` over 87 million pairs before
@@ -14,15 +14,15 @@
  *     RtlFindSetBitsAndClear(bm, N, hint)  ==  RtlFindSetBits(bm, N, hint)
  *     RtlFindClearBitsAndSet(bm, N, hint)  ==  RtlFindClearBits(bm, N, hint)
  *
- * and, when the answer is not 0xFFFFFFFF, the mutation is EXACTLY N bits at that index and
+ * and, when the answer is not 0xFFFFFFFF, the mutation is exactly N bits at that index and
  * nothing else anywhere in the buffer.
  *
- * THE READ-ONLY EXPORT IS ASKED FIRST, ON AN UNTOUCHED COPY, because the mutating one destroys the
+ * The read-only export is asked first, on an untouched copy, because the mutating one destroys the
  * evidence: calling them in the other order over one buffer would compare the second call against a
  * bitmap the first had already consumed, and they would disagree for a reason that has nothing to
  * do with the search.
  *
- * THE WHOLE BUFFER IS DIFFED, not the N bits the answer points at. A mutation that also cleared one
+ * The whole buffer is diffed, not the N bits the answer points at. a mutation that also cleared one
  * bit somewhere else would be invisible to a check that only looked where it was told.
  */
 #define WIN32_LEAN_AND_MEAN

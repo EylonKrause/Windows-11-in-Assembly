@@ -1,14 +1,14 @@
 /* changes/269-convertstringsidtosid/probes/bounds.c
  *
- * THE LAST TWO THINGS THE IMPLEMENTATION NEEDS TO KNOW.
+ * The last two things the implementation needs to know.
  *
- *   1. HOW MANY SUB-AUTHORITIES does the parser accept? probes/limits.c found it happily building
+ *   1. How many sub-authorities does the parser accept? probes/limits.c found it happily building
  *      a twenty-sub-authority SID that the formatter then refused, so the parser is not bounded by
  *      the documented fifteen. The allocation size is 8 + 4*count, so where the count stops is
  *      where the allocation stops, and guessing it wrong is a heap question rather than a
  *      formatting one.
  *
- *   2. WHAT HAPPENS TO THE OUTPUT POINTER ON FAILURE. A caller that checks the return value and
+ *   2. What happens to the output pointer on failure. a caller that checks the return value and
  *      then frees unconditionally behaves differently depending on the answer, and a
  *      reimplementation that cleared the pointer where the original does not -- or the reverse --
  *      would differ in a way no status comparison would catch.

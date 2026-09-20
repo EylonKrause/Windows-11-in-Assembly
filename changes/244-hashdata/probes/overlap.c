@@ -1,13 +1,13 @@
 /* changes/244-hashdata/probes/overlap.c
  *
- * THE ONE CASE THAT FIXES THE LOOP ORDER, and the reason a fast implementation needs a fallback.
+ * The one case that fixes the loop order, and the reason a fast implementation needs a fallback.
  *
  * With disjoint buffers the digest bytes are independent chains, so an implementation may compute
  * them in ANY order and in any grouping -- which is exactly what makes this function worth
  * rewriting: twelve chains can be held in registers and advanced together, while the shipped code
  * walks one lane at a time through memory.
  *
- * When the digest OVERLAPS THE SOURCE the independence disappears. The shipped inner loop re-reads
+ * When the digest overlaps the source the independence disappears. The shipped inner loop re-reads
  * pbData[i] on every lane iteration (`movzx edx, byte ptr [r10 + rdi]` sits INSIDE the lane loop),
  * so a lane write that lands on pbData[i] changes what the remaining lanes of that same source byte
  * consume. The answer then depends on:

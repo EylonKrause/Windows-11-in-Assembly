@@ -1,6 +1,6 @@
 /* changes/067-rtlconvertsidtounicodestring/probes/oddroom.c
  *
- * AN ODD MaximumLength IS ACCEPTED, AND THE OLD GATE COULD NOT SEE IT.
+ * An odd MaximumLength is accepted, and the old gate could not see it.
  *
  * The rebuilt correctness gate swept MaximumLength from 0 to 300 and found four disagreements, all
  * of one shape:
@@ -12,7 +12,7 @@
  * implemented -- is "MaximumLength must be at least Length + 2, because the terminator is a wide
  * character". The live export evidently wants only Length + 1.
  *
- * THE OLD GATE STEPPED MaximumLength BY TWO:
+ * The old gate stepped MaximumLength by two:
  *
  *     for (USHORT ml = 8; ml <= 22; ml += 2) chk(sid, ml);
  *
@@ -21,7 +21,7 @@
  * reached its own path and change 268's corpus class that could only land on the wrong direction:
  * a test whose generator cannot express the case is not a weak test, it is an absent one.
  *
- * "IT ACCEPTS Length+1" IS NOT YET AN IMPLEMENTATION. A terminator is two bytes and only one is
+ * "It accepts Length+1" is not yet an implementation. a terminator is two bytes and only one is
  * spare, so something has to give, and there are three possibilities that all return SUCCESS:
  *
  *     a. it writes ONE byte of the terminator and leaves the other alone;

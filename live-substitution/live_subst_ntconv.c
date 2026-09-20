@@ -10,29 +10,29 @@
 // which is what makes them one harness rather than six, and what makes a single driver able to
 // compare the status, the produced count AND the whole destination buffer for every one of them.
 //
-// ORDERING HAZARD, AND IT IS A REAL ONE. Five of these changes carry a translation table built at
+// Ordering hazard, and it is a real one. Five of these changes carry a translation table built at
 // startup by asking the OS: ansimap.c calls RtlUnicodeStringToAnsiString once per code unit, and
 // THAT export is implemented on top of RtlUnicodeToMultiByteN -- one of the six patched here. So
 // every table is built BEFORE the first patch goes on. Initialising a map while the patch was live
 // would have our own half-built table answering the questions used to build it.
 //
-// WHY THE WHOLE DESTINATION IS COMPARED, not just `produced`. These converters write into a
+// Why the whole destination is compared, not just `produced`. These converters write into a
 // caller's buffer and report how much they wrote. An implementation that writes a byte too many,
 // or leaves a stale byte past the end, returns the right status and the right count and is still
 // wrong -- change 268's gate caught exactly that in change 016 (154 mismatches, every one a single
 // 00 where ntdll left the caller's fill). The destination is poisoned before every call and
 // compared to the last byte.
 //
-// THE CAPACITY SWEEP IS THE POINT OF THE CORPUS. A converter's interesting behaviour is at the
+// The capacity sweep is the point of the corpus. a converter's interesting behaviour is at the
 // boundary: STATUS_BUFFER_OVERFLOW, a partial write, and whether a multi-byte sequence is split or
 // withheld when one byte of room remains. So a third of the cases ask for a destination that
 // cannot hold the answer, at every shortfall from one byte to the whole string.
 //
 // FREEZE-SAFETY PROTOCOL (the established one):
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and none of the six is used by the loader or heap
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: single-threaded, and none of the six is used by the loader or heap
 //       once the tables are built.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
@@ -199,7 +199,7 @@ int main(void){
     ours[0]=(void*)w_u2u8; ours[1]=(void*)w_u2mb; ours[2]=(void*)w_mb2u;
     ours[3]=(void*)w_u2umb; ours[4]=(void*)w_u2oem; ours[5]=(void*)w_u2uoe;
 
-    /* THE TABLES FIRST -- they are built by asking exports that route through these six. */
+    /* The tables first -- they are built by asking exports that route through these six. */
     wia_ansimap_init(); wia_a2umap_init(); wia_upansimap_init();
     wia_oemmap_init();  wia_upoemmap_init();
     printf("  translation tables built from the OS BEFORE any patch (they use these exports)\n");

@@ -7,7 +7,7 @@
 // WORSE against ITSELF in 17 of 18 runs). Parked changes are not normally gated here, and this one
 // is, for a reason that has nothing to do with speed:
 //
-//     IT IS THE ONLY CHANGE IN THIS REPOSITORY THAT TAIL-JUMPS INTO AN IMPORT.
+//     It is the only change in this repository that tail-jumps into an import.
 //
 // `wia_sysallocstring` replaces the scan and then does `jmp qword ptr [__imp_SysAllocStringLen]`
 // with no frame at all -- rsp exactly as it was at entry, the arguments already in rcx/rdx, and the
@@ -27,10 +27,10 @@
 // in different passes, and requiring otherwise would be testing the heap, not the function.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copy of oleaut32 -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE. Worth being explicit here because the subject allocates:
+//   (1) Validate first against the live export over the whole corpus before any patch.
+//   (2) Patch only when idle. Worth being explicit here because the subject allocates:
 //       SysAllocStringLen is NOT patched, only SysAllocString, so the allocator this process uses
 //       is untouched and every BSTR made under the patch is freed by the same code that made it.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the corpus is re-run.

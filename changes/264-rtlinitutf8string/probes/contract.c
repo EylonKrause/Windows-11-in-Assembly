@@ -1,6 +1,6 @@
 /* changes/264-rtlinitutf8string/probes/contract.c
  *
- * IS RtlInitUTF8String JUST RtlInitString UNDER ANOTHER NAME?
+ * Is RtlInitUTF8String just RtlInitString under another name?
  *
  * discovery/rtl_cmpstrings_probe.c already established that it is a DIFFERENT ADDRESS from
  * RtlInitString -- unlike RtlInitAnsiString, which shares one -- so it is at least distinct code.
@@ -8,7 +8,7 @@
  * already ships a page-safe AVX2 strlen plus struct fill for RtlInitString, and if this export
  * follows the same rules then this change is that one with a different name on it.
  *
- * IT WOULD BE VERY EASY TO ASSUME SO AND BE WRONG. The name says UTF-8, and a function that
+ * It would be very easy to assume so and be wrong. The name says UTF-8, and a function that
  * validated its input, rejected an overlong encoding, counted CHARACTERS rather than bytes, or
  * returned an NTSTATUS instead of nothing would produce a struct that looks identical on ASCII and
  * differs on exactly the inputs a lazy corpus never contains. This project has already paid for a

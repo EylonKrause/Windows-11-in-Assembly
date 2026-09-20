@@ -7,7 +7,7 @@
 //   * a leading '-' is accepted and NEGATES MODULO 2^32, so "-1" returns 4294967295, no error;
 //   * the overflow limit is 2^32-1 REGARDLESS of the sign (in 188 the sign moves it);
 //   * overflow returns ULONG_MAX and sets errno = ERANGE.
-// The same run refuted the "prefix zero must be ASCII L'0'" variant for BOTH functions on 1579
+// The same run refuted the "prefix zero must be ASCII L'0'" variant for both functions on 1579
 // cases, so that quirk is not specific to the signed form.
 #include <stddef.h>
 #include <errno.h>

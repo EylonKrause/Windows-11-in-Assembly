@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/contract.c
  *
- * WHAT DO RtlUnicodeStringToUTF8String AND RtlUTF8StringToUnicodeString DO, AND WHERE DOES THEIR
+ * What do RtlUnicodeStringToUTF8String and RtlUTF8StringToUnicodeString do, and where does their
  * TIME GO?
  *
  *     NTSTATUS RtlUnicodeStringToUTF8String(PUTF8_STRING dst, PCUNICODE_STRING src, BOOLEAN alloc)
@@ -11,7 +11,7 @@
  * as change 034 at 3.12x -- so the interesting question is not "can the conversion be made faster"
  * but "how much of a wrapper call IS the conversion".
  *
- * THAT QUESTION DECIDES WHETHER THERE IS A CHANGE HERE AT ALL. If the wrapper is a size pass plus a
+ * That question decides whether there is a change here at all. If the wrapper is a size pass plus a
  * conversion pass, it reads the input TWICE and the ceiling is better than the N-form's own
  * speedup. If it is one pass plus a few stores, the ceiling is exactly the N-form's speedup and
  * nothing more. Section 3 measures the N-form directly on the same input so the two can be

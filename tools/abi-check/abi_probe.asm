@@ -1,18 +1,18 @@
 ; tools/abi-check/abi_probe.asm
 ; unsigned long long wia_abi_probe(void (*thunk)(void))
 ;
-; Calls thunk() with EVERY Win64 non-volatile register holding a distinct sentinel and returns a
+; Calls thunk() with every Win64 non-volatile register holding a distinct sentinel and returns a
 ; bitmask of the registers the callee failed to preserve. The thunk is ordinary compiled C that
 ; performs the real call with real arguments, so this one probe covers every signature -- two
 ; arguments or seven -- without knowing anything about them.
 ;
-; WHY THIS EXISTS. Sixteen implementations in this repository quietly violated the Win64 ABI by
+; Why this exists. Sixteen implementations in this repository quietly violated the Win64 ABI by
 ; using xmm6-xmm15 as scratch. Every one passed its correctness test, because a correctness test
 ; compares integers and strings, and a clobbered xmm6 only destroys a caller's live FLOATING-POINT
 ; state. The bug surfaced by pure accident: change 202's benchmark keeps its timing accumulators in
 ; xmm6/xmm7, so a perfectly correct function reported 0.00 ns. This probe removes the luck.
 ;
-; WHAT THE ABI ACTUALLY SAYS, which is narrower than "never touch ymm6":
+; What the ABI actually says, which is narrower than "never touch ymm6":
 ;   volatile      rax rcx rdx r8 r9 r10 r11, xmm0-xmm5, and the UPPER half of ymm0-ymm15
 ;   non-volatile  rbx rbp rdi rsi rsp r12-r15, and the LOW 128 BITS of xmm6-xmm15
 ; ymm6's high lane is free; its low lane is not. That is why the comparison below is 128 bits wide
@@ -233,8 +233,8 @@ wia_abi_probe ENDP
 ; ------------------------------------------------------------------------------------------------
 ; unsigned long long wia_abi_call4(void* fn, u64 a, u64 b, u64 c, u64 d)
 ;
-; THE SAME CHECK, ARMED AROUND ONE CALL INSTEAD OF AROUND THE WHOLE THUNK -- because the whole-thunk
-; form CAN BE MASKED, and was. wia_abi_probe above fills the non-volatile registers, calls the C
+; The same check, armed around one call instead of around the whole thunk -- because the whole-thunk
+; form can be masked, and was. wia_abi_probe above fills the non-volatile registers, calls the C
 ; thunk and compares afterwards. But the thunk is compiled C: if the compiler uses r15 for a loop
 ; variable it SAVES r15 in its own prologue and RESTORES it in its epilogue, so an implementation
 ; that destroys r15 has its damage undone before the comparison ever happens. Proved rather than

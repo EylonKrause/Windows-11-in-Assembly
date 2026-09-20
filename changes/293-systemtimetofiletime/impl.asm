@@ -5,7 +5,7 @@
 ; Reimplements kernel32!SystemTimeToFileTime (a jmp thunk onto kernelbase!SystemTimeToFileTime,
 ; RVA 0xB2570, which marshals a stack TIME_FIELDS and calls ntdll!RtlTimeFieldsToTime).
 ;
-; WHAT IS REPLACED, AND WHY IT IS BEATABLE. The shipped path is four frames deep:
+; What is replaced, and why it is beatable. The shipped path is four frames deep:
 ;   kernel32!SystemTimeToFileTime      jmp qword ptr [__imp_kernelbase_...]
 ;   kernelbase!SystemTimeToFileTime    /GS cookie + 14 stack accesses to build a TIME_FIELDS +
 ;                                      an indirect call + the result copied out as two dwords
@@ -19,7 +19,7 @@
 ; call, no fence, and the one memory write is the caller's own 8-byte FILETIME.
 ;
 ; CONTRACT (every clause proved against the live export by probes/, not taken from MSDN):
-;   * wDayOfWeek (offset 4) is NEVER READ. All 65536 values give the identical result.
+;   * wDayOfWeek (offset 4) is never READ. All 65536 values give the identical result.
 ;   * The seven other words are read as CSHORT: a WORD above 0x7FFF is a negative field and fails.
 ;   * Year 1601..30827 -- 30828 is a HARD BOUND, not an overflow (30828-01-01 still fits int64).
 ;     Month 1..12, Day 1..days-in-month (full Gregorian leap rules), Hour 0..23, Minute 0..59,
@@ -33,7 +33,7 @@
 ;     export is called rather than the two TEB fields poked, because RtlSetLastWin32Error has a
 ;     last-error-tracing hook behind a global flag that a raw store would not run.
 ;
-; HOW THE VALIDATION IS DONE -- ONE BRANCH FOR SIX FIELDS. The whole SYSTEMTIME is 16 bytes, so one
+; How the validation is done -- one branch for six fields. The whole systemtime is 16 bytes, so one
 ; unaligned 16-byte load takes it all and never touches a byte the caller did not declare. Every
 ; field bound is of the form lo <= (int16)x <= hi with 0 <= lo and hi <= 32767, and for a 16-bit
 ; word that is exactly the unsigned test (uint16)(x - lo) <= hi - lo: a "negative" CSHORT is a huge
@@ -43,7 +43,7 @@
 ; Only ONE check cannot be vectorised, Day against the real length of that month, because the bound
 ; depends on two other fields; it costs one more compare.
 ;
-; HOW THE DATE IS COMPUTED. Days-from-civil with the year shifted to start in March, written in the
+; How the date is computed. Days-from-civil with the year shifted to start in March, written in the
 ; flat form rather than the era form, because the era form serialises
 ; (yy -> era -> era*400 -> yoe -> ...) and this one does not:
 ;       yy   = Year - (Month <= 2)
@@ -61,7 +61,7 @@
 ; domain; reference.c independently uses the ERA form, so the oracle and this file reach the same
 ; number two different ways.
 ;
-; The leap-year test is needed ONLY to decide whether February has 29 days, so it sits behind a
+; The leap-year test is needed only to decide whether February has 29 days, so it sits behind a
 ; branch that the common (non-February) case falls THROUGH -- the cheap case is never behind a
 ; taken branch. It is (Year & (Year % 100 ? 3 : 15)) == 0, which is the standard identity: given
 ; Year % 100 == 0 (hence Year % 4 == 0), Year % 400 == 0 is exactly Year % 16 == 0.

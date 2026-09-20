@@ -1,17 +1,17 @@
 /* changes/256-rtlfindsetbits/correctness.c
  *
- * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll exports, for BOTH RtlFindSetBits and
+ * Three-way: ours vs an independent oracle vs the live ntdll exports, for both RtlFindSetBits and
  * RtlFindClearBits.
  *
- * THE HINT IS WHAT THIS FILE IS MOSTLY FOR. Every corpus below sweeps the hint, because the wrap is
+ * The hint is what this file is mostly for. Every corpus below sweeps the hint, because the wrap is
  * invisible on any bitmap whose answer lies after it -- which is most bitmaps -- and an
  * implementation built on "search forward from the hint and stop" would pass a careless corpus
  * everywhere and fail only when the sole qualifying run sits before the hint.
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap x every N x every hint. Nothing sampled.
  *   2. THE WRAP, specifically: runs placed before, after, and straddling the hint.
- *   3. THE 64-BIT WORD BOUNDARY -- runs planted across it at every offset and length.
- *   4. THE ODD TRAILING ULONG against a PAGE_NOACCESS page, so a 64-bit read of the last word
+ *   3. The 64-BIT word boundary -- runs planted across it at every offset and length.
+ *   4. The odd trailing ulong against a PAGE_NOACCESS page, so a 64-bit read of the last word
  *      FAULTS rather than merely reading four bytes the caller never allocated.
  *   5. THE SLACK past SizeOfBitMap, and the degenerate N.
  *   6. RANDOMISED at several densities, both exports, hints everywhere.
@@ -207,12 +207,12 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 7. A RUN OF EXACTLY N AT EVERY ALIGNMENT, for every block size the scan can pick ----
+    /* ---- 7. a run of exactly N at every alignment, for every block size the scan can pick ----
      *
      * This is the corpus for the witness argument, and it is the one the earlier corpora could not
      * be: they top out at 2048-bit bitmaps and N = 69, so the 64-bit block size is never chosen and
      * a run never has to be rebuilt across more than one 32-byte chunk. Here a single run of length
-     * N-1, N or N+1 is planted at EVERY bit offset across two chunk boundaries, for an N in each
+     * N-1, N or N+1 is planted at every bit offset across two chunk boundaries, for an N in each
      * block class -- 3 and 6 (pairs), 7 and 14 (nibbles), 15 and 30 (bytes), 31 and 62 (words),
      * 63 and 126 (dwords), 127 and 300 (qwords). A run of exactly N-1 must NOT be found, which is
      * what catches a filter that answers from the block rather than from the run.

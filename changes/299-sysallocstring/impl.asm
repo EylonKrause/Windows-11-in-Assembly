@@ -3,7 +3,7 @@
 ;
 ; Reimplements oleaut32!SysAllocString.
 ;
-; ---- WHY THIS IS A TARGET AT ALL, WHEN IT ALLOCATES -------------------------------------------
+; ---- Why this is a target at all, when it allocates -------------------------------------------
 ; Normally it would not be. `tools/uncovered-exports.py` filters allocator entry points out up
 ; front, because the cost of an allocating function is the heap and no assembly removes it. This
 ; one is the exception, and the exception was measured rather than argued.
@@ -28,7 +28,7 @@
 ; expensive part here -- it is 16-25 ns at every size -- and the part that IS expensive is a string
 ; scan, which is this repository's home ground (changes 001 and 003).
 ;
-; So this change replaces ONLY the measurement and hands the allocation straight back to the real
+; So this change replaces only the measurement and hands the allocation straight back to the real
 ; SysAllocStringLen, the way change 293 hands its last-error back to ntdll. That also makes the
 ; result trivially compatible: the block comes from the same allocator, so SysFreeString,
 ; SysReAllocString and every marshaller accept it because it IS theirs.
@@ -45,27 +45,27 @@
 ;   the length prefix at [-4] is a BYTE count (5 characters gives 10), which is what makes
 ;   SysAllocStringLen's second argument a CHARACTER count the caller must not confuse with it.
 ;
-; ---- METHOD, AND THE TWO THINGS THE FIRST CUT GOT WRONG ---------------------------------------
+; ---- Method, and the two things the first cut got wrong ---------------------------------------
 ; The scan is one aligned pass for the terminator; the allocation is then handed to the import.
 ; Page-safe by construction: the first load is aligned DOWN and the bytes before the string are
 ; shifted out of the compare mask, and every later load is aligned too -- an aligned 16- or 32-byte
 ; load cannot cross a page boundary. No load ever touches a page the string does not occupy, which
 ; is what the correctness gate's NOACCESS sweep exists to prove.
 ;
-; `vpcmpeqw` sets BOTH bytes of a matching word in the vpmovmskb result, so tzcnt returns the even
+; `vpcmpeqw` sets both bytes of a matching word in the vpmovmskb result, so tzcnt returns the even
 ; byte offset of the terminator and one shift turns it into a character count.
 ;
 ; The first cut of this file was 2.50x geomean and PARKED, because it lost the two shortest rows:
 ; 0 characters at 0.90x and 4 at 0.94x. Both losses were structure, not scanning.
 ;
-;   (1) IT BUILT A FRAME TO MAKE A CALL. push rsi / sub rsp,32 / call / add rsp,32 / pop rsi, to
+;   (1) It built a frame to make a call. push rsi / sub rsp,32 / call / add rsp,32 / pop rsi, to
 ;       hand off to a function whose result is our result unchanged. That is a TAIL CALL, and a
 ;       tail call needs no frame at all: rsp is exactly as it was at entry, the arguments are
 ;       already where the callee wants them, and the callee returns straight to our caller using
 ;       the caller's own shadow space. `jmp qword ptr [__imp_...]` replaces six instructions and
 ;       the unwind data with one, and makes the whole function a genuine leaf.
 ;
-;   (2) IT USED ymm FOR A STRING THAT FITS IN xmm, and therefore owed a vzeroupper on every call,
+;   (2) It used ymm for a string that fits in xmm, and therefore owed a vzeroupper on every call,
 ;       including the empty one. VEX-128 never dirties the upper state, so it owes nothing. The
 ;       first block is now xmm -- sixteen bytes, eight characters -- which terminates the great
 ;       majority of real BSTRs, and that path reaches the tail jump without a single ymm

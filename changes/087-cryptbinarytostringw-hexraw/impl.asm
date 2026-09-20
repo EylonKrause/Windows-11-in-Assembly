@@ -1,5 +1,5 @@
 ; changes/087-cryptbinarytostringw-hexraw/impl.asm
-; BOOL wia_b2shw(const BYTE* pb, DWORD cb, DWORD flags, wchar_t* out, DWORD* pcch)
+; BOOL wia_b2shw(const byte* pb, dword cb, dword flags, wchar_t* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; Wide sibling of 085: crypt32!CryptBinaryToStringW for CRYPT_STRING_HEXRAW. The WCHAR count equals the
@@ -110,7 +110,7 @@ fail_moredata:
         xor       eax, eax
         jmp       epilogue
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also

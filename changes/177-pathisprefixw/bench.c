@@ -1,11 +1,11 @@
 // changes/177-pathisprefixw/bench.c
 // Gate 2: time wia_pathisprefixw against the live shlwapi!PathIsPrefixW.
 //
-// THE ROW THIS CHANGE EXISTS FOR is "254 true": discovery measured the shipped export at 606 ns on
+// The row this change exists for is "254 true": discovery measured the shipped export at 606 ns on
 // it, and the identity explains why -- it is paying for PathCommonPrefixW's per-component walk and
 // then comparing a length.
 //
-// THE CASE MIX. Both implementations walk only as far as the two paths agree, so the rows vary that
+// The case mix. Both implementations walk only as far as the two paths agree, so the rows vary that
 // and nothing else:
 //
 //   * TRUE rows at 8, 32, 128 and 254 characters -- the prefix IS the path, so the walk runs to the

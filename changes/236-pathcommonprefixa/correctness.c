@@ -7,7 +7,7 @@
 
      * a common prefix of exactly 2 is REPORTED as 3 while only two characters are written, so a
        harness that checked only the return would pass an implementation that wrote the third;
-     * NULL writes NOTHING AT ALL, not even a terminator, while a valid pair with no common prefix
+     * NULL writes nothing at all, not even a terminator, while a valid pair with no common prefix
        DOES write one -- two cases that look identical unless the untouched bytes are inspected;
      * the copy is bounded by the string, so an implementation that copied n bytes unconditionally
        would read past a caller's terminator and still return the right number.
@@ -119,7 +119,7 @@ int main(void){
                                        chk_nobuf(V[i][0], V[i][1], "probe case"); }
     }
 
-    /* ---- NULL: writes NOTHING, unlike a valid pair with no common prefix --------------------- */
+    /* ---- NULL: writes nothing, unlike a valid pair with no common prefix --------------------- */
     chk(NULL, "C:\\a", "NULL first");
     chk("C:\\a", NULL, "NULL second");
     chk(NULL, NULL,    "both NULL");
@@ -282,7 +282,7 @@ int main(void){
         printf("  300000 fuzz pairs over a separator- and fold-heavy alphabet\n");
     }
 
-    /* ---- THE SCALAR PATH: both strings walked up to a PAGE_NOACCESS page --------------------- */
+    /* ---- The scalar path: both strings walked up to a PAGE_NOACCESS page --------------------- */
     /* This is the only sweep that reaches impl.asm's one-byte step and its 128-bit fold. The
        alphabet rotates through the values that fold, so the scalar fold is exercised on the ranges
        AND on all five singletons. */

@@ -4,18 +4,18 @@
  * component-by-component loop the shipped function is written as), and the LIVE
  * shlwapi!PathCommonPrefixW.
  *
- * THE TWO FORMULATIONS ARE DIFFERENT ON PURPOSE. Agreement between them is evidence that the
+ * The two formulations are different on purpose. Agreement between them is evidence that the
  * equivalence argument in impl.asm's header is right, not evidence that one model was compiled
  * twice. The place it would break is the terminator rule -- a NUL in one path against a '\' in the
  * other ends both components at the same length, so that component MATCHES -- and section 2's
  * exhaustive corpus is saturated with exactly that shape.
  *
- * BOTH OBSERVABLES, ALWAYS: the returned int AND the whole achPath buffer against a 0xBEEF fill.
+ * Both observables, always: the returned int and the whole achPath buffer against a 0xBEEF fill.
  * The buffer matters independently of the return, three times over: achPath is cleared even when the
  * answer is 0; a result of 3 can write only 2 characters, because the copy stops at pszFile1's own
  * terminator; and a result of 260 or more writes nothing at all.
  *
- * THIS CHANGE WAS PARKED AT 99.3 %, so the exhaustive corpus below is the same 116281 pairs that
+ * This change was parked at 99.3 %, so the exhaustive corpus below is the same 116281 pairs that
  * left 784 residuals -- kept identical on purpose, because the point is that they are now zero.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -103,7 +103,7 @@ int main(void)
         printf("   %ld mismatches\n\n", fails);
     }
 
-    /* ---- 2. THE EXHAUSTIVE CORPUS: the very 116281 pairs that left 784 residuals ---- */
+    /* ---- 2. The exhaustive corpus: the very 116281 pairs that left 784 residuals ---- */
     {
         static wchar_t buf[341][8];
         int cnt = 0, i, j, len;

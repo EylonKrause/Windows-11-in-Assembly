@@ -4,7 +4,7 @@
  * calendar, to the standard change 126 set: a magic is accepted because floor((u*M)>>s) was
  * compared against floor(u/d) at every u it can meet, not because a formula says it should work.
  *
- * FIRST ATTEMPT AND WHY IT WAS THROWN AWAY. The first run of this probe verified each magic only
+ * First attempt and why it was thrown away. The first run of this probe verified each magic only
  * over the operand set the surrounding algorithm can actually present -- 36 525 distinct values for
  * /11758980, 366 for /2141 -- and happily returned magics that are WRONG a little way outside it.
  * /11758980 came back as (u*1461)>>34, whose error term 1461*11758980 - 2^34 = 596 makes it exact
@@ -20,7 +20,7 @@
  *   d = 10000      u in [0, 863999999999]  (rem, 100-ns units within a day)          BOUNDARIES
  *
  * BOUNDARIES is a proof, not a sample: floor(u/d) changes only at multiples of d and (u*M)>>s is
- * non-decreasing in u, so agreement at u = q*d and u = q*d - 1 for EVERY q in range forces
+ * non-decreasing in u, so agreement at u = q*d and u = q*d - 1 for every q in range forces
  * agreement at every u between them.
  *
  * cl /nologo /O2 magics.c
@@ -94,7 +94,7 @@ static void find_mulx(const char* name, uint64_t d, uint64_t umax)
     printf("  %-16s /%llu  NO mulx magic\n", name, (unsigned long long)d);
 }
 
-/* ---- verify the constants impl.asm ACTUALLY contains, in the exact form it uses them ---------- */
+/* ---- verify the constants impl.asm actually contains, in the exact form it uses them ---------- */
 
 static void shown(const char* what, int ok, const char* how)
 { printf("  %-34s %s   %s\n", what, ok ? "OK  " : "FAIL", how); }

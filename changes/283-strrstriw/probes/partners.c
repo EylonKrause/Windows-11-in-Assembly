@@ -1,6 +1,6 @@
 /* changes/283-strrstriw/probes/partners.c
  *
- * HOW MANY PARTNERS DOES EACH CODE UNIT HAVE, AND WHICH COUNTS ACTUALLY OCCUR?
+ * How many partners does each code unit have, and which counts actually occur?
  *
  * The implementation dispatches the first-character filter on that count: zero partners takes a
  * single-broadcast path, up to four takes the four-register path, and anything more takes a WIDE

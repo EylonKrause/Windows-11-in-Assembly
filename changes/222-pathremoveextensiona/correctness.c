@@ -3,12 +3,12 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// EVERY CASE COMPARES THE WHOLE BUFFER. The export writes exactly ONE byte -- the terminator at the
+// Every case compares the whole buffer. The export writes exactly one byte -- the terminator at the
 // extension position -- and clears nothing past it: "file.txt" becomes "file" with "txt" and the
 // original terminator still in the buffer. An implementation that zero-filled the removed extension
 // would leave the same STRING on every input, and this function returns nothing at all.
 //
-// THE CORPUS IS EXHAUSTIVE OVER AN ALPHABET THAT CONTAINS A SPACE, and that is not decoration. This
+// The corpus is exhaustive over an alphabet that contains a space, and that is not decoration. This
 // change's own rule was wrong in three landed siblings until earlier today: change 132 shipped a
 // PathFindExtension rule with only the backslash stopping the backward scan, a SPACE stops it too,
 // and changes 140, 143 and 144 inherited the omission. probes/rmext.c measured the narrow REMOVE

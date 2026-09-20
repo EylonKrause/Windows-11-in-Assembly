@@ -7,7 +7,7 @@
 // every call, dispatching each conversion through a per-character output helper -- ~305 ns (W) and
 // ~263 ns (A) to write 38 characters. Ours is one vpshufb and a template store.
 //
-// WHAT MUST BE PROVED LIVE. The return value alone is worthless here: three different lengths fail
+// What must be proved live. The return value alone is worthless here: three different lengths fail
 // three different ways, and a reimplementation can be wrong about all three while returning the
 // right code.
 //   * cch == 0                -> 122, buffer UNTOUCHED
@@ -21,7 +21,7 @@
 // measured them character-identical over 200 000 pairs, that is a reason to check both rather than
 // a licence to check one.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // iphlpapi only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // Build: build_iphlpapi_live.bat

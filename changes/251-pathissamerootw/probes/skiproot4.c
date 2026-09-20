@@ -13,7 +13,7 @@
  *
  * the UNC walk from i (this is 0x2B47C literally -- two wcschr calls and a cmove):
  *   consume the server; if there is no separator after it, stop;
- *   consume that separator EVEN IF THE SERVER WAS EMPTY;
+ *   consume that separator even if the server was empty;
  *   consume the share; if the share was EMPTY, stop BEFORE its separator, otherwise consume it too.
  *
  * the extended branch (0x2B4CD), in order:
@@ -76,7 +76,7 @@ static int model(const wchar_t* s)
         if (!is_sep(s[1])) return 1;
         if (s[2] == L'?') {
             if (caseless(s + 3, L"\\UNC\\", 5)) return unc_from(s, 8);
-            /* THE PREFIX IS THE FOUR CHARACTERS "\\?\", trailing separator included, which is the
+            /* The prefix is the four characters "\\?\", trailing separator included, which is the
                4-character constant compared at 0x2B3D2. Without this test the model answered 6 for
                "\\?aa:" where the live export says E_INVALIDARG -- 24 of 210720 cases, every one of
                them this shape. */

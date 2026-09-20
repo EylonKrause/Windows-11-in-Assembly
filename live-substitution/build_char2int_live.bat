@@ -1,17 +1,17 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 129 (ntdll!RtlCharToInteger).
+Rem  live-run proof for change 129 (ntdll!RtlCharToInteger).
 REM
 REM  This change was PARKED before gate 4 existed, so this is the first time the
 REM  shipped export is actually replaced by it.
 REM
-REM  Every case compares the NTSTATUS AND the caller's ULONG, with that ULONG
+Rem  Every case compares the NTSTATUS and the caller's ulong, with that ulong
 REM  pre-poisoned to a sentinel -- because an invalid base must leave it
 REM  COMPLETELY untouched, and zeroing the output first is the natural way to
 REM  write the code and would be wrong. A harness reading only the status would
 REM  pass that.
 REM
-REM  BOTH INVALID-BASE MECHANISMS ARE DRIVEN. The landing edit validates a
+Rem  both invalid-base mechanisms are driven. The landing edit validates a
 REM  caller-supplied base with a range test plus a bitmask over bits 2, 8 and 16
 REM  instead of a four-compare ladder, which splits the illegal bases into two
 REM  populations -- above 16 (the range test) and below 16 but not in the set

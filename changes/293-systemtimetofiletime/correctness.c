@@ -1,13 +1,13 @@
 // changes/293-systemtimetofiletime/correctness.c
 //
-// Gate 1 for change 293. Compares wia_systemtime_to_filetime against BOTH reference.c (the oracle)
+// Gate 1 for change 293. Compares wia_systemtime_to_filetime against both reference.c (the oracle)
 // and the LIVE kernel32!SystemTimeToFileTime resolved with GetProcAddress on this PC. A single
 // mismatch fails.
 //
-// WHAT IS COMPARED ON EVERY CASE, not just the return value:
+// What is compared on every case, not just the return value:
 //   * the BOOL return;
 //   * all 8 output bytes;
-//   * that on failure the output qword is left EXACTLY as the caller had it (sentinel);
+//   * that on failure the output qword is left exactly as the caller had it (sentinel);
 //   * 24 guard bytes on each side of the FILETIME, to prove nothing is written past the logical
 //     end in either direction;
 //   * TEB->LastErrorValue and TEB->LastStatusValue after the call -- so "the last error is not
@@ -22,7 +22,7 @@
 //   3. every field's range edges, both ends, plus 0x7FFF / 0x8000 / 0xFFFF CSHORT wraparound;
 //   4. all 65536 values of wDayOfWeek on one valid date -- the field the live export ignores;
 //   5. the structure at every byte alignment 0..63;
-//   6. the structure ending EXACTLY at a page boundary with the next page PAGE_NOACCESS, and
+//   6. the structure ending exactly at a page boundary with the next page PAGE_NOACCESS, and
 //      starting exactly at a page boundary with the PREVIOUS page PAGE_NOACCESS;
 //   7. round-trip: live FileTimeToSystemTime over the domain, converted back, must reproduce the
 //      instant exactly;

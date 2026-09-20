@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_varbstrcmp against the live oleaut32!VarBstrCmp.
  *
- * THE ROWS THAT DECIDE THIS CHANGE ARE THE ONES IT CANNOT WIN, and they are in the table for that
+ * The rows that decide this change are the ones it cannot win, and they are in the table for that
  * reason. probes/gap.c measured the shipped wrapper's own overhead at 1.25-2.25 ns on top of the
  * CompareStringW it calls -- so any comparison that has to be collated has essentially nothing to
  * give, and only the comparisons that do NOT have to be collated can be won:

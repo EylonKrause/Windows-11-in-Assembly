@@ -1,6 +1,6 @@
 /* discovery/ntdll_bitmap3.c
  *
- * THE BITMAP MUTATORS, AND THREE OTHER SCANS -- a third sweep of ntdll.
+ * The bitmap mutators, and three other scans -- a third sweep of ntdll.
  *
  * Enumerating ntdll's exports against this project's manifest leaves 154 uncovered names that are
  * plausibly byte-wise. This measures the ones the two earlier bitmap sweeps never touched, because
@@ -12,16 +12,16 @@
  *      RtlIsZeroMemory                    is this buffer entirely zero
  *      RtlCrc32 / RtlComputeCrc32         a checksum, where change 076 already did the 64-bit one
  *
- * WHY THE RANGE MUTATORS ARE INTERESTING HERE SPECIFICALLY: change 262 already built and gated a
+ * Why the range mutators are interesting here specifically: change 262 already built and gated a
  * bit-range set/clear -- masked word at each end, whole words between, 32 bytes at a time -- as the
  * mutation half of RtlFindSetBitsAndClear. If ntdll's standalone RtlSetBits is a loop, that code is
  * already written and already proved against a live export.
  *
  * METHOD, and the mistakes this file is written to avoid:
- *   * RUN IT ON AN IDLE MACHINE. Every row is a min-of-N.
- *   * EVERY ROW PRINTS WHAT IT ACTUALLY DID. A survey row whose subject does not do the work its
+ *   * Run it on an idle machine. Every row is a min-of-N.
+ *   * Every row prints what it actually did. a survey row whose subject does not do the work its
  *     label claims is this project's most expensive recurring mistake.
- *   * A MUTATOR CANNOT BE TIMED BY CALLING IT REPEATEDLY ON THE SAME SUBJECT unless the call is
+ *   * a mutator cannot be timed by calling it repeatedly on the same subject unless the call is
  *     idempotent. Setting the same range twice writes the same bytes, so these particular mutators
  *     ARE idempotent and the loop is honest -- which is stated here rather than assumed, because
  *     change 262's benchmark had to be built entirely around the cases where it is false.
@@ -38,7 +38,7 @@ typedef void    (NTAPI *F_All)(RBM*);
 typedef void    (NTAPI *F_One)(RBM*, ULONG);
 typedef BOOLEAN (NTAPI *F_Test)(RBM*, ULONG);
 typedef BOOLEAN (NTAPI *F_IsZero)(const void*, SIZE_T);
-/* THE TWO CRC ENTRY POINTS TAKE THEIR ARGUMENTS IN THE OPPOSITE ORDER, which is worth stating
+/* The two crc entry points take their arguments in the opposite order, which is worth stating
    because calling one with the other's convention passes 0 as the buffer and faults -- which is
    exactly what the first run of this file did. */
 typedef ULONG   (NTAPI *F_Crc32)(const void*, SIZE_T, ULONG);        /* RtlCrc32 */

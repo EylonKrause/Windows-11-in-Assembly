@@ -16,10 +16,10 @@
    whole set fits in a 16x16 bit matrix, and testing 32 characters against it costs a handful of
    vpshufb-class instructions. But none of that matters until the contract is settled:
 
-     * IS THE WALK BYTE-WISE ON THIS CODE PAGE? Ten to fourteen times the wide cost is the signature
+     * Is the walk byte-wise on this code page? Ten to fourteen times the wide cost is the signature
        of an MBCS-aware walk. If some byte acts as a lead byte the target is dead. Asked separately
        for each of the three, because they are three different functions.
-     * IS THE SET STRING ALSO WALKED MBCS-STYLE? It is a string too, and it could be classified
+     * Is the set string also walked mbcs-style? It is a string too, and it could be classified
        differently from the subject.
      * the empty set, the empty subject, NULL arguments, and a set containing duplicates;
      * what each one returns when nothing matches, which is where span and complement-span differ;

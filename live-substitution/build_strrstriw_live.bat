@@ -1,13 +1,13 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 283 (shlwapi!StrRStrIW).
+Rem  live-run proof for change 283 (shlwapi!StrRStrIW).
 REM
 REM  The shipped export costs 21816.97 ns over 511 code units. Its comparison is
-REM  PER CHARACTER, not a collation over spans -- "ab<SOFT HYPHEN>cd" does not
+Rem  per character, not a collation over spans -- "ab<SOFT HYPHEN>cd" does not
 REM  contain "abc" -- which is what makes this change writable on change 281's
 REM  relation.
 REM
-REM  Its shape is NOT StrRChrIW's: `end` bounds only where a match may START, the
+Rem  Its shape is not StrRChrIW's: `end` bounds only where a match may start, the
 REM  haystack is NUL-TERMINATED, and the terminator beats `end`. With no
 REM  terminator the export FAULTS, so every haystack here is terminated and the
 REM  guard-page cases put that terminator as the last readable code unit.

@@ -49,7 +49,7 @@ int main(void){
     if (!pcp) { printf("cannot resolve PathCommonPrefixA\n"); return 1; }
     printf("GetACP() = %u\n\n", GetACP());
 
-    /* ---- 1. EXPANSION: can ONE character stand for TWO? ---------------------------------- */
+    /* ---- 1. Expansion: can one character stand for two? ---------------------------------- */
     printf("=== 1. EXPANSION: does one character ever match two? ===\n");
     printf("  a = \"x\\<v>\\z\"   b = \"x\\<w1><w2>\\z\"\n");
     printf("  1:1 comparison -> prefix 1 (\"x\").  An expansion -> prefix 5.\n");
@@ -87,7 +87,7 @@ int main(void){
                                    : "no expansion: one character never matches two");
     }
 
-    /* ---- 2. IGNORABLES: can a character match NOTHING? ------------------------------------ */
+    /* ---- 2. IGNORABLES: can a character match nothing? ------------------------------------ */
     printf("\n=== 2. IGNORABLES: does any character match nothing at all? ===\n");
     printf("  a = \"x\\z\\q\"   b = \"x\\<v>z\\q\"\n");
     printf("  1:1 comparison -> prefix 1.  An ignorable <v> -> prefix 4.\n");
@@ -107,7 +107,7 @@ int main(void){
                                    : "no ignorables: every character must be matched");
     }
 
-    /* ---- 3. THE StrStrA SHAPE, DIRECTLY --------------------------------------------------- */
+    /* ---- 3. The StrStrA shape, directly --------------------------------------------------- */
     printf("\n=== 3. the StrStrA shape: does ONE 0x88 satisfy a RUN of 0x5E? ===\n");
     {
         int bad = 0;

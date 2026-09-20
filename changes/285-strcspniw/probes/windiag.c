@@ -1,6 +1,6 @@
 /* changes/285-strcspniw/probes/windiag.c
  *
- * WHY DOES A MUTANT THAT MEASURES THE COUNT FROM THE WINDOW SURVIVE GATE 1?
+ * Why does a mutant that measures the count from the window survive gate 1?
  *
  * The count is computed as (best - base) / 2. A mutant that uses the current WINDOW START instead of
  * the string base survived 5354 correctness cases but was caught by the live gate, which means the two

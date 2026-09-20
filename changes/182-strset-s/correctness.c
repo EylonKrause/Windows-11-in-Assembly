@@ -79,7 +79,7 @@ int main(void){
         CHECK(one(s,400,'x'), "generous bound");
     }
 
-    // EVERY fill byte value, including 0
+    // every fill byte value, including 0
     for(int c=0;c<256;c++){
         for(int i=0;i<20;i++) s[i]=(char)('a'+(i%26));
         s[20]=0;

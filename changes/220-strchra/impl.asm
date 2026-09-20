@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!StrChrA: the first occurrence of wMatch, or NULL.
 ;
-; ---- THIS ONE IS A DIFFERENT SHAPE FROM THE REST OF THE NARROW FAMILY, and the numbers say so ------
+; ---- This one is a different shape from the rest of the narrow family, and the numbers say so ------
 ; StrRChrA cost 16.41x its wide sibling, StrCSpnA 13.54x, StrPBrkA 10.03x -- all the signature of an
 ; MBCS-aware walk with a function call per character. StrChrA costs 1580.19 ns against StrChrW's
 ; 1565.97 over the same character count: 1.01x the wide cost for HALF the bytes, i.e. only twice the
@@ -16,7 +16,7 @@
 ; ---- what the probe settled (probes/chr.c) ----------------------------------------------------------
 ;   * BYTE-WISE. Every byte value 0x01..0xFF placed where a lead byte would swallow the character
 ;     after it: 0 of 254 misbehave (GetACP() is 1252, which has none).
-;   * wMatch is a WORD but only its LOW BYTE is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
+;   * wMatch is a word but only its low byte is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
 ;     and 0x5A00 (low byte NUL) finds nothing.
 ;   * Searching for the TERMINATOR returns NULL; so does an empty string, and so does a NULL pointer.
 ;   * The scan STOPS at the terminator: "abc\0Zxy" does not find the 'Z' beyond the embedded NUL.
@@ -37,7 +37,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shlx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm4 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm4 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .code
 wia_strchra PROC

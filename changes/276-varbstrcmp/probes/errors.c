@@ -1,12 +1,12 @@
 /* changes/276-varbstrcmp/probes/errors.c
  *
- * THE TWO THINGS A FAST PATH MUST NOT SWALLOW.
+ * The two things a fast path must not swallow.
  *
  * probes/reflexive.c proved that identical strings always compare EQ -- 0 of 131070 code unit
  * placements, every surrogate and noncharacter asked, under every VALID flag and locale. The
  * qualifier is the point: its section 4 reported 176 of 972 combinations "not reflexive", and every
  * one of them had an invalid LCID (0x0FFFFFFF) or an undefined flag bit. Those are not non-reflexive
- * comparisons; they are ERROR RETURNS, and a fast path that answered EQ before looking at the
+ * comparisons; they are error returns, and a fast path that answered eq before looking at the
  * arguments would turn an error into a success.
  *
  * probes/gap.c then established the budget. The shipped wrapper adds only 1.25-2.25 ns on top of the
@@ -18,9 +18,9 @@
  * enough for the check to pay, delegate otherwise, and reproduce the error returns exactly. This
  * file measures the two things that decides:
  *
- *   1. WHAT DOES IT RETURN FOR AN INVALID LCID OR FLAG, exactly -- the HRESULT, not "an error" --
+ *   1. What does it return for an invalid LCID or flag, exactly -- the HRESULT, not "an error" --
  *      and does CompareStringW's failure map onto it?
- *   2. DOES THE EMPTY CASE VALIDATE AT ALL? If VarBstrCmp("", "") returns EQ even with rubbish
+ *   2. Does the empty case validate at all? If VarBstrCmp("", "") returns eq even with rubbish
  *      flags, then the empty rules are checked before the arguments are, and a fast path may do the
  *      same. If it returns the error, they are not.
  *

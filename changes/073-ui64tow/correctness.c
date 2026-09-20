@@ -22,7 +22,7 @@ int main(void){
     fn sys=(fn)GetProcAddress(h,"_ui64tow");
     if(!sys){printf("no _ui64tow\n");return 2;}
     unsigned long long seed=0x73abcdef12345ULL;
-    /* THE RADIX IS A SIGNED int, AND THIS LOOP USED TO STOP AT 36.
+    /* The radix is a signed int, and this loop used to stop at 36.
        That is the shape of the defect found in changes 097 and 100 -- a parameter class the gate
        never asked about -- and all eight corpora in this family had it. audits/gate-never-asked
        put every out-of-range radix to ucrtbase and to this implementation side by side, one call

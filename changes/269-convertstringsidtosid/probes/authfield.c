@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/probes/authfield.c
  *
- * THE IDENTIFIER AUTHORITY IS PARSED BY A DIFFERENT ROUTINE FROM THE REST.
+ * The identifier authority is parsed by a different routine from the rest.
  *
  * probes/model.c validated the grammar from grammar.c and limits.c against the live export over
  * 36508 cases and found 2822 disagreements, all of one shape:
@@ -85,7 +85,7 @@ int main(void)
     ask(L"S-1--1-1");
     ask(L"S-1--0x1-1");
 
-    /* WHICH CHARACTERS COUNT AS LEADING WHITESPACE. "space and tab" is what two examples showed;
+    /* Which characters count as leading whitespace. "space and tab" is what two examples showed;
        the SET is what matters, and it is cheaper to enumerate it than to assume it is iswspace. */
     printf("\n== every code unit 1..0xFFFF as a leading character in the AUTHORITY field ==\n");
     {

@@ -5,7 +5,7 @@
 // shared setup cost.
 // Lengths are COMPUTED, never hardcoded.
 //
-// THE CASE MIX. The cost is "how far to the first separator", which is NOT the string length: a
+// The case mix. The cost is "how far to the first separator", which is not the string length: a
 // path whose first separator is at byte 2 costs the same whether it is 16 bytes or 4000. So the
 // rows vary the DISTANCE to the separator, and the no-separator rows are the ones that scan the
 // whole string.

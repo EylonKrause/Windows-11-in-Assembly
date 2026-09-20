@@ -2,7 +2,7 @@
  *
  * Three-way: ours vs an independent scalar model vs the LIVE shlwapi export.
  *
- * WHAT THIS GATE INHERITS, AND WHY. Changes 283, 284 and 285 each ended with corpora that exist only
+ * What this gate inherits, and why. Changes 283, 284 and 285 each ended with corpora that exist only
  * because a mutant survived, and two of them caught real defects in a shipped implementation rather than
  * in a mutant. Change 285 went further and found three of its OWN corpora vacuous -- passing while
  * proving nothing, because the filler character was itself a match. So this file starts with all of it:
@@ -114,7 +114,7 @@ int main(void)
                "      for exactly that reason\n", FILL, (int)(sizeof(used) / sizeof(used[0])));
     }
 
-    /* 1. THE COUNT BOUNDARY at every match position, through plant() */
+    /* 1. The count boundary at every match position, through plant() */
     {
         long before = cases;
         static wchar_t s[80];
@@ -169,7 +169,7 @@ int main(void)
                "     above it: %ld\n", cases - before);
     }
 
-    /* 4. THE TERMINATOR IS NEVER A MATCH -- the rule that differs from changes 283 and 284.
+    /* 4. The terminator is never a match -- the rule that differs from changes 283 and 284.
      *
      * There, a needle character that matches a NUL matched the terminator itself. Here it does not, so
      * every NUL-matching character must give NULL over a string that contains no other match, however

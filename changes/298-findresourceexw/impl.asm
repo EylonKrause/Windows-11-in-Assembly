@@ -2,13 +2,13 @@
 ; ---------------------------------------------------------------------------------------------
 ; kernelbase!FindResourceExW, reimplemented.
 ;
-; WHAT IS AND IS NOT REPLACED, stated up front because it decides how to read the numbers.
+; What is and is not replaced, stated up front because it decides how to read the numbers.
 ; The shipped body is:
 ;
 ;       norm(lpType) ; norm(lpName) ; LdrFindResource_U(...) ; free ; map NTSTATUS
 ;
 ; and `norm` is where every byte of work in this function lives: wcslen, an RtlAllocateHeap of
-; (len+1)*2, one CALL to RtlUpcaseUnicodeChar PER CHARACTER through the IAT, and an RtlFreeHeap.
+; (len+1)*2, one call to RtlUpcaseUnicodeChar per character through the IAT, and an RtlFreeHeap.
 ; Measured on this machine (probes/attribute.c): the heap round trip is 40.8 ns and the per-
 ; character call chain is 1.19-1.24 ns/char, for a normaliser cost of 41 + 1.5*N ns per string
 ; argument.  ntdll!LdrFindResource_U -- the SxS / MUI / language-fallback walk -- is NOT
@@ -22,12 +22,12 @@
 ;   * no heap at all for names up to 768 characters -- the caller's stack buffer takes them;
 ;   * 16 characters per iteration with AVX2, upcased branchlessly;
 ;   * proven ASCII-exact: probes/contract.c walks all 65536 code units through the live
-;     RtlUpcaseUnicodeChar and finds that below 0x80 it is EXACTLY the a-z fold, 26 code units
+;     RtlUpcaseUnicodeChar and finds that below 0x80 it is exactly the a-z fold, 26 code units
 ;     change, zero exceptions. The first code unit at or above 0x80 that changes is U+00E0, so
 ;     any character >= 0x80 abandons the vector path and the whole string is redone through the
 ;     real table -- a full restart, never a scalar step back into the vector loop (change 263).
 ;
-; PAGE SAFETY. Only the FIRST 32-byte load can be at an arbitrary address, and it is issued only
+; Page safety. Only the first 32-byte load can be at an arbitrary address, and it is issued only
 ; when (src & 4095) <= 4064, so it cannot cross into the next page. When it would, the string is
 ; peeled one character at a time up to the next 32-byte boundary and every load after that is
 ; 32-byte ALIGNED, which can never straddle a page; each such load is reached only after the
@@ -35,7 +35,7 @@
 ; therefore mapped.
 ;
 ; WRITE CONTRACT, enforced by correctness.c: wia_resname_upcase writes whole 32-byte blocks, so
-; it may write past the terminator it stores, but NEVER before dst and never at or beyond
+; it may write past the terminator it stores, but never before dst and never at or beyond
 ; dst + 2*len + 32. Its one caller hands it a buffer sized 2*768 + 32 for exactly that reason.
 ;
 ; WIN64 ABI: only rax rcx rdx r8 r9 r10 r11 and ymm0-ymm2 are used as scratch. rbx, rsi and rdi
@@ -210,7 +210,7 @@ u_toolong:
         pop     rdi
         ret
 
-        ; ---- a character >= 0x80 is present: redo the WHOLE string through the real table.
+        ; ---- a character >= 0x80 is present: redo the whole string through the real table.
         ; A full restart, not a step back into the vector loop. ----
 u_scalar:
         vzeroupper
@@ -339,7 +339,7 @@ n_ret:  add     rsp, 40h
 f_norm  ENDP
 
 ; =============================================================================================
-; HRSRC wia_findresourceexw(HMODULE hModule, LPCWSTR lpType, LPCWSTR lpName, WORD wLanguage)
+; Hrsrc wia_findresourceexw(HMODULE hModule, lpcwstr lpType, lpcwstr lpName, word wLanguage)
 ; =============================================================================================
 F_SHADOW        EQU 0
 F_IDS           EQU 20h                         ; ids[0..2]

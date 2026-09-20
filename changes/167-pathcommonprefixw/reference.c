@@ -2,8 +2,8 @@
  *
  * An INDEPENDENT oracle for PathCommonPrefixW.
  *
- * IT IS DELIBERATELY A DIFFERENT FORMULATION FROM impl.asm, not a second copy of one. The shipped
- * function walks COMPONENT BY COMPONENT: scan each side to the next '\' or NUL, require the two
+ * It is deliberately a different formulation from impl.asm, not a second copy of one. The shipped
+ * function walks component by component: scan each side to the next '\' or NUL, require the two
  * components to be the same LENGTH, compare them case-insensitively, record the boundary at the end
  * of each component that matched. This file is that, transcribed literally.
  *
@@ -21,20 +21,20 @@
  * Running the two formulations against each other, and both against the live export, is what turns
  * that argument into evidence. If the equivalence were wrong, this is where it would show.
  *
- * THE RULES THEMSELVES were read out of kernelbase!PathCommonPrefixW (RVA 0x0CBD10) and then
+ * The rules themselves were read out of kernelbase!PathCommonPrefixW (rva 0x0CBD10) and then
  * confirmed by probes/pcp6.c over 183111 cases with zero mismatches:
  *
  *   * NULL pszFile1 or NULL pszFile2 -> 0, and achPath is NOT written;
  *   * otherwise achPath, if given, is cleared to L"" before anything else is decided;
- *   * THE ONLY ROOT HANDLING IS A DOUBLED LEADING BACKSLASH. If either path starts with "\\" then
- *     BOTH must, or the answer is 0; and each such path's cursor skips its own two characters.
+ *   * The only root handling is a doubled leading backslash. If either path starts with "\\" then
+ *     both must, or the answer is 0; and each such path's cursor skips its own two characters.
  *     There is no root parser, and PathSkipRootW is never called -- which is what this change was
  *     parked on the assumption of.
  *   * the case-fold is exactly RtlUpcaseUnicodeChar (0 differences over 65534 code-unit pairs,
  *     against 947 for a plain ASCII fold);
  *   * '/' is NOT a separator;
  *   * the length is measured from pszFile1 ITSELF, so a UNC result includes the leading "\\";
- *   * A COMPUTED LENGTH OF EXACTLY 2 IS REPORTED AS 3. Any length, not just drive letters, not just
+ *   * a computed length of exactly 2 Is reported as 3. Any length, not just drive letters, not just
  *     identical strings;
  *   * achPath receives that many characters of pszFile1, stopping at pszFile1's own terminator --
  *     which is why a result of 3 can still write only 2 -- and nothing at all if the result is 260

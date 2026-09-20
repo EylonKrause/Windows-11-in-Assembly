@@ -16,8 +16,8 @@
    BACKWARD vectorised scan that finds the last separator in its first 32-byte block -- so the rows
    vary the two things that decide the cost:
 
-     * THE LENGTH OF THE PATH, which is what the wcslen must cross either way;
-     * THE LENGTH OF THE LAST COMPONENT, which is all the backward scan has to cross. A long path
+     * The length of the path, which is what the wcslen must cross either way;
+     * The length of the last component, which is all the backward scan has to cross. a long path
        with a short final component is the shape every real path has, and it is where the difference
        between walking forwards and walking backwards shows up.
 

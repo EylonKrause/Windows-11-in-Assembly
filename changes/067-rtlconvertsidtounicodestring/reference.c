@@ -9,7 +9,7 @@
  *
  *   * "S-" + revision + "-" + identifier authority + ("-" + sub-authority) x count.
  *   * The revision must be 1. Anything else is STATUS_INVALID_SID.
- *   * THE SUB-AUTHORITY COUNT MUST BE AT MOST 15, and this line was MISSING from the first version
+ *   * The sub-authority count must be at most 15, and this line was missing from the first version
  *     of this file and from the first version of impl.asm. The corpus that validated them drew its
  *     count as `(seed>>8)%16`, so a count above 15 was never once generated -- and both of them
  *     would have formatted all 200 sub-authorities of a SID whose count byte said 200, reading
@@ -22,7 +22,7 @@
  *   * Each sub-authority is an unsigned 32-bit decimal, with no padding and no grouping.
  *   * On success the string and a terminating NUL are written and Out->Length is set to the byte
  *     count WITHOUT the NUL. MaximumLength must be at least Length+2, else STATUS_BUFFER_OVERFLOW
- *     and OUT IS LEFT COMPLETELY UNTOUCHED -- neither Length nor a single byte of the buffer.
+ *     and out is left completely untouched -- neither Length nor a single byte of the buffer.
  */
 
 typedef long NTSTATUS;
@@ -77,7 +77,7 @@ NTSTATUS ref_sidfmt(U* out, const unsigned char* sid)
         p = du(p, sa);
     }
 
-    /* THE ROOM RULE IS Length+1, NOT Length+2, AND AT EXACTLY Length+1 THERE IS NO TERMINATOR.
+    /* The room rule is Length+1, not Length+2, and at exactly Length+1 there is no terminator.
        probes/oddroom.c measured it at every MaximumLength around the boundary, for three lengths:
        at Length+1 the string and Out->Length are written and the two bytes past the string keep the
        caller's fill; at Length+2 and above a full wide NUL appears. Both this file and impl.asm

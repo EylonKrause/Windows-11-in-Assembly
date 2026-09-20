@@ -8,11 +8,11 @@
  * 1.03x, 0.94x, 1.07x for the empty string and 1.14x, 0.58x, 1.11x, 1.07x for sixteen characters.
  * The 0.58x is not a regression that comes and goes; it is noise.
  *
- * Change 298 hit this and answered it the only way that is not an opinion: MEASURE THE LIVE EXPORT
+ * Change 298 hit this and answered it the only way that is not an opinion: Measure the live export
  * AGAINST ITSELF. Both sides are then literally the same function, so any verdict other than a tie
  * is the harness failing to resolve the row, and counting those gives the resolution floor.
  *
- * THIS MUST USE THE SAME STATISTIC AS THE GATE, and the first version of this file did not -- it
+ * This must use the same statistic as the gate, and the first version of this file did not -- it
  * timed one batch per side where wia_measure takes the MINIMUM over `trials` auto-calibrated
  * batches. Single batches made every row look unresolvable, including 4096 characters, where the
  * real margin is 7x and unmistakable. A control that is noisier than the thing it is controlling

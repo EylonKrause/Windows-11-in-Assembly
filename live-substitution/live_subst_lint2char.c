@@ -1,14 +1,14 @@
 // live-substitution/live_subst_lint2char.c
 // LIVE-RUN PROOF for change 280 (ntdll!RtlLargeIntegerToChar).
 //
-// WHAT IS COMPARED IS THE WHOLE DESTINATION, not the status. probes/contract.c measured that a
+// What is compared is the whole destination, not the status. probes/contract.c measured that a
 // refusal leaves the caller's buffer COMPLETELY untouched -- not one byte written -- so an
 // implementation that wrote a terminator before discovering it had no room would pass any check
 // that only looked at the NTSTATUS. That is not hypothetical here: change 100, the landed
-// implementation of this very export, differs from live on EVERY negative length and six of change
+// implementation of this very export, differs from live on every negative length and six of change
 // 279's eleven mutants had identical statuses on both sides.
 //
-// FIVE PATHS ARE UNDER TEST:
+// Five paths are under test:
 //
 //   * base 10 ABOVE 2^32, which peels eight digits at a time through the one 64-bit reciprocal
 //     probes/div64.c proves over the whole domain;
@@ -16,29 +16,29 @@
 //   * the ONE-DIGIT decimal path, which writes its character and returns without touching a table;
 //   * bases 2, 8 and 16, which emit several digits per store -- base 2 running to SIXTY-FOUR
 //     characters, twice the longest answer change 279 could produce;
-//   * the ZERO-PADDED FIELD WIDTH a negative length asks for, which is a fill loop no positive
+//   * the zero-padded field width a negative length asks for, which is a fill loop no positive
 //     length ever reaches and the only place this change touches an XMM register.
 //
 // A corpus of plausible positive lengths on plausible values would drive two of the five. So every
 // case draws a base from the five legal ones AND the illegal ones, a value from a distribution that
 // covers every one of the sixty-four bit lengths and the 2^32 and 10^8 boundaries specifically, and
-// a length from AROUND the room rule on BOTH sides of zero. The harness FAILS if any path, either
+// a length from around the room rule on both sides of zero. The harness fails if any path, either
 // sign of length, or any of the three outcomes comes back thin.
 //
-// THE NEGATIVE LENGTHS ARE BOUNDED, AND THAT BOUND IS NOT TIMIDITY. A field width is honoured
+// The negative lengths are bounded, and that bound is not timidity. a field width is honoured
 // literally: probes/contract.c measured that -96 exactly fills a 96-byte buffer and -97 runs off
 // the end of it, and change 279's first correctness corpus died of an access violation because it
 // asked for INT_MIN+1 -- a field two billion characters wide. The destination here is 640 bytes and
 // no case asks for more than 400.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_lint2char_live.bat
@@ -124,7 +124,7 @@ static unsigned digits_of(unsigned long long v, ULONG b)
 {
     unsigned n = 1;
     ULONG base = b ? b : 10;
-    /* BASE 1 WOULD LOOP FOREVER: v /= 1 never decreases. One case in seven draws an ILLEGAL base
+    /* Base 1 Would loop forever: v /= 1 never decreases. One case in seven draws an illegal base
        from rnd() % 40, which includes 1, and change 278's harness hung in its pre-patch pass having
        printed only its header. The length of a refused call is never used, so any sane number will
        do -- but it has to terminate. */

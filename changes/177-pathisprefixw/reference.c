@@ -13,7 +13,7 @@
  * and that is also the check that change 167's assembly still agrees with the shipped body it is
  * standing in for.
  *
- * THE IDENTITY ITSELF was established by this change's original probes (2M cases against both live
+ * The identity itself was established by this change's original probes (2M cases against both live
  * exports) and re-established from scratch by probes/pip2.c now that 167 has landed: 516441 cases,
  * 0 mismatches. It is what explains every odd result the direct probing found, including the
  * trailing-backslash case -- "C:\a\" against "C:\a\b" gives a common prefix of 4 against a prefix

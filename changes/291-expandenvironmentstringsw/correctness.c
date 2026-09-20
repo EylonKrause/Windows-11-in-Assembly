@@ -6,16 +6,16 @@
  *      impl.asm                 the hand-written assembly
  *      kernel32!ExpandEnvironmentStringsW   resolved LIVE with GetProcAddress
  *
- * and compares, for each of them: the return value, the WHOLE destination buffer byte for byte
+ * and compares, for each of them: the return value, the whole destination buffer byte for byte
  * (which is how "nothing is written past the logical end" is checked -- the buffer is pre-filled
  * with a sentinel and any stray store shows up as a sentinel that did not survive), and the
  * thread's last-error value. One mismatch fails the gate.
  *
- * THE BUFFER IS COMPARED IN FULL, NOT UP TO THE RETURN VALUE. That distinction is the whole point
+ * The buffer is compared in full, not up to the return value. That distinction is the whole point
  * here, because the truncating path of this function writes nSize-1 characters and NO terminator,
  * so "compare up to the answer" would never look at the bytes that prove it.
  *
- * WHAT THE CORPUS COVERS (counts printed at the end):
+ * What the corpus covers (counts printed at the end):
  *   * empty input, length 1, and every length 0..80 -- five times the 16-character vector width
  *   * every start offset 0..15 within a 32-byte block, so the aligned-down prologue load is
  *     exercised at every possible shift

@@ -1,7 +1,7 @@
 // changes/245-urlunescapew/bench.c
 // Gate 2: time wia_urlunescapew against the live shlwapi!UrlUnescapeW.
 //
-// THE CASE MIX. This function's cost has three components and the rows are chosen to separate them:
+// The case mix. This function's cost has three components and the rows are chosen to separate them:
 //   * the per-character walk, which scales with the input;
 //   * a FIXED heap tax above 64 wide characters, where the shipped code stops fitting its 65-WCHAR
 //     stage buffer and calls LocalAlloc(LMEM_ZEROINIT) -- discovery measured the step directly,
@@ -9,11 +9,11 @@
 //   * the escape density, because every escape is a scalar step in both implementations while the
 //     runs between them are vector work here and a per-character loop there.
 //
-// NO RESTORE IS NEEDED ON THE NON-IN-PLACE ROWS: the destination is a separate buffer that is never
+// No restore is needed on the non-in-place rows: the destination is a separate buffer that is never
 // read back, and the source is never modified -- the correctness harness asserts that last part. The
 // IN-PLACE rows are the exception and they are the reason for the rotation and for the diagnostic
 // below: an in-place unescape consumes its own input, so it has to be restored, and a restore is a
-// memcpy of the whole string. That is heavy relative to the function, so it is (a) charged to BOTH
+// memcpy of the whole string. That is heavy relative to the function, so it is (a) charged to both
 // sides equally, (b) placed on a buffer eight slots away from the one being processed, so it cannot
 // stall the next call's wide load the way the restores that parked changes 142, 228, 230 and 241 did,
 // and (c) printed on its own line so it can be subtracted. A restore heavier than the function
@@ -78,7 +78,7 @@ static uint64_t op_ip_restore(void* c){
 }
 #pragma optimize("", on)
 
-/* PAGE-ALIGNED ARENAS, AND THIS IS NOT COSMETIC. The first version of this benchmark cut its
+/* Page-aligned arenas, and this is not cosmetic. The first version of this benchmark cut its
    subjects and destinations out of two large .bss arrays at whatever offsets the loop happened to
    produce, and it was NOT REPRODUCIBLE: the escape-dense row read 2371, 2378 and then 289 ns for
    the same call, and merely adding a diagnostic block ahead of the table -- which moved nothing but
@@ -187,7 +187,7 @@ int main(void){
         printf("\n");
     }
 
-    /* WHY THE SAME ROW MEASURES TWO DIFFERENT NUMBERS. The per-row diagnostic above reported the
+    /* Why the same row measures two different numbers. The per-row diagnostic above reported the
        escape-dense row at 291 ns while the table below reported 2378 for the same call, and a
        standalone harness agreed with the 291. The difference is not the function and not the
        rotation: it is what ran immediately before. This block isolates it. */

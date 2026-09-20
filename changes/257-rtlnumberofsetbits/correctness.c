@@ -4,15 +4,15 @@
  * RtlNumberOfSetBits, RtlNumberOfClearBits, RtlNumberOfSetBitsInRange and
  * RtlNumberOfClearBitsInRange.
  *
- * COUNTING IS THE EASY PART; THE EDGES ARE THE WHOLE TEST. Every corpus below is built to attack
+ * Counting is the easy part; the edges are the whole test. Every corpus below is built to attack
  * one of them:
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap at every declared size. Nothing sampled.
- *   2. EVERY (start, length) over a small bitmap -- 130 x 130 -- so the refusal predicate, the
+ *   2. every (start, length) over a small bitmap -- 130 x 130 -- so the refusal predicate, the
  *      single-word case, and the head/tail split are all covered by construction.
- *   3. THE VECTOR SEAM: lengths that straddle the 32-byte body, so the transition from the VPSHUFB
+ *   3. The vector seam: lengths that straddle the 32-byte body, so the transition from the vpshufb
  *      loop to the scalar remainder to the masked tail is crossed at every offset.
- *   4. A GUARD PAGE at the end of the buffer, at ODD ULONG counts, so a 64-bit read of the final
+ *   4. a guard page at the end of the buffer, at odd ulong counts, so a 64-bit read of the final
  *      partial word FAULTS rather than quietly reading four bytes the caller never allocated.
  *   5. THE SLACK past SizeOfBitMap, over an all-ones buffer, where any failure to mask shows up as
  *      a larger count.
@@ -115,7 +115,7 @@ int main(void)
                "%ld cases\n", cases - before);
     }
 
-    /* ---- 2. EVERY (start, length) over a small bitmap ---- */
+    /* ---- 2. every (start, length) over a small bitmap ---- */
     {
         long before = cases;
         ULONG buf[8];

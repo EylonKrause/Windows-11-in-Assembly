@@ -7,14 +7,14 @@
 ;     dependent loop before any parsing starts;
 ;   * each hex digit costs three range compares (0-9, A-F, a-f) plus a shift, an add and a store.
 ;
-; THE FAILURE CONTRACT IS THE HARD PART, AND IT WAS MEASURED, NOT GUESSED. This function writes into
-; the caller's GUID AS IT PARSES, so a malformed string leaves a partially-filled GUID that has to be
+; The failure contract is the hard part, and it was measured, not guessed. This function writes into
+; the caller's GUID as it parses, so a malformed string leaves a partially-filled GUID that has to be
 ; reproduced byte for byte. probes/wmask.c corrupts exactly one character at a time and reports which
 ; of the sixteen output bytes moved away from a poison fill. The table that came back:
 ;
 ;     corrupted char   bytes written        because
 ;     0   '{'          none                 the brace is checked before anything is stored
-;     1..8             0-3, PARTIAL Data1   Data1 is zeroed first, then re-stored after EVERY digit
+;     1..8             0-3, PARTIAL Data1   Data1 is zeroed first, then re-stored after every digit
 ;     9   '-'          0-3, full Data1
 ;     10..13           0-3                  Data2 is not stored yet
 ;     14  '-'          0-3                  ...not even after its four digits validate
@@ -26,12 +26,12 @@
 ;     25..36           one more byte per hex pair
 ;     37  '}'          all 16               Data4[7] is stored BEFORE the brace is checked
 ;
-; So every field is stored only once IT AND ITS TRAILING SEPARATOR have validated -- except Data1,
+; So every field is stored only once it and its trailing separator have validated -- except Data1,
 ; which is progressive, and Data4[0], which has no trailing separator. An implementation that simply
 ; parsed into a scratch and stored on success would pass a return-value test and fail this one.
 ;
-; TWO DIFFERENT ERROR CODES, and they are not interchangeable:
-;   * 80070057h (E_INVALIDARG) -- lpiid is NULL, or the string length is not EXACTLY 38. Nothing is
+; Two different error codes, and they are not interchangeable:
+;   * 80070057h (E_INVALIDARG) -- lpiid is NULL, or the string length is not exactly 38. Nothing is
 ;     written. This is a structural rejection, decided before the parser runs.
 ;   * 800401F4h (CO_E_IIDSTRING) -- the length was right but the content is not. Partial writes as
 ;     tabulated above.
@@ -40,7 +40,7 @@
 ;
 ; lpsz == NULL is SUCCESS: it writes the nil GUID and returns S_OK.
 ;
-; WHAT WE DO INSTEAD:
+; What we do instead:
 ;   * the length check is one AVX2 pass -- two vpcmpeqw over chars 0..31 plus a 16-byte tail -- so
 ;     the 38-iteration walk disappears;
 ;   * every digit is one 256-entry table lookup instead of three range compares. Data1 keeps a branch
@@ -115,7 +115,7 @@ wia_iidfromstring PROC
         test      rcx, rcx
         jz        nil_guid                     ; lpsz NULL -> nil GUID, S_OK
 
-        ;================ the length must be EXACTLY 38 characters ================
+        ;================ the length must be exactly 38 characters ================
         mov       eax, ecx
         and       eax, 4095
         cmp       eax, 4096 - 80

@@ -1,14 +1,14 @@
 // live-substitution/live_subst_getstringtypew.c
 // LIVE-RUN PROOF for change 287 (kernelbase!GetStringTypeW).
 //
-// ONE HAZARD IS SPECIFIC TO THIS CHANGE AND HAS TO BE HANDLED EXPLICITLY. Our implementation's tables
-// are DERIVED FROM THE LIVE EXPORT at init -- tables.c calls it 65536 times per info type and then
+// One hazard is specific to this change and has to be handled explicitly. Our implementation's tables
+// are derived from the live export at init -- tables.c calls it 65536 times per info type and then
 // re-checks the result. If the patch were already installed when that happened, the tables would be
 // built from our own code and the whole gate would be comparing us against ourselves, which is the most
 // comfortable possible way to pass and would prove nothing. So wia_gst_init() is called and asserted
 // BEFORE patch_on, and the harness refuses to continue if it has not run.
 //
-// WHAT IS COMPARED IS THE RETURN VALUE, EVERY OUTPUT WORD, AND THE WORD JUST PAST THE END. This is the
+// What is compared is the return value, every output word, and the word just past the end. This is the
 // first export in the project that writes a caller-supplied buffer whose length the caller states, so
 // "one word too many" is its own failure mode and a harness that only compared the words it asked for
 // could not see it. Every case fills both destinations with a sentinel and checks it survives.
@@ -20,10 +20,10 @@
 //   * the classification is CONTEXT-FREE (20000 random strings, 0 disagreements) and LOCALE-INVARIANT
 //     (seven thread locales, 0 differing entries), which is the only reason a table is legal at all;
 //   * cchSrc > 0 is a count of code units and exactly that many words are written;
-//   * cchSrc == -1 means NUL-terminated AND INCLUDES THE TERMINATOR;
+//   * cchSrc == -1 means NUL-terminated and includes the terminator;
 //   * cchSrc == 0, a NULL source and a NULL destination are refused.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG state
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng state
 // across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; validate first; patch only when idle;
@@ -146,7 +146,7 @@ static void build_case(long i)
         cur_cch = 1 + (int)(rnd() % n);
         if ((i % 7) == 3) cur_cch = (int)(n & ~7u) ? (int)(n & ~7u) : 8;   /* a multiple of the unroll */
     }
-    /* AN EXPLICIT COUNT IS AUTHORITATIVE, so a count larger than the buffer is an input the SHIPPED
+    /* An explicit count is authoritative, so a count larger than the buffer is an input the shipped
        export cannot survive -- and a differential gate must not feed it one. The first version of this
        harness did, and the export died with an access violation on case 2908: a guard-page string of
        length 5 asked for with cchSrc = 8. probes/contract.c now measures the boundary exactly -- with
@@ -187,7 +187,7 @@ int main(void)
     setvbuf(stdout, NULL, _IONBF, 0);
     printf("== LIVE SUBSTITUTION: kernelbase!GetStringTypeW (change 287) ==\n");
 
-    /* THE TABLES MUST BE BUILT BEFORE THE PATCH GOES ON. They are derived from the live export, so
+    /* The tables must be built before the patch goes on. They are derived from the live export, so
        deriving them through our own replacement would make this gate compare us against ourselves. */
     if (wia_gst_init()) {
         printf("  FAIL: the tables could not be derived from the live export\n");

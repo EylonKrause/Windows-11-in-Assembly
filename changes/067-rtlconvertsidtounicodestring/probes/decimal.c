@@ -1,6 +1,6 @@
 /* changes/067-rtlconvertsidtounicodestring/probes/decimal.c
  *
- * THIS FUNCTION IS DIVISION-BOUND, AND THE CONSTANTS THAT FIX IT ARE PROVED HERE, NOT QUOTED.
+ * This function is division-bound, and the constants that fix it are proved here, not quoted.
  *
  * impl.asm formats every number -- the revision, the identifier authority and up to fifteen
  * sub-authorities -- through a subroutine `du` whose inner loop is:
@@ -13,7 +13,7 @@
  *             test  eax, eax
  *             jnz   dul
  *
- * ONE 32-BIT DIVISION PER DECIMAL DIGIT. A sub-authority like 2596069104 is ten digits, so it is
+ * One 32-BIT division per decimal digit. a sub-authority like 2596069104 is ten digits, so it is
  * ten divisions, and `div` on this core has a latency in the twenties. The digits are then written
  * to a scratch byte buffer and read back in reverse, so every character is touched twice. The file
  * even declares `EXTERN wia_dec2b` -- the two-digit table changes 054 and 202 use -- and then never
@@ -23,7 +23,7 @@
  * characters at a time from a table. It rests on two claims that are ASSERTED everywhere they are
  * written down and PROVED nowhere:
  *
- *   1. (v * 0x51EB851F) >> 37, computed in 64 bits, equals v / 100 for EVERY 32-bit v.
+ *   1. (v * 0x51EB851F) >> 37, computed in 64 bits, equals v / 100 for every 32-bit v.
  *   2. digits10(v) = G[floor(log2(v|1))] + (v >= POW10[G[...]]) for a small table G.
  *
  * Both are checked against the compiler's own division over ALL 4294967296 values of v, because a

@@ -132,7 +132,7 @@ int main(void){
     printf("  The same input at four output-buffer alignments and three cch values.\n");
     {
         static wchar_t pool[8192];
-        /* named SUBJ, not IN: IN is a Windows macro and a local of that name vanishes */
+        /* named subj, not in: In is a Windows macro and a local of that name vanishes */
         static const wchar_t* SUBJ = L"C:\\alpha\\beta\\..\\gamma\\.\\delta";
         wchar_t first[512];
         int firstset = 0, diffs = 0;

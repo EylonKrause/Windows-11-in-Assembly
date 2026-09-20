@@ -1,6 +1,6 @@
 /* changes/269-convertstringsidtosid/probes/model.c
  *
- * THE MODEL IS VALIDATED BEFORE A LINE OF ASSEMBLY IS WRITTEN.
+ * The model is validated before a line of assembly is written.
  *
  * reference.c states the grammar the three probes measured. This file checks that statement against
  * the live export over a corpus built to reach every clause of it -- because a model that is merely

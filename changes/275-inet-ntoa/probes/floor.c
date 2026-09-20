@@ -1,10 +1,10 @@
 /* changes/275-inet-ntoa/probes/floor.c
  *
- * IS THERE ANYTHING TO WIN, AND WHAT DOES THE BUFFER COST?
+ * Is there anything to win, and what does the buffer cost?
  *
  * discovery/sid_inet_bstr.c measured ws2_32!inet_ntoa at 7.56 ns. That is four numbers of at most
  * three digits and three dots -- change 067's rewrite formats a single 32-bit number in 3.76 ns --
- * so 7.56 ns is not obviously beatable, and THAT IS THE QUESTION TO SETTLE BEFORE WRITING ANY
+ * so 7.56 ns is not obviously beatable, and that is the question to settle before writing any
  * ASSEMBLY. Change 274 is parked because its short rows turned out to be an allocator call this
  * project does not own; the same trap is here in a different shape.
  *
@@ -14,7 +14,7 @@
  * helper the compiler generates or a hand-written walk of the TLS array. The call is the honest
  * version and it is not free, so it is measured here rather than assumed away.
  *
- * FOUR THINGS ARE TIMED:
+ * Four things are timed:
  *
  *     ws2_32!inet_ntoa               what we are replacing
  *     a C version, wsprintf          the naive replacement, for scale

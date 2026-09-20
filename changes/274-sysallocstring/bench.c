@@ -2,11 +2,11 @@
  *
  * Gate 2: time wia_sysallocstring against the live oleaut32!SysAllocString.
  *
- * EVERY ROW ALLOCATES AND FREES on both sides, through SysFreeString, because the allocation is not
+ * Every row allocates and frees on both sides, through SysFreeString, because the allocation is not
  * ours to make and is most of the cost at short lengths -- probes/where.c put the floor
  * (SysAllocStringLen with the length already known) at 13.25 ns for an empty string.
  *
- * THE SHORT ROWS ARE THE ONES THAT DECIDE WHETHER THIS CHANGE LANDS AT ALL, and they are in the
+ * The short rows are the ones that decide whether this change lands at all, and they are in the
  * table for exactly that reason. probes/where.c measured the shipped scan at 0.10 ns for an empty
  * string and 0.1997 ns per character at 65000 -- so the long rows have 779 ns to win and the
  * shortest has nothing. A bench that started at 256 characters would report a handsome geomean and
@@ -23,7 +23,7 @@
 
 extern BSTR wia_sysallocstring(const wchar_t*);
 
-/* EIGHT ALLOCATIONS PER MEASUREMENT, and the reason is a verdict that changed between runs of the
+/* Eight allocations per measurement, and the reason is a verdict that changed between runs of the
    SAME BINARY. At one allocation per measurement the short rows are about sixteen nanoseconds of
    which roughly fifteen are the allocator, so the row measures allocator jitter and the scan is
    inside the error bar: five consecutive runs printed the four-character row at 1.03x, 1.05x,

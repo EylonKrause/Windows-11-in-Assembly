@@ -21,7 +21,7 @@
 ; The rule:
 ;   * '\' and '/' are always separators. One sets the answer to i+1 when the next character is
 ;     neither NUL nor '\' nor '/'  (a following ':' is fine).
-;   * ':' sets the answer to i+1 under the same next-character test, but ONLY when it is the sole
+;   * ':' sets the answer to i+1 under the same next-character test, but only when it is the sole
 ;     colon in its RUN -- the stretch between two backslash/slash characters. So ":a" gives 1 and
 ;     "a:a" gives 2, while ":a:" and "a::a" both give 0, and ":\:a" gives 3 because the backslash
 ;     starts a fresh run in which that colon is alone.
@@ -43,7 +43,7 @@
 ;
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their low 128 bits are --
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are --
 ; so parking the ':' constant in ymm6, as an earlier cut did, silently destroyed any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters.
 ; See tools/abi-check. ':' is the rarest of the four separators and is only compared against, so it

@@ -1,6 +1,6 @@
 /* changes/290-multibytetowidechar/probes/longbad.c
  *
- * AN INDEPENDENT CHECK OF THE ONE CLASS THIS CHANGE'S CORPUS CANNOT EXPRESS.
+ * An independent check of the one class this change's corpus cannot express.
  *
  * correctness.c drives 2646844 cases and every subject in it is at most 96 bytes. The TGL variant
  * adds a SIXTY-FOUR byte block, and a 64-byte block is a FULL block only when 64 or more source
@@ -9,11 +9,11 @@
  *
  * This is not hypothetical. Change 034's TGL variant had exactly that defect: it advanced both
  * cursors by the whole remaining source length instead of by 64, wrote the first 64 units
- * correctly, skipped the rest, and STILL RETURNED THE CORRECT COUNT because the count is derived
+ * correctly, skipped the rest, and still returned the correct count because the count is derived
  * from the same cursor. It passed all 327758 of its own cases. See changes/034's RESULTS-tgl.md.
  *
  * So this asks the live kernelbase export and the variant the same question on long subjects, and
- * compares the RETURN VALUE, the LAST ERROR and EVERY OUTPUT UNIT -- with the destination
+ * compares the return value, the last error and every output unit -- with the destination
  * pre-filled with a sentinel, so "never written" is distinguishable from "written correctly".
  *
  * BUILD (from the change directory, after dot-sourcing tools/vsenv.ps1):

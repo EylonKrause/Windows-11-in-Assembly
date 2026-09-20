@@ -6,7 +6,7 @@
 //   011 ntdll!RtlPrefixUnicodeString    012 ntdll!RtlCompareString
 //   013 ntdll!RtlEqualString            014 ntdll!RtlPrefixString
 //
-// WHY THESE SIX, AND WHY TOGETHER. An audit of live coverage found that 135 of the 270 LANDED
+// Why these six, and why together. An audit of live coverage found that 135 of the 270 Landed
 // changes have their export hot-patched somewhere and 135 do not, and that the uncovered half is
 // dominated by the early ntdll Rtl string family. These six are the coherent block at the front of
 // it: pure functions over counted strings, no allocation, no side effects, nothing the loader or
@@ -17,22 +17,22 @@
 // upcase.c / upcase_ansi.c, and 009's differs only in whitespace), so one of each links for all
 // six and a fold bug would show up in five places at once rather than one.
 //
-// THE THREE-WAY SHAPE OF THE CHECK. Every case is asked of the live export BEFORE the patch and
+// The three-way shape of the check. Every case is asked of the live export before the patch and
 // recorded; asked again WITH the patch and compared to that recording; and asked a third time
 // AFTER the restore. The third pass is not ceremony -- it is what proves the prologues really went
 // back, and it is checked by the call counters as well as by the answers: our-code calls must be
-// non-zero in the middle pass and EXACTLY ZERO in the last one.
+// non-zero in the middle pass and exactly ZERO in the last one.
 //
-// CASE-INSENSITIVITY IS DRIVEN ON PURPOSE. Half the corpus sets CaseInSensitive, because that is
+// Case-insensitivity is driven on purpose. Half the corpus sets CaseInSensitive, because that is
 // the path that reaches the upcase table, and a table that never loaded would still return the
 // right answer for every ASCII-identical pair. The corpus therefore includes pairs that differ
-// ONLY in case, where a broken fold gives the wrong answer rather than the same one.
+// only in case, where a broken fold gives the wrong answer rather than the same one.
 //
 // FREEZE-SAFETY PROTOCOL (the established one, unchanged):
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and none of these six is used by the loader or heap.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: single-threaded, and none of these six is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore VERIFIED byte-for-byte.
 //
 // Build: build_rtlstr_live.bat

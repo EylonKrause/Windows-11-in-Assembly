@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE DOMAIN IS PART OF THE TEST. probes/srca.c established that the shipped export walks FORWARD
+// The domain is part of the test. probes/srca.c established that the shipped export walks forward
 // with CharNextA, which does not advance past a terminator, so an pszEnd placed BEYOND the string's
 // NUL makes it spin forever -- measured twice, once at the cost of a 300-second timeout. Every
 // bounded case below therefore keeps pszEnd inside [pszStart, pszStart+strlen]. That is not the test
@@ -13,7 +13,7 @@
 // Within the domain the test is aggressive:
 //   * every start offset within a 32-byte block, because all loads are 32-byte ALIGNED and the
 //     leading/trailing bytes are masked out of the compare result rather than by narrowing the load;
-//   * every end offset, because the bounded path masks bits at BOTH ends of the block;
+//   * every end offset, because the bounded path masks bits at both ends of the block;
 //   * every byte value as the target, including 0x80..0xFF, which are ordinary characters here;
 //   * the guard page, where an aligned load must not touch the page after the terminator.
 #define WIN32_LEAN_AND_MEAN
@@ -68,7 +68,7 @@ int main(void){
         CHECK(one(s, NULL, 0xFF5A), "wMatch 0xFF5A, low byte 'Z'");
     }
 
-    // ---- EVERY start offset x EVERY end offset, on a string with matches all over it -------------
+    // ---- every start offset x every end offset, on a string with matches all over it -------------
     // The bounded path masks bits at both ends of a 32-byte block, and the unbounded path shifts the
     // first block's mask by the start's low five bits, so both ends need every alignment.
     {

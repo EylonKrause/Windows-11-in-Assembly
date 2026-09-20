@@ -1,25 +1,25 @@
 // live-substitution/live_subst_fnfrc.c
 // LIVE-RUN PROOF for change 261 (ntdll!RtlFindNextForwardRunClear and ntdll!RtlFindLastBackwardRunClear).
 //
-// The two exports are patched ONE AT A TIME, each driven through its own name with its own counter.
+// The two exports are patched one at a time, each driven through its own name with its own counter.
 // They are separate code in ntdll and they scan in opposite directions, so a wrapper routing one
 // through the other would give the WRONG ANSWER rather than merely going unnoticed -- the forward
 // form clips the run at FromIndex and the backward form clips it at the other end.
 //
-// BOTH THE RETURN VALUE AND THE WRITTEN START ARE COMPARED, and the start is poisoned before every
+// Both the return value and the written start are compared, and the start is poisoned before every
 // call. "Nothing found" still writes that pointer, and the two forms write DIFFERENT values there
 // -- SizeOfBitMap forward, zero backward -- so an implementation that returned the right length and
 // wrote the wrong start would pass a harness that only looked at the return value.
 //
-// THE CORPUS MUST ACTUALLY FIND RUNS, and the run counts are printed: a corpus of all-ones bitmaps
+// The corpus must actually find runs, and the run counts are printed: a corpus of all-ones bitmaps
 // would agree with anything, because every call would take the not-found path and never touch the
 // scan at all. Both directions are counted separately.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself -- and that is the discipline this avoids.
 //
-// THE BITMAP IS ALWAYS AN EVEN NUMBER OF ULONGs, and that is a property of the SHIPPED export
+// The bitmap is always an even number of ULONGs, and that is a property of the shipped export
 // rather than a convenience. RtlFindLastBackwardRunClear tests its starting bit with
 //
 //     000F65FF  bt qword ptr [r9], rax
@@ -31,10 +31,10 @@
 // 32 bits, which is what exercises the slack handling.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or the heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_fnfrc_live.bat

@@ -1,6 +1,6 @@
 /* changes/282-strrchriw/probes/nulchar.c
  *
- * WHICH NEEDLES MATCH A NUL *CHARACTER*? CHANGE 281 COULD NOT ASK.
+ * Which needles match a NUL *character*? Change 281 Could not ask.
  *
  * Change 281 extracted the whole match relation from the live export by searching a haystack that
  * contained every code unit 1..65535. It could not contain a NUL: StrChrIW stops at the terminator,

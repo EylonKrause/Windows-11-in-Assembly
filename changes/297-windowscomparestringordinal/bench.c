@@ -1,19 +1,19 @@
 // changes/297-windowscomparestringordinal/bench.c
 // Gate 2: time wia_WindowsCompareStringOrdinal against the LIVE combase!WindowsCompareStringOrdinal.
 //
-// EQUAL STRINGS ARE THE WORST CASE and most of the table is built from them: the comparison has to
+// Equal strings are the worst case and most of the table is built from them: the comparison has to
 // reach the end before it can answer. The two "differ at the midpoint" rows are here because the
 // shipped export stops at the first difference too, and a table made only of equal strings would
 // not say whether we still win when neither side has to run to the end. A "differ at index 0" row
 // is deliberately NOT here: it measures the call and nothing else, and probes/wcso.c already
 // reports it (5.7-6.2 ns flat across every length, on both sides).
 //
-// THE HANDLES ARE REAL, not forged. correctness.c forges headers because that is the only way to
+// The handles are real, not forged. correctness.c forges headers because that is the only way to
 // reach a page boundary and the NULL-buffer corners; a benchmark has no such need, so every string
 // here comes from WindowsCreateStringReference -- the fast-pass handle a WinRT caller actually
 // passes, and the one that does NOT copy its buffer.
 //
-// SHORT ROWS ARE TIMED x16, which is change 261's remedy for this harness's own floor: an empty
+// Short rows are timed x16, which is change 261's remedy for this harness's own floor: an empty
 // call through wia_bench_compare costs 2.32 ns on this machine, and a four-character comparison is
 // well under that, so a x1 row would be mostly harness. The x16 rows report the time for sixteen
 // calls and their GB/s is scaled to match.

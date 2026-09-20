@@ -5,7 +5,7 @@
  * probes/contract.c and read out of the shipped disassembly (probes/*.txt in
  * RESULTS.md), not taken from MSDN.
  *
- * WHAT THE SHIPPED FUNCTION IS
+ * What the shipped function is
  * ----------------------------
  * kernel32!FindResourceExW is one `jmp qword ptr [IAT]` into kernelbase. The
  * kernelbase body is:
@@ -28,10 +28,10 @@
  *                                 one RtlUpcaseUnicodeChar CALL per character,
  *                                 into a heap block of (wcslen(x)+1)*2 bytes
  *
- * PROVED CONTRACT POINTS (probes/contract.c output is quoted in RESULTS.md)
+ * Proved contract points (probes/contract.c output is quoted in RESULTS.md)
  * ------------------------------------------------------------------------
  *  * RtlUpcaseUnicodeChar over all 65536 code units: for every c < 0x80 it is
- *    EXACTLY the a-z fold, 26 code units change and there is not one exception.
+ *    exactly the a-z fold, 26 code units change and there is not one exception.
  *    973 code units change in total; the first one at or above 0x80 is U+00E0.
  *    So an ASCII-only vector fold is bit-exact, and anything >= 0x80 must go
  *    through the real table.

@@ -6,11 +6,11 @@
 ; the only file that differs from the parent, and the parent's wide path is spliced in below byte
 ; for byte rather than retyped.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here it measures 0.78x at the smallest
 ; class, and the reason is not the arithmetic -- it is that at that size the parent does NO VECTOR
-; WORK AT ALL while paying the full price of having intended to.
+; Work at all while paying the full price of having intended to.
 ;
 ; What the bench's "8" row actually is matters, and it is not eight bytes: bench.c builds an
 ; 8-CHARACTER string and calls with numberOfElements = 9, so the call scans 9 wchar_t = 18 bytes
@@ -31,7 +31,7 @@
 ; character count only reaches the parent's 16-character threshold at twice the byte length, so
 ; MORE of the useful small-string range falls into the walking path.
 ;
-; WHAT THE VARIANT CHANGES
+; What the variant changes
 ; ------------------------
 ; It splits at the bound BEFORE touching any vector register. Below a 16-CHARACTER bound (32 bytes
 ; -- the parent's vector width) it stays in VEX-128 and general-purpose registers: a VEX-encoded
@@ -40,7 +40,7 @@
 ; parent's code, spliced in unchanged -- that is where the parent already wins up to 3.5x, and it
 ; is not what this variant is about.
 ;
-; The narrow path does not scan with a loop. A bound under 16 characters is covered ENTIRELY by two
+; The narrow path does not scan with a loop. A bound under 16 characters is covered entirely by two
 ; overlapping 16-byte probes -- one at the head, one placed against the END of the declared span --
 ; so the whole scan is two loads, two compares and two mask extractions with no iteration at all.
 ; If the head mask is empty the terminator cannot lie below character 8, so wherever the two
@@ -49,7 +49,7 @@
 ; than a character loop -- writing the same character twice is free, branching once per character
 ; is not.
 ;
-; THE SHAPE MATTERS MORE THAN THE INSTRUCTION COUNT, and that is the real lesson here. Two earlier
+; The shape matters more than the instruction count, and that is the real lesson here. Two earlier
 ; versions of this narrow path were both correct and both still regressed:
 ;
 ;   * A 16-byte probe loop, then an 8-byte probe, then a one-character walk, then a fill ladder:
@@ -83,7 +83,7 @@
 ; (../182-strset-s/probes/sss.c, which fuzzed the byte AND the wide form, 1 000 000 cases each,
 ; 0 mismatches):
 ;
-;   * numberOfElements == 0  -> EINVAL (22) and NOTHING is written at all. Note that this is a
+;   * numberOfElements == 0  -> EINVAL (22) and nothing is written at all. Note that this is a
 ;     count of ELEMENTS, not bytes, and so is every other count in this contract.
 ;   * No terminator strictly inside numberOfElements -> PARTIAL FILL of numberOfElements-1 cells,
 ;     and only THEN str[0] = 0, returning EINVAL (22).
@@ -279,7 +279,7 @@ no_term:
         lea       r11, [rdx - 1]                 ; count = numberOfElements - 1
         mov       r10d, 1                        ; outcome = EINVAL
 
-        ;================ one fill loop serves BOTH outcomes ================
+        ;================ one fill loop serves both outcomes ================
 do_fill:
         movzx     eax, r8w
         vmovd     xmm2, eax

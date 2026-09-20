@@ -1,8 +1,8 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 263 (ntdll!RtlCompareUnicodeStrings).
+Rem  live-run proof for change 263 (ntdll!RtlCompareUnicodeStrings).
 REM
-REM  The EXACT LONG is compared, not its sign: this export returns the
+Rem  The exact long is compared, not its sign: this export returns the
 REM  DIFFERENCE of the two characters, so an implementation returning -1/0/1
 REM  would satisfy every caller that writes "< 0" and every check that only
 REM  looked at the sign.

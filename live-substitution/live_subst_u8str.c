@@ -1,33 +1,33 @@
 // live-substitution/live_subst_u8str.c
 // LIVE-RUN PROOF for change 268 (ntdll!RtlUnicodeStringToUTF8String and ntdll!RtlUTF8StringToUnicodeString).
 //
-// BOTH EXPORTS ARE PATCHED AT ONCE, because the pair is the change: the whole point of 268 is that
+// Both exports are patched at once, because the pair is the change: the whole point of 268 is that
 // the two directions do FOUR things differently -- what a failing call leaves in the buffer,
 // whether STATUS_SOME_NOT_MAPPED survives, which of two failure codes a shortfall gets, and how
 // much room the terminator needs -- and a proof that patched only one of them would be a proof
 // about half a change.
 //
-// WHAT IS COMPARED IS NOT JUST THE STATUS. Every case records the NTSTATUS, Length, MaximumLength
-// AND a hash of the WHOLE destination buffer, because these functions leave the destination
+// What is compared is not just the status. Every case records the NTSTATUS, Length, MaximumLength
+// AND a hash of the whole destination buffer, because these functions leave the destination
 // partially written on a failing call in one direction and untouched in the other, and an
 // implementation that tidied that up would pass any check that only read the status. That is not
 // hypothetical here: the first build of change 268 against the current converters found 154
 // mismatches that were nothing but a single 00 byte past the end of the string.
 //
-// THE ALLOCATING PATH IS THE ONE THAT COULD CORRUPT A HEAP, so it is in the corpus and every block
+// The allocating path is the one that could corrupt a heap, so it is in the corpus and every block
 // it returns is freed through the UNPATCHED RtlFreeUTF8String / RtlFreeUnicodeString. That is the
 // property that matters and cannot be checked any other way: our implementation must allocate a
 // block the shipped free routine will accept.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its counter at ZERO -- the
 // shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and neither export is used by the loader or heap.
+//   (1) Validate first against the live exports before any patch exists.
+//   (2) Patch only when idle: single-threaded, and neither export is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.
 //
 // Build: build_u8str_live.bat
@@ -122,7 +122,7 @@ static void build_case(long i)
     rs = 0x9E3779B97F4A7C15ull ^ ((unsigned long long)i * 0x452821E638D01377ull);
     rs ^= rs >> 29; rs *= 0xBF58476D1CE4E5B9ull; rs ^= rs >> 32;
     if (!rs) rs = 1;
-    /* THE THREE DIALS MUST NOT SHARE A FACTOR WITH EACH OTHER. The first version took the
+    /* The three dials must not share a factor with each other. The first version took the
        direction from the low bit of the index and the content class from index modulo six, so the
        surrogate class -- index congruent to 3 -- was always an ODD index and therefore always the
        UTF-8 -> UTF-16 direction, which does not have surrogates in its input at all. The corpus

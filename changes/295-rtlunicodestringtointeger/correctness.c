@@ -11,7 +11,7 @@
 // The corpus, and why each part is here:
 //   A  explicit edge strings x 26 bases (valid, invalid, and the five that alias onto low bits under
 //      a `bt`-style base check -- change 129's mutant #22 was a real gate hole of exactly that shape)
-//   B  EVERY Length from 0 to 160 bytes over a digit run: 0, 1 (odd), 2 (one character), and every
+//   B  every Length from 0 to 160 bytes over a digit run: 0, 1 (odd), 2 (one character), and every
 //      value either side of it, so "counted, not terminated" is swept rather than sampled. Far past
 //      twice any vector width; this implementation is scalar, so the sweep is the whole point.
 //   C  ALL 65536 code units in leading, post-sign and embedded position, across five bases. This is
@@ -142,7 +142,7 @@ int main(void)
         for (b = 0; b < NBASES; ++b) chk(&u, BASES[b]);
     }
 
-    /* ---- B. EVERY Length from 0 to 160 bytes, including the odd ones ------------------------- */
+    /* ---- B. every Length from 0 to 160 bytes, including the odd ones ------------------------- */
     {
         static unsigned short d[96];
         static unsigned short m[96];

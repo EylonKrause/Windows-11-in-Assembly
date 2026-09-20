@@ -47,7 +47,7 @@
 ; OR-ed and then masked down to the bytes before the terminator.
 ;
 ;
-; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
@@ -197,7 +197,7 @@ pa_eblock:
         add       rcx, r11
         shr       rcx, 1
         mov       r14, rcx                          ; extension body length, in characters
-        ; THE EXTENSION HAS A LENGTH LIMIT OF ITS OWN: the body -- what is left after the one
+        ; The extension has a length limit of its own: the body -- what is left after the one
         ; permitted leading dot -- may be at most 255 characters; 256 or more is E_INVALIDARG, and
         ; it beats every size failure. Measured in the sibling change's probes, which drive this
         ; export too: changes/159-pathcchrenameextension/probes/extlen2.c section (4) shows a
@@ -293,7 +293,7 @@ pa_xdone:
         test      r14, r14
         jz        pa_ok                             ; "" and "." are no-ops here
 
-        ; ---- 5. does the result fit under BOTH limits? -----------------------------------------
+        ; ---- 5. does the result fit under both limits? -----------------------------------------
         mov       rax, rdi
         dec       rax                               ; cch - 1
         mov       rdx, 259

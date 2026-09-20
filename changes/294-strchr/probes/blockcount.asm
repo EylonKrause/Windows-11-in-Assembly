@@ -1,6 +1,6 @@
 ; changes/294-strchr/probes/blockcount.asm   -- GENERATED, do not hand-edit (gen_blocks.py).
 ;
-; HOW MANY 128-BIT BLOCKS BEFORE GOING WIDE, and which wide loop -- measured, not argued.
+; How many 128-BIT blocks before going wide, and which wide loop -- measured, not argued.
 ;
 ; The four-block prologue in the first landed draft covers [base, base+64), where base = s & -16.
 ; When the caller's string starts at the END of its 16-byte block (s & 15 == 15) that is only 49

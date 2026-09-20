@@ -6,13 +6,13 @@
 ;
 ; Contract (derived in probes/sls.c, fuzz-confirmed bit-exact against the live export over
 ; 1,000,000 cases -- confirmed on the first attempt):
-;   * THE FOLD IS EXACTLY THE 26 ASCII LETTERS A-Z. Swept over all 255 byte values, exactly 26
+;   * The fold is exactly the 26 ASCII letters a-z. Swept over all 255 byte values, exactly 26
 ;     change, and they match the plain ASCII rule with 0 differences. Bytes >= 0x80 never fold,
 ;     which the signed vpcmpgtb below gives for free.
 ;   * Success -> 0, lowercased in place, nothing past the terminator touched.
 ;   * If the string does not terminate STRICTLY inside numberOfElements -> EINVAL (22), and the
 ;     failure writes str[0] = 0. That write happens even when numberOfElements is ZERO.
-;   * VALIDATE FIRST, THEN FOLD: on the EINVAL path nothing but str[0] is modified -- there is
+;   * Validate first, then fold: on the einval path nothing but str[0] is modified -- there is
 ;     NO partial fold. Probed directly rather than inherited: change 178 behaves this way but
 ;     change 150's strcpy_s does the opposite, leaving an observable partial copy before ERANGE.
 ;     Two `_s` functions in the same CRT, opposite behaviours.

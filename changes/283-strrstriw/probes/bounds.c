@@ -1,6 +1,6 @@
 /* changes/283-strrstriw/probes/bounds.c
  *
- * WHAT DOES `end` ACTUALLY BOUND, AND WHERE DOES THE HAYSTACK STOP?
+ * What does `end` actually bound, and where does the haystack stop?
  *
  * probes/contract.c settled the important thing -- the comparison is PER CHARACTER, not a collation
  * over spans, because "ab<SOFT HYPHEN>cd" does not contain "abc". That makes this change writable

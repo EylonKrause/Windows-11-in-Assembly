@@ -11,7 +11,7 @@
  *   1. PARAMETER VALIDATION, and it is not the documented one.  cbMultiByte == 0, cchWideChar < 0,
  *      lpMultiByteStr == NULL, and -- only when cchWideChar != 0 -- lpWideCharStr == NULL or
  *      lpWideCharStr == lpMultiByteStr, each give ERROR_INVALID_PARAMETER.  The alias test is
- *      EXACT POINTER EQUALITY: a destination that merely overlaps the source is accepted.
+ *      Exact pointer equality: a destination that merely overlaps the source is accepted.
  *
  *   2. FLAGS.  MSDN says CP_UTF8 accepts only 0 and MB_ERR_INVALID_CHARS.  The shipped code does
  *      `and flags, ~7` then `test flags, ~8`, i.e. it accepts every value of 0x00..0x0F and
@@ -25,7 +25,7 @@
  *      (one U+FFFD, advance 2); a byte-2 that is not a continuation at all is not (one U+FFFD,
  *      advance 1).  This is change 034's rule, and probes/rule.c re-proved it here exhaustively.
  *
- *   4. THE THREE RESULTS.  Output longer than cchWideChar -> the first cchWideChar units are
+ *   4. The three results.  Output longer than cchWideChar -> the first cchWideChar units are
  *      written (a surrogate pair IS split), return 0, ERROR_INSUFFICIENT_BUFFER.  Otherwise, if
  *      MB_ERR_INVALID_CHARS is set and anything was substituted -> the whole conversion is still
  *      written, return 0, ERROR_NO_UNICODE_TRANSLATION.  ERROR_INSUFFICIENT_BUFFER WINS over

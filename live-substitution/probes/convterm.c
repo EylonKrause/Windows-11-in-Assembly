@@ -2,7 +2,7 @@
  *
  * The live harness found 018/019/020/024/025 diverging while 017 (Unicode -> Unicode) and 165 did
  * not. Two symptoms, both pointing the same way:
- *   * with MaximumLength EXACTLY the converted length, the export answers STATUS_BUFFER_OVERFLOW
+ *   * with MaximumLength exactly the converted length, the export answers STATUS_BUFFER_OVERFLOW
  *     (0x80000005) where these implementations answer STATUS_SUCCESS -- so the export wants one
  *     more element than the conversion itself needs;
  *   * with a generous MaximumLength both answer STATUS_SUCCESS and the BUFFERS still differ.

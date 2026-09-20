@@ -1,12 +1,12 @@
 @echo off
 REM ===========================================================================
-REM  TGL VARIANT BUILD
+Rem  tgl variant build
 REM  Intel Core i9-11900H (Tiger Lake-H / Willow Cove), Win11 25H2 build 26200.9457
 REM  Builds impl_tgl.asm against this change's UNMODIFIED reference.c and
 REM  correctness.c, so the CORRECTNESS gate is literally the parent's: the
 REM  same oracle and the same live-export comparison.
 REM
-REM  THE BENCH IS bench_tgl.c, NOT bench.c, AND THAT IS DELIBERATE. The parent
+Rem  the bench is bench_tgl.c, not bench.c, and that is deliberate. The parent
 REM  table is five homogeneous classes plus ASCII-alternating-with-2-byte,
 REM  which is the one mixture the AVX2 file already has a kernel for -- so it
 REM  cannot see the mixed-width classes this variant exists to fix, nor the

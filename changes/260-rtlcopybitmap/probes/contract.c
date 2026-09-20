@@ -24,22 +24,22 @@
  * RtlExtractBitMap is the same job in the other direction, at 1000.90 ns / 0.123 ns/byte.
  *
  * ------------------------------------------------------------------------------------------------
- * WHAT HAS TO BE PINNED. These functions MUTATE, and the interesting half of their contract is
+ * What has to be pinned. These functions mutate, and the interesting half of their contract is
  * about the bits they must NOT touch. Every row below fills the destination with a poison pattern
  * and reports exactly which bytes changed, because "the copy worked" and "the copy worked and also
  * cleared the rest of the word" look identical if only the copied range is examined.
  *
- *   1. WHICH WAY DOES TargetBit APPLY? Copy reads the source from bit 0 and writes at TargetBit;
+ *   1. Which way does TargetBit apply? Copy reads the source from bit 0 and writes at TargetBit;
  *      Extract reads from TargetBit and writes at bit 0 -- or so the disassembly reads.
- *   2. HOW MANY BITS? RtlCopyBitMap's fourth argument appears to be IGNORED -- the count reads as
+ *   2. How many bits? RtlCopyBitMap's fourth argument appears to be ignored -- the count reads as
  *      min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit), and r9d is overwritten at
  *      0x13E34A before it is ever used. That is a documented three-argument function being called
  *      with four by half the world, so it is worth proving rather than asserting.
- *   3. AND WHAT HAPPENS WHEN TargetBit IS PAST THE DESTINATION? The subtraction is done in 32 bits
+ *   3. And what happens when TargetBit is past the destination? The subtraction is done in 32 bits
  *      and then tested in 64, so a negative difference becomes a very large unsigned one. Whether
  *      that turns into a refusal or an enormous copy is exactly the sort of thing an implementation
  *      must match and must not guess.
- *   4. THE BITS OUTSIDE THE RANGE, in the destination, before and after it.
+ *   4. The bits outside the range, in the destination, before and after it.
  *   5. A ZERO-LENGTH copy, and a zero-size source or destination.
  */
 #define WIN32_LEAN_AND_MEAN

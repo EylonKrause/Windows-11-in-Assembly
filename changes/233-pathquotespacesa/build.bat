@@ -1,6 +1,6 @@
 @echo off
 REM changes/233-pathquotespacesa/build.bat -- assemble, gate on correctness, then benchmark.
-REM /EHa is for the CORRECTNESS harness only: the shipped export FAULTS when the caller lies
+Rem /EHa is for the correctness harness only: the shipped export faults when the caller lies
 REM about the buffer size (probes/pqsa.c), so the harness must catch that. The implementation
 REM itself has NO wrapper -- see impl.asm.
 setlocal

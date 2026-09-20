@@ -1,14 +1,14 @@
 /* changes/270-convertsidtostringsid/correctness.c
  *
- * Gate 1 for advapi32!ConvertSidToStringSidW: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT.
+ * Gate 1 for advapi32!ConvertSidToStringSidW: Ours vs the scalar model vs the live export.
  *
- * FIVE THINGS ARE COMPARED PER CASE, because four of them are invisible to a check that looks at
+ * Five things are compared per case, because four of them are invisible to a check that looks at
  * the string:
  *
  *   1. the BOOL;
  *   2. GetLastError() -- which is the entire substance of two of the three failure exits, and which
  *      on SUCCESS becomes ZERO whatever it was before (probes/validate.c);
- *   3. WHAT HAPPENED TO THE OUTPUT POINTER. A poison value is stored before every call, so "left
+ *   3. What happened to the output pointer. a poison value is stored before every call, so "left
  *      alone" is observed rather than assumed. This export never clears it -- but its sibling
  *      ConvertStringSidToSidW (change 269) DOES, for three characters out of 65535, so the two were
  *      measured separately rather than assumed to match;
@@ -17,12 +17,12 @@
  *      same string and corrupt the caller's heap;
  *   5. every byte of the block, including the terminator.
  *
- * AND THE COUNT IS SWEPT 0..255, NOT 0..15. That is change 067's lesson, learned the expensive way:
+ * And the count is swept 0..255, not 0..15. That is change 067's lesson, learned the expensive way:
  * its corpus drew the count as `(seed>>8)%16` and therefore never expressed a count above 15, which
  * is a refusal the implementation did not have -- and ConvertStringSidToSidW will build a SID with
  * 254 sub-authorities in one call.
  *
- * THE GUARD-PAGE SWEEP IS AGAINST THE LIVE EXPORT ONLY, and it has to be: a scalar model cannot
+ * The guard-page sweep is against the live export only, and it has to be: a scalar model cannot
  * fault on demand. A SID that is not fully readable is a REFUSAL when its sub-authority array runs
  * off the end and a FAULT when only its six identifier-authority bytes do (probes/truncated.c), and
  * an implementation that refused everywhere -- or faulted everywhere -- would pass every other

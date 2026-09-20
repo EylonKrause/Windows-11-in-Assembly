@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE SUBSTITUTION, TGL VARIANT OF 290.
+Rem  live substitution, tgl variant of 290.
 REM
 REM  Identical to build_cvt_live.bat in every respect except ONE line: change
 REM  290 is assembled from impl_tgl.asm instead of impl.asm, so this hot-patches

@@ -1,30 +1,30 @@
 // live-substitution/live_subst_strrchriw.c
 // LIVE-RUN PROOF for change 282 (shlwapi!StrRChrIW).
 //
-// WHAT IS COMPARED IS THE RETURNED OFFSET, so "found it" and "found it in the right place" are one
+// What is compared is the returned offset, so "found it" and "found it in the right place" are one
 // question and a null can never accidentally agree with a pointer.
 //
-// THIS EXPORT HAS NO TERMINATOR. probes/bounds.c measured that its end pointer is taken literally:
+// This export has no terminator. probes/bounds.c measured that its end pointer is taken literally:
 // "abcd\0fghijk" with end = start+11 finds 'J' at index 9, and an end pointer past a guard page
 // FAULTS rather than stopping. So the corpus plants NULs inside ranges on purpose, and places
-// ranges hard against a guard page at BOTH ends -- the scan may read neither at or after `end` nor
+// ranges hard against a guard page at both ends -- the scan may read neither at or after `end` nor
 // before `start`, and those are two different mistakes.
 //
-// ALL FOUR DISPATCH SHAPES from change 281's relation are driven EXPLICITLY rather than by a
+// All four dispatch shapes from change 281's relation are driven explicitly rather than by a
 // uniform draw: the bitmap needles are 3321 of 65536 and a short random corpus could miss them.
 //
-// AND THE RANGE LENGTH IS DRAWN SMALL OFTEN, because a range that fits inside ONE 32-byte block is
+// And the range length is drawn small often, because a range that fits inside one 32-byte block is
 // the case where both edge masks apply at once -- the shape a mask written for two separate blocks
 // gets wrong, and the one a corpus of long strings never reaches.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its passes and reported 14285 differences with its patch counter at ZERO.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
 //       shlwapi -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither loader nor heap.
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
 //
 // Build: build_strrchriw_live.bat
@@ -104,7 +104,7 @@ static void build_case(long i)
 
     /* half the ranges are SHORT, so the single-block case -- where both edge masks apply at once --
        is reached in bulk rather than by luck */
-    /* EMPTY RANGES ARE IN THE CORPUS. A mutant that stopped rejecting them survived this harness
+    /* Empty ranges are in the corpus. a mutant that stopped rejecting them survived this harness
        because every range it built had at least one code unit in it. */
     n = ((i % 53) == 7) ? 0
       : ((rnd() & 1) ? (1 + rnd() % 24) : (1 + rnd() % SBUF));
@@ -115,7 +115,7 @@ static void build_case(long i)
                        : ((r & 3) ? (wchar_t)(L'a' + (r >> 8) % 26)
                                   : (wchar_t)(1 + (r >> 4) % 0xFFFF));
     }
-    /* THE 32 CODE UNITS BEFORE THE RANGE ARE POISONED WITH A MATCH. A mutant that dropped the
+    /* The 32 Code units before the range are poisoned with a match. a mutant that dropped the
        bottom edge mask -- so the scan reported matches from BEFORE `start` -- survived this
        harness, because whatever happened to precede the range rarely matched. Now it always does. */
     for (k = 1; k <= 32 && start >= k; ++k) buf[start - k] = L'Z';

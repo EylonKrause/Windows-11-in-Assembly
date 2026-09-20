@@ -1,14 +1,14 @@
 # tools/vsenv.ps1
 # ---------------------------------------------------------------------------------------------
-# Import the MSVC x64 build environment into the CURRENT PowerShell session, on ANY machine.
+# Import the msvc x64 build environment into the current PowerShell session, on any machine.
 #
-# WHY THIS EXISTS. Every changes/*/build.bat in this repository begins with a hardcoded
+# Why this exists. Every changes/*/build.bat in this repository begins with a hardcoded
 #
 #     call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 ...
 #
 # because that is where Visual Studio lives on the bench the project started on. On a machine with
 # a different VS edition (Community/Professional/Enterprise) or a different drive, that path does
-# not exist. The `call` is redirected to nul, so it fails SILENTLY and the build then dies on
+# not exist. The `call` is redirected to nul, so it fails silently and the build then dies on
 # "ml64 is not recognized".
 #
 # The fix deliberately does NOT rewrite those 349 batch files. They only need ml64/cl/link/dumpbin

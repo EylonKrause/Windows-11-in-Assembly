@@ -1,6 +1,6 @@
 /* changes/253-strcat/reference.c
  *
- * THE INDEPENDENT ORACLE for strcat and wcscat.
+ * The independent oracle for strcat and wcscat.
  *
  * It shares nothing with impl.asm but the contract. impl.asm composes a landed AVX2 length routine,
  * reads the source in 32-byte aligned blocks, and lands the last few bytes with an overlapping pair

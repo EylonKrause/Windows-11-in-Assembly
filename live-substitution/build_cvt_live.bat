@@ -5,7 +5,7 @@ REM    289 kernelbase!WideCharToMultiByte, 290 kernelbase!MultiByteToWideChar,
 REM    291 kernel32!ExpandEnvironmentStringsW
 REM
 REM  /MD because 289 and 291 reference imports the static CRT would resolve
-REM  differently, and because the harness compares the LAST ERROR value, which
+Rem  differently, and because the harness compares the last error value, which
 REM  needs the same CRT/Win32 pairing the change itself was gated under.
 REM ===========================================================================
 setlocal

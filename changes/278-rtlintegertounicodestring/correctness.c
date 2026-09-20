@@ -1,25 +1,25 @@
 /* changes/278-rtlintegertounicodestring/correctness.c
  *
- * Gate 1 for ntdll!RtlIntegerToUnicodeString: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the
+ * Gate 1 for ntdll!RtlIntegerToUnicodeString: Ours vs the scalar model vs the live export, on the
  * NTSTATUS, Out->Length, Out->MaximumLength AND every byte of a poison-filled destination.
  *
- * THE WHOLE DESTINATION IS COMPARED, on failing calls as well, because probes/contract.c measured
+ * The whole destination is compared, on failing calls as well, because probes/contract.c measured
  * that a refusal leaves it COMPLETELY untouched -- Length keeps whatever the caller had in it. An
  * implementation that helpfully zeroed Length on the way out would pass any check that only looked
  * at the status. That is change 268's whole-buffer rule, which found 154 mismatches in change 016
  * that were nothing but a single 00 past the end of a string.
  *
- * THE CORPUS IS BUILT WHERE A LENGTH-FIRST CONVERTER GOES WRONG:
+ * The corpus is built where a length-first converter goes wrong:
  *
- *   * EVERY BASE 0..40 plus 256 and 0xFFFFFFFF, because only five are legal and the other
+ *   * every BASE 0..40 plus 256 and 0xFFFFFFFF, because only five are legal and the other
  *     thirty-seven have to be refused with the right status. probes/contract.c asked them one at a
  *     time rather than trusting the documented set.
- *   * EVERY DIGIT-COUNT BOUNDARY IN EVERY BASE -- every power of the base, and one either side.
+ *   * Every digit-count boundary in every base -- every power of the base, and one either side.
  *     The length is computed from a BSR and a table, so the values where the answer changes are
  *     exactly the ones a round-numbered corpus walks past.
- *   * EVERY MaximumLength from 0 to Length+4, at every one of those values, because the room rule is
+ *   * every MaximumLength from 0 to Length+4, at every one of those values, because the room rule is
  *     Length+2 here and Length+1 in the routine change 067 owns. One byte decides it.
- *   * AND ALL 2^24 LOW VALUES in base 10 and base 16, plus the whole 32-bit range sampled, because
+ *   * And all 2^24 low values in base 10 and base 16, plus the whole 32-bit range sampled, because
  *     a division-free converter is either exactly right or wrong at one specific value.
  */
 #define WIN32_LEAN_AND_MEAN

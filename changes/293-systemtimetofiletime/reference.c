@@ -4,9 +4,9 @@
 // Deliberately naive scalar C. Written from what probes/contract.c and probes/leap_and_error.c
 // PROVED against the live export on this machine, not from MSDN.
 //
-// WHAT THE LIVE EXPORT DOES (proved, see RESULTS.md):
+// What the live export does (proved, see RESULTS.md):
 //   * It copies seven of the eight SYSTEMTIME words into a stack TIME_FIELDS, forces Weekday to 0,
-//     and calls ntdll!RtlTimeFieldsToTime.  wDayOfWeek (offset 4) is NEVER READ.
+//     and calls ntdll!RtlTimeFieldsToTime.  wDayOfWeek (offset 4) is never READ.
 //   * The seven words are copied with `movzx`/16-bit stores, so they land in a CSHORT (signed
 //     16-bit) field: a WORD above 0x7FFF becomes a negative TIME_FIELDS value and is rejected.
 //   * Field ranges: Year 1601..30827 (30828 is a HARD BOUND, not an overflow -- 30828-01-01 would

@@ -3,7 +3,7 @@
 // In-place, so each iteration restores the buffer; both sides pay the same restore.
 // Lengths are COMPUTED, never hardcoded.
 //
-// THE CASE MIX. The function has two very different outcomes: quote (scan + a shift of up to 257
+// The case mix. The function has two very different outcomes: quote (scan + a shift of up to 257
 // bytes) and refuse (scan only, nothing written). Both are common -- most paths have no space --
 // so both are measured, and the over-length row is there because the 257 cap turns a long path into
 // the refuse case no matter what it contains.

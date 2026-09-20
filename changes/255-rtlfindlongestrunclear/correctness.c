@@ -2,21 +2,21 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll export.
  *
- * BOTH OBSERVABLES on every case -- the returned length AND the written *StartingIndex. The index is
+ * Both observables on every case -- the returned length and the written *StartingIndex. The index is
  * where the tie-break lives, and a bitmap with a unique longest run cannot test it at all: an
  * implementation that updated its best on ">=" instead of ">" would return the right LENGTH
  * everywhere and the wrong INDEX only when two runs tie. So the corpora are built to tie constantly.
  *
- * THE CORPORA ARE SPLIT BY WHICH BOUNDARY THEY ATTACK, because every hard part of this
+ * The corpora are split by which boundary they attack, because every hard part of this
  * implementation is a boundary:
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap -- all 65 536 of them, at every declared size 1..16.
  *      Nothing is sampled; the whole space is covered.
- *   2. THE 64-BIT WORD BOUNDARY -- runs planted across it at every offset and every length, which
+ *   2. The 64-BIT word boundary -- runs planted across it at every offset and every length, which
  *      is where the carry between words lives.
- *   3. THE ODD TRAILING ULONG -- sizes whose ULONG count is odd, so the last word must be read as
+ *   3. The odd trailing ulong -- sizes whose ulong count is odd, so the last word must be read as
  *      32 bits and not 64. Placed against a PAGE_NOACCESS page so a 64-bit read FAULTS.
- *   4. THE SLACK PAST SizeOfBitMap -- every size 1..256 over a buffer that is entirely clear past
+ *   4. The slack past SizeOfBitMap -- every size 1..256 over a buffer that is entirely clear past
  *      it, so any failure to mask reports a longer run.
  *   5. TIES -- many equal-length runs, so the FIRST must win, at every word offset.
  *   6. RANDOMISED at several densities, including the all-clear and all-set extremes.

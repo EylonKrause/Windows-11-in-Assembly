@@ -6,7 +6,7 @@
 //   * the extension is the last '.' after the last STOPPER, where a stopper is a BACKSLASH **or a
 //     SPACE**; '/' and ':' do NOT stop the search. 0 mismatches over 335923 enumerated strings,
 //     against 46158 for the rule change 140 originally shipped with;
-//   * a MAX_PATH GUARD: 259 characters are truncated, 260 or more are left COMPLETELY UNTOUCHED,
+//   * a MAX_PATH guard: 259 characters are truncated, 260 or more are left completely untouched,
 //     whatever the path contains. Measured at every length from 250 to 268;
 //   * it writes ONE byte, the terminator at the extension position. Nothing past it is cleared, so
 //     correctness.c compares the whole buffer;

@@ -2,7 +2,7 @@
    prefix cap.
 
    Round 2 settled:
-     * COST SATURATES at ~735 ns: 16 B -> 56 ns, 256 B -> 368 ns, 508 B -> 719 ns, and then FLAT
+     * Cost saturates at ~735 ns: 16 B -> 56 ns, 256 B -> 368 ns, 508 B -> 719 ns, and then flat
        from 1 KB all the way to 128 KB. So ntdll scans a BOUNDED PREFIX at ~1.4 ns/byte and stops.
        That is what makes the target worth converting: a vectorized version wins on every size at
        or above the cap, not just on small buffers.
@@ -160,7 +160,7 @@ int main(void){
             printf("    %-16s ILLEGAL_CHARS asked -> BOOL=%d out=%04X ; all flags=%08X\n",
                    T[i].what, r, l, flags_of(T[i].b,T[i].sz));
         }
-        /* sweep a single unit at position 0 of a 32-unit buffer, asking ONLY illegal */
+        /* sweep a single unit at position 0 of a 32-unit buffer, asking only illegal */
         for(int k=0;k<32;k++) wbuf[k]=L'q';
         int n=0;
         for(unsigned c=0;c<0x10000;c++){

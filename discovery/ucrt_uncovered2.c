@@ -7,7 +7,7 @@
  * subtract image/tree's filenames, drop the _o__ ordinal aliases, the _l locale variants and the
  * _mbs code-page family) and this measures every survivor with a pinnable contract.
  *
- * WHAT IS DELIBERATELY NOT HERE:
+ * What is deliberately not here:
  *   * the *coll / *xfrm family (strcoll, wcsxfrm, _stricoll, _wcsncoll ...) -- that is COLLATION,
  *     the same category that puts StrCmpLogicalW, StrChrIW and StrStrIW out of reach. Locale sort
  *     order cannot be reproduced bit-exactly from an ordinal table, and this project has already
@@ -20,14 +20,14 @@
  *     vectorise. They are measured ANYWAY, in one row each, because "already optimal" is a claim
  *     and the point of a survey is to check claims rather than repeat them.
  *
- * METHOD, and the mistake this file is written to avoid: EVERY ROW PRINTS WHAT IT ACTUALLY DID --
+ * Method, and the mistake this file is written to avoid: Every row prints what it actually did --
  * the return value, and where there is one, the output. A survey row whose subject does not do the
  * work its label claims is this project's most expensive recurring mistake, and the previous ntdll
  * survey shipped TWO of them (a comparison handed byte counts where it wanted characters, and a
  * bitmap copy called with three arguments where it takes four); both were invisible in the timing
  * and obvious in the returned value.
  *
- * RUN IT ON AN IDLE MACHINE. Every row is a min-of-60.
+ * Run it on an idle machine. Every row is a min-of-60.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -1,31 +1,31 @@
 // live-substitution/live_subst_sid2str.c
 // LIVE-RUN PROOF for change 270 (advapi32!ConvertSidToStringSidW).
 //
-// THIS EXPORT ALLOCATES, AND THAT IS THE PROPERTY NO OTHER GATE CAN CHECK. Every success hands the
+// This export allocates, and that is the property no other gate can check. Every success hands the
 // caller a LocalAlloc block that the CALLER frees through the process's ordinary, UNPATCHED
 // LocalFree. An implementation that returned a static buffer, a HeapAlloc block, or a LocalAlloc
 // block with the wrong flags would satisfy a byte-comparison gate and corrupt the caller's heap
 // here. So every block is freed, and its LocalSize and LocalFlags are compared as well as its
 // contents -- a block that is right but too big is still wrong.
 //
-// FIVE THINGS ARE COMPARED PER CASE: the BOOL, GetLastError (which on SUCCESS becomes ZERO whatever
-// it was before), WHAT HAPPENED TO THE OUTPUT POINTER (a poison value distinguishes "left alone"
+// Five things are compared per case: the BOOL, GetLastError (which on success becomes zero whatever
+// it was before), what happened to the output pointer (a poison value distinguishes "left alone"
 // from "cleared" from "written"), LocalSize/LocalFlags, and a hash of every byte of the block.
 //
-// THE SUB-AUTHORITY COUNT IS DRAWN OVER ITS WHOLE BYTE RANGE, 0..255, not 0..15. That is change
+// The sub-authority count is drawn over its whole byte range, 0..255, not 0..15. That is change
 // 067's lesson learned the expensive way: its corpus drew the count as (seed>>8)%16 and therefore
 // never expressed a count above 15, which is a refusal the implementation did not have -- and
 // ConvertStringSidToSidW builds a 254-sub-authority SID in one call.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its patch counter at ZERO --
 // the shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of the module -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither the loader nor
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the whole corpus
 //       is run again through the restored export.
@@ -163,7 +163,7 @@ static void run_case(F_S2S f, rec_t* out)
     out->size = LocalSize(p);
     out->flags = (unsigned)LocalFlags(p);
     if (out->size != (SIZE_T)-1 && out->size <= 4096) out->hash = fnv(p, out->size);
-    /* THROUGH THE UNPATCHED LocalFree. If our implementation handed back anything LocalFree does
+    /* Through the unpatched LocalFree. If our implementation handed back anything LocalFree does
        not own, this is where the process dies. */
     LocalFree(p);
 }

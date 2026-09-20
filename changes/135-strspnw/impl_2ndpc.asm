@@ -7,7 +7,7 @@
 ; PC. Same exported symbol (`wia_strspnw`), so this change's existing
 ; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured here, the Zen 3 implementation failed the gate on the shortest
 ; size class:
@@ -21,7 +21,7 @@
 ;     geomean 2.671x => PARKED (a size class regressed)
 ;
 ; Cause: the Zen 3 implementation is still O(n*m) -- it does the m loop with
-; vectors. For EVERY 32-byte block it re-walks the whole set, broadcasting each
+; vectors. For every 32-byte block it re-walks the whole set, broadcasting each
 ; member and OR-ing a compare into an accumulator that serialises them. A
 ; 16-char string spans two blocks, so it pays 46 broadcast/compare/or triples to
 ; examine 16 characters -- barely less work than shlwapi's 368 scalar compares.
@@ -29,7 +29,7 @@
 ; This is the weakness changes 035-040 fixed for the ucrtbase span/pbrk family
 ; ("set hoisted out of the block loop"); change 135 never received it.
 ;
-; THE FIX -- HYBRID: per-member first block, O(n+m) nibble bitmap for the tail
+; The fix -- hybrid: per-member first block, O(n+m) nibble bitmap for the tail
 ; ---------------------------------------------------------------------------
 ; A pure bitmap rewrite was tried first and is NOT what shipped, because it
 ; traded one regression for another. Measured, pure-bitmap:
@@ -40,7 +40,7 @@
 ; per-member form is genuinely better for small sets that resolve immediately,
 ; and the bitmap is genuinely better for everything else.
 ;
-; So this variant does BOTH, choosing without ever having to measure the set:
+; So this variant does both, choosing without ever having to measure the set:
 ;   * BLOCK 0 uses the original per-member compare, verbatim. Any string whose
 ;     span ends in the first block -- which is every small-set/early-stop case,
 ;     including 254/set3-stop0 -- returns from there having paid exactly what
@@ -64,12 +64,12 @@
 ;   `pow2lut` is {1,2,4,8,16,32,64,128, 0,0,0,0,0,0,0,0}: entries 8..15 are ZERO,
 ;   so any character >= 0x80 yields bitmask 0 -> "not a member" for free. Testing
 ;   `& == 0` rather than `== bitmask` is what makes that work -- a zero bitmask
-;   MUST read as not-a-member, and `== bitmask` would wrongly report a match.
+;   must read as not-a-member, and `== bitmask` would wrongly report a match.
 ;   Only EVEN byte lanes are meaningful (the low byte of each UTF-16 unit), so
 ;   the movemask is AND-ed with 0x55555555 before tzcnt; odd lanes hold a lookup
 ;   of the character's high byte and are ignored.
 ;
-; THE BITMAP IS BUILT IN GENERAL-PURPOSE REGISTERS, NOT ON THE STACK
+; The bitmap is built in general-purpose registers, not on the stack
 ;   The first attempt assembled it with byte stores to a stack buffer and read it
 ;   back with `vbroadcasti128`. Narrow stores followed by a wide load is a
 ;   store-to-load-forwarding STALL (the same ~20-cycle hazard change 152
@@ -77,14 +77,14 @@
 ;   and moved across with vmovq/vpinsrq/vinserti128, so nothing round-trips
 ;   through memory.
 ;
-; ASCII-SET RESTRICTION, HANDLED SAFELY
+; Ascii-set restriction, handled safely
 ;   `1 << hi` needs hi <= 7, i.e. set members < 0x80. If ANY member is >= 0x80
-;   the bitmap cannot represent it, so this variant DOES NOT GUESS -- it falls
+;   the bitmap cannot represent it, so this variant does not guess -- it falls
 ;   back to the original per-member loop, reproduced verbatim below, which
 ;   handles the full 16-bit range. Correctness is identical for every set; only
 ;   the fast path is restricted.
 ;
-; THE TERMINATOR NEEDS NO SPECIAL CASE (unchanged reasoning from the original)
+; The terminator needs no special case (unchanged reasoning from the original)
 ;   A set is itself NUL-terminated, so it can never contain NUL; bit (0,0) is
 ;   therefore never set, NUL tests as "not a member", and the span stops there.
 ;

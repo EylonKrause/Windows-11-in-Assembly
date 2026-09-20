@@ -5,10 +5,10 @@
 ; Tiger Lake / Willow Cove variant of change 184. Same contract, same oracle, same gates; this is
 ; the only file that differs from the parent.
 ;
-; WHY A VARIANT AND NOT AN EDIT
+; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here the smallest class measures 0.79x, and
-; the reason is not the arithmetic -- it is that at that size the parent does NO VECTOR WORK AT ALL
+; the reason is not the arithmetic -- it is that at that size the parent does no vector work at all
 ; while paying the full price of having intended to. The bench's "8" row is 8 BYTES: an 8-character
 ; string with numberOfElements = 9 and count = _TRUNCATE, so the terminator sits at index 8 and the
 ; fill is min(count, 8) = 8 bytes. Against that input the parent:
@@ -26,7 +26,7 @@
 ; order to move eight bytes. Willow Cove's dirty-upper bookkeeping is dearer than Zen's, which is
 ; why the same code is a win on bench #1 and a loss here.
 ;
-; WHAT THIS VARIANT CHANGES
+; What this variant changes
 ; -------------------------
 ; It splits at the bound BEFORE touching any vector register:
 ;
@@ -45,7 +45,7 @@
 ; At or above a 32-byte bound it branches to the parent's code, spliced in unchanged. That is where
 ; the parent already wins up to 8.2x here, and it is not what this variant is about.
 ;
-; ONE THING THAT WENT WRONG, AND IS WORTH KNOWING
+; One thing that went wrong, and is worth knowing
 ; -----------------------------------------------
 ; Inserting the narrow path AHEAD of the parent's code cost the parent's code 15-20% on two classes
 ; it had no business losing -- 254 and 254/partial, both of which execute only spliced instructions.
@@ -56,11 +56,11 @@
 ; parent's instructions, which is the property that makes the splice worth anything.
 ;
 ; This is the trap a variant of this shape walks straight into: a path you did not touch can still
-; regress, because you moved it. A variant must be measured on EVERY class, not on the one it set
+; regress, because you moved it. A variant must be measured on every class, not on the one it set
 ; out to fix. Note also that `ALIGN 32` is not available -- MASM rejects it here with A2189, because
 ; a request may not exceed the segment's own alignment and `.code` is 16.
 ;
-; WHY THE SPLIT IS ON THE BOUND AND NOT ON THE FILL LENGTH
+; Why the split is on the bound and not on the fill length
 ; -------------------------------------------------------
 ; This function has two limits and only one of them is known before the scan. `count` can be
 ; _TRUNCATE while the bound is 9, or 1000 while the bound is 128, so the fill length is not a
@@ -71,7 +71,7 @@
 ; small overlapping-store ladder covers. One test on rdx decides the shape of the whole call, and
 ; it is a test the parent already had to make later anyway.
 ;
-; THE SCAN STILL CANNOT BE SHORTENED BY `count`, on either path. Even when count is 0 the return
+; The scan still cannot be shortened by `count`, on either path. Even when count is 0 the return
 ; value depends on whether a terminator exists strictly inside numberOfElements, so the bounded
 ; scan always runs to completion; only the fill is clipped. The narrow path keeps `count` live in
 ; r9 across the whole scan exactly as the parent does, and reuses r9 as the fill cursor only after
@@ -84,7 +84,7 @@
 ; shapes and assuming one from another is how a previous attempt on a sibling was refuted on 407604
 ; of 1000000 cases (see the parent's header and probes/sns.c for how this one was pinned):
 ;
-;   * numberOfElements == 0 -> EINVAL (22) and NOTHING is written at all, whatever count says.
+;   * numberOfElements == 0 -> EINVAL (22) and nothing is written at all, whatever count says.
 ;   * No terminator strictly inside numberOfElements -> fill min(count, numberOfElements-1) cells,
 ;     and only THEN write str[0] = 0, returning EINVAL (22). The partial fill happens first and
 ;     stays observable in bytes 1..n-2; it is not undone.
@@ -94,7 +94,7 @@
 ;     special-cased and simply saturates against the other limit.
 ;   * All 256 fill byte values behave identically, including 0.
 ;
-; PAGE SAFETY: a probe is issued only when that many bytes of the caller's DECLARED buffer remain,
+; Page safety: a probe is issued only when that many bytes of the caller's declared buffer remain,
 ; and is additionally guarded against crossing into the next page -- the same two-part discipline
 ; the parent uses, applied at 16 and 8 bytes as well as 32. When either test fails the narrow scan
 ; creeps a byte at a time to the end of the bound and never re-enters a probe loop, so no byte of
@@ -280,7 +280,7 @@ no_term:
         cmova     r10, r9                        ; r10 = min(count, numberOfElements-1)
         mov       edx, 1                         ; outcome = EINVAL
 
-        ;---------------- one fill loop serves BOTH outcomes ----------------
+        ;---------------- one fill loop serves both outcomes ----------------
 do_fill:
         movzx     eax, r8b
         vmovd     xmm2, eax

@@ -1,6 +1,6 @@
 /* changes/016-rtlunicodetoutf8n/measuring.c
  *
- * THE MEASURING MODE, added 2026-09-16 because it was missing, gated the same way as everything
+ * The measuring mode, added 2026-09-16 because it was missing, gated the same way as everything
  * else here: three-way against the live export, over a corpus built to reach every rule.
  *
  * RtlUnicodeToUTF8N(NULL, ...) asks how many bytes the output would need. This implementation did
@@ -10,7 +10,7 @@
  * managed to miss because they all pass a real destination buffer.
  * See discovery/utf8n_null_destination.c for how it surfaced.
  *
- * WHAT THIS FILE CHECKS:
+ * What this file checks:
  *   1. the size AND the status against live, over every length from 0 to 400, for ASCII,
  *      two-byte, three-byte, surrogate-pair and lone-surrogate inputs;
  *   2. a NULL destination with a NON-ZERO size, which is the case that used to fault;

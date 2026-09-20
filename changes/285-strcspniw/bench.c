@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_strcspniw against the live shlwapi!StrCSpnIW.
  *
- * THE ROWS ARE WHAT A SET SPAN ACTUALLY COSTS, AND THE SET IS AS MUCH OF THE INPUT AS THE STRING:
+ * The rows are what a set span actually costs, and the set is as much of the input as the string:
  *
  *   * no match over a long string, which must reach the terminator -- the worst case for the scan;
  *   * a match near the START, which is where a span usually stops in real use (a delimiter search);

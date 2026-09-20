@@ -1,6 +1,6 @@
 /* changes/288-foldstringw-digits/tables.c
  *
- * THE MAP_FOLDDIGITS TABLE, BUILT FROM THE LIVE EXPORT AND RE-CHECKED AGAINST IT.
+ * The MAP_FOLDDIGITS table, built from the live export and re-checked against it.
  *
  * probes/contract.c asked change 287's questions PER FLAG, because FoldStringW is five functions behind
  * one entry point and they are not equally tractable. Folding every code unit on its own, one flag at a
@@ -13,7 +13,7 @@
  *      MAP_COMPOSITE         12197         4             2082             468
  *      MAP_EXPAND_LIGATURES    710         3                0               0
  *
- * MAP_FOLDDIGITS is the ONLY strictly 1:1 flag -- nothing grows, nothing shrinks, nothing is refused.
+ * MAP_FOLDDIGITS is the only strictly 1:1 flag -- nothing grows, nothing shrinks, nothing is refused.
  * Every other flag turns one input unit into several, up to EIGHTEEN for one MAP_FOLDCZONE input, and a
  * mapping that changes the length is not a per-character table at any width. Those flags are separate
  * problems and are not in this change; the repository already carries four separate changes for
@@ -73,7 +73,7 @@ int wia_fold_init(void)
     }
     if (wia_fold_changed == 0) return result;       /* a table of pure identity means something broke */
 
-    /* RE-CHECK IN BULK. The per-character extraction is not the path this change replaces; a bulk call
+    /* Re-check in bulk. The per-character extraction is not the path this change replaces; a bulk call
        that disagreed with it would otherwise go unnoticed, which is the mistake change 287's tables.c
        was written to avoid. U+0000 cannot appear inside a bulk source, so it is excluded here and
        covered by the per-character pass above. */

@@ -1,12 +1,12 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/notmapped.c
  *
- * DOES STATUS_SOME_NOT_MAPPED SURVIVE THE WRAPPER?
+ * Does STATUS_SOME_NOT_MAPPED survive the wrapper?
  *
  * The N-forms return 0x00000107 STATUS_SOME_NOT_MAPPED -- a SUCCESS code -- when they had to
  * substitute U+FFFD for something they could not convert: a lone surrogate going out, malformed
  * UTF-8 coming in. The first draft of this change assumed the wrappers pass that through, and said
  * so in its header. probes/failwrite.c then printed a malformed UTF-8 string coming back through
- * RtlUTF8StringToUnicodeString with the substitution VISIBLE in the buffer (FFFD 0061 FFFD) and a
+ * RtlUTF8StringToUnicodeString with the substitution visible in the buffer (fffd 0061 Fffd) and a
  * status of 00000000, which is not what the draft claimed.
  *
  * An assumption that survived into a header comment is exactly the kind of thing that later gets

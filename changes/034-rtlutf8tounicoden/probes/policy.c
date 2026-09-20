@@ -1,6 +1,6 @@
 /* changes/034-rtlutf8tounicoden/probes/policy.c
  *
- * HOW MANY UTF-16 UNITS DOES RtlUTF8ToUnicodeN PRODUCE FROM MALFORMED UTF-8?
+ * How many UTF-16 units does RtlUTF8ToUnicodeN produce from malformed UTF-8?
  *
  * This is the rule the measuring mode needs, and it cannot be guessed. A first attempt -- one
  * U+FFFD per bad byte -- over-counted badly: for a 48-byte run of continuation bytes the live

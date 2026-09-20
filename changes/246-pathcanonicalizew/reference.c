@@ -12,7 +12,7 @@
  * oracle is independent of 243's assembly: it was derived from that function's own probes and then
  * agreed with the live export over 11 772 366 enumerated cases.
  *
- * THE WRAPPER, read out of kernelbase!PathCanonicalizeW at RVA 0xF0F0 and then measured:
+ * The wrapper, read out of kernelbase!PathCanonicalizeW at rva 0xF0F0 and then measured:
  *
  *   * pszDst NULL                  -> FALSE, last error 87 (ERROR_INVALID_PARAMETER)
  *   * *pszDst = 0                  -> happens BEFORE pszSrc is validated, so (dst, NULL) returns

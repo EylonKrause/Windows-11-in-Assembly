@@ -1,11 +1,11 @@
 /* discovery/upcase_nonascii_rows.c
  *
- * THE SAME QUESTION AGAIN, ASKED OF THE UPCASE FAMILY.
+ * The same question again, asked of the upcase family.
  *
  * discovery/utf8_nonascii_rows.c found changes 016 and 034 -- the two UTF-8 conversions -- benched
  * on ASCII input only, and running at 0.21x to 0.94x on everything else. The defect was not in what
  * they computed; it was in what had been measured. That is a shape, not an accident, and the shape
- * is: AN IMPLEMENTATION WITH A DATA-DEPENDENT FAST PATH, BENCHED ON THE DATA THE FAST PATH WAS
+ * is: An implementation with a data-dependent fast path, benched on the data the fast path was
  * WRITTEN FOR.
  *
  * Four more landed changes have exactly that shape and say so in their own headers:
@@ -22,7 +22,7 @@
  * This file asks all four about the text the table path exists for, against the live exports, at
  * four lengths and in six classes.
  *
- * TWO OF THE CLASSES ARE CONTROLS. `ascii-lower` is the row the four published tables already
+ * Two of the classes are controls. `ascii-lower` is the row the four published tables already
  * contain, so it must come out at the published figure or the measurement is wrong rather than the
  * implementations; and `ascii-mixed` differs from it only in which letters actually change, so a
  * gap between those two would be a branch on the DATA rather than on the class. Everything from

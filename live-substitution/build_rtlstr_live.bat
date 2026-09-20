@@ -5,7 +5,7 @@ REM    009 RtlHashUnicodeString   010 RtlEqualUnicodeString
 REM    011 RtlPrefixUnicodeString 012 RtlCompareString
 REM    013 RtlEqualString         014 RtlPrefixString
 REM
-REM  ONE upcase.c AND ONE upcase_ansi.c ARE LINKED FOR ALL SIX. Changes 010 and
+Rem  one upcase.c and one upcase_ansi.c are linked for all six. Changes 010 and
 REM  011 ship byte-identical upcase.c, 012/013/014 ship byte-identical
 REM  upcase_ansi.c, and 009's upcase.c differs from 010's only in whitespace and
 REM  a comment -- they all define wia_upcase / wia_upcase_init (and the ANSI

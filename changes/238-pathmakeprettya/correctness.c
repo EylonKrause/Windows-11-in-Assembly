@@ -8,9 +8,9 @@
      * the RETURN does not mean "something changed" -- "123456", "" and "\\\\" all return 1 while
        changing nothing, so a harness that inferred one from the other would pass an implementation
        that returned the wrong thing on exactly those;
-     * a REFUSAL writes NOTHING, and a string comparison cannot tell that from writing the same bytes
+     * a REFUSAL writes nothing, and a string comparison cannot tell that from writing the same bytes
        back;
-     * the REWRITE IS BOUNDED at 259 characters while the REFUSAL SCAN IS NOT, so an implementation
+     * the rewrite is bounded at 259 characters while the refusal scan is not, so an implementation
        that shared one bound between them is correct on every path shorter than 260 and wrong past it.
 
    FOUR THINGS THIS CORPUS IS BUILT TO CATCH.
@@ -99,7 +99,7 @@ int main(void){
         for (int i = 0; V[i]; ++i) chks(V[i], "probe case");
     }
 
-    /* ---- THE REFUSAL SET: every byte value as the sole non-uppercase character --------------- */
+    /* ---- The refusal set: every byte value as the sole non-uppercase character --------------- */
     {
         static char s[128];
         long cases = 0;
@@ -126,7 +126,7 @@ int main(void){
                "  and alone: %ld cases\n", cases);
     }
 
-    /* ---- BOTH MAPS: every ordered pair of (index 0 byte, index 1 byte) ----------------------- */
+    /* ---- both MAPS: every ordered pair of (index 0 byte, index 1 byte) ----------------------- */
     /* The only way to see index 0 uppercased is a byte that is lowercase in CP1252 but not ASCII,
        so the two positions are swept together rather than one at a time. */
     {
@@ -178,7 +178,7 @@ int main(void){
                "  CP1252 lowercase letter at EVERY position: %ld cases\n", cases);
     }
 
-    /* ---- LENGTH AS A DIMENSION: across the 259/260 rewrite boundary -------------------------- */
+    /* ---- Length as a dimension: across the 259/260 rewrite boundary -------------------------- */
     {
         static char s[900];
         long cases = 0;

@@ -11,12 +11,12 @@
 ; This is the largest single row left in that family.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE RELATION IS CHANGE 281's, ALREADY PAID FOR.
+; 2. The relation is change 281's, already paid for.
 ;
 ; Change 281 characterised shlwapi's case-insensitive match relation and generated it from the live
 ; export: locale-invariant (en-US, de-DE, TURKISH, invariant), decided one character at a time,
-; SYMMETRIC BUT NOT TRANSITIVE -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2 while U+D7B0 does
-; not match U+D7B1, 168 intransitive triples -- so it has NO CLASSES and is stored per NEEDLE.
+; Symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2 while U+D7B0 does
+; not match U+D7B1, 168 intransitive triples -- so it has no classes and is stored per needle.
 ; 10553170 matching pairs; 56825 needles match only themselves; the largest set is 3237.
 ;
 ; This change links those tables unchanged. The dispatch is identical: a needle with no partners
@@ -24,19 +24,19 @@
 ; share eleven bitmaps.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. THE SHAPE, MEASURED BY probes/contract.c AND probes/bounds.c -- IT IS NOT StrChrIW's.
+; 3. The shape, measured by probes/contract.c and probes/bounds.c -- it is not StrChrIW's.
 ;
-;   * the signature is (start, END, wMatch) with the END EXCLUSIVE: over "abcXYZabc", an end of
+;   * the signature is (start, end, wMatch) with the end exclusive: over "abcXYZabc", an end of
 ;     start+6 returns index 0 while start+7 returns index 6.
 ;   * it returns the LAST match, not the first.
-;   * IT HAS NO TERMINATOR. "abcd\0fghijk" with end = start+11 finds 'J' at index 9 -- the embedded
+;   * It has no terminator. "abcd\0fghijk" with end = start+11 finds 'J' at index 9 -- the embedded
 ;     NUL is just another character -- and an end pointer past a guard page FAULTS rather than
 ;     stopping. The range is taken literally, and that is what makes this the simpler function of
 ;     the two: there is nothing to search for except the needle.
 ;   * an empty range (end == start) finds nothing; a NULL start returns NULL rather than faulting.
 ;   * probes/contract.c also settled that its sibling StrChrNIW takes a COUNT, not an end pointer,
 ;     which discovery/charclass_strcmp_2026.c had called as a pointer and got a plausible answer
-;     from. BOTH readings return NULL on that call, so it never distinguished them -- the same trap
+;     from. both readings return NULL on that call, so it never distinguished them -- the same trap
 ;     as change 273's all-ones hex digits.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -46,9 +46,9 @@
 ; confirmed -- the aligned block containing any readable byte lies in the same page as that byte. A
 ; 32-byte aligned load can never cross a page boundary, so no load can reach an unmapped page. The
 ; two edge blocks are masked: the top block discards bytes at or after `end`, the bottom block
-; discards bytes before `start`, and when the range fits in one block BOTH masks apply.
+; discards bytes before `start`, and when the range fits in one block both masks apply.
 ;
-; ISA: AVX2 + BMI1 (BSR) + BMI2 (BZHI). VZEROUPPER on every exit that touched a YMM register.
+; Isa: AVX2 + BMI1 (bsr) + BMI2 (bzhi). Vzeroupper on every exit that touched a ymm register.
 
 OPTION PROC:PRIVATE
 PUBLIC wia_strrchriw

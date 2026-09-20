@@ -1,6 +1,6 @@
 /* changes/273-inet-addr/probes/grammar.c
  *
- * WHAT DOES ws2_32!inet_addr ACTUALLY ACCEPT?
+ * What does ws2_32!inet_addr actually accept?
  *
  * discovery/sid_inet_bstr.c measured it at 24.98 ns and flagged it as the LENIENT IPv4 parser: it
  * takes "1.2", "0x7f.1" and octal, all of which RtlIpv4StringToAddressA -- change 114, already
@@ -29,7 +29,7 @@
  *   3. the OVERFLOW rules -- what happens when a part exceeds its field, and does it saturate,
  *      wrap, or refuse? This is where change 269 found a parser that SATURATES one field and
  *      REFUSES on another.
- *   4. WHITESPACE, SIGNS and TRAILING TEXT.
+ *   4. Whitespace, signs and trailing text.
  *   5. what INADDR_NONE means, given that 255.255.255.255 is a legal address whose value IS
  *      INADDR_NONE -- so the failure signal is ambiguous by construction, and a caller cannot tell
  *      them apart. Does the export do anything about that?

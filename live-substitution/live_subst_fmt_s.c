@@ -11,7 +11,7 @@
 // Built /MD: errno and the invalid-parameter handler must be UCRTBASE's, the same ones our assembly
 // writes through. With the static CRT the live export would __fastfail.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // ucrtbase only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // Build: build_fmt_s_live.bat

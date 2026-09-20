@@ -1,12 +1,12 @@
 /* changes/283-strrstriw/probes/pastnul2.c
  *
- * WHAT DOES THE EXPORT COMPARE AGAINST PAST THE TERMINATOR -- REAL MEMORY, OR A VIRTUAL NUL?
+ * What does the export compare against past the terminator -- real memory, or a virtual NUL?
  *
  * probes/pastnul.c established that a needle whose tail matches a NUL can match across the
- * terminator: over "zzzq" the needle {Q, SOFT HYPHEN} is found at the last character. That probe
+ * terminator: over "zzzq" the needle {q, soft hyphen} is found at the last character. That probe
  * used a static, zero-filled array, so it could not tell two very different rules apart:
  *
- *   (A) the export READS THE REAL MEMORY after the terminator and compares it, and the probe only
+ *   (a) the export reads the real memory after the terminator and compares it, and the probe only
  *       saw a match because that memory happened to be zero;
  *   (B) the export treats the string as ENDING at the terminator and compares every remaining
  *       needle character against a NUL -- a virtual NUL, never a load.

@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 269 (advapi32!ConvertStringSidToSidW).
+Rem  live-run proof for change 269 (advapi32!ConvertStringSidToSidW).
 REM
 REM  This export ALLOCATES. Every success hands the caller a LocalAlloc block
 REM  that the caller frees through the ordinary, UNPATCHED LocalFree, so the
@@ -8,8 +8,8 @@ REM  harness frees every one of them -- an implementation that returned a static
 REM  buffer or a HeapAlloc block would pass correctness.c and corrupt the heap
 REM  here.
 REM
-REM  Four things are compared per case: the BOOL, GetLastError, WHAT HAPPENED TO
-REM  THE OUTPUT POINTER (a poison value distinguishes "left alone" from "cleared
+Rem  Four things are compared per case: the BOOL, GetLastError, what happened to
+Rem  the output pointer (a poison value distinguishes "left alone" from "cleared
 REM  to NULL" from "written"), and every byte of the SID. The third of those is
 REM  not decoration: `)`, `,` and `;` after a complete SID are the only
 REM  characters in the 16-bit space that make a FAILING call write the pointer.

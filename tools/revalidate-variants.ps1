@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------------------------
 # Sweep the MICROARCHITECTURE VARIANTS, which the main sweep does not touch.
 #
-# WHY THIS EXISTS. tools/revalidate.ps1 walks changes/* and runs each directory's `build.bat`. That
+# Why this exists. tools/revalidate.ps1 walks changes/* and runs each directory's `build.bat`. That
 # is the implementation of record and it is the right thing for it to run. But a change can also
 # carry variants beside it:
 #
@@ -18,7 +18,7 @@
 # This runs them. It deliberately does NOT modify revalidate.ps1: the two sweeps answer different
 # questions and conflating them would make a variant failure look like a failure of the change.
 #
-# WHAT A RESULT MEANS HERE
+# What a result means here
 #   * A CORRECTNESS failure is as serious as in the main sweep and fails the run. The variant is
 #     built against the change's UNMODIFIED correctness.c, which resolves the live export through
 #     GetProcAddress, so a failure means the variant no longer matches what Windows ships.
@@ -77,7 +77,7 @@ if (-not $builds) { Write-Host 'no variant build scripts found.'; exit 0 }
 Write-Host ("sweeping {0} variant build(s)" -f $builds.Count)
 Write-Host ''
 
-# A variant's own RESULTS-<suffix>.md records whether it LANDS or is PARKED. A PARKED variant is one
+# a variant's own RESULTS-<suffix>.md records whether it lands or is parked. a parked variant is one
 # already documented as losing a size class -- reporting that every run is noise, and noise is what
 # buries a real finding.
 function Get-VariantVerdict {
@@ -85,7 +85,7 @@ function Get-VariantVerdict {
     $r = Join-Path $dir "RESULTS-$suffix.md"
     if (-not (Test-Path $r)) { return 'UNKNOWN' }
     $head = (Get-Content $r -TotalCount 4 -EA SilentlyContinue) -join ' '
-    # THE VERDICT MAY CARRY A QUALIFIER, and requiring the bare word made this return UNKNOWN for
+    # The verdict may carry a qualifier, and requiring the bare word made this return unknown for
     # two variants whose heading reads `**LANDS (variant)**` -- so the sweep could not tell whether
     # a regression in them was expected or news. A verdict that cannot be read is not a neutral
     # 'unknown': it silently moves the change out of both the expected and the actionable list.
@@ -139,9 +139,9 @@ foreach ($b in $builds) {
     $geo = '-'
     if ($txt -match 'geomean[^)]*\)\s*:\s*([\d.]+)x') { $geo = $matches[1] }
 
-    # THE ROW LABEL IS NOT ONE TOKEN, AND ASSUMING IT WAS MADE THIS GATE INERT FOR 109 OF 288
+    # The row label is not one token, and assuming it was made this gate inert for 109 Of 288
     # CHANGES. `(\S+)` matches a single word, so it reads "4096" in `4096  12.3  20.1  1.63x ...`
-    # and NOTHING AT ALL in `bad32 64 ...`, `COPY 64 Kbit, target 8 (byte-aligned) ...` or
+    # and nothing at all in `bad32 64 ...`, `Copy 64 Kbit, target 8 (byte-aligned) ...` or
     # `m:a+4 8191 ...`. Those benches parsed to ZERO rows, so $worst stayed null, $reg stayed empty,
     # and every one of them was reported LANDS on the strength of correctness and a geomean alone --
     # including 260-rtlcopybitmap, which has EIGHT rows below parity on bench #3. A lazy label

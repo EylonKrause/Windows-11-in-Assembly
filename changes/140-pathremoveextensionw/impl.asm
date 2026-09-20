@@ -23,7 +23,7 @@
 ; shifted out of the masks, and every later load is 32-aligned.
 ;
 ;
-; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; This change reused change 132's extension rule, and that rule was INCOMPLETE. A SPACE stops the
 ; backward scan exactly as a backslash does, so "a.b " has no extension at all. 132 shipped without
 ; it because its fuzz alphabet contained no space; this change inherited the gap, and

@@ -8,7 +8,7 @@
 ;
 ; Contract (derived in probes/scn.c, fuzz-confirmed bit-exact against the live export over
 ; 2,000,000 cases):
-;   - cchMax <= 0  -> writes NOTHING AT ALL (not even a terminator) and returns dst. The
+;   - cchMax <= 0  -> writes nothing at all (not even a terminator) and returns dst. The
 ;                     negative case matters: cchMax is a signed int and is compared signed,
 ;                     so -1 does not mean "huge".
 ;   - otherwise    -> copies min(cchMax-1, wcslen(src)) characters, then exactly ONE NUL.

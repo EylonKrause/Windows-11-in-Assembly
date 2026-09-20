@@ -5,30 +5,30 @@
 ; be a bare root. 21.93 ns against 16.88 ns for the wide form on the same character count -- 1.30x
 ; the wide cost for HALF the bytes, so twice as slow per byte.
 ;
-; THE RULE IS NOT "strip a trailing backslash", and every part of it was re-derived against the
+; The rule is not "strip a trailing backslash", and every part of it was re-derived against the
 ; NARROW export in probes/prba.c rather than inherited from change 171:
 ;
-;   * THE RETURN IS ALWAYS psz + max(n-1, 0) -- a pointer to the LAST CHARACTER, not the terminator,
+;   * The return is always psz + max(n-1, 0) -- a pointer to the last character, not the terminator,
 ;     and not the start. Confirmed at n = 0, 1, 2 and 3, and on all 19531 enumerated strings.
 ;   * One trailing backslash is removed UNLESS the remainder would be a bare root:
 ;         m == 0, or (m == 1 and psz[0] == '\'), or (m == 2 and psz[1] == ':' and psz[0] a letter)
 ;     where m = n-1. So "\" and "\\" and "C:\" keep their backslash, while "\\\", "C:\\", "ab\" and
 ;     "\\server\share\" lose one.
-;   * EXACTLY ONE BYTE VALUE IS EVER REMOVED: 0x5C. Sweeping all 255 non-NUL values as the trailing
-;     character, only the backslash goes -- a FORWARD SLASH IS NOT A SEPARATOR here, so "a/" is left
+;   * Exactly one byte value is ever removed: 0x5C. Sweeping all 255 non-NUL values as the trailing
+;     character, only the backslash goes -- a forward slash is not a separator here, so "a/" is left
 ;     alone and "C:/" is not a protected root.
 ;   * NULL returns NULL without faulting.
 ;
-; THE DRIVE-LETTER SET IS WHERE THE NARROW FORM DIFFERS FROM THE WIDE ONE, and it is exactly the
+; The drive-letter set is where the narrow form differs from the wide one, and it is exactly the
 ; reason this was re-measured instead of translated. Change 171 pinned the WIDE set by an exhaustive
-; 65535-code-unit sweep and found the ASCII letters PLUS THE LATIN-1 LETTERS (0xC0..0xD6, 0xD8..0xF6,
+; 65535-code-unit sweep and found the ASCII letters plus the LATIN-1 letters (0xC0..0xD6, 0xD8..0xF6,
 ; 0xF8..0xFF). Sweeping all 255 byte values here gives:
 ;
 ;     drive letters 0x41..0x5A
 ;     drive letters 0x61..0x7A
 ;     52 byte values act as a drive letter, in 2 run(s)
 ;
-; ASCII ONLY. The narrow export does NOT treat a Latin-1 letter as a drive letter, so "\xC0:\" is
+; ASCII only. The narrow export does NOT treat a Latin-1 letter as a drive letter, so "\xC0:\" is
 ; not a protected root while L"\u00C0:\\" is. Inheriting the wide set would have produced a function
 ; that wrongly protects 78 byte values.
 ;

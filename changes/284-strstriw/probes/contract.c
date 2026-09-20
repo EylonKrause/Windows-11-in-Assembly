@@ -1,6 +1,6 @@
 /* changes/284-strstriw/probes/contract.c
  *
- * THE CONTRACT OF shlwapi!StrStrIW, ASKED FROM SCRATCH.
+ * The contract of shlwapi!StrStrIW, asked from scratch.
  *
  * StrStrIW is the FORWARD sibling of change 283's StrRStrIW and takes two arguments rather than
  * three: PCWSTR StrStrIW(PCWSTR haystack, PCWSTR needle). It is tempting to assume it is 283 with
@@ -12,7 +12,7 @@
  *
  *     The string behaves as though the terminator were followed by ENDLESS NULs, and those NULs are
  *     never loaded. 3320 code units match a NUL (change 282), so a needle whose TRAILING characters
- *     all match a NUL can match ACROSS the terminator -- over "zzzq" the needle {Q, SOFT HYPHEN} is
+ *     all match a NUL can match across the terminator -- over "zzzq" the needle {q, soft hyphen} is
  *     found at the last character, and over the one-character string "q" a TWO-character needle is
  *     found at 0.
  *

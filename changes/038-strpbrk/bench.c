@@ -10,7 +10,7 @@ static fn sys;
 typedef struct { const char* s; const char* set; } ctx_t;
 // Built /Od (see build.bat): strpbrk is pure with loop-invariant args, so /O2 MSVC
 // hoists the call out of the timing loop (bogus 0.00 ns). /Od => real call each
-// iteration for BOTH sides; symmetric overhead only understates our win.
+// iteration for both sides; symmetric overhead only understates our win.
 #pragma optimize("", off)
 static uint64_t op_ours(void*c){ ctx_t*m=(ctx_t*)c; return (uint64_t)(uintptr_t)wia_strpbrk(m->s,m->set); }
 static uint64_t op_sys (void*c){ ctx_t*m=(ctx_t*)c; return (uint64_t)(uintptr_t)sys(m->s,m->set); }

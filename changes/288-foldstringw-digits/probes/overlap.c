@@ -1,6 +1,6 @@
 /* changes/288-foldstringw-digits/probes/overlap.c
  *
- * WHAT DOES THE EXPORT PRODUCE WHEN THE BUFFERS OVERLAP, AND IS IT EVEN WELL DEFINED?
+ * What does the export produce when the buffers overlap, and is it even well defined?
  *
  * probes/contract.c established that FoldStringW refuses dest == src with ERROR_INVALID_PARAMETER but
  * ACCEPTS every other overlap -- dest = src+1, src+4, src+8, src-4 all returned a length. The

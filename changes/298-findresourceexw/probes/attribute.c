@@ -1,6 +1,6 @@
-/* probes/attribute.c -- WHERE DO THE NANOSECONDS GO?
+/* probes/attribute.c -- where do the nanoseconds go?
  *
- * kernelbase!FindResourceExW normalises BOTH arguments BEFORE it calls
+ * kernelbase!FindResourceExW normalises both arguments BEFORE it calls
  * ntdll!LdrFindResource_U.  So if the TYPE is an integer that does not exist in
  * the module, the ntdll search returns at the first level in a fixed ~83 ns and
  * everything above that floor is the string normaliser.  That is the knife that

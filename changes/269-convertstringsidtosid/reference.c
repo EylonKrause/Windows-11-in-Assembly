@@ -11,21 +11,21 @@
  *              built from the OS (a third of the entries are this machine's or this domain's).
  *              Not in the table -> ERROR_INVALID_SID.
  *
- *   SIDSTRING  ('S'|'s') '-' LENIENT '-' LENIENT ('-' STRICT)+
- *              the first number is the REVISION, the second the IDENTIFIER AUTHORITY, and the rest
- *              are SUB-AUTHORITIES, of which there must be AT LEAST ONE.
+ *   Sidstring  ('S'|'s') '-' lenient '-' lenient ('-' strict)+
+ *              the first number is the revision, the second the identifier authority, and the rest
+ *              are sub-authorities, of which there must be at least one.
  *
- *   AND THE TWO NUMBERS ARE NOT THE SAME NUMBER. This is the thing no reading would have suggested
+ *   And the two numbers are not the same number. This is the thing no reading would have suggested
  *   and the thing the first model got wrong on 2822 of 36508 cases:
  *
- *   LENIENT    [space]* '+'? ( DIGIT+ | '0' ('x'|'X') HEXDIGIT+ )
+ *   Lenient    [space]* '+'? ( Digit+ | '0' ('x'|'X') hexdigit+ )
  *              where [space] is the whole Unicode whitespace set -- U+0009..U+000D, U+0020,
  *              U+00A0, U+1680, U+180E, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F, U+3000 --
- *              and DIGIT is the whole Unicode DECIMAL DIGIT set, so U+0661, U+0967, U+0E51 and a
+ *              and digit is the whole Unicode decimal digit set, so U+0661, U+0967, U+0E51 and a
  *              dozen other blocks are each worth their face value. A '+' and an '0x' are mutually
  *              exclusive: "+0x5" is refused. Exactly one '+', and only after the whitespace.
  *
- *   STRICT     DIGIT+ | '0' ('x'|'X') HEXDIGIT+
+ *   Strict     digit+ | '0' ('x'|'X') hexdigit+
  *              no whitespace, no sign, and DIGIT here is only the ASCII digits and the FULLWIDTH
  *              digits U+FF10..U+FF19.
  *
@@ -33,8 +33,8 @@
  *              trailing separator, a doubled separator, a trailing letter and a bare "0x" are all
  *              refused, and so is trailing whitespace: "S-1-5 -1" does not parse.
  *
- *   AND THE BASE IS NOT PER-FIELD, which is the last surprise and the one that is not a grammar at
- *   all. A `0x` on the REVISION switches the DEFAULT BASE for every field after it, and in that
+ *   And the base is not per-field, which is the last surprise and the one that is not a grammar at
+ *   all. a `0x` on the revision switches the default base for every field after it, and in that
  *   mode the prefix becomes optional:
  *
  *       S-1-5-18        sub-authority 18       decimal throughout
@@ -47,13 +47,13 @@
  *   An explicit `0x` still makes its OWN field hexadecimal wherever it appears. Only the revision
  *   changes the default for the others. probes/basecarry.c is where that was measured.
  *
- * AND THE THREE THINGS THAT ARE NOT SYMMETRIC, which is what makes this worth writing down:
+ * And the three things that are not symmetric, which is what makes this worth writing down:
  *
  *   * a SUB-AUTHORITY SATURATES. "4294967296" becomes 0xFFFFFFFF, and so does
  *     "18446744073709551616" and "0xFFFFFFFFF". It does not refuse.
- *   * the IDENTIFIER AUTHORITY REFUSES. It is 48 bits, "281474976710655" is accepted and
+ *   * the identifier authority refuses. It is 48 bits, "281474976710655" is accepted and
  *     "281474976710656" is not.
- *   * the REVISION is STORED, NOT VALIDATED. "S-0-5-18" and "S-255-5-18" are both accepted and
+ *   * the revision is stored, not validated. "S-0-5-18" and "S-255-5-18" are both accepted and
  *     produce SIDs whose revision byte is 0 and 255 -- which ConvertSidToStringSid then refuses to
  *     format. Above 255 the parser refuses.
  *
@@ -61,7 +61,7 @@
  *     with ERROR_ARITHMETIC_OVERFLOW rather than ERROR_INVALID_SID. A sixteen-sub-authority SID is
  *     built happily and then cannot be formatted back.
  *
- * ON FAILURE THE OUTPUT POINTER IS LEFT ALONE -- EXCEPT AFTER AN SDDL TERMINATOR. Three characters
+ * On failure the output pointer is left alone -- except after an sddl terminator. Three characters
  * behave differently from the other 65532, and it took a sweep of every trailing code unit to find
  * them:
  *
@@ -70,7 +70,7 @@
  *     S-1-5-1;   the same
  *     S-1-5-1a   FALSE, and the pointer LEFT ALONE, like everything else
  *
- * `)`, `,` and `;` are the SDDL ACE terminators -- a SID appears inside an ACE as
+ * `)`, `,` and `;` are the sddl ace terminators -- a SID appears inside an ace as
  * `(A;;FA;;;S-1-5-18)` -- so the parser underneath this export has a mode that stops at them, and
  * the public wrapper, which does not accept trailing text, rejects the result AFTER the inner call
  * has already stored its answer and then clears it. It only happens when a COMPLETE SID precedes

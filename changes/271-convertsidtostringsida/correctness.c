@@ -1,19 +1,19 @@
 /* changes/271-convertsidtostringsida/correctness.c
  *
- * Gate 1 for advapi32!ConvertSidToStringSidA: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the
+ * Gate 1 for advapi32!ConvertSidToStringSidA: Ours vs the scalar model vs the live export, on the
  * BOOL, GetLastError(), what happened to the output pointer, LocalSize, LocalFlags, and every byte
  * of the returned block. Every block is freed.
  *
- * THE COUNT IS SWEPT 0..255 rather than sampled -- change 067's lesson learned the expensive way:
+ * The count is swept 0..255 rather than sampled -- change 067's lesson learned the expensive way:
  * its corpus drew the count as `(seed>>8)%16` and therefore never expressed a count above 15, which
  * is a refusal the implementation did not have.
  *
- * THE GUARD-PAGE SWEEP IS AGAINST THE LIVE EXPORT ONLY, and it has to be: a scalar model cannot
+ * The guard-page sweep is against the live export only, and it has to be: a scalar model cannot
  * fault on demand. A SID that is not fully readable is a REFUSAL when its sub-authority array runs
  * off the end and a FAULT when only its six identifier-authority bytes do -- change 067's rule,
  * inherited here because it is the same formatter underneath.
  *
- * THE ONE THING THIS GATE CHECKS THAT CHANGE 270's DOES NOT is that the narrowing does not clip.
+ * The one thing this gate checks that change 270's does not is that the narrowing does not clip.
  * VPACKUSWB saturates, so any character at or above 0x100 would come back as 0xFF rather than as
  * itself. probes/contract.c established that a SID string is 'S', '-', 'x', the digits and A-F --
  * but "established" means "measured over every shape asked", and the corpus below asks the same
@@ -200,7 +200,7 @@ int main(void)
         };
         for (i = 0; i < sizeof VS / sizeof VS[0]; ++i) {
             for (k = 0; k < 16; ++k) sub[k] = VS[i];
-            /* EVERY COUNT, because the pack runs sixteen characters at a time with an overlapping
+            /* every COUNT, because the pack runs sixteen characters at a time with an overlapping
                tail and the result length crosses that boundary at counts nothing round picks. */
             for (j = 0; j <= 15; ++j) { mk(sid, 1, 5, j, sub); one(sid); }
             for (k = 0; k < 16; ++k) sub[k] = 1234567890u;
@@ -222,7 +222,7 @@ int main(void)
     }
     guard_sweep();
 
-    /* 5. EVERY RESULT LENGTH THE PACK CAN PRODUCE. The sixteen-character loop and its overlapping
+    /* 5. Every result length the pack can produce. The sixteen-character loop and its overlapping
           tail change behaviour at every multiple of sixteen, and a corpus of "realistic" SIDs walks
           straight past most of them. Sub-authority values are chosen so the total lands on each
           length in turn. */

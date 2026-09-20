@@ -2,8 +2,8 @@
  *
  * Gate 2: time wia_strstriw against the live shlwapi!StrStrIW.
  *
- * THE ROWS ARE WHAT A FORWARD SUBSTRING SEARCH ACTUALLY COSTS, AND THEY ARE NOT CHANGE 283's ROWS
- * WITH THE LABELS SWAPPED:
+ * The rows are what a forward substring search actually costs, and they are not change 283's rows
+ * With the labels swapped:
  *
  *   * a MISS over a long haystack, which must try every start position -- the worst case;
  *   * a hit near the START, which a forward search finds at once and a backward one does not;

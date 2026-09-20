@@ -11,8 +11,8 @@
 ; is refuted on 265 039 of 2 000 000 cases:
 ;
 ;   1. Find the first U+0020 that is OUTSIDE double quotes (each '"' toggles the state).
-;      THE SPLIT CHARACTER IS EXACTLY U+0020 -- swept over all 65535 code units, exactly one
-;      qualifies. A TAB DOES NOT SPLIT ("prog.exe<tab>arg" comes back untouched).
+;      The split character is exactly U+0020 -- swept over all 65535 code units, exactly one
+;      qualifies. a tab does not split ("prog.exe<tab>arg" comes back untouched).
 ;   2. If such a space exists AND something follows it, write NUL over it -- and ALSO write NUL
 ;      over the LAST space of that run when a non-space follows. This is real and observable:
 ;           "ab c"     -> cell 2 written
@@ -25,7 +25,7 @@
 ;           '"' + ' '     -> the space IS cut   (no unquoted space exists, so the trailing
 ;                                                trim applies even though it sits in a quote)
 ;           '"' + ' ' + 'a' -> nothing is cut   (the space is neither unquoted nor trailing)
-;      And the trim removes the WHOLE trailing run, terminating at its first character:
+;      And the trim removes the whole trailing run, terminating at its first character:
 ;      '"' + "  " writes cell 1, not cell 2.
 ;
 ; Method: an EVENT scan. One vector pass looks for the first character that is any of

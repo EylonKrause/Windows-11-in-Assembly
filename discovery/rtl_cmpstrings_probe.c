@@ -1,17 +1,17 @@
 /* discovery/rtl_cmpstrings_probe.c
  *
- * IS RtlCompareUnicodeStrings A DISTINCT TARGET, AND IS IT LINGUISTIC?
+ * Is RtlCompareUnicodeStrings a distinct target, and is it linguistic?
  *
  * The uncovered survey ranks it at 0.076 ns/byte comparing equal strings and 0.102 with the
  * case-insensitive flag set -- the best per-byte cost left in ntdll that is not already landed. But
  * two things have to be settled before any contract work starts, and this project has been caught
  * by both before:
  *
- *   1. IS IT ACTUALLY A DIFFERENT EXPORT? `RtlInitAnsiString` looked like a target in the same
+ *   1. Is it actually a different export? `RtlInitAnsiString` looked like a target in the same
  *      survey and turned out to be the SAME ADDRESS as `RtlInitString`, which change 095 landed
  *      long ago. Comparing GetProcAddress values costs nothing and settles it.
  *
- *   2. IS THE CASE-INSENSITIVE FLAG LINGUISTIC? This is the question that decided whether several
+ *   2. Is the case-insensitive flag linguistic? This is the question that decided whether several
  *      earlier targets were convertible at all: discovery/lstrcmp_is_linguistic.c and
  *      strcmpn_is_linguistic.c both ABANDONED their targets on the answer. A comparison that
  *      consults a locale, or that treats one character as equal to a sequence of others, cannot be
@@ -67,7 +67,7 @@ int main(void)
        would have to be visible somewhere in a dense sweep like this */
     for (x = 0; x < 65536; ++x) {
         for (y = x; y < x + 256 && y < 65536; ++y) {
-            /* THE LENGTHS ARE IN CHARACTERS, not bytes. Passing 2 here compared each character
+            /* The lengths are in characters, not bytes. Passing 2 here compared each character
                against the stack slot after it, and every character came back DIFFERENT FROM
                ITSELF -- which is what the first run of this probe reported, and is the same class
                of mistake as a survey row whose subject does not do the work its label claims. */

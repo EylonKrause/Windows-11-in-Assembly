@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar _wcsnset_s. Not fast; just correct.
 // Contract derived in ../184-strnset-s/probes/sns.c, which fuzzed the byte AND the wide form
 // side by side against the live exports (1,000,000 cases each, 0 mismatches).
-//   * numberOfElements == 0     -> EINVAL (22), NOTHING written;
+//   * numberOfElements == 0     -> EINVAL (22), nothing written;
 //   * no terminator inside the bound -> fill min(count, numberOfElements-1) cells, then
 //     str[0] = 0, return EINVAL (22);
 //   * otherwise -> fill min(count, length) cells, keep the rest of the string, return 0.

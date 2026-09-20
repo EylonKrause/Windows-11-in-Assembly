@@ -3,7 +3,7 @@
  * The three things this change asks the OS for, rather than imitating.
  *
  * ------------------------------------------------------------------------------------------------
- * THE CODE PAGE IS CALLED, NOT REIMPLEMENTED -- BUT ONLY WHEN IT IS NEEDED.
+ * The code page is called, not reimplemented -- but only when it is needed.
  *
  * probes/codepage.c established that ConvertStringSidToSidA(s) is exactly
  * ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...)): zero disagreements over every
@@ -27,7 +27,7 @@
  * code-page question.
  *
  * ------------------------------------------------------------------------------------------------
- * THE TEMPORARY, AND WHY IT CANNOT BE A FIXED BUFFER.
+ * The temporary, and why it cannot be a fixed buffer.
  *
  * probes/asciilen.c handed the shipped export a MEGABYTE of junk and got ERROR_INVALID_SID back,
  * not a crash -- and a valid 254-sub-authority SID string is already about 2800 characters. The
@@ -37,7 +37,7 @@
  * here.
  *
  * ------------------------------------------------------------------------------------------------
- * AND THE FREE MUST NOT DISTURB THE LAST ERROR. The parser has already set it by the time the
+ * And the free must not disturb the last error. The parser has already set it by the time the
  * temporary is released, and LocalFree is entitled to change it. Change 269's correctness gate
  * compares GetLastError on every one of its 429776 cases, so a free that clobbered it would be a
  * wrong answer on every long input.

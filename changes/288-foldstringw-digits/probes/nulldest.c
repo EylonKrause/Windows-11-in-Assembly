@@ -1,6 +1,6 @@
 /* changes/288-foldstringw-digits/probes/nulldest.c
  *
- * WHY THIS PROBE EXISTS: a mutation survivor.
+ * Why this probe exists: a mutation survivor.
  *
  * impl.asm refuses a NULL destination when cchDest is non-zero, and reference.c does the same. Mutation
  * mutant #10 deleted that refusal from impl.asm and the correctness gate still passed 66,410 cases with

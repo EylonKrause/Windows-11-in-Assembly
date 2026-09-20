@@ -1,6 +1,6 @@
 /* changes/273-inet-addr/probes/lonespace.c
  *
- * ONE SPACE IS AN ADDRESS. TWO ARE NOT. WHY?
+ * One space is an address. Two are not. Why?
  *
  * probes/accum.c settled everything about this export except one line:
  *

@@ -1,9 +1,9 @@
 /* changes/279-rtlintegertochar/correctness.c
  *
- * Gate 1 for ntdll!RtlIntegerToChar: OURS vs THE SCALAR MODEL vs THE LIVE EXPORT, on the NTSTATUS
+ * Gate 1 for ntdll!RtlIntegerToChar: Ours vs the scalar model vs the live export, on the NTSTATUS
  * and every byte of a poison-filled buffer.
  *
- * THE WHOLE BUFFER IS COMPARED, on failing calls as well, because probes/contract.c measured that a
+ * The whole buffer is compared, on failing calls as well, because probes/contract.c measured that a
  * refusal leaves it untouched -- and because the two success shapes differ in what they leave
  * BEHIND the answer:
  *
@@ -14,12 +14,12 @@
  * An implementation that terminated the padded form, or padded the room form, would produce the
  * right digits and the wrong buffer. Only a byte-for-byte comparison sees it.
  *
- * THE CORPUS IS BUILT WHERE A LENGTH-FIRST CONVERTER AND A FIELD WIDTH GO WRONG:
+ * The corpus is built where a length-first converter and a field width go wrong:
  *
- *   * EVERY LENGTH from -40 to +40 at every digit-count boundary of every base. The room rule and
+ *   * every LENGTH from -40 to +40 at every digit-count boundary of every base. The room rule and
  *     the padding rule are each decided one byte at a time, and the two meet at zero.
- *   * EVERY BASE 0..40, because only five are legal.
- *   * EVERY POWER OF EVERY BASE, one either side, because that is where the digit count changes.
+ *   * every BASE 0..40, because only five are legal.
+ *   * Every power of every base, one either side, because that is where the digit count changes.
  *   * INT_MIN and INT_MIN+1, because one can be negated and the other cannot.
  *   * and the whole 32-bit value range on a prime stride.
  *
@@ -112,7 +112,7 @@ static int check_tables(void)
         char want = (char)(i < 10 ? '0' + i : 'A' + i - 10);
         if (hex[i] != want) { printf("  the hex table is wrong at %d\n", i); bad = 1; }
     }
-    /* THE POWER-OF-TWO DIGIT COUNT IS NO LONGER A TABLE -- it is BSR, one shift or one multiply,
+    /* The power-of-two digit count is no longer a table -- it is bsr, one shift or one multiply,
        and a lea. So it is checked the only way an arithmetic identity can be: over EVERY value
        whose digit count could differ, which for a power-of-two base is every power of two and its
        two neighbours, in all three bases. A wrong constant in the divide-by-3 shows up at the
@@ -203,7 +203,7 @@ int main(void)
         printf("  1. every base 0..40, six lengths each: %ld\n", cases - before);
     }
 
-    /* 2. EVERY LENGTH -40..+40 at every digit-count boundary of every base */
+    /* 2. every LENGTH -40..+40 at every digit-count boundary of every base */
     {
         long before = cases;
         for (bi = 0; bi < 5; ++bi) {
@@ -223,7 +223,7 @@ int main(void)
     /* 3. the lengths that cannot be negated.
      *
      * INT_MIN is the only negative length that is a REFUSAL rather than a field width, and it is
-     * here. ITS NEIGHBOUR IS NOT, AND THAT IS DELIBERATE: length INT_MIN+1 is a field width of
+     * here. Its neighbour is not, and that is deliberate: length INT_MIN+1 is a field width of
      * 2147483647, and the live export duly starts writing two billion zeros -- the first draft of
      * this file included it and the harness died of an access violation before it printed a single
      * mismatch. The largest negative length a 256-byte buffer can hold is -256, section 6 sweeps to

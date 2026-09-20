@@ -257,7 +257,7 @@ int main(void)
     }
 
 
-    // ---- EXHAUSTIVE WITH A SPACE IN THE ALPHABET ---------------------------------------------
+    // ---- Exhaustive with a space in the alphabet ---------------------------------------------
     // Added 2026-09-15. Eight landed changes in this repository turned out to share one missing
     // rule: a SPACE stops the extension scan exactly as a backslash does. Change 132 shipped
     // without it, 140/143/144 inherited it, and 158/159/160/174 were found by a structural sweep

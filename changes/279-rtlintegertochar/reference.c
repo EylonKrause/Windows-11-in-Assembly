@@ -11,7 +11,7 @@
  *   * a POSITIVE length is room in BYTES: the call needs length >= digits, and a terminator is
  *     written only if length > digits. That is change 067's rule, and NOT change 278's, which
  *     demands Length+2 and always terminates -- three formatters in one DLL, two rules;
- *   * a NEGATIVE length is a ZERO-PADDED FIELD WIDTH of -length characters, with NO terminator:
+ *   * a negative length is a zero-padded field width of -length characters, with no terminator:
  *     -11 on a ten-digit number gives "03735928559". probes/negative.c found that by sweeping every
  *     negative length against a guard page. INT_MIN refuses, because it cannot be negated;
  *   * length 0 refuses;

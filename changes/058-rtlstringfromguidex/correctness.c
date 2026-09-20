@@ -18,7 +18,7 @@ static void one(fn sys, const GUID* g, USHORT maxlen){
     int bad=(so!=sy)||(so!=sr);
     if(so==0){
         if(uo.Length!=uy.Length||uo.Length!=ur.Length) bad=1;
-        // WHOLE-BUFFER, not just the string. This check used to compare only the 38 GUID chars
+        // whole-BUFFER, not just the string. This check used to compare only the 38 GUID chars
         // plus their terminator, and to excuse the rest with a comment calling ntdll's further
         // NULs "an internal artifact with no clean rule". That was wrong, and the wrongness is
         // the whole reason the divergence survived to be found by live substitution instead of

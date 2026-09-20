@@ -62,7 +62,7 @@ int main(void)
     // ------------------------------------------------------------------------------------------
     // 1. Every length 0..300 (>= 2x the 32-byte vector width, by a lot) x every start offset
     //    0..31 (unaligned start AND, because the length varies over a full period, unaligned end).
-    //    At each: needle absent, needle 0 (terminator), needle at EVERY position, and the
+    //    At each: needle absent, needle 0 (terminator), needle at every position, and the
     //    int-narrowing forms of the needle.
     // ------------------------------------------------------------------------------------------
     for (size_t len = 0; len <= 300; ++len) {

@@ -8,13 +8,13 @@
 ; This function only READS and returns a pointer. No wrapper, no store, no bound: the whole job is
 ; one scan for the first byte that is either the terminator or a separator.
 ;
-; THE CONTRACT, re-derived against the NARROW export in probes/pfnca.c:
+; The contract, re-derived against the narrow export in probes/pfnca.c:
 ;
 ;   * NULL and the EMPTY STRING both return NULL, and those are the only NULLs.
-;   * EXACTLY ONE BYTE VALUE is a separator: 0x5C. Sweeping all 255 non-NUL values between two
-;     letters, only the backslash moves the answer -- a FORWARD SLASH IS NOT A SEPARATOR.
+;   * Exactly one byte value is a separator: 0x5C. Sweeping all 255 non-NUL values between two
+;     letters, only the backslash moves the answer -- a forward slash is not a separator.
 ;   * With no separator the answer is a pointer to the TERMINATOR, not NULL.
-;   * THE DOUBLED-SEPARATOR QUIRK: when the byte after the first separator is ALSO a separator,
+;   * The doubled-separator quirk: when the byte after the first separator is also a separator,
 ;     advance exactly ONE more -- never the whole run. Measured directly with leading runs of
 ;     increasing length:
 ;

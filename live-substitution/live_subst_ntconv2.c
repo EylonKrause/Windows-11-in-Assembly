@@ -7,9 +7,9 @@
 //   024 RtlUnicodeStringToOemString       025 RtlOemStringToUnicodeString
 //   029 RtlOemToUnicodeN                  165 RtlUpperString
 //
-// WHY THESE EIGHT TOGETHER. They are what is left of the `ntdll` conversion family, they all take a
+// Why these eight together. They are what is left of the `ntdll` conversion family, they all take a
 // counted string and fill a caller-supplied descriptor, and six of them are driven by a 256- or
-// 65536-entry translation table BUILT FROM THE RUNNING OS rather than baked in. That last point is
+// 65536-entry translation table built from the running OS rather than baked in. That last point is
 // what makes a live gate worth more here than anywhere else in this directory: a table built from
 // the OS and a table used by the OS agreeing in a benchmark proves the table, while running our
 // code *as* the export proves the table AND the block scan that decides when to use it.
@@ -17,7 +17,7 @@
 // Changes 025 and 029 ship `oem2umap.c` BYTE-IDENTICALLY, so one object links for both and a table
 // bug would surface in two places at once rather than one.
 //
-// THE FAST PATH AND THE TABLE PATH ARE DIFFERENT CODE, and the corpus is built to hit both in every
+// The fast path and the table path are different code, and the corpus is built to hit both in every
 // proportion. Each of these routines checks a 16-element block for "all ASCII" and, if so, converts
 // it in-register -- a range add, a `vpackuswb`, a `vpmovzxbw` -- and otherwise goes to the table. So
 // a corpus of ASCII exercises half the function and a corpus of high characters exercises the other
@@ -25,13 +25,13 @@
 // deliberately at the first, middle and last element of a block, so the block-level decision is
 // tested at its boundaries rather than on average.
 //
-// THE DESTINATION IS COMPARED WHOLE, INCLUDING Length AND MaximumLength. `MaximumLength` is drawn
+// The destination is compared whole, including Length and MaximumLength. `MaximumLength` is drawn
 // too small on one case in four, which is `STATUS_BUFFER_OVERFLOW` (0x80000005) -- and what the
 // routine leaves in the destination on that path, and whether it updates `Length` anyway, is
 // exactly the class of thing this directory keeps finding. It is never assumed; the buffer is
 // poisoned and compared byte for byte.
 //
-// alloc == TRUE IS NOT DRIVEN, and that is a deliberate, stated exclusion rather than a quiet one.
+// alloc == TRUE is not driven, and that is a deliberate, stated exclusion rather than a quiet one.
 // All six descriptor converters declare it out of scope and answer STATUS_INVALID_PARAMETER. The
 // shipped exports instead ALLOCATE from the process heap and overwrite dst->Buffer, so the
 // pre-patch phase would allocate 60000 blocks that the patched phase does not, every one of them
@@ -39,10 +39,10 @@
 // leak to pay for, so it is left alone and said so here.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: these are leaf routines over caller-supplied descriptors; nothing in
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: these are leaf routines over caller-supplied descriptors; nothing in
 //       the loader or the heap calls them here, and the process is single-threaded.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the whole corpus is
 //       re-run through the restored exports.
@@ -185,7 +185,7 @@ static void build_corpus(void){
         r->wlen=(USHORT)n;
         r->nlen=(USHORT)n;
 
-        /* THE BLOCK-LEVEL DECISION, tested at its boundaries. Every one of these routines checks a
+        /* The block-level decision, tested at its boundaries. Every one of these routines checks a
          * 16-element block for "all ASCII" and takes a different path if it is not, so a high
          * character placed at element 0, 15 or the middle of a block is the interesting case -- not
          * a uniformly random mix, which would put one almost everywhere. */

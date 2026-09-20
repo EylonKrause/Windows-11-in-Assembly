@@ -13,7 +13,7 @@
 ;   * The return is TRUE exactly when something was stripped. An all-trim string becomes empty and
 ;     returns TRUE; an EMPTY source returns FALSE; an EMPTY set returns FALSE and touches nothing;
 ;     a NULL set returns FALSE and touches nothing; a NULL source returns FALSE.
-;   * AND THE ONE NO RETURN-VALUE COMPARISON WOULD CATCH: it writes ONLY what it must, and the ORDER
+;   * And the one no return-value comparison would catch: it writes only what it must, and the order
 ;     of its two writes is observable. The probe poisoned the bytes past the terminator and read them
 ;     back. "abc" trimmed of 'x' leaves the buffer completely untouched. "abcxx" gets ONE byte
 ;     written -- the new terminator -- with the old 'x' and old terminator still in place. "xxabc"
@@ -24,7 +24,7 @@
 ;     because the export cuts the TRAILING end in place FIRST and only then moves the leading end
 ;     down. probes/diag.c caught that: the first cut of this implementation moved first and
 ;     terminated once, which produces the same STRING and the same return value on every input.
-;     Nothing is padded and nothing is cleared. correctness.c therefore compares the WHOLE buffer
+;     Nothing is padded and nothing is cleared. correctness.c therefore compares the whole buffer
 ;     against a poison fill, not just the string.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@
 ; space -- 32 bytes, exactly the size of the bitmap -- and membership for 32 characters at once is the
 ; same two-table vpshufb test selected by the character's bit 7.
 ;
-; ONE FORWARD PASS does all the searching. The terminator is never a member (the set string is
+; One forward pass does all the searching. The terminator is never a member (the set string is
 ; NUL-terminated, so the set cannot contain a NUL), so a single "non-member" mask per block yields
 ; both ends at once: the FIRST non-member is the start of the kept range, the LAST non-member before
 ; the terminator is its end. A separate backward scan would need the length first and would cost a
@@ -52,7 +52,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shlx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .const
 ALIGN 16
@@ -180,7 +180,7 @@ tr_nomore:
         je        tr_alltrim
 
         ; ---- r8 = first kept index, r11 = last kept index, rdx = length ----
-        ; THE ORDER OF THE TWO WRITES IS OBSERVABLE. probes/diag.c caught it: the export terminates
+        ; The order of the two writes is observable. probes/diag.c caught it: the export terminates
         ; the TRAILING end in place FIRST, and only then moves the leading end down, so trimming
         ; both ends of "xxabcxx" leaves TWO terminators behind --
         ;       a b c \0 c \0 x \0      and not      a b c \0 c x x \0
@@ -209,9 +209,9 @@ tr_lead:
         cmp       rcx, 32
         jb        tr_small
 
-        ; THE OVERLAPPING TAIL MUST BE READ BEFORE ANYTHING IS WRITTEN. Change 211 ends a short copy
+        ; The overlapping tail must be read before anything is written. Change 211 ends a short copy
         ; with a second, overlapping load/store pair and that is perfectly safe there, because its
-        ; source and destination are different buffers. HERE THEY OVERLAP -- the destination is the
+        ; source and destination are different buffers. Here they overlap -- the destination is the
         ; source minus `first` -- so re-reading the tail after the front has been written reads bytes
         ; that have already moved. It produced "c c c " from "xxabc": the second four-byte copy
         ; re-read offset 2, which by then held the freshly written "c c ". So the tail is loaded
@@ -235,7 +235,7 @@ tr_chunk:
         jmp       tr_term
 
 tr_small:
-        ; 1..31 bytes. Same rule: BOTH halves are read before EITHER is written.
+        ; 1..31 bytes. Same rule: both halves are read before EITHER is written.
         cmp       rcx, 16
         jb        tr_s16
         lea       r10, [rcx - 16]

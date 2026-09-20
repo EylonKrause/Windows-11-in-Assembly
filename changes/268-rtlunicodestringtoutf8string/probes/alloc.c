@@ -1,6 +1,6 @@
 /* changes/268-rtlunicodestringtoutf8string/probes/alloc.c
  *
- * WHAT DOES AllocateDestinationString = TRUE ACTUALLY DO, AND CAN IT BE REPRODUCED?
+ * What does AllocateDestinationString = TRUE actually do, and can it be reproduced?
  *
  * This is the question that decides whether change 268 can exist at all. This project does not
  * reimplement allocators, and a conversion that allocates its own destination is either
@@ -12,7 +12,7 @@
  *       answer is to leave this export alone rather than ship something that looks right until a
  *       caller frees it.
  *
- * GETTING THIS WRONG CORRUPTS A HEAP, which is why it is asked before any assembly is written and
+ * Getting this wrong corrupts a heap, which is why it is asked before any assembly is written and
  * not after. The questions:
  *
  *   * which heap does the block come from -- is it the process heap?
@@ -20,7 +20,7 @@
  *   * what are Length and MaximumLength set to?
  *   * does the paired RtlFreeUTF8String accept a block allocated the same way by hand?
  *
- * BOTH DIRECTIONS ARE ASKED, not just one. probes/failwrite.c and probes/notmapped.c both found
+ * Both directions are asked, not just one. probes/failwrite.c and probes/notmapped.c both found
  * the two wrappers behaving DIFFERENTLY where a first draft had assumed they mirrored each other --
  * one partially fills a destination it cannot fill and the other writes nothing, one passes
  * STATUS_SOME_NOT_MAPPED through and the other swallows it. After that, asking only one direction

@@ -3,7 +3,7 @@
 // The destination is re-terminated every iteration by both sides, so neither accumulates.
 // Lengths are COMPUTED, never hardcoded.
 //
-// THE CASE MIX IS THE POINT. lstrcat is a length scan of the destination plus a copy of the source,
+// The case mix is the point. lstrcat is a length scan of the destination plus a copy of the source,
 // and those two halves scale with different inputs. Appending 64 bytes to a 4000-byte buffer costs
 // almost as much as copying the whole buffer -- the accidental quadratic a caller hits appending in
 // a loop -- so the "onto 4000" rows matter more than the raw throughput rows.
@@ -17,7 +17,7 @@ extern char* wia_lstrcata(char*, const char*);
 typedef char* (WINAPI *FN)(char*, const char*);
 static FN sys;
 
-/* THE RESTORE'S ADDRESS, not its cost. The restore is already minimal -- one store putting back the
+/* The restore's address, not its cost. The restore is already minimal -- one store putting back the
    destination's terminator -- but it landed on the buffer the next call was about to read, and for the
    short-onto-short rows that store sits INSIDE the first 32-byte block the destination scan loads. A
    wide load overlapping a just-retired narrow store cannot use store-to-load forwarding: it waits for
@@ -89,7 +89,7 @@ int main(void){
                                   "64 onto 64","64 onto 1024","64 onto 4000","4000 onto 4000"};
     static CASE C[N]; static wia_case cs[N]; static size_t bytes[N];
 
-    /* OFFSETS ARE COMPUTED, NOT HARDCODED. Hand-picked offsets let one case's buffer land inside
+    /* Offsets are computed, not hardcoded. Hand-picked offsets let one case's buffer land inside
        another's twice while this file was being written: a 4000-byte source at a low offset was
        truncated by the next case writing its terminator, and the "4000 onto empty" row reported
        461 GB/s -- faster than memcpy, which is how it announced itself. Each destination is given

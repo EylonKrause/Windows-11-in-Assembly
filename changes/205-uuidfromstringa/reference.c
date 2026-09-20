@@ -4,7 +4,7 @@
 // Contract, every line of it measured against the live export in probes/ufs.c:
 //   * exactly 36 characters, UNBRACED: 8 hex, '-', 4 hex, '-', 4 hex, '-', 4 hex, '-', 12 hex, then
 //     a NUL at [36]. Hex digits are case-insensitive;
-//   * a BRACED string is REJECTED with 1705 (RPC_S_INVALID_STRING_UUID). Note this is the OPPOSITE
+//   * a braced string is rejected with 1705 (RPC_S_INVALID_STRING_UUID). Note this is the opposite
 //     of change 118's ntdll!RtlGUIDFromString, which *requires* the braces -- the two contracts are
 //     not interchangeable, which is exactly why this one was probed rather than assumed;
 //   * StringUuid == NULL is SUCCESS: return 0 and write the nil UUID (16 zero bytes);
@@ -15,7 +15,7 @@
 //
 // Byte order: Data1/Data2/Data3 are little-endian integers, Data4 is in memory order, so
 // "deadbeef-1234-5678-9abc-def011223344" becomes the bytes
-//      EF BE AD DE  34 12  78 56  9A BC DE F0 11 22 33 44
+//      Ef be ad de  34 12  78 56  9A Bc de F0 11 22 33 44
 // which is the same 3,2,1,0, 5,4, 7,6, 8..15 permutation the formatters in changes 202/203 apply in
 // the other direction.
 #include <windows.h>

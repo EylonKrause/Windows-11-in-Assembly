@@ -14,9 +14,9 @@
  * The result is returned in NETWORK byte order.
  *
  * ------------------------------------------------------------------------------------------------
- * THREE THINGS THAT ARE NOT WHAT THE SOURCE EVERYONE QUOTES DOES
+ * Three things that are not what the source everyone quotes does
  *
- * 1. THE OVERFLOW TEST IS "DID THE ACCUMULATOR GO DOWN", NOT A RANGE CHECK (probes/accum.c).
+ * 1. The overflow test is "did the accumulator go down", not a range check (probes/accum.c).
  *    The accumulator is 32 bits and wraps; a digit is refused only when the wrapped result is
  *    STRICTLY LESS than the value before it. That is not the textbook test, and the difference is
  *    observable on inputs anyone could type:
@@ -31,18 +31,18 @@
  *    probes/accum.c swept all sixteen to establish that. An implementation with the "correct" check
  *    is wrong on the first and third lines.
  *
- * 2. WHITESPACE ENDS THE ADDRESS AND EVERYTHING AFTER IT IS IGNORED -- but only once a digit has
+ * 2. Whitespace ends the address and everything after it is ignored -- but only once a digit has
  *    been consumed. Any of the six bytes 09 0A 0B 0C 0D 20 does it, and the rest of the string is
  *    never looked at: "1.2.3.4 junk" is 1.2.3.4 and "1 junk" is 0.0.0.1. Leading whitespace is
  *    refused. probes/bytes.c swept every byte in every position to get that set.
  *
- * 3. THE SINGLE BYTE 0x20 IS AN ADDRESS. `" "` -- one space and a terminator, nothing else -- comes
+ * 3. The single byte 0x20 is an address. `" "` -- one space and a terminator, nothing else -- comes
  *    back as 0.0.0.0. Two spaces do not. A tab does not. `" 1"` does not. `""` does not.
  *    probes/lonespace.c asked it from every side, and no model of the grammar explains it: it is
  *    one input out of all possible inputs, and it is reproduced here because a gate that compares
  *    against the live export would otherwise report it forever.
  *
- * AND ONE AMBIGUITY THAT IS BUILT IN. INADDR_NONE is 0xFFFFFFFF, which is also the value of
+ * And one ambiguity that is built in. INADDR_NONE is 0xFFFFFFFF, which is also the value of
  * 255.255.255.255, so a refusal and that one address are indistinguishable -- to this model, to the
  * assembly, and to every caller. probes/grammar.c confirmed the last error is not set either way.
  */

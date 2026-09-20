@@ -1,24 +1,24 @@
 /* changes/259-rtlarebitsset/correctness.c
  *
- * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll exports, for BOTH RtlAreBitsSet and
+ * Three-way: ours vs an independent oracle vs the live ntdll exports, for both RtlAreBitsSet and
  * RtlAreBitsClear.
  *
- * A PREDICATE HAS ONLY TWO ANSWERS, which makes a careless corpus very easy to pass: an
+ * a predicate has only two answers, which makes a careless corpus very easy to pass: an
  * implementation that always said "no" would agree with the live export on every randomly generated
  * range over a random bitmap, because almost none of them is uniform. So every corpus here is built
- * to produce BOTH answers, and the summary counts how many of each it actually got -- a corpus that
+ * to produce both answers, and the summary counts how many of each it actually got -- a corpus that
  * never once answered YES has not tested the loop at all, only the refusals.
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap x every start x every length. Nothing sampled.
- *   2. EVERY (start, length) over a bitmap that is entirely uniform, so the answer is YES for every
+ *   2. every (start, length) over a bitmap that is entirely uniform, so the answer is YES for every
  *      range inside the map and the refusals are the only falses -- this is the corpus that drives
  *      the vector loop, the two masked ends and the seam between them.
- *   3. ONE WRONG BIT, moved to every position across a long uniform range: the answer must flip to
+ *   3. One wrong bit, moved to every position across a long uniform range: the answer must flip to
  *      NO exactly when that bit is inside the range, which is what catches a mask that is one bit
  *      too wide or a vector tail that skips a word.
  *   4. THE REFUSALS: length 0, a start at the end and past it, a range one bit too long, and the
  *      slack over an entirely-ones buffer declared short.
- *   5. A GUARD PAGE at the end of the buffer at odd ULONG counts -- the range can never reach past
+ *   5. a guard page at the end of the buffer at odd ulong counts -- the range can never reach past
  *      SizeOfBitMap, so a 32-byte vector load must never touch the page after it.
  *   6. RANDOMISED at several densities, with lengths short enough to stay inside one word and long
  *      enough to cross many.
@@ -94,7 +94,7 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 2. EVERY (start, length) over a uniform bitmap ---- */
+    /* ---- 2. every (start, length) over a uniform bitmap ---- */
     {
         long before = cases;
         static ULONG buf[64];
@@ -113,7 +113,7 @@ int main(void)
                cases - before);
     }
 
-    /* ---- 3. ONE WRONG BIT, moved across the range ---- */
+    /* ---- 3. One wrong bit, moved across the range ---- */
     {
         long before = cases;
         static ULONG buf[64];

@@ -2,8 +2,8 @@
  *
  * The contract of shlwapi/kernelbase!PathAddExtensionW, measured against the live export.
  *
- * WHY THIS FUNCTION. discovery/shlwapi_url_str.c timed it at 0.52 ns per character, and the long row
- * is the interesting one: 518 ns to decide it will do NOTHING, because a 1000-character path's result
+ * Why this function. discovery/shlwapi_url_str.c timed it at 0.52 ns per character, and the long row
+ * is the interesting one: 518 ns to decide it will do nothing, because a 1000-character path's result
  * cannot fit in MAX_PATH. A disassembly fan-out then rated it a good target and built a C prototype
  * that measured 1.34x to 5.74x on change 132's size classes -- with a reproducible regression at an
  * EMPTY path and marginal rows at two to six characters, which is the shape change 244 had to solve
@@ -25,23 +25,23 @@
  *
  * and the bytes at that default-extension address are 2E 00 65 00 78 00 65 00 00 00 -- L".exe".
  *
- * WHAT HAS TO BE SETTLED, and each one is a decision an implementation must get right:
+ * What has to be settled, and each one is a decision an implementation must get right:
  *
- *   1. THE DEFAULT EXTENSION. The disassembly says L".exe" rather than the empty string, which is a
+ *   1. The default extension. The disassembly says L".exe" rather than the empty string, which is a
  *      big difference: NULL pszExt on an extensionless path REWRITES it. Asked directly.
- *   2. WHAT COUNTS AS ALREADY HAVING AN EXTENSION. This is PathFindExtensionW's rule, and this
+ *   2. What counts as already having an extension. This is PathFindExtensionW's rule, and this
  *      repository has already been wrong about it once: change 132 shipped with only the backslash
  *      stopping the backward scan and needed a SPACE to stop it too, which is why changes 132 and 217
  *      are proved together against an exhaustive corpus. So the rule is re-measured here rather than
  *      inherited -- including whether PathAddExtensionW agrees with PathFindExtensionW on every
  *      string, which is the composition this change would be built on.
- *   3. THE LENGTH RULE, exactly. A signed `jge` against 0x104 says the RESULT must be at most 259
+ *   3. The length rule, exactly. a signed `jge` against 0x104 says the result must be at most 259
  *      characters -- but whether the bound is on the result, the input, or the extension is the kind
  *      of thing change 224 had to measure rather than assume.
- *   4. WHAT A REFUSAL WRITES. Nothing at all, or a terminator? Only a poison fill can tell.
- *   5. THE EMPTY AND NULL EXTENSION. An empty extension appends nothing -- but does it return TRUE,
+ *   4. What a refusal writes. Nothing at all, or a terminator? Only a poison fill can tell.
+ *   5. The empty and NULL extension. An empty extension appends nothing -- but does it return TRUE,
  *      and does it write the terminator it already has?
- *   6. AN EXTENSION WITHOUT A LEADING DOT. Appended verbatim, or corrected?
+ *   6. An extension without a leading dot. Appended verbatim, or corrected?
  *
  * Read-only with respect to the system: nothing is patched, nothing is written to disk.
  */
@@ -97,7 +97,7 @@ int main(void)
         printf("   already has one     -> %d, \"%ls\"\n\n", r, b);
     }
 
-    /* ============ 2. does it agree with PathFindExtensionW on EVERY string? ============
+    /* ============ 2. does it agree with PathFindExtensionW on every string? ============
        This is the composition the implementation would be built on, so it is enumerated. */
     {
         static const wchar_t ALPHA[] = L".\\ ab:";

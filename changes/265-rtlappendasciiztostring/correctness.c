@@ -2,20 +2,20 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlAppendAsciizToString.
  *
- * THE WHOLE DESTINATION BUFFER IS COMPARED, not the status and not Length. This export writes into
- * a caller's buffer and NEVER writes a terminator, so the only way to catch an implementation that
+ * The whole destination buffer is compared, not the status and not Length. This export writes into
+ * a caller's buffer and never writes a terminator, so the only way to catch an implementation that
  * helpfully NUL-terminates -- which the wide analogue in change 101 legitimately does -- is to fill
  * the buffer with poison and compare every byte of it afterwards. That check is the whole reason
  * this corpus exists in this shape: a test that looked at the status and the appended bytes would
  * pass an implementation that corrupts one byte past them on every successful call.
  *
- *   1. EVERY combination of destination Length, MaximumLength and source length in a small range,
+ *   1. every combination of destination Length, MaximumLength and source length in a small range,
  *      which enumerates the fit boundary rather than sampling near it.
- *   2. EVERY source length from 0 to 300 into a generous buffer -- the vector loop, its overlapping
+ *   2. every source length from 0 to 300 into a generous buffer -- the vector loop, its overlapping
  *      tail, and the byte-at-a-time path below 32 all live here.
- *   3. THE FAILURE PATH at every size: the buffer must come back untouched, byte for byte.
- *   4. THE WIDE SUM: a Length and a source length that each fit a USHORT but whose sum does not.
- *   5. A GUARD PAGE, with the SOURCE ending exactly at an inaccessible page at every alignment --
+ *   3. The failure path at every size: the buffer must come back untouched, byte for byte.
+ *   4. The wide sum: a Length and a source length that each fit a ushort but whose sum does not.
+ *   5. a guard page, with the source ending exactly at an inaccessible page at every alignment --
  *      the scan reads 32 bytes at a time and the copy must not read past the NUL either.
  *   6. NULL and empty sources.
  *   7. RANDOMISED over lengths, capacities and content.

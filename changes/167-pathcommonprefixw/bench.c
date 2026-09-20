@@ -1,21 +1,21 @@
 // changes/167-pathcommonprefixw/bench.c
 // Gate 2: time wia_pathcommonprefixw against the live shlwapi!PathCommonPrefixW.
 //
-// THE ROW THIS CHANGE EXISTS FOR is "254 identical": discovery measured the shipped export at
+// The row this change exists for is "254 identical": discovery measured the shipped export at
 // 698 ns on it -- 2.75 ns per character, the slowest of every shlwapi export this project had not
 // yet converted, and the reason the target was picked at all.
 //
-// THE CASE MIX. The shipped function calls a comparison routine ONCE PER COMPONENT on top of two
+// The case mix. The shipped function calls a comparison routine once per component on top of two
 // scalar scans per component, so its cost is driven by two things and the rows separate them:
 //
-//   * HOW FAR THE TWO PATHS AGREE, which is what both implementations actually walk. Identical
+//   * How far the two paths agree, which is what both implementations actually walk. Identical
 //     paths at 8, 16, 32, 64, 128 and 254 characters bracket the vector loop from "shorter than one
 //     block" to "many blocks".
-//   * HOW MANY COMPONENTS that agreement spans, because that is what the shipped one pays per unit
+//   * How many components that agreement spans, because that is what the shipped one pays per unit
 //     of work and this one does not. The "254, 1 component" row is the same length as the "254
 //     identical" row with the separators removed.
 //
-// AND THREE ROWS THAT ARE NOT ABOUT THE HAPPY PATH:
+// And three rows that are not about the happy path:
 //   * "differ at 0" -- the answer is 0 and neither implementation walks anything. If a vector
 //     prologue cost anything, this is the row that would show it.
 //   * "case-differing" -- every component differs only in case, so the raw comparison fails at the
@@ -23,8 +23,8 @@
 //     implementation's own worst case, and it is a row rather than a footnote.
 //   * "UNC" -- both paths skip two characters before the walk begins.
 //
-// NOTHING TO RESTORE: both inputs are read-only and the output is a separate buffer that is never
-// read back. The output buffers still ROTATE across eight slots, STAGGERED WITHIN THEIR PAGES --
+// Nothing to restore: both inputs are read-only and the output is a separate buffer that is never
+// read back. The output buffers still rotate across eight slots, staggered within their pages --
 // change 250's benchmark reported a 0.87x regression that turned out to be 4K aliasing, because
 // every slot began at page offset 0 and every store in every row fell in one L1 set.
 #define WIN32_LEAN_AND_MEAN

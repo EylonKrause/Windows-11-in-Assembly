@@ -287,7 +287,7 @@ int main(void){
         }
     }
 
-    /* ========== 4. THE INTEGER PARSERS ======================================================== */
+    /* ========== 4. The integer parsers ======================================================== */
     printf("\n=== 4. integer parsers ===\n");
     {
         typedef int  (WINAPI *S2IA)(LPCSTR);
@@ -323,7 +323,7 @@ int main(void){
         }
     }
 
-    /* ========== 5. THE BYTE-WISE SCREEN ======================================================= */
+    /* ========== 5. The byte-wise screen ======================================================= */
     printf("\n=== 5. substitution screen: is the narrow form byte-wise? ===\n");
     printf("(For each predicate, every non-NUL byte value is placed at a position the function\n");
     printf(" inspects, and the count of values that move the answer is reported. A count that does\n");

@@ -6,9 +6,9 @@
  * ntdll export on this machine by probes/contract.c; none of it is taken from the
  * documentation, and two of the rules contradict the obvious reading of it.
  *
- * WHAT WAS PROVED (probes/contract.c output, quoted in RESULTS.md):
+ * What was proved (probes/contract.c output, quoted in RESULTS.md):
  *
- *  1. src == NULL  ->  dst->Length = 0 and NOTHING ELSE happens. dst->Buffer is not
+ *  1. src == NULL  ->  dst->Length = 0 and nothing ELSE happens. dst->Buffer is not
  *     dereferenced, dst->MaximumLength is unchanged, no NUL is written.
  *
  *  2. n = min(src->Length, dst->MaximumLength)   -- a BYTE count, and the clamp is
@@ -17,7 +17,7 @@
  *     leaving half a WCHAR in the destination. (Shipped code: `cmovbe eax,r8d` on
  *     the 16-bit compare, with no `and eax,-2` anywhere.)
  *
- *  3. dst->Length = n, ALWAYS -- including n = 0.
+ *  3. dst->Length = n, always -- including n = 0.
  *
  *  4. dst->MaximumLength is never written.
  *
@@ -28,7 +28,7 @@
  *
  *  6. A terminating wide NUL is written IFF  n + 2 <= dst->MaximumLength, and it is
  *     placed at BYTE offset (n & ~1) -- i.e. at WCHAR index n/2, floored. For an ODD
- *     n that offset is n-1, so the NUL OVERWRITES THE LAST BYTE COPIED. Proved:
+ *     n that offset is n-1, so the NUL overwrites the last byte copied. Proved:
  *     src->Length = 1 with room to spare leaves `00 00` in the destination, not
  *     `41 00`. (Shipped code: `shr rbx,1` then `mov [rsi+rbx*2],ax`.)
  *     Note this is the opposite of RtlAppendUnicodeStringToString (change 102),
@@ -37,7 +37,7 @@
  *  7. src->MaximumLength is never read -- a source claiming MaximumLength = 0 with
  *     Length = 8 still copies 8 bytes.
  *
- * OUT OF CONTRACT (matched by neither this reference nor impl.asm, and excluded from
+ * Out of contract (matched by neither this reference nor impl.asm, and excluded from
  * the corpus): a dst->Buffer that ALIASES the UNICODE_STRING struct itself. The
  * shipped code re-reads dst->Length and dst->MaximumLength from memory after the
  * copy, so such a call would observe whatever the copy wrote over them. No caller

@@ -1,8 +1,8 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 286 (shlwapi!StrChrNIW).
+Rem  live-run proof for change 286 (shlwapi!StrChrNIW).
 REM
-REM  THE PROTOTYPE HAD TO BE SETTLED BEFORE ANYTHING ELSE. Two sources disagreed:
+Rem  the prototype had to be settled before anything else. Two sources disagreed:
 REM  the documented (start, match, count) and discovery/charclass_strcmp_2026.c's
 REM  (start, start+511, char), which it labelled "range form" after reusing
 REM  StrRChrIW's typedef. probes/contract.c called the same address through both --
@@ -11,7 +11,7 @@ REM  so the sweep's 1655 ns figure measured a different question, and this chang
 REM  bench found the real cost to be 16939 ns over 511 code units.
 REM
 REM  The count is the number of characters EXAMINED, indices 0..cchMax-1. The
-REM  relation is change 281's. And THE TERMINATOR STOPS THE SCAN AND IS NEVER A
+Rem  relation is change 281's. And the terminator stops the scan and is never a
 REM  MATCH, which is where this export parts company with changes 283 and 284:
 REM  there a needle character matching a NUL matched the terminator itself.
 REM

@@ -1,7 +1,7 @@
 @echo off
 REM changes/271-convertsidtostringsida/build.bat -- assemble, gate on correctness, benchmark.
 REM
-REM  THREE CHANGES ARE LINKED HERE AND NONE OF THEM IS COPIED: the formatter is change 067, the
+Rem  three changes are linked here and none of them is copied: the formatter is change 067, the
 REM  LocalAlloc and the four SetLastError calls are change 270's alloc.c, and only the narrowing is
 REM  new. probes/contract.c established that the ANSI form is the wide form narrowed one byte per
 REM  character, over every shape of SID and under four thread locales, with zero differences.

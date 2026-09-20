@@ -1,7 +1,7 @@
 @echo off
 REM changes/288-foldstringw-digits/build.bat -- assemble, gate on correctness, benchmark.
 REM
-REM THIS CHANGE IMPLEMENTS ONE OF FoldStringW's FIVE FLAG PATHS, and the scope was measured rather than
+Rem this change implements one of FoldStringW's five flag paths, and the scope was measured rather than
 REM chosen. probes/contract.c folded every code unit under every flag: MAP_FOLDDIGITS is the only
 REM strictly 1:1 one (0 grew, 0 shrank, 0 refused, 462 changed), while MAP_FOLDCZONE turns one unit into
 REM as many as EIGHTEEN and MAP_COMPOSITE grows 12197 of them. A mapping that changes the length is not

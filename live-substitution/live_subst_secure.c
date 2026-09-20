@@ -5,14 +5,14 @@
 //   150 strcpy_s    151 wcscpy_s    152 strcat_s    153 wcscat_s
 //   154 strncpy_s   155 wcsncpy_s   156 strncat_s   157 wcsncat_s
 //
-// THESE ARE THE RICHEST DESTINATION SURFACE IN THE REPOSITORY, which is why they get a harness of
+// These are the richest destination surface in the repository, which is why they get a harness of
 // their own. Every one of them writes a caller buffer AND has a defined behaviour for failing to:
-// on ERANGE the `_s` contract requires the destination be left as an EMPTY STRING, not merely
+// on erange the `_s` contract requires the destination be left as an empty string, not merely
 // unwritten, and `strncpy_s` additionally zero-pads. An implementation can return the right errno
 // and still leave the wrong bytes behind, which is exactly the defect class this directory has now
 // found three times -- in 059/061, in 063/064 and in 101.
 //
-// AN INVALID-PARAMETER HANDLER IS INSTALLED, AND WITHOUT IT THIS HARNESS CANNOT RUN AT ALL. The
+// An invalid-parameter handler is installed, and without it this harness cannot run at all. The
 // `_s` functions report a bad argument by calling ucrtbase's `_invalid_parameter_noinfo`, which by
 // default terminates the process. `_set_invalid_parameter_handler` replaces that with a handler
 // that records the call and returns, so the function goes on to return its error code -- which is
@@ -21,15 +21,15 @@
 // the COUNT of handler calls is compared as well: a change that skipped a validation would return
 // the right code without having reported it.
 //
-// _TRUNCATE IS DRIVEN ON PURPOSE. For the `_n` forms a count of `(size_t)-1` means "truncate rather
+// _TRUNCATE Is driven on purpose. For the `_n` forms a count of `(size_t)-1` means "truncate rather
 // than fail", and it is the one path where a short destination is a SUCCESS (STRUNCATE) with a
 // terminated partial copy. A corpus that only passed real counts would never reach it.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only ITS OWN copy-on-write copy of
+//   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
 //       ucrtbase -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE, and emit nothing while patched.
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle, and emit nothing while patched.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
 //
 // Build: build_secure_live.bat
@@ -242,7 +242,7 @@ int main(void){
     printf("  [pre-patch]  %d cases x 8 functions recorded from the SHIPPED exports\n",NCASE);
     fflush(stdout);
 
-    /* ---------- NOTHING PRINTED FROM HERE UNTIL THE RESTORE ---------- */
+    /* ---------- Nothing printed from here until the restore ---------- */
     for(i=0;i<NFN;++i)
         if(!patch_on(&p[i],liveP[i],ours[i])){
             for(--i;i>=0;--i) patch_off(&p[i]);

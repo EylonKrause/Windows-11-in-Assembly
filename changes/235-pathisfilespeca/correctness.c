@@ -5,9 +5,9 @@
 // The function writes nothing, so the whole contract is the BOOL. Two things make it worth testing
 // harder than that sounds:
 //
-//   * THERE ARE TWO SEPARATORS, NOT ONE. 0x5C and 0x3A. The colon is the one a reader forgets, so
+//   * There are two separators, not one. 0x5C and 0x3A. The colon is the one a reader forgets, so
 //     every byte value is swept at three positions rather than spot-checked.
-//   * THE EMPTY STRING IS TRUE. That is the single case a natural model gets wrong -- the probe's
+//   * The empty string is TRUE. That is the single case a natural model gets wrong -- the probe's
 //     first model required a non-empty string and that was its only mismatch in 488281 strings --
 //     so it is asserted directly as well as covered by the enumeration.
 #define WIN32_LEAN_AND_MEAN
@@ -47,7 +47,7 @@ int main(void){
 
     static char s[700];
 
-    // ---- THE EMPTY STRING, asserted directly ------------------------------------------------------
+    // ---- The empty string, asserted directly ------------------------------------------------------
     CHECK(wia_pathisfilespeca("") == 1, "the EMPTY STRING is TRUE");
     CHECK(ref_pathisfilespeca("") == 1, "the EMPTY STRING is TRUE (oracle)");
     CHECK(sys("") == 1,                 "the EMPTY STRING is TRUE (live)");
@@ -60,7 +60,7 @@ int main(void){
         for (int i = 0; V[i]; ++i) chk(V[i], "probe-derived case");
     }
 
-    // ---- EVERY byte value, at the first, middle and last positions --------------------------------
+    // ---- every byte value, at the first, middle and last positions --------------------------------
     for (int v = 1; v < 256; ++v) {
         s[0]=(char)v; s[1]='b'; s[2]='c'; s[3]=0;   chk(s, "byte value first");
         s[0]='a'; s[1]=(char)v; s[2]='c'; s[3]=0;   chk(s, "byte value middle");
@@ -89,7 +89,7 @@ int main(void){
         printf("  exhaustive {a,backslash,:,/,0x80} 0..8: %ld strings\n", en);
     }
 
-    // ---- alignments x lengths, with the separator at EVERY position --------------------------------
+    // ---- alignments x lengths, with the separator at every position --------------------------------
     {
         static char buf[700];
         for (int o = 0; o < 32; ++o) {

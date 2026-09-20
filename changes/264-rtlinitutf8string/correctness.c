@@ -2,21 +2,21 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlInitUTF8String.
  *
- * THE GATES ARE NOT SHARED WITH CHANGE 095, and that is deliberate. This change's implementation is
+ * The gates are not shared with change 095, and that is deliberate. This change's implementation is
  * an ALIAS of change 095's -- probes/equiv.c proved the two exports identical over 125883 cases
  * including every ordered byte pair -- but "the exports agree with each other" and "our code is
  * bit-exact for THIS export" are different statements, and only the second one is what a change
  * here is allowed to claim. So every case below is compared against the live RtlInitUTF8String at
  * its own address.
  *
- * ALL THREE FIELDS ARE COMPARED AGAINST A POISONED STRUCT. Length, MaximumLength and Buffer are
+ * All three fields are compared against a poisoned struct. Length, MaximumLength and Buffer are
  * filled with 0xCD before every call, so a field an implementation forgets to write is a mismatch
  * rather than a coincidence -- the NULL case in particular must write all three.
  *
- *   1. EVERY LENGTH from 0 to 600, so no length-dependent rule can hide between sizes.
- *   2. EVERY BYTE VALUE as the only character, and every ordered PAIR -- which is every UTF-8
+ *   1. every LENGTH from 0 to 600, so no length-dependent rule can hide between sizes.
+ *   2. Every byte value as the only character, and every ordered pair -- which is every UTF-8
  *      lead/continuation combination, every overlong prefix and every truncated sequence.
- *   3. THE CLAMP: every length from 65400 to 65700, where both USHORT fields saturate.
+ *   3. The clamp: every length from 65400 to 65700, where both ushort fields saturate.
  *   4. A GUARD PAGE: the string ending exactly at an inaccessible page, at every alignment, which
  *      is what a 32-byte-at-a-time scan has to survive.
  *   5. NULL.

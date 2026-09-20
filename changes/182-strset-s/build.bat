@@ -1,6 +1,6 @@
 @echo off
 REM changes/182-strset-s/build.bat -- assemble, gate on correctness, then benchmark.
-REM /MD is REQUIRED, not cosmetic: with the default static CRT this exe would carry its OWN
+Rem /md is required, not cosmetic: with the default static CRT this exe would carry its own
 REM invalid-parameter handler state, so ucrtbase's _strset_s and our _invalid_parameter_noinfo
 REM would consult two different handlers -- the static one is unset, so the live export
 REM __fastfails the process (observed: exit code 9, no output). Change 150 records the same.

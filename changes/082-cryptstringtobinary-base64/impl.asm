@@ -1,5 +1,5 @@
 ; changes/082-cryptstringtobinary-base64/impl.asm
-; BOOL wia_s2b(LPCSTR s, DWORD slen, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2b(LPCSTR s, dword slen, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=slen, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; Reimplements crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64 (base64 -> binary). crypt32's is

@@ -1,8 +1,8 @@
 @echo off
 REM changes/274-sysallocstring/build.bat -- assemble, gate on correctness, benchmark.
 REM
-REM  THE ALLOCATION IS CALLED, NOT REIMPLEMENTED. probes/contract.c established that a BSTR block
-REM  made by hand TERMINATES THE PROCESS when SysFreeString touches it, so oleaut32.lib is linked
+Rem  the allocation is called, not reimplemented. probes/contract.c established that a BSTR block
+Rem  made by hand terminates the process when SysFreeString touches it, so oleaut32.lib is linked
 REM  and SysAllocStringLen is tail-jumped into. What this change owns is the length scan.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

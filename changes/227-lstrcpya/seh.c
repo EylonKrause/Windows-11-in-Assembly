@@ -1,7 +1,7 @@
 // changes/227-lstrcpya/seh.c
 // The exception wrapper for kernelbase!lstrcpyA, and the NULL checks.
 //
-// WHY THIS FILE EXISTS. probes/cpya.c measured the shipped export against BOTH bad arguments, and
+// Why this file exists. probes/cpya.c measured the shipped export against both bad arguments, and
 // it swallows both:
 //
 //     an unterminated source running into a NOACCESS page : 80 of 80 distances RETURNED NULL,
@@ -12,18 +12,18 @@
 // A reimplementation that simply faulted would be a crash where the shipped function returns a
 // value. So the copy stays in assembly and this supplies the two things assembly should not:
 //
-//   * the NULL checks. Measured: a NULL source returns NULL and LEAVES THE DESTINATION ALONE
+//   * the NULL checks. Measured: a NULL source returns NULL and leaves the destination alone
 //     (a buffer holding "keepme" still held it afterwards), a NULL destination returns NULL, and
 //     both NULL returns NULL. Returning before the core runs is what preserves the destination.
 //   * a __try/__except that converts an access violation into NULL, leaving whatever the core had
 //     already copied in place -- which is exactly the partial the shipped function leaves, because
 //     the core page-clamps both pointers and therefore stops on the same byte.
 //
-// THIS COSTS NOTHING ON THE FAST PATH. x64 structured exception handling is table-driven: the
+// This costs nothing on the fast path. x64 structured exception handling is table-driven: the
 // unwind data lives in .pdata/.xdata and no prologue instruction, register or stack slot is spent
 // unless an exception actually fires. The wrapper compiles to two tests and a call.
 //
-// THE ZEROUPPER ON THE FAULT PATH IS NOT COSMETIC. The core runs a 256-bit loop, so when the fault
+// The zeroupper on the fault path is not cosmetic. The core runs a 256-bit loop, so when the fault
 // arrives mid-copy the upper halves of ymm0-ymm15 are dirty. Unwinding out of assembly skips the
 // core's own vzeroupper, and leaving the CPU in that state makes every subsequent legacy-SSE
 // instruction in the CALLER pay an AVX-SSE transition penalty -- a performance bug planted in

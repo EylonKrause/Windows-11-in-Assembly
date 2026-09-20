@@ -1,6 +1,6 @@
 /* changes/278-rtlintegertounicodestring/probes/contract.c
  *
- * WHAT DOES RtlIntegerToUnicodeString ACTUALLY DO, AND IS IT THE SAME SHAPE CHANGE 067 FIXED?
+ * What does RtlIntegerToUnicodeString actually do, and is it the same shape change 067 Fixed?
  *
  * discovery/rtl_integer_char.c measured it at 32.14 ns for ten decimal digits, 18.66 for eight
  * hexadecimal, 20.35 for eleven octal, 40.27 for thirty-two binary -- and 10.16 ns for a SINGLE
@@ -11,7 +11,7 @@
  * costs, while one digit still costs 10 ns, says the cost is mostly FIXED and partly per-digit --
  * which is what a division loop plus a validation prologue looks like.
  *
- * THIS FAMILY IS WORTH GETTING RIGHT because it is four exports that share a core:
+ * This family is worth getting right because it is four exports that share a core:
  * RtlIntegerToUnicodeString, RtlIntegerToChar, RtlLargeIntegerToChar, and (inverted)
  * RtlUnicodeStringToInteger. This file is about the first, and about what all of them have in
  * common.
@@ -20,11 +20,11 @@
  *
  *   1. WHICH BASES are accepted, and what does an unsupported one do? The documented set is 0, 2,
  *      8, 10, 16 -- and 0 is documented to mean 10. What about 3, 7, 36?
- *   2. IS THERE A PREFIX? RtlUnicodeStringToInteger reads "0x"; does the formatter write one?
- *   3. WHAT IS THE ROOM RULE? It writes into a UNICODE_STRING with a MaximumLength, and change 067
+ *   2. Is there a prefix? RtlUnicodeStringToInteger reads "0x"; does the formatter write one?
+ *   3. What is the room rule? It writes into a UNICODE_STRING with a MaximumLength, and change 067
  *      found that the analogous rule was Length+1 and not Length+2 -- a whole byte away from what
  *      everyone writes down.
- *   4. IS Length SET, IS THE BUFFER TERMINATED, and what happens to the destination on failure?
+ *   4. Is Length set, is the buffer terminated, and what happens to the destination on failure?
  *   5. SIGNEDNESS. The argument is a ULONG. Is 0xFFFFFFFF "4294967295" or "-1"?
  *   6. And the digits above 9: upper case or lower?
  *

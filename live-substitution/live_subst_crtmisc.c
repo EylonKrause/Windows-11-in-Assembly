@@ -5,45 +5,45 @@
 //   048 _strupr    050 _wcsupr    145 _swab      146 _memccpy
 //   147 strtok_s   148 wcstok_s   149 wcsrchr
 //
-// WHY THESE SEVEN TOGETHER. They are what is left of ucrtbase after the earlier harnesses, and
+// Why these seven together. They are what is left of ucrtbase after the earlier harnesses, and
 // five of the seven WRITE to memory the caller owns -- four of them in place. That is the whole
 // reason this directory exists, so every one of them is compared over its entire buffer rather
 // than by its return value.
 //
-// THE TWO TOKENIZERS ARE THE INTERESTING ONES, because they are the only STATEFUL functions this
+// The two tokenizers are the interesting ones, because they are the only stateful functions this
 // directory has gated. A single call proves almost nothing about them: the contract is a sequence.
 // So each case runs a FULL tokenization -- the first call with the string, then repeated calls with
 // NULL until the function says there is nothing left -- and records every token offset, the token
 // count, and the final state of the buffer. Three ways to be wrong are then all visible:
 //   * the right tokens in the wrong places,
 //   * the right tokens with the wrong NULs written into the buffer (the contract is specific:
-//     leading delimiters are SKIPPED but left INTACT, and only the delimiter that ENDS a token is
+//     leading delimiters are skipped but left intact, and only the delimiter that ends a token is
 //     overwritten, so ",,a,,b,," must come back as ",,a\0,b\0,"), and
 //   * the right first token and a wrong continuation, which is the one a single call cannot see.
 //
-// _swab HAS AN OVERLAP RULE THAT A VECTOR LOOP CANNOT REPRODUCE. For dest > src it behaves as a
+// _swab Has an overlap rule that a vector loop cannot reproduce. For dest > src it behaves as a
 // strict forward, pair-by-pair copy and therefore re-reads bytes it has already written:
 // src="abcdefgh", dest=src+2, n=6 gives "abbaabba". The corpus places source and destination in ONE
 // buffer at controlled offsets so that the fully-overlapping, forward-overlapping, backward-
 // overlapping and disjoint cases all occur, with odd n as well as even -- an odd n leaves the final
 // destination byte untouched, which only a whole-buffer comparison can check.
 //
-// TWO FUNCTIONS THAT DISAGREE ABOUT THE SAME QUESTION, deliberately driven side by side:
+// Two functions that disagree about the same question, deliberately driven side by side:
 // wcsrchr with c == 0 returns a pointer to the TERMINATOR, while shlwapi's StrRChrW (change 134)
 // returns NULL for the same search. One character search, two answers. Change 134 had a defect in
 // exactly that corner, found by this directory one harness ago, so the corpus asks wcsrchr for the
 // NUL often rather than occasionally.
 //
-// THE CASE FOLDERS ARE ASCII-ONLY IN THE C LOCALE, which is what both changes verified and what
+// The case folders are ascii-only in the C locale, which is what both changes verified and what
 // they implement. The corpus therefore carries bytes from the whole 0..255 range -- including the
 // accented Latin-1 range where a locale-aware folder WOULD act -- so that "folds only a-z" is
 // tested rather than assumed, and it never calls setlocale.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded; patches only THIS process's copy-on-write
+//   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
 //       copy of ucrtbase -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE exports over the whole corpus BEFORE any patch.
-//   (2) PATCH ONLY WHEN IDLE: none of these seven is used by the loader or the heap, and the
+//   (1) Validate first against the live exports over the whole corpus before any patch.
+//   (2) Patch only when idle: none of these seven is used by the loader or the heap, and the
 //       process is single-threaded with no other work in flight.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the whole corpus is
 //       re-run through the restored exports.
@@ -185,7 +185,7 @@ static void build_corpus(void){
         if(o+n+2 > NB){ o=0; if(n>NB-2) n=NB-2; }
         r->noff=o; r->nlen=n;
 
-        /* The narrow alphabet spans the WHOLE byte range, so "_strupr folds only a-z in the C
+        /* The narrow alphabet spans the whole byte range, so "_strupr folds only a-z in the C
          * locale" is tested rather than assumed -- a locale-aware folder would act on the Latin-1
          * accented range, which is in here. 0 is excluded: it would terminate the string. */
         for(k=0;k<n;++k){
@@ -287,7 +287,7 @@ static void run_all(ans_t* out){
         cr = ((fnWRCHR)liveP[F_WRCHR])(&r->wbuf[r->woff], r->wmatch);
         o->r149 = cr ? (int)(cr - &r->wbuf[r->woff]) : -1;
 
-        /* THE FULL TOKEN SEQUENCE, not one call */
+        /* The full token sequence, not one call */
         memcpy(nwork,r->nbuf,sizeof nwork);
         ctx=NULL; o->n147=0;
         tk = ((fnSTOK)liveP[F_STOK])(&nwork[r->noff], r->ndelim, &ctx);

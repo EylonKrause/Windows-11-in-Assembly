@@ -1,6 +1,6 @@
 /* changes/034-rtlutf8tounicoden/measuring.c
  *
- * THE MEASURING MODE, added 2026-09-16 because it was missing, gated the same way as everything
+ * The measuring mode, added 2026-09-16 because it was missing, gated the same way as everything
  * else here: three-way against the live export, over a corpus built to reach every rule.
  *
  * RtlUTF8ToUnicodeN(NULL, ...) asks how many BYTES of UTF-16 the output would need. This
@@ -10,14 +10,14 @@
  * corpus here managed to miss because they all pass a real destination buffer.
  * See discovery/utf8n_null_destination.c for how it surfaced.
  *
- * MALFORMED INPUT IS THE WHOLE DIFFICULTY, and it is why this file leans on it so heavily. The
+ * Malformed input is the whole difficulty, and it is why this file leans on it so heavily. The
  * count is not "one replacement per bad byte": probes/policy.c read the rule off the shipped
  * decoder one hand-built sequence at a time, and it consumes a MAXIMAL subpart per replacement --
  * with the twist this decoder already documents, that a byte-2 which is a generic continuation but
  * outside the lead's own range is consumed (one replacement, two bytes) while a byte-2 that is not
  * a continuation at all is not. A size one unit short truncates a caller's string.
  *
- * WHAT THIS FILE CHECKS:
+ * What this file checks:
  *   1. the size AND the status against live, over every length from 0 to 300, for ASCII, valid
  *      two-, three- and four-byte sequences, continuation runs, lead runs and fully random bytes;
  *   2. the hand-built malformed sequences from probes/policy.c, which are the cases the rule was

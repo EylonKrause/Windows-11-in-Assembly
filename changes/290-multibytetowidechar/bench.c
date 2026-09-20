@@ -1,6 +1,6 @@
 /* changes/290-multibytetowidechar/bench.c
  *
- * THE TABLE IS A SIZE *AND CLASS* SWEEP, AND SIX OF THE TEN CLASSES ARE MIXED-WIDTH ON PURPOSE.
+ * The table is a size *and class* sweep, and six of the ten classes are mixed-width on purpose.
  *
  * discovery/utf8_width_mixtures.c is the reason.  Change 034 -- the same transformation one layer
  * down -- published 3.96x over six classes, five of which are HOMOGENEOUS (every character the

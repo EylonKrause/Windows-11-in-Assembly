@@ -5,7 +5,7 @@
 // assembly, and the answers are required to be identical to the ones the shipped export gave for
 // the same corpus BEFORE the patch existed.
 //
-// WHO ACTUALLY CALLS THIS, stated because it bounds what a live proof here can mean. A scan of
+// Who actually calls this, stated because it bounds what a live proof here can mean. a scan of
 // System32 for importers of the name finds ntoskrnl.exe, afd.sys, dxgkrnl.sys, dam.sys, CAD.sys and
 // VerifierExt.sys -- all KERNEL mode, none of them reachable from a user-mode patch -- plus exactly
 // two user-mode DLLs: wldp.dll and ci.dll. Neither yields a second export the way change 249's
@@ -15,10 +15,10 @@
 // its .text, so it reaches it (if at all) through a pointer. So this harness proves the export
 // itself, and claims nothing more.
 //
-// WHAT IS COMPARED: the OFFSET of the hit, or -1 -- not the raw pointer -- for every case in both
+// What is compared: the offset of the hit, or -1 -- not the raw pointer -- for every case in both
 // modes, so an answer cannot be right by accident of where the buffer happens to sit.
 //
-// THE TABLE TRAP, WHICH THIS FILE CALLS OUT DELIBERATELY. wia_casemate_init() is called before
+// The table trap, which this file calls out deliberately. wia_casemate_init() is called before
 // anything else. Leaving it out does not fail loudly: the case-partner table would be all zeros,
 // every partner would be U+0000, and the search would still return a perfectly well-formed answer
 // -- just one that never matches across case. Change 065 cost an entire session to exactly this
@@ -27,10 +27,10 @@
 // loud here.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this routine is used by neither the loader nor
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this routine is used by neither the loader nor
 //       the heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte, then the
 //       whole corpus is run again through the restored export.
@@ -119,7 +119,7 @@ static void build_case(long i)
     int family = (int)(i % 6);
     int n, m, k, pos;
 
-    /* RESEED FROM THE CASE INDEX, so case i is the SAME string on every pass.
+    /* Reseed from the case index, so case i is the same string on every pass.
        This is not a detail. The corpus is generated three times -- once to record what the shipped
        export says, once through the patch, once after the restore -- and with a PRNG whose state
        carried across passes the three passes built three DIFFERENT corpora. The first run of this
@@ -206,7 +206,7 @@ int main(void)
 
     if (!live) { printf("RtlFindUnicodeSubstring not found\n"); return 1; }
 
-    /* THE TABLE FIRST -- see the header. An unbuilt table fails silently, not loudly. */
+    /* The table first -- see the header. An unbuilt table fails silently, not loudly. */
     maxclass = wia_casemate_init();
     printf("== LIVE SUBSTITUTION: ntdll!RtlFindUnicodeSubstring (change 252) ==\n");
     printf("  case-partner table built; largest case-equivalence class = %d (must be 2)\n", maxclass);
@@ -215,7 +215,7 @@ int main(void)
 
     printf("  export at %p\n", (void*)live);
 
-    /* ---- (1) VALIDATE FIRST: record what the SHIPPED export says, before any patch ---- */
+    /* ---- (1) Validate first: record what the shipped export says, before any patch ---- */
     for (i = 0; i < NCASE; ++i) { build_case(i); expect[i] = run_once(live); }
     printf("  [pre-patch]  %d cases recorded from the SHIPPED export\n", NCASE);
 
@@ -223,7 +223,7 @@ int main(void)
     if (!patch_on(&p, (void*)live, (void*)w_find)) { printf("  FAIL: could not patch\n"); return 1; }
     printf("  [patched]    export redirected to our assembly\n");
 
-    /* ---- (3) the same corpus, through the EXPORT BY NAME ---- */
+    /* ---- (3) the same corpus, through the export by name ---- */
     c_find = 0;
     for (i = 0; i < NCASE; ++i) {
         int got;

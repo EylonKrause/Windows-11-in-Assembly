@@ -1,13 +1,13 @@
 /* changes/281-strchriw/probes/unfindable.c
  *
- * ARE THERE CODE UNITS StrChrIW CANNOT FIND EVEN WHEN THEY ARE PRESENT?
+ * Are there code units StrChrIW cannot find even when they are present?
  *
- * The rebuilt gate reported 66 mismatches in 206096, and in every one of them OURS AGREED WITH LIVE
+ * The rebuilt gate reported 66 mismatches in 206096, and in every one of them ours agreed with live
  * -- both returned NULL -- and the scalar MODEL was the odd one out, claiming a match. The needles
  * were U+D7B0..U+D7BE, Hangul jamo extended.
  *
  * The model says a match exists because the table says the needle and the haystack character share
- * a class. They do share a class: they are THE SAME CHARACTER. So the only way live can return NULL
+ * a class. They do share a class: they are the same character. So the only way live can return NULL
  * is if StrChrIW cannot find these code units at all, even when searching a string that is nothing
  * but that code unit.
  *

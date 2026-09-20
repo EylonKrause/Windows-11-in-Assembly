@@ -2,13 +2,13 @@
 // Gate 1: wia_strcatbuffa must be indistinguishable from shlwapi!StrCatBuffA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// TWO THINGS HERE ARE NOT ORDINARY, and both come straight from the probes.
+// Two things here are not ordinary, and both come straight from the probes.
 //
-//   * THE WHOLE BUFFER IS COMPARED AGAINST A POISON FILL, and the function's most distinctive rule
+//   * The whole buffer is compared against a poison fill, and the function's most distinctive rule
 //     is invisible any other way: when no terminator is found within the first cch bytes it writes
-//     NOTHING AT ALL -- it does not truncate the destination and it does not append. Only poison can
+//     Nothing at all -- it does not truncate the destination and it does not append. Only poison can
 //     tell "wrote nothing" from "wrote a terminator where one already was".
-//   * THE FAULT CASE IS A FAULT, NOT A RETURN. Unlike lstrcpy and lstrcat, StrCatBuffA does NOT
+//   * The fault case is a fault, not a return. Unlike lstrcpy and lstrcat, StrCatBuffA does not
 //     swallow an access violation: when the caller lies about cch it faults, 37 of 37 distances
 //     (probes/scb2.c). So the harness catches the exception itself and compares WHETHER each side
 //     faulted and HOW MUCH each had written first -- there is no NULL return to compare instead.
@@ -34,7 +34,7 @@ static int fails = 0;
 static unsigned long sd = 0x9E3779u;
 static unsigned rnd(void){ sd = sd*1103515245u + 12345u; return sd>>8; }
 
-/* one ordinary three-way case: the return value and the WHOLE buffer */
+/* one ordinary three-way case: the return value and the whole buffer */
 static int chk(const char* dinit, const char* src, int cch, int dstoff, const char* what)
 {
     static char a[DSZ], b[DSZ], c[DSZ];
@@ -124,7 +124,7 @@ int main(void){
         }
     }
 
-    // ---- EVERY byte value, in both strings -------------------------------------------------------
+    // ---- every byte value, in both strings -------------------------------------------------------
     for (int v = 1; v < 256; ++v) {
         ds[0]='a'; ds[1]=(char)v; ds[2]='c'; ds[3]=0;
         chk(ds, "XY", 20, 0, "byte value in the destination");
@@ -150,8 +150,8 @@ int main(void){
         CHECK(sys(0, 0, 40) == 0,                 "both NULL return NULL (live)");
     }
 
-    // ---- THE BOUND HOLDS: an UNTERMINATED destination at a guard page, cch == the room ------------
-    // The scan must stop at cch and write NOTHING. If it ran past the bound it would touch the
+    // ---- The bound holds: an unterminated destination at a guard page, cch == the room ------------
+    // The scan must stop at cch and write nothing. If it ran past the bound it would touch the
     // guard; if it wrote a terminator it would differ from the live export byte for byte.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
@@ -194,7 +194,7 @@ int main(void){
         VirtualFree(bc, 0, MEM_RELEASE);
     }
 
-    // ---- THE CALLER LIES ABOUT cch: both must FAULT, having written the same bytes ----------------
+    // ---- The caller lies about cch: both must fault, having written the same bytes ----------------
     // StrCatBuffA does not swallow this -- measured, 37 of 37. So the comparison is whether each
     // side faulted and what each left behind, not a return value.
     {

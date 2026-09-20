@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 273 (ws2_32!inet_addr).
+Rem  live-run proof for change 273 (ws2_32!inet_addr).
 REM
 REM  This patches ws2_32!inet_addr ITSELF, which build_ws2_live.bat does not: that
 REM  one patches ntdll!RtlIpv4StringToAddressA (change 114) and shows the counter

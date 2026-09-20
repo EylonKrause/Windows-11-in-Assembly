@@ -2,11 +2,11 @@
 // Gate 1: wia_pathquotespacesa must be indistinguishable from shlwapi!PathQuoteSpacesA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// THE WHOLE BUFFER IS COMPARED AGAINST A POISON FILL, because "returns FALSE" and "returns FALSE
+// The whole buffer is compared against a poison fill, because "returns FALSE" and "returns FALSE
 // having written nothing" are different contracts and only poison separates them. The measured rule
 // is that a failure leaves the buffer completely untouched.
 //
-// ONE PATH IS DELIBERATELY NOT COMPARED BYTE FOR BYTE, and the reason is recorded here rather than
+// One path is deliberately not compared byte for byte, and the reason is recorded here rather than
 // left implicit. When the caller's buffer is too small for the result the shipped function FAULTS
 // (37 of 37 distances), and probes/pqsa.c dumped what it had written first: indices 1..8, a
 // contiguous run from the LOW end. That is the signature of a chunked memmove whose 8-byte head
@@ -16,7 +16,7 @@
 //
 // That divergence is confined to a path that FAULTS: it is visible only to a caller that installs a
 // handler around a call it got wrong, the chunk schedule is not part of any contract, and it would
-// change with any servicing update. So the sweep below asserts that BOTH SIDES FAULT and compares
+// change with any servicing update. So the sweep below asserts that both sides fault and compares
 // nothing else. Every case where the function RETURNS is compared in full.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -74,14 +74,14 @@ int main(void){
                 chk(V[i], off, "probe-derived case");
     }
 
-    // ---- EVERY byte value, at three positions: exactly 0x20 may trigger the quoting -------------
+    // ---- every byte value, at three positions: exactly 0x20 may trigger the quoting -------------
     for (int v = 1; v < 256; ++v) {
         s[0]='a'; s[1]=(char)v; s[2]='b'; s[3]=0;   chk(s, 0, "byte value in the middle");
         s[0]=(char)v; s[1]='a'; s[2]=0;             chk(s, 0, "byte value first");
         s[0]='a'; s[1]=(char)v; s[2]=0;             chk(s, 0, "byte value last");
     }
 
-    // ---- THE LENGTH CAP, swept exactly -----------------------------------------------------------
+    // ---- The length cap, swept exactly -----------------------------------------------------------
     // 257 quotes, 258 does not. Every length across the boundary, with the space at the front, in
     // the middle and at the end, because "is there a space" and "how long is it" are found by the
     // same pass and an off-by-one in either is a different bug.
@@ -166,7 +166,7 @@ int main(void){
         VirtualFree(base,0,MEM_RELEASE);
     }
 
-    // ---- A BUFFER TOO SMALL FOR THE RESULT: both must FAULT -----------------------------------------
+    // ---- a buffer too small for the result: both must fault -----------------------------------------
     // Only that. See the header: the shipped function's partial state here comes from the chunk
     // schedule of its internal move (it leaves indices 1..8, an 8-byte head store), ours comes from
     // a 32-byte high-end shift, and that schedule is not a contract anyone can rely on.

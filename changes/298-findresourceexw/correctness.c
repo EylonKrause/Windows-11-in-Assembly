@@ -12,13 +12,13 @@
  *      start, a buffer whose terminator is the last WCHAR before a PAGE_NOACCESS
  *      page, every one of the 65536 code units on its own, and a fixed-seed fuzz.
  *
- *  [2] THE WHOLE CALL, against the live export: every contract point proved in
+ *  [2] The whole call, against the live export: every contract point proved in
  *      probes/contract.c, every resource actually present in four live modules,
  *      the "#nnn" forms, NULL arguments, failures at each level, and a fixed-seed
  *      fuzz over modules/types/names/languages. Return value AND last error are
  *      compared on every single call.
  *
- * THE SLACK CONTRACT, stated explicitly because the corpus enforces it:
+ * The slack contract, stated explicitly because the corpus enforces it:
  * wia_resname_upcase writes whole 32-byte blocks, so it may write up to 31 bytes
  * past the terminator it stores. That is the contract of the code that ships --
  * its one caller hands it a buffer with that slack -- so the corpus checks the
@@ -82,7 +82,7 @@ static void check_norm(const wchar_t* src, const char* what)
     for (i = 0; i < 64; ++i)
         if (dbuf_ours[i] != 0xCD) { fail(what, L"wrote BEFORE dst"); return; }
 
-    /* THE EXACT BOUND, and where it comes from. The blocks are aligned to the SOURCE, not to
+    /* The exact bound, and where it comes from. The blocks are aligned to the source, not to
        dst, so the last block written is the first one that contains the terminator: it starts at
        some source offset a <= 2*len and ends at a+32. The bound is therefore dst + 2*len + 32,
        not roundup(2*len+2, 32) -- those differ, and the tighter one is wrong. len 17 at a source
@@ -194,7 +194,7 @@ static void corpus_normaliser(void)
 
 /* ------------------------------------------------------------------ [2] ---- */
 
-/* WHY EVERY TUPLE IS WARMED FIRST -- probes/mui_state.c proved it.
+/* Why every tuple is warmed first -- probes/mui_state.c proved it.
  * The live export is NOT a pure function of its arguments. For a language that
  * the image does not carry, ntdll tries to load an alternate (MUI) resource
  * module for that image, fails, and CACHES the failure per image. So the very
@@ -373,7 +373,7 @@ static void corpus_calls(void)
 }
 
 /* ---------------------------------------------------------------- [3] ----
- * THE FIRST CALL on a freshly mapped image, where the MUI cache is empty. Three
+ * The first call on a freshly mapped image, where the mui cache is empty. Three
  * byte-identical copies of the same DLL are mapped, and the first call on copy A
  * goes to the live export, on copy B to the reference, on copy C to our assembly.
  * All three must report the same thing -- otherwise our implementation differs

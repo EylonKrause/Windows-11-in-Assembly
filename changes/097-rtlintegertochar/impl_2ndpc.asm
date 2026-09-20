@@ -7,7 +7,7 @@
 ; the second PC. Same exported symbol (`wia_itoc`), so the existing correctness.c
 ; and bench.c validate it unmodified -- build it with build_2ndpc.bat.
 ;
-; WHY A 2ND-PC VARIANT IS NEEDED
+; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured on this machine, the Zen 3 implementation REGRESSED on one size
 ; class and therefore failed the project's own gate (a regression on ANY class
@@ -37,10 +37,10 @@
 ; one or two stores and a return. Everything else falls through to the original
 ; body, byte-for-byte unchanged.
 ;
-; CONTRACT PRESERVED EXACTLY (all re-verified against the live export):
+; Contract preserved exactly (all re-verified against the live export):
 ;   * Base 0 is treated as base 10.
 ;   * dc (digit count) is 1 for Value 0..9, 2 for Value 10..99.
-;   * dc > Length  -> STATUS_BUFFER_OVERFLOW (0x80000005) and NOTHING is written.
+;   * dc > Length  -> STATUS_BUFFER_OVERFLOW (0x80000005) and nothing is written.
 ;   * digits are written left-justified at String[0..dc-1].
 ;   * a NUL is written at String[dc] IFF Length > dc.
 ;   * success returns STATUS_SUCCESS (0).
@@ -55,7 +55,7 @@
 ;   * Writes at most 3 bytes, all within the caller's buffer and only after the
 ;     same capacity check the original performs. No read of any input buffer.
 ;
-; NTSTATUS wia_itoc(ULONG Value, ULONG Base, LONG Length, PCHAR String)
+; NTSTATUS wia_itoc(ULONG Value, ulong Base, long Length, pchar String)
 ;   [rcx=Value, edx=Base, r8d=Length, r9=String -> eax]
 
 .const

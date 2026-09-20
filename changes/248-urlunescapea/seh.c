@@ -2,10 +2,10 @@
 // The envelope of shlwapi!UrlUnescapeA: the order its decisions are made in, and the two things
 // assembly should not be asked to do -- catch an access violation, and stage a pathological overlap.
 //
-// THE ORDER IS THE CONTRACT, and it is not the obvious one. From the disassembly of
+// The order is the contract, and it is not the obvious one. From the disassembly of
 // kernelbase!UrlUnescapeA (RVA 0x49DB0), confirmed from the outside by probes/unesca.c:
 //
-//     00049DE1  bt r9d, 0x14 / jae ...      URL_UNESCAPE_INPLACE, tested BEFORE ANY VALIDATION and
+//     00049DE1  bt r9d, 0x14 / jae ...      URL_UNESCAPE_INPLACE, tested before any validation and
 //                                          tail-calling the walk -- so an in-place call with a NULL
 //                                          destination and *pcch == 0 succeeds, and never writes
 //                                          *pcch at all (measured: cch stays 0).
@@ -17,24 +17,24 @@
 // Putting the flag test first would be wrong in a way nothing but a probe would catch: INPLACE
 // combined with AS_UTF8 does NOT refuse, because it never reaches the refusal.
 //
-// WHY THE __try. The length comes from lstrlenA at 0x4C150, which is SEH-WRAPPED, so an unterminated
+// Why the __try. The length comes from lstrlenA at 0x4C150, which is seh-wrapped, so an unterminated
 // source running into a PAGE_NOACCESS page yields length 0 -- and the probe confirms the whole call
-// then returns S_OK with cch = 0 and out[0] = 0, for every tail from 1 to 4 bytes. THE WIDE FORM
-// FAULTS ON EXACTLY THAT INPUT (change 247 established it for lstrlenW). This is the asymmetry that
+// then returns S_OK with cch = 0 and out[0] = 0, for every tail from 1 to 4 bytes. The wide form
+// Faults on exactly that input (change 247 established it for lstrlenW). This is the asymmetry that
 // an implementation would get wrong silently: it would crash a caller that the shipped function
 // serves. The scan itself stays in assembly and stays page-safe -- it must not fault EARLIER than a
 // byte-at-a-time scan would, or a working call would turn into an empty result.
 //
-// THE ZEROUPPER ON THE FAULT PATH IS NOT COSMETIC: the scan runs a 256-bit loop, so when the fault
+// The zeroupper on the fault path is not cosmetic: the scan runs a 256-bit loop, so when the fault
 // arrives its upper halves are dirty and unwinding out of assembly skips its own vzeroupper. Leaving
 // the CPU in that state makes every later legacy-SSE instruction in the CALLER pay an AVX-SSE
 // transition penalty -- a performance bug planted in someone else's code by our error path.
 //
-// SEH COSTS NOTHING ON THE FAST PATH. x64 exception handling is table-driven: the unwind data lives
+// SEH costs nothing on the fast path. x64 exception handling is table-driven: the unwind data lives
 // in .pdata/.xdata and not one prologue instruction, register or stack slot is spent unless an
 // exception actually fires.
 //
-// AND WHY THE STAGING BUFFER IS HERE AND NOT IN THE KERNELS. The shipped function copies the source
+// And why the staging buffer is here and not in the kernels. The shipped function copies the source
 // into a temporary (a 65-byte inline buffer, grown on the heap) and walks THAT, which is most of what
 // change 245 removed from the wide form and most of what is removed here. But it is also why every
 // overlap of source and destination is well defined for the shipped export -- including a destination
@@ -123,7 +123,7 @@ HRESULT wia_urlunescapea(char* pszURL, char* pszUnescaped, DWORD* pcchUnescaped,
     if (pszUnescaped > pszURL && pszUnescaped <= pszURL + n)
         return staged(pszURL, n, pszUnescaped, pcchUnescaped, dwFlags);
 
-    /* THE FAST PATH, and the reason this change is simpler than 245: unescaping never lengthens, so
+    /* The fast path, and the reason this change is simpler than 245: unescaping never lengthens, so
        a destination bigger than the source cannot fail the size test -- and a zero-valued escape
        merely ENDS the result here rather than refusing, so there is nothing to pre-scan for either.
        One pass, no measuring. */

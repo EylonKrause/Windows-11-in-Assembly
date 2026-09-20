@@ -1,5 +1,5 @@
 // changes/145-swab/correctness.c
-// Bit-exact fuzz of wia_swab vs live ucrtbase!_swab + oracle. Compares the WHOLE destination buffer
+// Bit-exact fuzz of wia_swab vs live ucrtbase!_swab + oracle. Compares the whole destination buffer
 // (so untouched bytes past an odd n are checked) and, for the in-place/overlap cases, the source too.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

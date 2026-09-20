@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_strrstriw against the live shlwapi!StrRStrIW.
  *
- * THE ROWS ARE WHAT A BACKWARD SUBSTRING SEARCH ACTUALLY COSTS:
+ * The rows are what a backward substring search actually costs:
  *
  *   * a MISS over a long haystack, which must try every start position -- the worst case;
  *   * a hit near the END, which a backward search finds at once and a forward one does not;

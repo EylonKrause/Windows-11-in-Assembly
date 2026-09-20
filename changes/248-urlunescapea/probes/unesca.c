@@ -2,13 +2,13 @@
  *
  * The contract of shlwapi/kernelbase!UrlUnescapeA, measured against the live export.
  *
- * WHY THIS ONE, after change 245 did the wide form. discovery/shlwapi_url_str.c measured the narrow
- * form at 1.85 ns per character against the wide form's 1.24 -- SLOWER PER CHARACTER for half the
+ * Why this one, after change 245 did the wide form. discovery/shlwapi_url_str.c measured the narrow
+ * form at 1.85 ns per character against the wide form's 1.24 -- slower per character for half the
  * data, which is the per-character-code-path signature that gave this project its largest narrow
  * siblings (change 218 at 127x, 236 at 75x). And 245 already removed the scaffolding that dominates
  * the wide form, so the same structure applies.
  *
- * THE DISASSEMBLY SAYS IT IS THE SAME SHAPE (kernelbase!UrlUnescapeA, RVA 0x49DB0):
+ * The disassembly says it is the same shape (kernelbase!UrlUnescapeA, rva 0x49DB0):
  *
  *     00049DE1  bt   r9d, 0x14 / jae            URL_UNESCAPE_INPLACE, tested BEFORE validation,
  *                                               tail-calling the walk at 0x49F20
@@ -22,20 +22,20 @@
  *     00049E7B  call 0x0F730                    the capacity/grow helper
  *     00049E97  call 0x4A04C                    copy-in
  *     00049EA6  call 0x49F20                    the walk, in the temporary
- *     00049EB3  cmp byte ptr [rax+r10],0 / jne  a scalar strlen OF THE RESULT
+ *     00049EB3  cmp byte ptr [rax+r10],0 / jne  a scalar strlen of the result
  *     00049EBD  cmp dword ptr [rsi], r10d / ja  the STRICT size test
  *     00049EE3  call 0x11CD0                    LocalFree
  *     00049F06  call 0x4B9DC                    copy-out
  *
- * Five sequential walks plus a heap round trip, exactly as the wide form. NO CODE-PAGE CALL ANYWHERE
+ * Five sequential walks plus a heap round trip, exactly as the wide form. No code-page call anywhere
  * -- no MultiByteToWideChar, no CPINFO, no DBCS lead-byte helper -- so unlike StrStrA (which this
  * project scoped out when a code-page fold conflated 0x5E and 0x88) this one is byte-wise.
  *
- * THE TWO ASYMMETRIES WITH THE WIDE FORM, both of which this probe has to settle rather than assume:
+ * The two asymmetries with the wide form, both of which this probe has to settle rather than assume:
  *
  *   1. AS_UTF8 IS REFUSED rather than implemented. If so, change 248 needs no delegation for it at
  *      all -- it can simply return E_INVALIDARG, which is simpler than what 245 had to do.
- *   2. THE LENGTH COMES FROM lstrlenA, WHICH SWALLOWS AN ACCESS VIOLATION. Change 247 established
+ *   2. The length comes from lstrlenA, which swallows an access violation. Change 247 established
  *      that the wide lstrlenW path does NOT swallow -- an unterminated extension at a guard page
  *      faults. If lstrlenA returns 0 on a faulting URL, then UrlUnescapeA returns S_OK with an empty
  *      result where UrlUnescapeW would fault, and an implementation without a __try would differ on
@@ -100,7 +100,7 @@ int main(void)
         printf("\n\n");
     }
 
-    /* ============ 2. the hex set: all 255 non-NUL bytes, BOTH escape positions ============ */
+    /* ============ 2. the hex set: all 255 non-NUL bytes, both escape positions ============ */
     {
         int first[256], second[256];
         int nf = 0, ns = 0;
@@ -158,7 +158,7 @@ int main(void)
 
     /* ============ 4. %00, and the strict size test ============ */
     {
-        /* THE THIRD ASYMMETRY, and the first version of this probe asserted the WIDE form's rule
+        /* The third asymmetry, and the first version of this probe asserted the wide form's rule
            here and was rightly told it was wrong. The wide form refuses %00 with E_INVALIDARG and an
            untouched destination. THIS form returns S_OK with the result TRUNCATED at the %00 --
            "a%00b" gives "a", cch = 1 -- because the non-in-place path DISCARDS the walk's HRESULT:
@@ -244,7 +244,7 @@ int main(void)
         strcpy(in, "a%00b");
         hr = sys(in, 0, &cch, F_INPLACE);
         printf("   in place \"a%%00b\" -> %08lX, buffer \"%s\"\n", (unsigned long)hr, in);
-        /* THE SAME INPUT, THE OTHER ANSWER. Section 4 gets S_OK and a truncated result from the
+        /* The same input, the other answer. Section 4 gets S_OK and a truncated result from the
            non-in-place path; here the E_INVALIDARG survives, because this path TAIL-CALLS the walk
            while that one calls it and ignores what it returned. */
         CHECK(hr == 0x80070057, "in place %%00 returned %08lX, expected E_INVALIDARG",
@@ -277,7 +277,7 @@ int main(void)
         printf("   (bits not listed leave the answer identical to flags 0)\n\n");
     }
 
-    /* ============ 8. THE ASYMMETRY: does a faulting source get SWALLOWED? ============ */
+    /* ============ 8. The asymmetry: does a faulting source get swallowed? ============ */
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;
@@ -303,7 +303,7 @@ int main(void)
                            (unsigned long)cch, (unsigned char)out[0],
                            (unsigned char)out[0] == SENT ? "(untouched)" : "");
                 printf("\n");
-                /* THE SECOND ASYMMETRY: it SWALLOWS the access violation, because its length comes
+                /* The second asymmetry: it swallows the access violation, because its length comes
                    from lstrlenA, which is SEH-wrapped and returns 0. So the walk sees an empty
                    string and the call succeeds with an empty result -- where the wide form, whose
                    length comes from lstrlenW, faults (change 247 established that). An

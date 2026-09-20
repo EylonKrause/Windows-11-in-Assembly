@@ -1,6 +1,6 @@
 /* changes/252-rtlfindunicodesubstring/probes/gonogo.c
  *
- * THE GO/NO-GO, and it is the same question that decided change 167: is the case fold an ORDINAL
+ * The go/no-go, and it is the same question that decided change 167: is the case fold an ordinal
  * TABLE or is it COLLATION?
  *
  * This project has scoped out StrChrIW, StrStrIW, StrCSpnIW and (as of this week) StrCmpLogicalW
@@ -8,7 +8,7 @@
  * landed PathCommonPrefixW, CompareStringOrdinal and others because those fold through
  * RtlUpcaseUnicodeChar, which can. So nothing is worth writing here until this is settled.
  *
- * WHAT THE DISASSEMBLY ALREADY SAYS (ntdll!RtlFindUnicodeSubstring, RVA 0x498E0). The
+ * What the disassembly already says (ntdll!RtlFindUnicodeSubstring, rva 0x498E0). The
  * case-insensitive inner loop is:
  *
  *     00049938  movzx edx, word ptr [r10]            the needle character
@@ -25,8 +25,8 @@
  * why it is unreachable. But the shape is evidence, not proof: a table can be a SORT table too. So
  * this asks the export directly, over every one of the 65536 code units.
  *
- * AND IT ALSO SETTLES THE SHAPE OF THE SEARCH ITSELF, which decides how much there is to win: the
- * loop above is a NAIVE O(n*m) scan that makes TWO FUNCTION CALLS PER CHARACTER COMPARISON in the
+ * And it also settles the shape of the search itself, which decides how much there is to win: the
+ * loop above is a naive O(n*m) scan that makes two function calls per character comparison in the
  * insensitive case. discovery/ntdll_rtl_uncovered.c measures it at 0.755 ns/byte case-sensitive and
  * 1.181 case-insensitive -- 6.0 and 9.4 microseconds to scan a 4000-character string for an
  * eight-character needle that is not there.

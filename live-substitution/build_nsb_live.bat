@@ -1,8 +1,8 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 257 (ntdll!RtlNumberOfSetBits and relatives).
+Rem  live-run proof for change 257 (ntdll!RtlNumberOfSetBits and relatives).
 REM
-REM  All FOUR exports are patched ONE AT A TIME, each driven through its own
+Rem  All four exports are patched one at a time, each driven through its own
 REM  name with its own counter, because they are separate code in ntdll and a
 REM  wrapper routing one through another would otherwise go unnoticed.
 REM

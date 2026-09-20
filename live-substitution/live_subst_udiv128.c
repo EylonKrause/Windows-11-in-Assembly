@@ -5,7 +5,7 @@
 // ~69 ns whatever the operands. Ours issues ONE hardware `div` wherever the quotient is
 // representable, and reproduces the loop where it is not.
 //
-// WHAT MUST BE PROVED LIVE is the boundary. `div` raises #DE when the quotient will not fit in 64
+// What must be proved live is the boundary. `div` raises #de when the quotient will not fit in 64
 // bits, and that happens on exactly DividendHigh >= Divisor -- so the compare that selects the fast
 // path has zero slack. An off-by-one there is not a wrong answer, it is a crash. The corpus below is
 // therefore weighted hard onto DividendHigh == Divisor and its immediate neighbours, and onto
@@ -14,7 +14,7 @@
 // Both the quotient and the remainder are compared, and every case is re-run with a NULL remainder
 // pointer, which the shipped code accepts.
 //
-// FREEZE-SAFETY PROTOCOL (unchanged): sacrificial single-threaded child, own-process COW copy of
+// Freeze-safety protocol (unchanged): sacrificial single-threaded child, own-process cow copy of
 // ntdll only, validate-first, verified byte-identical revert. No kernel-mode code anywhere.
 //
 // Build: build_udiv128_live.bat

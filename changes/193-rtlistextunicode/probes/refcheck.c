@@ -28,12 +28,12 @@
  *   ILLEGAL_CHARS    iff any illegal counter != 0, OR crlf >= min(len,512)/40
  *   ODD_LENGTH       iff len is odd
  *   NULL_BYTES       iff zc_adj != 0
- *   SIGNATURE        iff first unit == U+FEFF ; REVERSE_SIGNATURE iff it is U+FFFE
+ *   Signature        iff first unit == u+feff ; REVERSE_SIGNATURE iff it is u+fffe
  *   if (lpi) *lpi &= flags, and the BOOL is computed from the MASKED value
  *   BOOL: (f & 0xB08)==8 -> TRUE ; f & 0xF0 -> FALSE ; f & 0xF00 -> FALSE ; f & 0xF00F -> TRUE ;
  *         else FALSE
  *
- * SCOPE: the shipped code also has a DBCS lead-byte pass that can lower the STATISTICS multiplier
+ * Scope: the shipped code also has a dbcs lead-byte pass that can lower the statistics multiplier
  * from 3 to 2 or 1 and set IS_TEXT_UNICODE_DBCS_LEADBYTE. It is gated on an ntdll-internal
  * code-page table AND on the caller explicitly asking for bit 0x400, and on a single-byte ANSI
  * code page it never runs. This reference implements the multiplier as a constant 3; the fuzz
@@ -111,7 +111,7 @@ static int ref_itu(const void* buf, int len, int* lpi){
         prev_lo = lo;
     }
 
-    /* One MORE CR/LF test after the loop, this time against the LAST unit's OWN high byte --
+    /* One more cr/lf test after the loop, this time against the last unit's own high byte --
        the loop-exit block has already written [rsp+14h] for the final unit, so the same two
        compares at 0x3CEB/0x3CF4 now test whether the last unit is 0x0A0D or 0x0D0A. */
     if(n){

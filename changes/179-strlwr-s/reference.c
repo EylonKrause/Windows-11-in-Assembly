@@ -2,12 +2,12 @@
 // The correctness oracle: the obvious scalar _strlwr_s. Not fast; just correct.
 // Contract derived in probes/sls.c and fuzz-confirmed against the live export
 // (1,000,000 cases, 0 mismatches):
-//   * the fold is EXACTLY the 26 ASCII letters A-Z (swept over all 255 byte values, 0
+//   * the fold is exactly the 26 ASCII letters A-Z (swept over all 255 byte values, 0
 //     differences from the plain rule); bytes >= 0x80 never fold;
 //   * success -> 0, lowercased in place, nothing past the terminator touched;
 //   * no terminator strictly inside numberOfElements -> EINVAL (22) AND str[0] = 0, including
 //     when numberOfElements == 0;
-//   * VALIDATE FIRST: there is NO partial fold on the error path.
+//   * Validate first: there is no partial fold on the error path.
 // The real function also invokes the invalid-parameter handler; the ASM does that through
 // ucrtbase's own _invalid_parameter_noinfo. This oracle deliberately does not, so correctness.c
 // can compare buffers and returns directly.

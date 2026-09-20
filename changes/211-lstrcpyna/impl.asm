@@ -13,29 +13,29 @@
 ; decided the implementation. This one comes out identical to 209's, point for point:
 ;   * copies at most n-1 characters, stopping early at the source's NUL, then writes ONE terminator.
 ;     The destination is NOT padded -- "ab" into n=10 leaves cells 2..9 untouched;
-;   * n == 0 writes NOTHING AT ALL, not even a terminator, and still returns the destination;
+;   * n == 0 writes nothing at all, not even a terminator, and still returns the destination;
 ;   * n is used UNSIGNED: -1 and -1000 both copy the whole string;
 ;   * a NULL source or destination returns NULL (handled in seh.c);
-;   * it SWALLOWS A FAULTING SOURCE, returning NULL with the readable prefix already in place;
-;   * and it READS THE SOURCE BEFORE TESTING THE BOUND. The probe walked n from 1 to 10 against an
+;   * it swallows a faulting source, returning NULL with the readable prefix already in place;
+;   * and it reads the source before testing the bound. The probe walked n from 1 to 10 against an
 ;     8-character unterminated source ending at a guard page: n = 1..8 returned the destination,
 ;     n = 9 -- exactly srclen+1 -- returned NULL. It read src[n-1], one PAST the last character it
 ;     copied. A bound-first loop would have succeeded there and silently differed from Windows.
 ;
-; ONE QUESTION THE WIDE FORM DOES NOT HAVE was settled too: a narrow bounded copy could plausibly
+; One question the wide form does not have was settled too: a narrow bounded copy could plausibly
 ; refuse to truncate in the middle of a DBCS character. GetACP() is 1252 here and IsDBCSLeadByteEx
 ; reports ZERO lead bytes for it, so no byte can begin a double-byte character and no DBCS-aware
 ; truncation rule is observable on this machine. The copy is byte-wise, and correctness.c proves it
 ; against the live export rather than against that argument.
 ;
-; THE PAGE-SAFE SHAPE IS WHAT THE FAULT CONTRACT BUYS. A 32-byte load straddling the end of a mapped
+; The page-safe shape is what the fault contract buys. a 32-byte load straddling the end of a mapped
 ; page faults BEFORE storing anything, so a blindly chunked copy would leave FEWER characters behind
 ; than the shipped byte-at-a-time loop does and the partial destination would not match. A vector
 ; load is therefore only issued when all thirty-two bytes lie inside the current page; near a
 ; boundary the copy finishes one character at a time, so the fault lands on exactly the character the
 ; shipped code reaches.
 ;
-; WITHIN A PAGE, THOUGH, READING MORE THAN THE BOUND PERMITS IS FREE. That observation is what the
+; Within a page, though, reading more than the bound permits is free. That observation is what the
 ; short path rests on, and it is the difference between this and a straight port of 209. The first
 ; cut only vectorised when at least 32 characters were still PERMITTED, so an 8-character copy into a
 ; 16-byte buffer -- the shape almost every real caller has -- fell into the byte-at-a-time tail and
@@ -47,12 +47,12 @@
 ;
 ; The clamped write is a pair of OVERLAPPING power-of-two stores (16+16, 8+8, 4+4, 2+2, 1), which
 ; covers any k in 0..32 with at most two stores and never touches a byte past k -- the destination is
-; TERMINATED, NOT PADDED, so writing the full width and letting the tail land wherever would be a
+; Terminated, not padded, so writing the full width and letting the tail land wherever would be a
 ; different function. Both stores carry the same bytes on the overlap, so the duplication is
 ; idempotent; unlike the fold in 209 nothing reads back from these addresses afterwards, so there is
 ; no store-to-load forwarding stall to pay.
 ;
-; ONLY xmm0-xmm2 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm2 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt).
 
@@ -87,10 +87,10 @@ wide:
         cmp       eax, 32
         jb        vec_tail                     ; the page has room but the BOUND cuts inside a chunk
 
-        ; THE PAGE ARITHMETIC IS HOISTED OUT OF THE COPY. The first cut recomputed it per chunk --
+        ; The page arithmetic is hoisted out of the copy. The first cut recomputed it per chunk --
         ; twenty instructions to move thirty-two bytes -- and measured 85.59 ns on 4000 characters,
         ; 0.68 ns per chunk against a hardware ceiling nowhere near that. Neither limit can change
-        ; under us mid-run, so the count of whole chunks that fit inside BOTH is computed once and
+        ; under us mid-run, so the count of whole chunks that fit inside both is computed once and
         ; the inner loop below is nine instructions with no address maths in it at all. Reaching a
         ; page edge or the bound simply falls back out to recompute.
         shr       eax, 5                       ; whole chunks permitted before a limit bites
@@ -98,7 +98,7 @@ wide:
         cmp       eax, 2
         jb        inner                        ; a single chunk: no point pairing it
 
-        ; TWO CHUNKS PER ITERATION. With the address maths already hoisted the loop was down to nine
+        ; Two chunks per iteration. With the address maths already hoisted the loop was down to nine
         ; instructions per thirty-two bytes and running at ~1.7 cycles a chunk -- front-end bound,
         ; not store bound. Pairing halves the loop overhead, and the NUL search over both halves
         ; costs ONE extra instruction rather than a second compare-and-extract: vpminub is zero in a
@@ -225,7 +225,7 @@ scalar:
         ; the shipped loop reaches.
         vzeroupper
 s_loop:
-        ; THE SOURCE IS READ BEFORE THE BOUND IS TESTED, and that order is the contract, measured.
+        ; The source is read before the bound is tested, and that order is the contract, measured.
         ; With n-1 exactly equal to the source length the shipped loop still reads src[n-1] -- one
         ; PAST the last character it copies -- so an unterminated string ending at a page boundary
         ; faults THERE and returns NULL. probes/lcpa.c pinned it down: n = 8 returned the

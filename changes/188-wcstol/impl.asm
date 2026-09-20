@@ -9,18 +9,18 @@
 ; change 186's wide character sets. The CROSSING is where the traps are, and probes/wcstol.c pinned
 ; each one against the live export:
 ;
-;   * NON-ASCII DIGITS WORK IN EVERY BASE, subject to the ordinary d >= base rejection.
+;   * Non-ascii digits work in every base, subject to the ordinary d >= base rejection.
 ;       U+0667 (=7) in base 8 -> 7 ;  U+0668 (=8) in base 8 -> no conversion.
-;   * THE BASE>10 LETTERS ARE ASCII-ONLY. Fullwidth 'f' (U+FF46) is NOT a hex digit, even though
+;   * The BASE>10 letters are ascii-only. Fullwidth 'f' (U+FF46) is not a hex digit, even though
 ;     fullwidth '9' (U+FF19) IS a decimal one. So the classifier is asymmetric on purpose.
-;   * THE "0x" PREFIX ZERO MAY BE ANY BLOCK'S ZERO. U+0660 followed by 'x' really does introduce
+;   * The "0x" prefix zero may be any block's zero. U+0660 followed by 'x' really does introduce
 ;     hex: <U+0660>x1f -> 31. So does base-0 octal detection: <U+FF10>77 -> 63.
 ;     >>> This is the trap. A natural port compares the prefix character to L'0' and is WRONG;
 ;         that variant was fuzzed side by side with this one and refuted on 1579 of 1 500 000.
-;   * BUT THE 'x' ITSELF IS ASCII-ONLY -- '0' followed by fullwidth x parses as just "0".
+;   * But the 'x' itself is ascii-only -- '0' followed by fullwidth x parses as just "0".
 ;   * endptr / ERANGE / no-conversion behave exactly as change 110 measured for strtol, including
 ;     the ucrtbase quirk that a "0x" with no hex digit after it is NO CONVERSION (*endptr = nptr).
-;   * AN INVALID BASE (anything other than 0 or 2..36, including negatives) raises the
+;   * An invalid base (anything other than 0 or 2..36, including negatives) raises the
 ;     invalid-parameter handler ONCE, sets errno = EINVAL (22), writes *endptr = nptr and
 ;     returns 0. Measured, not assumed.
 ;
@@ -277,7 +277,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. IN: r10d = code unit. OUT: eax = 1 if it is a decimal digit with VALUE 0
+; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; The prefix sites need only this question, not a full 0..35 classification.
 ; ---------------------------------------------------------------------------

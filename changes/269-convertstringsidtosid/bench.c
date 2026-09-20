@@ -2,7 +2,7 @@
  *
  * Gate 2: time wia_str2sid against the live advapi32!ConvertStringSidToSidW.
  *
- * THE ROWS ARE THE SHAPES THE IMPLEMENTATION DISTINGUISHES, not a size sweep, because this function
+ * The rows are the shapes the implementation distinguishes, not a size sweep, because this function
  * has no size in the usual sense -- it has a COUNT, and a handful of paths that a count does not
  * reach:
  *
@@ -14,7 +14,7 @@
  *   a refusal              the failing path, which callers hit as often as the succeeding one and
  *                          which no "how fast does it parse" row would measure
  *
- * EVERY ROW ALLOCATES AND FREES, on both sides, because the contract returns a LocalAlloc block and
+ * Every row allocates and frees, on both sides, because the contract returns a LocalAlloc block and
  * about 40 ns of any answer is that allocation. A row that leaked would measure the allocator
  * warming up; a row that skipped the free would measure a different allocator entirely.
  */
@@ -73,7 +73,7 @@ int main(void)
         L"BA",
         L"LA",
         L"S-0x1-5-21-1a2b-3c4d-5e6f-1001",
-        /* THE ROW MUST REACH THE PATH IT IS NAMED FOR. The first version of this row was
+        /* The row must reach the path it is named for. The first version of this row was
            `S-1-<0661><0662>-<0967><0968>-<0E51>` -- Arabic-Indic revision, Devanagari authority,
            THAI sub-authority -- and the Thai digits are in the LENIENT table but not the STRICT
            one, so it was a REFUSAL that never allocated, timed at 8.5 ns per call and labelled
@@ -104,7 +104,7 @@ int main(void)
     if (wia_sid_classify_init()) { printf("the character classes failed to build\n"); return 1; }
     if (wia_sid_alias_init())    { printf("the alias table failed to build\n"); return 1; }
 
-    /* PRE-FLIGHT: SAY WHAT EACH ROW ACTUALLY DOES BEFORE TIMING IT. A row whose name promises the
+    /* Pre-flight: Say what each row actually does before timing it. a row whose name promises the
        alias table, the hexadecimal carry or the Unicode digits and which in fact refuses on its
        first field is timing the refusal path under another row's name -- change 210 shipped a
        "table path" row that compared identical strings and short-circuited in tier one, and the

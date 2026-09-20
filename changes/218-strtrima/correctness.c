@@ -3,7 +3,7 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// EVERY CASE COMPARES THE WHOLE BUFFER, NOT THE RESULTING STRING. This function writes only what it
+// Every case compares the whole buffer, not the resulting string. This function writes only what it
 // must -- probes/trim.c poisoned the bytes past the terminator and read them back, and found that
 // "abc" trimmed of 'x' leaves the buffer completely untouched, while "abcxx" gets exactly ONE byte
 // written and the old 'x' and old terminator are still sitting there afterwards. An implementation
@@ -13,7 +13,7 @@
 // The other two things driving the shape:
 //   * the set is a 256-bit bitmap whose vector test resolves 0x00..0x7F through one vpshufb table
 //     and 0x80..0xFF through the other, so every byte value is proved in both roles;
-//   * the first load is aligned DOWN with the leading bits cleared, so every case runs at EVERY
+//   * the first load is aligned DOWN with the leading bits cleared, so every case runs at every
 //     start offset within a 32-byte block, with trim characters planted in front of the string.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -89,7 +89,7 @@ int main(void){
                 CHECK(one_all_offsets(S[i], T[j]), "named shapes x sets, every start offset");
     }
 
-    // ---- EVERY byte value as a trim character, and as a kept character ----------------------------
+    // ---- every byte value as a trim character, and as a kept character ----------------------------
     // The membership test resolves 0x00..0x7F through one vpshufb table and 0x80..0xFF through the
     // other, so a swapped blend would pass any ASCII-only test.
     {

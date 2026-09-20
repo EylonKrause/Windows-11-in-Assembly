@@ -4,7 +4,7 @@
 ; Compare at most n wchars; sign matches the first differing wchar (like the CRT), 0 if
 ; equal within n or both terminate. ucrtbase's is scalar (~6 GB/s). Two unbounded
 ; pointers, so neither can be aligned: page-safe by construction — a 16- or 8-wchar
-; vector compare is only issued when BOTH pointers have that many bytes to their page
+; vector compare is only issued when both pointers have that many bytes to their page
 ; end AND at least that many wchars remain in n; otherwise it steps one wchar at a time.
 ; The terminator stops the scan (mutual 0 -> equal), so it never reads past a string.
 ;

@@ -14,7 +14,7 @@
 // right HRESULT would silently drop. Only comparing IRestrictedErrorInfo::GetErrorDetails field by
 // field can see that.
 //
-// THE HANDLES ARE MOSTLY FORGED, AND THAT IS THE POINT. The layout is proved -- section 1 re-checks
+// The handles are mostly forged, and that is the point. The layout is proved -- section 1 re-checks
 // [h+4] and [h+0x10] against WindowsGetStringLen and WindowsGetStringRawBuffer on every kind of
 // handle combase can build -- and a forged header is the only way to reach three things a real one
 // cannot: a buffer at an arbitrary alignment, a buffer that ends exactly at a PAGE_NOACCESS
@@ -262,7 +262,7 @@ int main(void)
                 forge(&ha, 0, (UINT32)len, pa);
                 forge(&hb, 1, (UINT32)len, pb);
                 chk(&ha, &hb, "eq", len, off);
-                /* a difference at EVERY position, both directions of sign */
+                /* a difference at every position, both directions of sign */
                 for (pos = 0; pos < len; ++pos) {
                     wchar_t save = pb[pos];
                     pb[pos] = (wchar_t)(save + 1);   chk(&ha, &hb, "lt", len, pos);

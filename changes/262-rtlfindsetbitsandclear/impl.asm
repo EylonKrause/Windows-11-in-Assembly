@@ -1,6 +1,6 @@
 ; changes/262-rtlfindsetbitsandclear/impl.asm
-;   ULONG wia_findsetbitsandclear(RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)
-;   ULONG wia_findclearbitsandset(RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)
+;   Ulong wia_findsetbitsandclear(RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)
+;   Ulong wia_findclearbitsandset(RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)
 ;     [Win64: rcx, edx, r8d -> eax]
 ;
 ; ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet -- a search and a MUTATION in one
@@ -15,12 +15,12 @@
 ; and rotating it to 0x5A5A5A5A swaps which of the two exports is the slow one.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE SEARCH HALF IS CHANGE 256, AND THAT WAS MEASURED RATHER THAN ASSUMED (probes/equiv.c).
+; The search half is change 256, and that was measured rather than assumed (probes/equiv.c).
 ;
 ; probes/contract.c showed a search that wraps, refuses a run straddling the wrap point, treats a
 ; hint at or past SizeOfBitMap as zero, and returns the hint rounded down to a multiple of eight for
 ; NumberToFind = 0 -- word for word what change 256 measured for the read-only pair. INHERITING A
-; RULE BECAUSE IT LOOKS LIKE THE SAME RULE IS EXACTLY HOW THE EIGHT-CHANGE SPACE BUG HAPPENED, so
+; Rule because it looks like the same rule is exactly how the eight-change space bug happened, so
 ; the equivalence was put to the test the way change 237 tested its relationship to change 236:
 ;
 ;       RtlFindSetBitsAndClear(bm, N, hint)  ==  RtlFindSetBits(bm, N, hint)
@@ -35,22 +35,22 @@
 ; So this change links change 256's implementation and adds the half that is new.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE MUTATION, probed rather than assumed (probes/contract.c, diffing the WHOLE buffer every time
+; The mutation, probed rather than assumed (probes/contract.c, diffing the whole buffer every time
 ; rather than checking the bits it expected to have changed):
 ;
-;   * EXACTLY NumberToFind BITS ARE WRITTEN, not the whole run the search found. Asking for 8 inside
+;   * Exactly NumberToFind bits are written, not the whole run the search found. Asking for 8 inside
 ;     a run of 20 set bits at bit 40 returns 40 and clears 40..47 -- bits 48..59 stay set, which is
 ;     why a second call then answers 48.
-;   * NOT FOUND WRITES NOTHING AT ALL. Not one bit changes anywhere in the buffer.
-;   * NumberToFind = 0 WRITES NOTHING EITHER, even though it returns an index (the hint rounded down
+;   * Not found writes nothing at all. Not one bit changes anywhere in the buffer.
+;   * NumberToFind = 0 Writes nothing either, even though it returns an index (the hint rounded down
 ;     to a multiple of eight). An implementation that mutated "zero bits at the returned index" by
 ;     way of a loop that runs at least once would corrupt the bitmap on the one call that is
 ;     documented to find nothing.
-;   * THE WRAPPED ANSWER MUTATES TOO: with the only run at bit 10 and a hint of 300, it returns 10
+;   * The wrapped answer mutates too: with the only run at bit 10 and a hint of 300, it returns 10
 ;     and clears 10..17.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW THE MUTATION WORKS. A range of bits, one masked word at each end and whole words between:
+; How the mutation works. a range of bits, one masked word at each end and whole words between:
 ;
 ;       first word   bits at or above the start        -1 << (start & 31)
 ;       last word    bits below the end                ~(-1 << (end & 31)), or all of it when the
@@ -60,19 +60,19 @@
 ; and the two sides differ only in whether the mask is OR-ed in or its complement AND-ed in, so the
 ; whole thing is one macro instantiated twice.
 ;
-; A MIDDLE OF FEWER THAN EIGHT WORDS NEVER TOUCHES A VECTOR REGISTER. That is not tidiness: a
+; a middle of fewer than eight words never touches a vector register. That is not tidiness: a
 ; function that has executed a VEX instruction must VZEROUPPER before it returns, and change 259
 ; measured that instruction as a visible part of a call that only has a word or two to do -- its
 ; short rows sat at 0.75x-0.93x until the vector path was made unreachable for them. Here the common
 ; case is a handful of bits, so the vector loop is entered only when there are at least eight whole
 ; words between the two ends.
 ;
-; READING OR WRITING PAST THE BUFFER CANNOT HAPPEN: the search returns a start with
+; Reading or writing past the buffer cannot happen: the search returns a start with
 ; start + NumberToFind <= SizeOfBitMap, so the last word touched is the one holding the last bit of
 ; the range, which is inside the ULONG array by construction.
 ;
 ;
-; A BITMAP OF 64 BITS OR FEWER NEVER MAKES THE CALL. That was forced by measurement, and the row
+; a bitmap of 64 Bits or fewer never makes the call. That was forced by measurement, and the row
 ; that forced it is worth stating: a 64-bit bitmap asked for a run of sixteen -- which is not there
 ; -- measured 0.71x. Change 256's search is already at PARITY with the shipped code on a bitmap
 ; that small (its own worst class is 1.00x, on the same kind of row), so a frame, a call and a
@@ -180,7 +180,7 @@ mid_vec:
         sub       r11d, 8
         cmp       r11d, 8
         jae       mid_vec
-        ; THE TAIL IS ONE OVERLAPPING STORE. Up to seven whole words are left, and writing them one
+        ; The tail is one overlapping store. Up to seven whole words are left, and writing them one
         ; at a time is seven stores to finish a fill that had been running at eight words each. The
         ; vector loop has already written at least 32 bytes, so the LAST 32 bytes of the middle can
         ; simply be written again: the overlap lands on words this same fill has already set to the
@@ -206,7 +206,7 @@ ENDM
 ; ---------------------------------------------------------------------------------------------
 ; SMALL -- the whole call, search and mutation, for a bitmap of 64 bits or fewer.
 ;
-; THE SEARCH FITS IN ONE 64-BIT REGISTER at that size, which is why this is a fast path and not a
+; The search fits in one 64-BIT register at that size, which is why this is a fast path and not a
 ; second implementation of anything hard:
 ;
 ;   * the run-mark is change 258's DOUBLING AND -- `y &= y >> s` with the shifts summing to N-1
@@ -219,9 +219,9 @@ ENDM
 ;     "scan from the hint, then from the beginning" is two TZCNTs. TZCNT sets CF when its source is
 ;     zero, so "nothing at or after the hint" needs no separate test.
 ;
-; THE 64-BIT VALUE IS BUILT FROM TWO 32-BIT LOADS, and that is not fussiness. Change 261 found the
+; The 64-BIT value is built from two 32-BIT loads, and that is not fussiness. Change 261 found the
 ; shipped RtlFindLastBackwardRunClear reading `bt qword ptr [r9], rax` over a buffer that may be a
-; single ULONG, which FAULTS on a one-word bitmap at the end of a page. Reading the second ULONG
+; single ulong, which faults on a one-word bitmap at the end of a page. Reading the second ulong
 ; only when SizeOfBitMap says it is there is the whole difference, and the same care decides the
 ; write: the second ULONG is touched only when start + N really reaches past bit 32.
 ;
@@ -248,7 +248,7 @@ have:   test      edx, edx
         shl       r11, 32
         or        r9, r11
 no_hi:
-        ; THE MACRO PARAMETER NAMES THE MUTATION, NOT THE SEARCH, and those are opposites: the
+        ; The macro parameter names the mutation, not the search, and those are opposites: the
         ; export that CLEARS is the one that searches for SET bits. So `set` -- meaning
         ; RtlFindClearBitsAndSet -- is the instantiation that has to complement the word, because
         ; it is looking for clear bits and everything below searches for ones.
@@ -356,7 +356,7 @@ wia_findclearbitsandset PROC
         SMALL     set
 wia_findclearbitsandset ENDP
 
-; NOTHING NON-VOLATILE IS TOUCHED IN EITHER BODY. The bitmap and the count have to survive the call
+; Nothing non-volatile is touched in either body. The bitmap and the count have to survive the call
 ; into change 256's search, and the obvious way to do that is `push rbx` / `push rsi`; instead they
 ; are parked in the frame this function has to allocate anyway, above the thirty-two bytes of
 ; shadow space the callee is owed. It is two stores against two pushes and two pops, and it leaves

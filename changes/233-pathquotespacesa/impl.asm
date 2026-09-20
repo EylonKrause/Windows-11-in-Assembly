@@ -5,12 +5,12 @@
 ; 19.21 ns against 15.50 ns for the wide form on the same character count -- 1.24x the wide cost for
 ; HALF the bytes. No SEH wrapper, for the reason below.
 ;
-; THE CONTRACT, re-derived against the NARROW export in probes/pqsa.c rather than inherited from
+; The contract, re-derived against the narrow export in probes/pqsa.c rather than inherited from
 ; change 172:
 ;
-;   * EXACTLY ONE BYTE VALUE counts as a space: 0x20. Sweeping all 255 non-NUL values in the middle
+;   * Exactly one byte value counts as a space: 0x20. Sweeping all 255 non-NUL values in the middle
 ;     of a path, only that one makes it quote -- a TAB does not, and neither does anything else.
-;   * THE LENGTH CAP IS 257, measured by sweeping lengths 1..400 with one space: the last length
+;   * The length cap is 257, measured by sweeping lengths 1..400 with one space: the last length
 ;     that quotes is 257 and the first that does not is 258. Same as the wide form, which was worth
 ;     confirming rather than assuming -- 257 is a peculiar number and it is a property of a
 ;     different function.
@@ -20,12 +20,12 @@
 ;   * NULL returns 0 without faulting.
 ;   * 0 mismatches over all 87381 strings of {a, SPACE, quote, TAB} to length 8.
 ;
-; NO WRAPPER: a buffer too small for the result FAULTS rather than being swallowed, 37 of 37
+; No wrapper: a buffer too small for the result faults rather than being swallowed, 37 of 37
 ; distances (probes/pqsa.c). Quoting needs three bytes more than the string -- two quotes and a
 ; terminator -- and when they do not fit, the shipped function faults like any other unbounded
 ; shlwapi path helper.
 ;
-; ONE DELIBERATE DIVERGENCE, ON A PATH THAT FAULTS. probes/pqsa.c dumped the buffer after such a
+; One deliberate divergence, on a path that faults. probes/pqsa.c dumped the buffer after such a
 ; fault and found the shipped function had changed indices 1..8 -- a contiguous run from the LOW
 ; end, which a strict highest-byte-first shift cannot produce, because its very first write would be
 ; the one that faults. That is the signature of a chunked memmove whose 8-byte HEAD store lands

@@ -1,7 +1,7 @@
 // live-substitution/live_subst_sidfmt.c
 // LIVE-RUN PROOF for change 067 (ntdll!RtlConvertSidToUnicodeString).
 //
-// WHAT IS COMPARED IS THE WHOLE DESTINATION, not the string. This export writes into the caller's
+// What is compared is the whole destination, not the string. This export writes into the caller's
 // buffer and its interesting behaviour is at the EDGES of that buffer:
 //
 //   * at MaximumLength == Length+1 it succeeds and writes NO TERMINATOR -- the two bytes past the
@@ -15,20 +15,20 @@
 // boundary rather than from "something ample" -- the gate this replaces used 600 for three million
 // cases and stepped its one boundary sweep BY TWO, so it never once asked an odd value.
 //
-// THE CORPUS IS REGENERATED FROM THE CASE INDEX on every pass. Change 252's harness carried PRNG
+// The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
 // state across its three passes and reported 14285 differences with its patch counter at ZERO --
 // the shipped export disagreeing with itself.
 //
-// THE COUNT IS DRAWN OVER ITS WHOLE BYTE RANGE, 0..255, not 0..15. The old gate drew it as
+// The count is drawn over its whole byte range, 0..255, not 0..15. The old gate drew it as
 // (seed>>8)%16 and therefore never expressed a count above 15 -- which the live export refuses and
 // the old implementation did not, formatting all 200 sub-authorities of a SID whose count byte said
 // 200 into a 400-byte stack temporary.
 //
 // FREEZE-SAFETY PROTOCOL:
-//   (0) SACRIFICIAL CHILD: standalone, single-threaded. It patches only ITS OWN per-process
+//   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
 //       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
-//   (1) VALIDATE FIRST against the LIVE export BEFORE any patch exists.
-//   (2) PATCH ONLY WHEN IDLE: single-threaded, and this export is used by neither the loader nor
+//   (1) Validate first against the live export before any patch exists.
+//   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the whole corpus
 //       is run again through the restored export.
@@ -126,7 +126,7 @@ static void build_case(long i)
     if (!rs) rs = 1;
 
     cls = (int)(i % 5);
-    /* the count over its WHOLE byte range: mostly legal, but one case in nine is not */
+    /* the count over its whole byte range: mostly legal, but one case in nine is not */
     cur_cnt = ((i % 9) == 4) ? (int)(16 + rnd() % 240) : (int)(rnd() % 16);
     /* the revision is 1 except one case in eleven */
     cur_rev = ((i % 11) == 7) ? (int)(rnd() % 256) : 1;

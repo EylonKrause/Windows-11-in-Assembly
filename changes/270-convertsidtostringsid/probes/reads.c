@@ -1,6 +1,6 @@
 /* changes/270-convertsidtostringsid/probes/reads.c
  *
- * HOW MUCH OF THE SID DOES IT READ, AND IN WHAT ORDER DOES IT REFUSE?
+ * How much of the SID does it read, and in what order does it refuse?
  *
  * probes/contract.c established that advapi32!ConvertSidToStringSidW and
  * ntdll!RtlConvertSidToUnicodeString produce the same text for every shape asked, and that both
@@ -8,18 +8,18 @@
  * formatter. It is NOT enough to build the wrapper, because three things are still unmeasured and
  * each of them is a fault or a wrong answer if guessed:
  *
- *   1. HOW FAR DOES IT READ? A SID is 8 + 4*count bytes and the count is a byte INSIDE it. A caller
+ *   1. How far does it read? a SID is 8 + 4*count bytes and the count is a byte inside it. a caller
  *      that hands over a SID at the very end of a committed page is entitled to expect the export
  *      to read exactly that many bytes and no more. This is measured with a guard page, the same
  *      way changes 016 and 034 measure their sources: two pages, one committed, the next
  *      PAGE_NOACCESS, and the SID placed so its last byte ends the committed page.
  *
- *   2. WHAT IS CHECKED FIRST? With a bad revision AND a bad count, which error comes back tells you
+ *   2. What is checked first? With a bad revision and a bad count, which error comes back tells you
  *      the order. More usefully: does a bad revision stop it before it reads the count byte at all?
  *      A SID consisting of ONE readable byte, with everything after it on a no-access page, answers
  *      that -- if the call refuses cleanly, the revision is checked before anything else is touched.
  *
- *   3. DOES SUCCESS TOUCH THE LAST ERROR? A caller that calls this and then reports GetLastError on
+ *   3. Does success touch the last error? a caller that calls this and then reports GetLastError on
  *      an unrelated failure sees whatever this left behind. It is cheap to measure and cheap to
  *      reproduce, and impossible to guess.
  *

@@ -2,7 +2,7 @@
  *
  * Three-way: ours vs an independent scalar model vs the LIVE kernelbase export.
  *
- * WHAT IS COMPARED IS THE RETURN VALUE, EVERY OUTPUT WORD, AND THE WORD JUST PAST THE END. That last one
+ * What is compared is the return value, every output word, and the word just past the end. That last one
  * matters as much as the others: this export is the first in the project that WRITES a buffer whose
  * length is given by the caller, so "one word too many" is a distinct failure mode from a wrong value,
  * and a corpus that only compared the words it asked for could not see it. Every case therefore fills
@@ -10,7 +10,7 @@
  *
  * The corpus shapes carried over from changes 283-286, each of which exists because a mutant survived:
  *
- *   * every alignment of BOTH the source and the destination, because the length scan masks the bytes
+ *   * every alignment of both the source and the destination, because the length scan masks the bytes
  *     below the source pointer and a store loop can be misaligned independently;
  *   * every code unit, not a sample -- the table has 65536 entries and there is no reason to guess;
  *   * the count boundary in both directions;
@@ -98,7 +98,7 @@ int main(void)
            "     bulk calls re-checked against the per-character extraction: %u/%u/%u pages\n",
            wia_gst_npage[0], wia_gst_npage[1], wia_gst_npage[2]);
 
-    /* 1. EVERY code unit, one at a time, all three info types */
+    /* 1. every code unit, one at a time, all three info types */
     {
         long before = cases;
         static wchar_t s[2];

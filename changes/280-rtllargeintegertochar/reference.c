@@ -1,6 +1,6 @@
 /* changes/280-rtllargeintegertochar/reference.c
  *
- * THE SCALAR MODEL: ntdll!RtlLargeIntegerToChar written the slow obvious way, in C, with a
+ * The scalar model: ntdll!RtlLargeIntegerToChar written the slow obvious way, in C, with a
  * divide-per-digit loop and a scratch buffer that is reversed at the end.
  *
  * It exists so the gate is THREE-WAY. Comparing an implementation only against the live export
@@ -12,7 +12,7 @@
  * Every rule here came from probes/contract.c, and the two that are easy to get wrong are the ones
  * changes 097 and 100 both got wrong:
  *
- *   * `length` is SIGNED. A negative one is a ZERO-PADDED FIELD WIDTH of exactly that many
+ *   * `length` is signed. a negative one is a zero-padded field width of exactly that many
  *     characters, with NO terminator. It is not room and it is not an error.
  *   * INT_MIN is the one negative length that refuses, because it cannot be negated.
  *

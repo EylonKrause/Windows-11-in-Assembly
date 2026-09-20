@@ -1,6 +1,6 @@
 /* changes/281-strchriw/reference.c
  *
- * THE SCALAR MODEL: shlwapi!StrChrIW written the slow obvious way -- one code unit at a time,
+ * The scalar model: shlwapi!StrChrIW written the slow obvious way -- one code unit at a time,
  * folding both sides and comparing.
  *
  * It exists so the gate is THREE-WAY. Comparing an implementation only against the live export

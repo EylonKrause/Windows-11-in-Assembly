@@ -2,11 +2,11 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ucrtbase export.
  *
- * WHAT IS COMPARED IS NOT THE STRING. It is EVERY BYTE OF THE WHOLE DESTINATION BUFFER, plus the
+ * What is compared is not the string. It is every byte of the whole destination buffer, plus the
  * returned pointer. That is the whole point of testing a function that WRITES.
  *
  * A search can be checked by its answer; a copy cannot. `strcat` is specified to write exactly
- * strlen(src)+1 units at dst+strlen(dst) and NOTHING ELSE, and every plausible vectorised mistake
+ * strlen(src)+1 units at dst+strlen(dst) and nothing ELSE, and every plausible vectorised mistake
  * -- storing a whole 32-byte block for a three-byte tail, rounding a length up to an alignment
  * boundary, using an overlapping store pair that reaches backwards past the start -- produces a
  * perfectly correct string, a perfectly correct return value, and silently destroys whatever the
@@ -15,11 +15,11 @@
  * canary and compared in full.
  *
  * THE CORPORA:
- *   1. EVERY ALIGNMENT x EVERY LENGTH, exhaustively. Both pointers are slid across a 32-byte
+ *   1. Every alignment x every length, exhaustively. Both pointers are slid across a 32-byte
  *      window independently, because the implementation's first-block handling is driven by
  *      `src & 31` and its store ladder by the tail length -- so the interesting cases are the
  *      products of the two, not either alone.
- *   2. LENGTHS THAT STRADDLE THE BLOCK LOOP, 0..200, which is where "the terminator is the first
+ *   2. Lengths that straddle the block loop, 0..200, which is where "the terminator is the first
  *      byte of a new block" and "the terminator is the last byte of a block" live.
  *   3. A PAGE_NOACCESS GUARD PAGE immediately after the source, which turns an over-read into a
  *      fault. This is the claim that the aligned-block walk needs no clamp, tested.
@@ -76,7 +76,7 @@ static void one_a(int dst_off, int dn, int src_off, int sn, const char* where)
                                   where, dn, sn, dst_off & 31, src_off & 31);
         return;
     }
-    /* THE WHOLE BUFFER, not the string */
+    /* The whole buffer, not the string */
     if (memcmp(bo, br, BUF) != 0 || memcmp(bo, bl, BUF) != 0) {
         if (++fails <= 20) {
             int k;
@@ -180,7 +180,7 @@ int main(void)
         printf("  3. wide: alignments and block-straddling lengths: %ld cases\n", cases - before);
     }
 
-    /* ---- 4. a GUARD PAGE after the SOURCE: an over-read must fault ---- */
+    /* ---- 4. a guard page after the source: an over-read must fault ---- */
     {
         SYSTEM_INFO si;
         char* base;
@@ -219,7 +219,7 @@ int main(void)
         }
     }
 
-    /* ---- 5. a GUARD PAGE after the DESTINATION: an over-WRITE must fault ---- */
+    /* ---- 5. a guard page after the destination: an over-WRITE must fault ---- */
     {
         SYSTEM_INFO si;
         char* base;
@@ -237,7 +237,7 @@ int main(void)
             for (i = 0; i < 400; ++i) srcs[i] = (char)('a' + i % 26);
             for (dn = 0; dn <= 40; ++dn)
                 for (sn = 0; sn <= 200; ++sn) {
-                    /* dst is placed so that dst + dn + sn + 1 lands EXACTLY on the guard page:
+                    /* dst is placed so that dst + dn + sn + 1 lands exactly on the guard page:
                        one byte of over-write raises instead of merely corrupting */
                     char* d = (base + si.dwPageSize) - (dn + sn + 1);
                     char* r;

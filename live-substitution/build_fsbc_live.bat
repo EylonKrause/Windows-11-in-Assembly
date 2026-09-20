@@ -1,10 +1,10 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for change 262 (ntdll!RtlFindSetBitsAndClear,
+Rem  live-run proof for change 262 (ntdll!RtlFindSetBitsAndClear,
 REM  ntdll!RtlFindClearBitsAndSet).
 REM
-REM  Both exports are patched ONE AT A TIME, each with its own counter, and what
-REM  is compared is the ANSWER *and* the BITMAP THE CALL LEFT BEHIND -- the
+Rem  Both exports are patched one at a time, each with its own counter, and what
+Rem  is compared is the answer *and* the bitmap the call left behind -- the
 REM  mutation is the half this change adds, so a run that only checked return
 REM  values would be testing change 256 and calling it 262.
 REM

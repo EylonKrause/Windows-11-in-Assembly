@@ -1,6 +1,6 @@
 /* changes/279-rtlintegertochar/probes/negative.c
  *
- * A NEGATIVE `length` DOES SOMETHING, AND IT IS NOT NOTHING.
+ * a negative `length` does something, and it is not nothing.
  *
  * probes/contract.c swept `length` from 0 to 14 and got a clean rule: it is room in BYTES, the call
  * needs `length >= digits`, and a terminator is written only if `length > digits`. That is change
@@ -17,7 +17,7 @@
  * compared as signed, and it is not simply being cast to unsigned either, because -1 as unsigned is
  * the largest possible room and would have succeeded.
  *
- * THIS MATTERS BECAUSE THE GATE COMPARES AGAINST LIVE. If the behaviour is deterministic, the
+ * This matters because the gate compares against live. If the behaviour is deterministic, the
  * implementation has to reproduce it. If it is an out-of-bounds write, the corpus must not contain
  * it and this file is the record of why. Either way the answer has to be measured before a line is
  * written -- guessing is what changes 067 and 278 were each caught by.

@@ -5,7 +5,7 @@
 ; GATE 3, DYNAMIC, for this change. `tools/abi-check/check.bat` is the repository's dynamic gate,
 ; but adding a change to it means editing check.bat and abi_check.c, and this change may not modify
 ; an existing file. So the same probe is written here, in the one shape that cannot be masked: the
-; sentinels are armed AROUND THE CALL, by hand, with no compiled C between the arming and the call.
+; sentinels are armed around the call, by hand, with no compiled C between the arming and the call.
 ;
 ; That distinction is recorded in tools/abi-check/abi_check.c and it is not pedantry -- an earlier
 ; form armed the sentinels and then called a compiled-C thunk, and where the compiler had used r15
@@ -13,14 +13,14 @@
 ; looking for. On change 258, with `push r15` and its `pop` deleted from impl.asm, that form still
 ; said PASS.
 ;
-; WHAT THE ABI ACTUALLY SAYS, which is narrower than "never touch ymm6":
+; What the ABI actually says, which is narrower than "never touch ymm6":
 ;   volatile      rax rcx rdx r8 r9 r10 r11, xmm0-xmm5, and the UPPER half of ymm0-ymm15
 ;   non-volatile  rbx rbp rdi rsi rsp r12-r15, and the LOW 128 BITS of xmm6-xmm15
 ; so the comparison in abi.c is 128 bits wide per vector register, not 256.
 ;
 ; This implementation touches no vector register at all and no non-volatile GPR, but it does CALL
 ; SetLastError on the reject path, and a callee that is itself wrong, or a frame this file got
-; wrong, would show up here and nowhere else -- so abi.c drives BOTH the accept and the reject path.
+; wrong, would show up here and nowhere else -- so abi.c drives both the accept and the reject path.
 ;
 ; `out` receives 8 qwords (rbx rbp rsi rdi r12 r13 r14 r15) then ten 16-byte xmm6..xmm15 values,
 ; exactly as they were when wia_filetime_to_systemtime returned.

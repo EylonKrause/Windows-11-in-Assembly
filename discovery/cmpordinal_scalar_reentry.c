@@ -4,7 +4,7 @@
  *
  *     210-comparestringordinal   impl.asm:303   jmp ci_next
  *
- * The rule it screens for is change 263's: A SCALAR WALK MUST NOT RE-ENTER A VECTOR LOOP. The shape
+ * The rule it screens for is change 263's: a scalar walk must not re-enter a vector loop. The shape
  * is bit-exact, invisible to a correctness gate, and invisible to a benchmark built from the input
  * the fast path handles -- on the input it does NOT handle, every scalar character pays for the
  * vector probe again.
@@ -14,7 +14,7 @@
  * does `inc r10d ; jmp ci_next`, so a character handled scalar-ly re-runs both tiers before the
  * next one is looked at.
  *
- * WHEN DOES THAT ACTUALLY HAPPEN? Not for ASCII. Two ASCII chunks that differ only in case are
+ * When does that actually happen? Not for ASCII. Two ASCII chunks that differ only in case are
  * folded and compared entirely in tier 2 and advance sixteen characters at a time. The scalar walk
  * is reached only when a chunk is NOT all-ASCII and the fold has to go through the table -- which
  * is to say, for any text that is not English. That is a narrower case than "case-insensitive
@@ -35,7 +35,7 @@
  * the scalar path slow" -- it is "are we slower THAN WINDOWS on this input", which is the only
  * thing that decides whether the change still earns its place.
  *
- * RUN ON AN IDLE MACHINE, not during a revalidation sweep. min-of-N.
+ * Run on an idle machine, not during a revalidation sweep. min-of-N.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

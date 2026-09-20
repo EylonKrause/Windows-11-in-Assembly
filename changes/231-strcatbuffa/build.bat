@@ -1,6 +1,6 @@
 @echo off
 REM changes/231-strcatbuffa/build.bat -- assemble, gate on correctness, then benchmark.
-REM /EHa is for the CORRECTNESS harness only: the shipped export FAULTS when the caller lies
+Rem /EHa is for the correctness harness only: the shipped export faults when the caller lies
 REM about cch (probes/scb2.c), so the harness must catch that to compare it. The implementation
 REM itself has NO wrapper -- see impl.asm.
 setlocal

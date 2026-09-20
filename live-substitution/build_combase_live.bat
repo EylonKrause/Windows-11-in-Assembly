@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
-REM  LIVE-RUN PROOF for changes 206 and 207 -- StringFromGUID2 + IIDFromString.
-REM  Refusals (cchMax <= 38) must write NOTHING, so every case compares the whole
+Rem  live-run proof for changes 206 and 207 -- StringFromGUID2 + IIDFromString.
+REM  Refusals (cchMax <= 38) must write nothing, so every case compares the whole
 REM  buffer from a poisoned baseline, refusals included.
 REM  Sacrificial single-threaded child; no system process is touched.
 REM ===========================================================================

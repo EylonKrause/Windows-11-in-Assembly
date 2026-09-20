@@ -1,6 +1,6 @@
 /* changes/286-strchrniw/probes/contract.c
  *
- * WHAT ARE StrChrNIW's ARGUMENTS?  TWO SOURCES DISAGREE, SO NEITHER IS TRUSTED.
+ * What are StrChrNIW's arguments?  Two sources disagree, so neither is trusted.
  *
  * The documented shape is
  *
@@ -10,7 +10,7 @@
  *
  *     nn(A, A + 511, L'#')        labelled "range form"
  *
- * reusing the three-argument typedef from StrRChrIW: a START, an END POINTER and a character. Those two
+ * reusing the three-argument typedef from StrRChrIW: a start, an end pointer and a character. Those two
  * readings are incompatible, and the discovery call still produced a number, because a wrong argument
  * order does not fault -- it just measures something else. That number (1655 ns) is the only reason this
  * export is on the list at all, so the first thing to establish is which reading is real.

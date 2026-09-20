@@ -167,7 +167,7 @@ int main(void){
             ((wchar_t*)init)[0] = L'Z';
             ((wchar_t*)init)[1] = 0;                 /* a one-character destination */
 
-            /* model WHOLE: append whole characters while two bytes still fit */
+            /* model whole: append whole characters while two bytes still fit */
             memcpy(mw, init, (size_t)bytes);
             { int at = 2, k = 0;
               while (at + 2 <= bytes) { memcpy(mw + at, &src[k], 2); at += 2; ++k; } }

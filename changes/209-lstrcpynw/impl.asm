@@ -9,14 +9,14 @@
 ;   * copies at most n-1 characters, stopping early at the source's NUL, then writes ONE terminator.
 ;     The destination is NOT padded -- "ab" into n=10 leaves cells 2..9 untouched, which rules out a
 ;     strncpy-shaped implementation;
-;   * n == 0 writes NOTHING AT ALL, not even a terminator, and still returns the destination;
+;   * n == 0 writes nothing at all, not even a terminator, and still returns the destination;
 ;   * n is used UNSIGNED: -1 and -1000 both copy the whole string, they do not mean "empty";
 ;   * a NULL source or destination returns NULL (handled in seh.c, which owns the argument checks);
-;   * and the one that shapes this whole loop -- IT SWALLOWS A FAULTING SOURCE. An unterminated
+;   * and the one that shapes this whole loop -- it swallows a faulting source. An unterminated
 ;     string running into an unmapped page returns NULL, with the characters that WERE readable
 ;     already sitting in the destination.
 ;
-; THAT LAST LINE IS WHY THIS LOOP IS PAGE-SAFE RATHER THAN SIMPLY WIDE. A 32-byte load straddling the
+; That last line is why this loop is page-safe rather than simply wide. a 32-byte load straddling the
 ; end of a mapped page faults BEFORE storing anything, so a chunked copy would leave FEWER characters
 ; behind than the shipped byte-at-a-time one does and the partial destination would not match. A
 ; 16-character chunk is therefore only issued when all sixteen lie inside the current page; near a
@@ -26,7 +26,7 @@
 ; The exception itself is caught in seh.c. On x64 __try/__except is table-driven -- it costs nothing
 ; unless an exception actually fires -- so the fast path below is untouched by it.
 ;
-; ONLY xmm0-xmm5 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2.
 
@@ -75,7 +75,7 @@ wide:
 scalar:
         vzeroupper
 s_loop:
-        ; THE SOURCE IS READ BEFORE THE BOUND IS TESTED, and that order is part of the contract, not
+        ; The source is read before the bound is tested, and that order is part of the contract, not
         ; a detail. The shipped loop evaluates src[i] first, so with an n-1 exactly equal to the
         ; source length it still reads src[n-1] -- one PAST the last character it copies -- and an
         ; unterminated string ending at a page boundary faults THERE. probes/pg.c caught this: for

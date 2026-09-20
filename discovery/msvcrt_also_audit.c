@@ -8,7 +8,7 @@
  *
  * Two of the 38 were tested. The other 36 were READ. discovery/msvcrt_vs_ucrt.c has just shown what
  * that gap can hide: msvcrt and ucrtbase disagree on 27 parser cases, `atoi` wrapping where the
- * UCRT saturates with ERANGE, `strtoul` returning 1 where the UCRT returns ULONG_MAX. Names matching
+ * Ucrt saturates with erange, `strtoul` returning 1 where the ucrt returns ULONG_MAX. Names matching
  * is not contracts matching, and a disassembly tells you how fast something is, not what it answers.
  *
  * The suspicion has a specific shape here. Thirteen of the 38 are CASE-FOLDING or CASE-INSENSITIVE:
@@ -22,7 +22,7 @@
  * is driven EXHAUSTIVELY -- all 256 byte values for the narrow folders, all 65536 for the wide ones,
  * all 256x256 byte pairs for the narrow case-insensitive compares.
  *
- * NOTE ON THE TWO CRTs, learned the hard way in msvcrt_vs_ucrt.c: the invalid-parameter handler and
+ * Note on the two CRTs, learned the hard way in msvcrt_vs_ucrt.c: the invalid-parameter handler and
  * errno are both PER-CRT, and msvcrt does not export _set_invalid_parameter_handler at all. Nothing
  * here is driven out of contract for that reason.
  */

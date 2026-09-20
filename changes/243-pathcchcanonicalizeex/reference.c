@@ -8,7 +8,7 @@
      * It is the only value that occurs. PathCchCanonicalize is documented as PathCchCanonicalizeEx with
        PATHCCH_NONE, so every caller of the simple form lands here, and every caller in this project's
        corpus passes 0.
-     * FLAG 0x01 IS NOT A POST-STEP -- IT CHANGES THE POP ITSELF. probes/refcheck.c measured
+     * Flag 0x01 is not a post-step -- it changes the pop itself. probes/refcheck.c measured
        "C:a\.." as "\" with flags 0 and "C:a\" with 0x01, "\\srv\.." as "\" against "\\srv\", and
        "\\srv\shr\a\..\..\.." as "\" against "\\srv\". So ALLOW_LONG_PATHS selects a different backward
        walk with a different floor, which is a second contract, not a modifier of this one. The
@@ -43,7 +43,7 @@
 #define REF_CAP      0x104u                  /* MAX_PATH, terminator included */
 #define REF_MAXCOMP  0x100u
 
-/* A DRIVE LETTER IS AN ISO-8859-1 LETTER, not an ASCII one and not a Unicode one. probes/letter.c put
+/* a drive letter is an ISO-8859-1 letter, not an ASCII one and not a Unicode one. probes/letter.c put
    all 65536 code units in the drive position and measured exactly 114 accepted: A-Z, a-z, and
    U+00C0..U+00FF except U+00D7 and U+00F7, the multiplication and division signs. It is NOT
    IsCharAlphaW (47455 accepted, 47342 disagreements) and NOT C1_ALPHA, and CP-1252 letters outside
@@ -134,7 +134,7 @@ long wia_ref_pathcchcanonicalizeex(wchar_t* out, size_t cch, const wchar_t* in, 
         if (n >= 4 && in[0]==L'\\' && in[1]==L'\\' && in[2]==L'?' && in[3]==L'\\') {
             const wchar_t* r = in + 4;
             size_t rl = n - 4;
-            /* a drive letter and a colon is enough; NOTHING is required after the colon */
+            /* a drive letter and a colon is enough; nothing is required after the colon */
             if (rl >= 2 && ref_letter(r[0]) && r[1]==L':') {
                 p = r;
             } else if (rl >= 4 && ref_ieq4unc(r)) {

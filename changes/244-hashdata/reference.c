@@ -5,25 +5,25 @@
  * with no blocking, no vectorisation and no cleverness, so that a disagreement between it and the
  * implementation is a bug in the implementation rather than a shared misunderstanding.
  *
- * WHAT THE PROBE ESTABLISHED, all of it against the live export:
+ * What the probe established, all of it against the live export:
  *
  *   * the digest is seeded with h[j] = (BYTE)j -- observable on its own, because cbData == 0
  *     consumes nothing and leaves the seed in the buffer. It WRAPS: at cbHash = 300, h[256] is 0.
  *   * one 256-entry byte permutation T drives everything, recovered in closed form by 256 calls
  *     with a one-byte source and a one-byte digest (h[0] = T[src[0]]), and matching the table in
  *     the shipped binary in all 256 entries.
- *   * the source is consumed LAST BYTE FIRST. All 65536 two-byte sources agree with that model and
+ *   * the source is consumed last byte first. All 65536 two-byte sources agree with that model and
  *     only the 256 palindromic ones agree with the other, so this is not a coincidence of corpus.
  *   * h[j] = T[h[j] ^ src[i]] -- digest byte j depends only on itself and the source byte, so the
  *     digest bytes are INDEPENDENT CHAINS. Confirmed two ways: h[j] = T[j ^ src[0]] for every j
  *     over every one-byte source, and the first four bytes of a 32-byte digest equal a 4-byte
  *     digest over 512 random 37-byte sources.
  *   * NULL source, NULL digest or both -> 0x80070057 (E_INVALIDARG) and the digest is untouched.
- *   * cbHash == 0 writes NOTHING and returns S_OK -- proved against a PAGE_NOACCESS digest pointer,
+ *   * cbHash == 0 writes nothing and returns S_OK -- proved against a PAGE_NOACCESS digest pointer,
  *     not by inspecting a poison fill.
- *   * cbData == 0 reads NOTHING -- proved against a PAGE_NOACCESS source pointer.
+ *   * cbData == 0 reads nothing -- proved against a PAGE_NOACCESS source pointer.
  *
- * THE LOOP WRITES THROUGH THE CALLER'S BUFFER ON PURPOSE. It would be simpler to accumulate the
+ * The loop writes through the caller's buffer on purpose. It would be simpler to accumulate the
  * digest in a local array and copy it out at the end, and for every sane call that is equivalent.
  * It is NOT equivalent when the digest overlaps the source, because then the source bytes this loop
  * reads have already been rewritten by earlier digest writes. The shipped function updates the

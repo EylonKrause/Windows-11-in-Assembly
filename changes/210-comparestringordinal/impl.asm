@@ -6,24 +6,24 @@
 ; 4.59 ns on a thirteen-character comparison. It is the recommended API for non-linguistic string
 ; comparison, so it sits on a great many hot paths.
 ;
-; THE CONTRACT IS REPRODUCIBLE, WHICH IS NOT A GIVEN HERE. The same survey that found this routine
+; The contract is reproducible, which is not a given here. The same survey that found this routine
 ; also found two that had to be abandoned: shlwapi!StrCmpNW orders LINGUISTICALLY ('A' > 'a'), and
 ; StrChrIW's fold has 3236-member equivalence classes because ignorable code points collate as
 ; nothing. "Ordinal" promises neither, but a name is not evidence, so probes/cso.c measured:
-;   * case-sensitive is EXACTLY a code-unit compare -- 0 differences over 300 000 random pairs;
+;   * case-sensitive is exactly a code-unit compare -- 0 differences over 300 000 random pairs;
 ;   * ignore-case equivalence classes are 1 or 2 members, i.e. a real table fold;
-;   * that fold is EXACTLY ntdll's RtlUpcaseUnicodeChar -- 65534 code units, 0 mismatches -- the same
+;   * that fold is exactly ntdll's RtlUpcaseUnicodeChar -- 65534 code units, 0 mismatches -- the same
 ;     table change 051 builds;
-;   * ignore-case ORDERS BY THE UPCASED VALUES: "a" vs "B" is LESS (upcase 0041 < 0042) where the raw
+;   * ignore-case orders by the upcased values: "a" vs "B" is less (upcase 0041 < 0042) where the raw
 ;     code units say GREATER. 0 differences over 400 000 pairs;
 ;   * and none of it moves with the thread locale, tr-TR and lt-LT included.
 ;
-; CONTRACT: returns 1 LESS / 2 EQUAL / 3 GREATER, or 0 with ERROR_INVALID_PARAMETER for a NULL (that
+; Contract: returns 1 Less / 2 Equal / 3 Greater, or 0 with ERROR_INVALID_PARAMETER for a NULL (that
 ; check lives in wrapper.c). A count of -1 means NUL-terminated; ANY other count is EXACT, so an
 ; embedded NUL is an ordinary character and the scan does not stop at one. Compare min(c1,c2)
 ; characters; if those are equal the SHORTER string is LESS. A count of 0 is legal on either side.
 ;
-; THE IGNORE-CASE PATH RESTS ON ONE OBSERVATION: upcase is a FUNCTION, so a == b implies
+; The ignore-case path rests on one observation: upcase is a function, so a == b implies
 ; upcase(a) == upcase(b). A chunk that matches RAW therefore needs no folding at all -- no table, no
 ; ASCII guard, nothing. Equal strings are the overwhelmingly common input to an ordinal compare, and
 ; that is what the first cut of this file got wrong: it folded unconditionally and fell to a
@@ -34,15 +34,15 @@
 ;     3. anything else               -> the 64K table one character at a time, bounded to 16 before
 ;                                       the vector path is retried
 ;
-; NO PAGE CHECKS ARE NEEDED IN THE COMPARE LOOPS. Once the lengths are resolved the caller has
+; No page checks are needed in the compare loops. Once the lengths are resolved the caller has
 ; guaranteed c1 characters in s1 and c2 in s2, and the loops never read past min(c1,c2). Only the
 ; strlen for a -1 count scans an unbounded string, and that one IS page-safe.
 ;
-; NOTHING IS PUSHED. c1, c2 and the scalar run's stop index live in the CALLER'S SHADOW SPACE, which
+; Nothing is pushed. c1, c2 and the scalar run's stop index live in the caller's shadow space, which
 ; is ours to use, so a thirteen-character comparison does not pay four pushes and four pops it has no
 ; way to amortise.
 ;
-; ONLY xmm0-xmm5 ARE TOUCHED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt).
 
@@ -228,7 +228,7 @@ ci_tail:
         sub       r11d, r10d
         cmp       r11d, 8
         jae       ci_eight
-        ; FEWER THAN EIGHT LEFT, AND THE TAIL IS WHERE THIS FUNCTION WAS LOSING. A 13-character
+        ; Fewer than eight left, and the tail is where this function was losing. a 13-character
         ; case-insensitive compare walked its last five characters one at a time through a 128 KB
         ; table and came out at 0.91x against the shipped export, while the published row said
         ; 1.07x -- below five nanoseconds the harness floor was hiding it (change 261).
@@ -262,7 +262,7 @@ ci_table:
         cmp       eax, r9d
         cmova     eax, r9d
         mov       dword ptr [rsp + 24], eax     ; stop index for this run
-        ; TIER ONE APPLIES HERE TOO, and leaving it out cost this function its short rows.
+        ; Tier one applies here too, and leaving it out cost this function its short rows.
         ; Folding is a function, so equal raw characters fold equal in any alphabet -- which is
         ; exactly the reasoning the vector path above already uses at 16 and at 8 characters, and
         ; the table walk did not. Every character of an EQUAL string was paying two loads into a

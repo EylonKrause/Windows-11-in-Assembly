@@ -93,7 +93,7 @@ have_len:
         sub       r9d, eax                           ; room = MaximumLength - newlen
         mov       word ptr [rbx], ax                 ; dest->Length = newlen
         mov       rdi, qword ptr [rbx + 8]
-        ; AN ODD Length APPENDS AT A CHARACTER BOUNDARY, NOT AT THE BYTE.
+        ; An odd Length appends at a character boundary, not at the byte.
         ;
         ; A UNICODE_STRING Length is in bytes and is even for any well-formed string, but the
         ; shipped export has a definite answer when it is not, and it is not this one: with

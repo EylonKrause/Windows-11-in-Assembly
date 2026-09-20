@@ -4,7 +4,7 @@
 // twice while change 228 was being written, and the only thing that caught it was a row reporting
 // a throughput above memcpy's.
 //
-// THE CASE MIX. lstrcat is a destination scan plus a source copy, and those scale with different
+// The case mix. lstrcat is a destination scan plus a source copy, and those scale with different
 // inputs. The short-onto-short rows are here because the NARROW sibling (change 228) had to be
 // PARKED for losing there, and the same question has to be asked of this one honestly rather than
 // avoided. "64 onto 4000" is the shape the function is usually used in and the survey's worst
@@ -19,7 +19,7 @@ extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*);
 static FN sys;
 
-/* THE RESTORE'S ADDRESS, not its cost. This restore is already minimal -- one store putting back the
+/* The restore's address, not its cost. This restore is already minimal -- one store putting back the
    destination's terminator -- but it landed on the buffer the next call was about to read, and for the
    "8 onto 8" row that store sits INSIDE the first 32-byte block the destination scan loads. A wide load
    overlapping a just-retired narrow store cannot use store-to-load forwarding: it waits for the store to

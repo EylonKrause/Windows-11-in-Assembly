@@ -1,6 +1,6 @@
 /* changes/129-rtlchartointeger/probes/pastnul2.c
  *
- * PINNING THE RULE probes/pastnul.c FOUND.
+ * Pinning the rule probes/pastnul.c found.
  *
  * pastnul.c established that the shipped export reads past a terminator, but only just:
  *

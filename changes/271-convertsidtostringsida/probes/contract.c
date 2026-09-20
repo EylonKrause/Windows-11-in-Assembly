@@ -1,6 +1,6 @@
 /* changes/271-convertsidtostringsida/probes/contract.c
  *
- * IS THE ANSI FORM THE WIDE FORM WITH A CONVERSION ON THE END?
+ * Is the ANSI form the wide form with a conversion on the end?
  *
  * discovery/sid_inet_bstr.c measured the four SID text functions together:
  *
@@ -15,7 +15,7 @@
  * construction ("S", "-", "0x", the digits and A-F), the narrowing is a byte-per-character pack
  * that needs no code page at all.
  *
- * "IF THAT IS WHAT IT IS" IS THE WHOLE QUESTION AND IT IS NOT SAFE TO ASSUME. This project has now
+ * "If that is what it is" is the whole question and it is not safe to assume. This project has now
  * been caught three times by two functions that are documented as a pair and do not behave as one
  * (change 268's four differences between its two directions; change 269's two number parsers inside
  * ONE export; and change 018/021's ANSI forms, which are code-page dependent in ways their wide
@@ -26,7 +26,7 @@
  *   2. does it REFUSE exactly what the wide form refuses, with the same GetLastError?
  *   3. is the block the same shape -- LocalAlloc, LMEM_FIXED, exactly characters+1 bytes?
  *   4. does it leave the output pointer alone on failure, and zero the last error on success?
- *   5. DOES THE ACTIVE CODE PAGE CHANGE ANYTHING? A SID string is ASCII, so it should not -- but
+ *   5. Does the active code page change anything? a SID string is ASCII, so it should not -- but
  *      "should not" is what changes 021 and 027 were built on before their code pages were
  *      measured. This asks under the ANSI code page, under 1252, under 932 (Shift-JIS, where the
  *      lead-byte range would matter if anything non-ASCII ever appeared) and under 65001 (UTF-8).

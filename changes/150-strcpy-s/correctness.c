@@ -59,7 +59,7 @@ int main(void)
     pSetIPH set = (pSetIPH)GetProcAddress(u, "_set_invalid_parameter_handler");
     if (!sys || !set) { printf("no strcpy_s / handler setter\n"); return 2; }
     set(myiph);                       /* without this the live ERANGE path __fastfails the process */
-    /* This build is /MD on purpose: with the default /MT the app would carry its OWN copy of the
+    /* This build is /md on purpose: with the default /mt the app would carry its own copy of the
        handler state, so ucrtbase's strcpy_s and our `_invalid_parameter_noinfo` would consult two
        different handlers and the comparison would be meaningless (the static one is unset, so it
        __fastfails). /MD puts both on ucrtbase's state, which is what a real caller sees. */

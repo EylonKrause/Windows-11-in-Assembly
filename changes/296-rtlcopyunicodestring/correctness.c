@@ -3,7 +3,7 @@
  * Compares wia_copyus against reference.c AND against the LIVE ntdll!RtlCopyUnicodeString
  * resolved with GetProcAddress. A single mismatch fails.
  *
- * WHAT "EVERY OUTPUT BYTE" MEANS HERE. The function returns VOID, so there is no return value to
+ * What "every output byte" means here. The function returns void, so there is no return value to
  * compare and every observable effect is in the destination: the UNICODE_STRING fields and the
  * bytes behind dst->Buffer. Each case therefore runs the three implementations against THREE
  * IDENTICAL 16 KB ARENAS and compares the whole arena byte for byte, not just the destination
@@ -19,7 +19,7 @@
  * shipped code is a real memmove (it matches C memmove byte for byte at n = 512, dst = src + 8),
  * so overlap is IN contract and is swept here at every delta from -80 to +80.
  *
- * A separate pass puts the destination -- and then the source -- ending EXACTLY at a page boundary
+ * A separate pass puts the destination -- and then the source -- ending exactly at a page boundary
  * with the following page PAGE_NOACCESS, for every length 0..200. A vector load one byte wider
  * than the caller's buffer faults there instead of passing silently.
  */
