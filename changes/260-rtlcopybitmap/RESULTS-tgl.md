@@ -1,4 +1,4 @@
-# 260 `RtlCopyBitMap` / `RtlExtractBitMap` — TGL variant → improved **2.91× → 3.43×**, still **PARKED**
+# 260 `RtlCopyBitMap` / `RtlExtractBitMap` — TGL variant → **LANDS**, 2.91× → 3.55×
 
 **Bench:** #3, Intel Core i9-11900H (Tiger Lake-H) — [`docs/PLATFORM-i9-11900H.md`](../../docs/PLATFORM-i9-11900H.md).
 `impl.asm` is untouched and remains the implementation of record; this records `impl_tgl.asm`.
@@ -52,31 +52,55 @@ this reads from `rax + r/8 <= rax + 3` for the same bytes.
 
 ## Five runs
 
-| run | geomean | verdict | rows below parity |
-|---|---:|---|---|
-| 1 | 3.384× | PARKED | `64 bits t3` 0.88, `20 bits` 0.99 / 0.98 |
-| 2 | 3.426× | PARKED | `64 bits t3` 0.87, `20 bits` 0.96 / 0.98 |
-| 3 | 3.598× | PARKED | `64 bits t3` 0.90, `20 bits` 0.98 |
-| 4 | 3.482× | PARKED | `64 bits t3` 0.87, `20 bits` 0.98 / 0.95 |
-| 5 | 3.468× | PARKED | `64 bits t3` 0.87, `20 bits` 0.99 / 0.98 |
+| run | correctness | geomean | `COPY 64 bits, target 3` | rows marked WORSE | verdict |
+|---|---|---:|---:|---|---|
+| 1 | PASS | 3.619× | 1.22× | none | **LANDS** |
+| 2 | PASS | 3.538× | 1.18× | none | **LANDS** |
+| 3 | PASS | 3.592× | 1.15× | none | **LANDS** |
+| 4 | PASS | 3.462× | 1.20× | none | **LANDS** |
+| 5 | PASS | 3.547× | 1.21× | none | **LANDS** |
 
-Parent on the same machine, same session: **2.914×**, eight rows below parity.
+Parent on the same machine, same session: **2.914×**, PARKED, with eight rows below parity.
+Correctness is the parent's own gate, unchanged: the whole destination exact against both the oracle
+and live `ntdll`.
 
-## Why it stays parked, and why that was not worth chasing
+## The third cause, and a wrong call that the fixed tooling caught
 
-Every large row now wins. What is left is **two to three rows of twenty-one, all at the smallest
-sizes**, and they are two different things:
+After the two fixes above the change was at 3.43× with **one** row still marked WORSE —
+`COPY 64 bits, target 3` at 0.87×–0.90× — and this file previously concluded that chasing it was not
+worth it, on the grounds that the `20 bits` rows at 0.95×–0.99× would park the change anyway.
 
-* `COPY 64 bits, target 3` at **0.87×–0.90×** is consistent and real. The cause is visible in the
-  entry: there is already a frameless `bb_short` for a copy spanning at most **64 bits**, and 64
-  bits at target 3 spans **67** — three destination words — so it takes the full-frame path by one
-  bit. Fixing it means extending `bb_short` from two destination words to three, which means
-  reworking a path that is currently bit-exact over 59536 cases for **one bench row**.
-* The `20 bits` rows at **0.95×–0.99×** move run to run and are a tenth of a nanosecond on a six
-  nanosecond call. They are inside the noise but consistently on the wrong side of 1.0, so the gate
-  parks on them however the 64-bit row is resolved.
+**That was wrong, and the reasoning was wrong in a specific way worth recording.** Those rows are
+below 1.0 but the bench marks them `~tie`, and the gate counts only rows marked `WORSE`. They never
+parked anything. `COPY 64 bits, target 3` was the *only* thing standing between this variant and
+LANDS, and the conclusion "fixing it would not unpark the change" was an assumption stated as a
+finding.
 
-That second point is what decides it: **extending `bb_short` would not unpark the change**, because
-the 20-bit rows park it independently. This is change **294**'s finding in a different function —
-extending a narrow phase relocates which small class loses without removing the loss — and the
-honest verdict is the one 130's TGL variant also reached: improved, still parked.
+What exposed it was repairing [`tools/revalidate-variants.ps1`](../../tools/revalidate-variants.ps1),
+which had been printing `worst=-@-` for this change: its row-label regex assumed a single token and
+this bench's labels are sentences, so it matched **zero** rows. With the regex fixed the sweep
+printed the regressed set for the first time — exactly one entry — and the decision was obviously
+the other way.
+
+### The fix
+
+The entry already had a frameless path, `bb_short`, for a copy spanning at most **64 bits**. A
+64-bit copy at target 3 spans **67**, so it missed by three bits and took the full-frame path. The
+span now goes to **96 bits — three destination words** — while the payload stays at most 64, because
+`sh_have` holds the source in one register and it is the span that grew, not the data.
+
+Two details make it cheap:
+
+* **Mask before shifting.** The parent shifts then masks; masking first is what keeps the bits that
+  travel past bit 63 recoverable, since `shl rax, cl` discards them.
+* **Neither mask needs a shift.** Once the span passes 64, every bit from `cl` to 63 is inside the
+  payload, so the low mask is exactly `-1 << cl` and the high one is the low `span - 64` bits. The
+  third word's value is one `SHLD` into a zeroed register.
+
+`cl` is at least 1 on that path — a span above 64 with a payload of at most 64 requires it — so
+`64 - cl` is in 1..63 and the `SHLD` is well defined. The third word is real: the span covers it,
+and `count` was clamped against the destination's size before `bb_short` was entered, which is the
+same argument the existing two-word store already rests on.
+
+`COPY 64 bits, target 3`: **0.87× → 1.15×–1.22×**, and no row is marked WORSE in any of the five
+runs.

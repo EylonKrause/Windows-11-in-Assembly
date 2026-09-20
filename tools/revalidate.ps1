@@ -220,9 +220,17 @@ foreach ($d in $dirs) {
     $geo = '-'
     if ($txt -match 'geomean[^)]*\)\s*:\s*([\d.]+)x') { $geo = $matches[1] }
 
+    # THE ROW LABEL IS NOT ONE TOKEN, AND ASSUMING IT WAS MADE THIS GATE INERT FOR 109 OF 288
+    # CHANGES. `(\S+)` matches a single word, so it reads "4096" in `4096  12.3  20.1  1.63x ...`
+    # and NOTHING AT ALL in `bad32 64 ...`, `COPY 64 Kbit, target 8 (byte-aligned) ...` or
+    # `m:a+4 8191 ...`. Those benches parsed to ZERO rows, so $worst stayed null, $reg stayed empty,
+    # and every one of them was reported LANDS on the strength of correctness and a geomean alone --
+    # including 260-rtlcopybitmap, which has EIGHT rows below parity on bench #3. A lazy label
+    # backtracks into the right split at no cost: for "bad32 64" it tries label="bad32", fails to
+    # find a ratio, and retries with label="bad32 64".
     $worst = $null; $worstSize = '-'; $reg = @()
     foreach ($line in ($txt -split "`r?`n")) {
-        if ($line -match '^\s*(\S+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x\s+([\d.]+)\s+(BETTER|WORSE|~tie)\s*$') {
+        if ($line -match '^\s*(.*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x\s+([\d.]+)\s+(BETTER|WORSE|~tie)\s*$') {
             $sz = $matches[1]; $r = [double]$matches[4]; $v = $matches[6]
             if ($null -eq $worst -or $r -lt $worst) { $worst = $r; $worstSize = $sz }
             if ($v -eq 'WORSE') { $reg += "$sz=$($matches[4])x" }
@@ -236,10 +244,14 @@ foreach ($d in $dirs) {
         elseif ($corr -eq 'FAIL')                                        { 'CORRECTNESS_FAIL' }
         elseif ($txt -match 'BUILD/RUN ERROR|BUILD ERROR|error [A-Z]+\d+'){ 'BUILD_FAIL' }
         elseif ($geo -eq '-')                                            { 'NO_BENCH' }
+        elseif ($null -eq $worst)                                        { 'BENCH_UNPARSED' }
         elseif ($reg.Count)                                              { 'REGRESSED' }
         else                                                             { 'LANDS' }
 
-    if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT') { $fails += "$name ($status)" }
+    # BENCH_UNPARSED IS LISTED WITH THE FAILURES ON PURPOSE. It is not a wrong answer, it is a
+    # gate that could not run -- which is worse, because a wrong answer is visible and an inert
+    # gate reads as a pass. It has to be as loud as a real failure or it will be ignored again.
+    if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT','BENCH_UNPARSED') { $fails += "$name ($status)" }
     elseif ($status -eq 'REGRESSED') {
         if ((Get-ChangeVerdict $d.FullName) -eq 'PARKED') { $parkedRegressions += "$name $regStr" }
         else                                              { $regressions       += "$name $regStr" }

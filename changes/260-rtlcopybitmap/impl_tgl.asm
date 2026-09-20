@@ -110,11 +110,19 @@ wia_copybitmap PROC
         cmova     r10d, eax                   ; count
         mov       r9d, r8d                    ; dlo = TargetBit
         xor       r11d, r11d                  ; slo = 0
+        ; UP TO THREE DESTINATION WORDS, NOT TWO, AND THE ONE BIT IN IT IS THE WHOLE POINT.
+        ; The parent admits a SPAN of 64 bits here. `COPY 64 bits, target 3` spans 3 + 64 = 67, so
+        ; it misses by three bits and takes the full-frame path -- and that single row is the only
+        ; thing this variant still loses on, at 0.87x-0.90x over five runs. The payload must still
+        ; be at most 64 bits, because sh_have holds the source in ONE register; it is the span that
+        ; grows, and a span of 65..95 bits is three destination words.
+        cmp       r10d, 64
+        ja        bb_enter                    ; more than 64 bits of payload: rax cannot hold it
         mov       eax, r9d
         and       eax, 31
         add       eax, r10d
-        cmp       eax, 64
-        jbe       bb_short                    ; at most two destination words: no frame needed
+        cmp       eax, 96
+        jbe       bb_short                    ; at most three destination words: no frame needed
         jmp       bb_enter
 wia_copybitmap ENDP
 
@@ -272,13 +280,18 @@ sh_have:
         shl       r9d, 2                      ; ... and which word that is
         mov       r8, -1
         bzhi      r8, r8, r10                 ; the low `count` bits -- BZHI leaves -1 alone at 64
-        shl       r8, cl
-        shl       rax, cl
+        ; MASK BEFORE SHIFTING, which the parent does the other way round. Masking first is what
+        ; makes the bits that travel past bit 63 recoverable: after `shl rax, cl` they are gone.
         and       rax, r8
-        not       r8
 
         mov       r11d, ecx
-        add       r11d, r10d
+        add       r11d, r10d                  ; the span, in bits
+        cmp       r11d, 64
+        ja        sh_three
+
+        shl       r8, cl
+        shl       rax, cl
+        not       r8
         cmp       r11d, 32
         ja        sh_two
         and       dword ptr [rdx + r9], r8d
@@ -290,6 +303,33 @@ sh_have:
 sh_two: and       qword ptr [rdx + r9], r8
         or        qword ptr [rdx + r9], rax
 sh_ret: ret
+
+; A SPAN OF 65..95 BITS: the low two words and then the third.
+;
+; cl is at least 1 here -- a span above 64 with a payload of at most 64 needs it -- so `64 - cl` is
+; in 1..63 and the SHLD below is well defined. The third word is real: the span genuinely covers it,
+; and `count` was clamped against the destination's size before this routine was entered, which is
+; the same argument the two-word store above already rests on.
+;
+; The masks do not need shifting either. Once the span passes 64, every bit from cl to 63 is inside
+; the payload, so the low mask is exactly `-1 << cl` and the high one is the low `span - 64` bits.
+sh_three:
+        sub       r11d, 64                    ; the bits that land in the third word, 1..31
+        xor       r8, r8
+        shld      r8, rax, cl                 ; = rax >> (64 - cl): the bits pushed past bit 63
+        shl       rax, cl                     ; ... and the ones that stay
+        mov       r10, -1
+        shl       r10, cl
+        not       r10                         ; keep the destination bits below cl
+        and       qword ptr [rdx + r9], r10
+        or        qword ptr [rdx + r9], rax
+        mov       ecx, r11d
+        mov       r10, -1
+        bzhi      r10, r10, rcx
+        not       r10                         ; ... and those above the span in the third word
+        and       dword ptr [rdx + r9 + 8], r10d
+        or        dword ptr [rdx + r9 + 8], r8d
+        ret
 bb_short ENDP
 
 ; ---------------------------------------------------------------------------------------------

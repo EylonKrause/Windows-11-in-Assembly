@@ -135,9 +135,17 @@ foreach ($b in $builds) {
     $geo = '-'
     if ($txt -match 'geomean[^)]*\)\s*:\s*([\d.]+)x') { $geo = $matches[1] }
 
+    # THE ROW LABEL IS NOT ONE TOKEN, AND ASSUMING IT WAS MADE THIS GATE INERT FOR 109 OF 288
+    # CHANGES. `(\S+)` matches a single word, so it reads "4096" in `4096  12.3  20.1  1.63x ...`
+    # and NOTHING AT ALL in `bad32 64 ...`, `COPY 64 Kbit, target 8 (byte-aligned) ...` or
+    # `m:a+4 8191 ...`. Those benches parsed to ZERO rows, so $worst stayed null, $reg stayed empty,
+    # and every one of them was reported LANDS on the strength of correctness and a geomean alone --
+    # including 260-rtlcopybitmap, which has EIGHT rows below parity on bench #3. A lazy label
+    # backtracks into the right split at no cost: for "bad32 64" it tries label="bad32", fails to
+    # find a ratio, and retries with label="bad32 64".
     $worst = $null; $worstSize = '-'; $reg = @()
     foreach ($line in ($txt -split "`r?`n")) {
-        if ($line -match '^\s*(\S+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x\s+([\d.]+)\s+(BETTER|WORSE|~tie)\s*$') {
+        if ($line -match '^\s*(.*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x\s+([\d.]+)\s+(BETTER|WORSE|~tie)\s*$') {
             $sz = $matches[1]; $r = [double]$matches[4]
             if ($null -eq $worst -or $r -lt $worst) { $worst = $r; $worstSize = $sz }
             if ($matches[6] -eq 'WORSE') { $reg += $sz }
@@ -151,10 +159,12 @@ foreach ($b in $builds) {
         elseif ($corr -eq 'FAIL')                                         { 'CORRECTNESS_FAIL' }
         elseif ($txt -match 'BUILD/RUN ERROR|error [A-Z]+\d+')            { 'BUILD_FAIL' }
         elseif ($geo -eq '-')                                             { 'NO_BENCH' }
+        elseif ($null -eq $worst)                                         { 'BENCH_UNPARSED' }
         elseif ($reg.Count)                                               { 'REGRESSED' }
         else                                                              { 'LANDS' }
 
-    if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT') {
+    # BENCH_UNPARSED is listed with the failures on purpose: an inert gate reads as a pass.
+    if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT','BENCH_UNPARSED') {
         $fails += "$change/$vsuffix ($status)"
     } elseif ($status -eq 'REGRESSED') {
         # A variant documented PARKED is one already known to lose a class. Separate it, so the
