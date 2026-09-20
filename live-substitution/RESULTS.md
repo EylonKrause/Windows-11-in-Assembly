@@ -551,3 +551,34 @@ differing**, all four at 20000 our-code calls, clean restore.
 Two harnesses, two defects of the same class, in four landed changes whose own gates were all
 correct about everything they compared. That is the argument for this directory.
 
+## Four ucrtbase integer formatters (changes 054–057) — added 2026-09-20
+
+`build_itoa_live.bat` / [`live_subst_itoa.c`](live_subst_itoa.c).
+
+```
+  [pre-patch]  40000 cases x 4 formatters recorded from the SHIPPED exports
+  patched prologue bytes were FF 25 (jmp [rip]); nothing was printed while patched
+  [patched]    40000 cases, 0 differ (returned pointer AND the whole 128-byte buffer)
+               _ultoa / _ui64toa / _itoa / _i64toa -- 40000 our-code calls each
+  [post]       40000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+Written straight after two harnesses had found the same defect class in four landed changes, and
+asking these four the same question: not "is the text right" but "is every byte of the destination
+what the shipped export leaves". **These four are clean** — which is a result, not a non-event,
+because the two that were not looked exactly the same from the outside.
+
+**Radix 2 is why the buffer is 128 bytes**: `_i64toa(v, buf, 2)` renders up to 64 digits and a
+terminator. The corpus drives **every radix from 2 to 36** and weights the values that make an
+integer formatter wrong — 0, 1, −1, the radix boundaries (`r−1`, `r`, `r²−1`, `r²`), and
+**`INT_MIN` / `LLONG_MIN`**, whose negation overflows. That last pair is the classic defect of a
+signed formatter and is invisible to a uniformly-drawn corpus.
+
+The signed forms are **only signed in radix 10**, which the corpus exercises on purpose: `_itoa`
+with a negative value and radix 16 prints the unsigned bit pattern, and an implementation that
+sign-extends anyway produces a plausible wrong answer.
+
+Nothing is printed while the patch is on, for the same reason as the string primitives: the CRT's
+own `printf` formats integers, and these are the integer formatters.
+
