@@ -1,4 +1,4 @@
-# 296 — `ntdll!RtlCopyUnicodeString` (AVX2 + ERMS) — **PARKED** (≈1.33× geomean; the 1024-wchar class sits at ~0.98×)
+# 296 — `ntdll!RtlCopyUnicodeString` (AVX2 + ERMS) — **PARKED** (1.45×–1.53× in the ordinary regime; loses to **4K aliasing**, which is not fixable here)
 
 - **Contract:** `VOID RtlCopyUnicodeString(UNICODE_STRING* dst, const UNICODE_STRING* src)` — it
   returns **void**, so every observable effect is in the destination struct and buffer, and the
@@ -9,85 +9,102 @@
 - **Fan-in:** **31** distinct live desktop/startup modules bind it.
 - **Selected by:** [`discovery/ntdll_tier3.c`](../../discovery/ntdll_tier3.c) — 12.50 ns for 254
   characters is ~40 GB/s, against 130+ GB/s for this repository's copy code.
-- **Correctness:** **PASS — 162,920 checks** against the live export and `reference.c`.
-- **Gates:** ABI audit PASS; vector-re-entry audit clean. **Speed gate: 3 clean runs in 10.**
+- **Correctness:** **PASS — 165,496 checks.**
+- **Gates:** ABI audit PASS; vector-re-entry audit clean. **Speed gate FAILED** — see below.
 
-## Where it stands
+## Four tables, because one would have hidden the answer
 
-Two harnesses, because the truncating path with an **odd** `MaximumLength` is a different function
-in practice from the fitting one:
+| table | subject | verdict |
+|---|---|---|
+| [1] | the ordinary call, `malloc`'d buffers, whole source fits | **LANDS 1.445×** |
+| [2] | truncating, **odd** `MaximumLength`, no NUL | PARKED — 1024w at 0.81× |
+| [3] | destination sweep, **both buffers page-aligned**, `(dst−src) % 4096 ∈ [0,64)` | PARKED — 0.65×–0.96× |
+| [4] | destination sweep, **source at page offset 2048** | **LANDS 1.529×** |
 
-| size | fits, NUL written | truncating, odd MaxLen |
-|---|---:|---:|
-| 2w | 1.90× | 1.53× |
-| 8w | 1.41× | 1.08× |
-| 32w | 1.51× | 1.55× |
-| 64w | 1.52× | 1.42× |
-| 128w | 1.29× | 1.25× |
-| 254w | 1.13× | 1.20× |
-| **1024w** | **1.05×** | **0.98×** |
-| 4095w | 1.06× | 1.24× |
+Tables [3] and [4] are the same sweep over the same lengths. The only difference between them is
+the **page phase** of the source relative to the destination, and it is worth 1.53× against 0.65×.
 
-geomean **1.33×** in both, stable across ten runs (1.289×–1.377×).
+## What is actually wrong: 4K aliasing, and it is not an implementation defect
 
-## The ERMS fix, which is most of this change's value
+`probes/twoaxes.c` exists because `detail.c` showed the vector path at n = 2048 taking ~26 ns for
+destination offsets 0–30 and ~38 ns for 32–62 **with the destination's 32-alignment identical in
+both halves**. That is not a cache-line-split effect, so a second mechanism was in play and the two
+had to be separated before any verdict was written down:
 
-As first written this measured **0.75× at 1024w and 0.82× at 4095w** — the only two classes that
-regressed, and both badly. The 64-byte AVX2 loop plateaued at ~48 GB/s while the shipped ntdll
-reached ~64 GB/s.
+* **(a) cache-line splits** — governed by `dst & 31`. **Fixed** in `impl.asm` by aligning the stores.
+* **(b) 4K aliasing** — governed by `(dst − src) mod 4096`. A load is stalled behind an in-flight
+  store that shares its low 12 address bits. **Not fixable in the implementation**, and it hits a
+  32-byte loop *harder* than ntdll's 16-byte one, because the alias window is as wide as the access.
 
-That is the same finding change **130 (`RtlSetBits`)** made on this machine: **on Tiger Lake the ERMS
-string instructions beat a vector loop well before the sizes Zen 3 needed**, and 130's own comment
-records that `rep` is a *loss* below a few kilobytes there. Adding a `rep movsb` path above 1 KB, for
-the forward non-overlapping case only:
+So the regressing rows are not a tuning failure. A wider copy is structurally more exposed to 4K
+aliasing than a narrower one, and the only way to stop losing those rows is to stop being wider —
+which is the entire speedup.
 
-| class | before | after |
-|---|---:|---:|
-| 1024w | 0.75× | **~0.98×** |
-| 4095w | 0.82× | **1.06×–1.88×** (78–131 GB/s) |
+## The ERMS threshold is a measured number, not a round one
 
-`rep movsb` is the **byte** form deliberately — 130 also established that `rep stosd` never gets the
-fast-string path at all, because ERMS is defined for the byte string operations.
+`probes/crossover.c` times **every destination offset** and forms the ratio *at* that offset, so
+ntdll's own alignment sensitivity cannot flatter either side:
 
-## The alignment attempt that failed the corpus, and why it is not a fixable oversight
+| bytes | vector: worst / median / best | rep movsb: worst / median / best | winner |
+|---:|---|---|---|
+| 2048 | 0.95× / 1.29× / 1.91× | 0.81× / 1.27× / 2.20× | vector |
+| 2560 | 0.94× / 1.63× / 2.01× | 1.11× / 1.42× / 2.38× | **ERMS** |
+| 8190 | 0.77× / 1.50× / 1.93× | 1.18× / 1.74× / 3.01× | **ERMS** |
 
-Change 130 aligns its `rep stosb` destination to a cache line and measured a real win doing so —
-without it, its 5000-byte class was *bimodal*, the same binary reading 37 ns four times and 54 ns
-six times while the comparand never moved.
+Hence `WIA_ERMS EQU 2560`. ERMS has roughly **13 ns of startup**, which is why it is a loss below
+about 2 KB — change **130**'s Tiger Lake variant found the same crossover near 3 KB for `rep stosb`
+and recorded the same ~15 ns, so this is the same part reaching the same conclusion for the copy
+direction. `rep movsb` is the **byte** form deliberately: 130 established that `rep stosd` never
+gets the fast-string path at all.
 
-The same edit here **failed 503 of 162,920 cases.**
+## The overlap hazard, and the ordering that makes alignment safe
 
-The difference is that **a fill has no source and a copy does.** Aligning means writing a 64-byte
-head before the `rep` starts, and when the destination sits just *below* an overlapping source that
-store lands on source bytes the `rep` has not read yet: with `dst = src - 4` it writes
-`[src-4, src+60)` while the `rep` is about to read from `src + rdx`.
+The destination is aligned to 64 bytes before the `rep`, because ERMS is sensitive to its
+destination's alignment — 130 found the same thing, as a bimodal distribution with a steady
+comparand.
 
-Copying exactly `rdx` bytes instead *would* be safe — the clobbered range then ends strictly before
-where the `rep` resumes reading — but that needs either a second `rep` or a scalar head, and a
-second `rep` costs another startup, which is the entire thing being avoided. So the destination is
-left unaligned and the reason is recorded in the source rather than rediscovered later.
+**The head is LOADED before the `rep` and STORED after it**, and that ordering is the whole
+correctness argument. With the destination one byte below the source, a head store issued *first*
+lands on bytes the `rep` has not read yet. `correctness.c`'s overlap sweep at 1023–4096 bytes exists
+to catch exactly that.
 
-This is the same class of bug the implementation's own head/tail ordering note already documents at
-n = 65, where reading the tail *after* the loop failed 1,799 cases.
+> **A correction to an earlier version of this file.** I first wrote that destination alignment was
+> *not safely available* here, on the grounds that a fill has no source and a copy does — my own
+> attempt at it failed 503 of 162,920 correctness cases. That diagnosis was right about the hazard
+> and wrong about the conclusion: I stored the head *before* the `rep`, which is the unsafe order.
+> Loading it before and storing it after is safe, keeps the alignment win, and needs no second `rep`.
+> The implementation does that; this file previously described code that is not what is committed.
 
-## Why it does not land
+The same argument governs the vector path, whose head and tail are both held in registers across the
+loop: an earlier draft read the tail *after* the loop and failed the corpus on **1,799 cases** — at
+n = 65 with the destination 62 bytes below the source, the loop's store of `dst[0,64)` lands on
+`src[1]`.
 
-The 1024-wchar class — 2048 bytes, right on the ERMS crossover — sits at **0.90×–1.02×** across ten
-runs, median ~0.98×, and clears the gate in **3 runs of 10**. The gate is binary: no size class
-regresses. The same standard parked `184-strnset-s` at two runs in five and `130-rtlsetbits` at
-seven in ten.
+## Destination alignment is worth 1.7× on its own
+
+`probes/shape.c` sweeps `dst & 63` with the length and source held fixed:
+
+```
+n = 8190   dst&63 =   0      8     16     24     32     40     48     56
+unaligned stores    96.1   55.9   55.9   57.6   96.6   55.6   55.7   57.3  GB/s
+```
+
+A 32-byte store whose address is not 32-aligned straddles a 64-byte cache line on every other block.
+`malloc` returns 16-byte alignment, so **half of all destinations landed on the slow column** — which
+is why the same code read 1.38× and 0.84× on neighbouring size classes before the loop aligned its
+stores. ntdll's memmove aligns to 16 for the same reason; this aligns to 32, one step wider.
+
+## Contract points that were probed rather than assumed
+
+`src == NULL` sets only `dst->Length = 0`. Truncation with an **odd** `MaximumLength` copies
+`MaximumLength` bytes and reports `Length = 7` for a 7-byte bound — it does **not** round down to a
+whole `WCHAR`. `dst->MaximumLength` is never modified. Whether a terminating NUL is written when
+there is room was probed, not inherited from `RtlAppendUnicodeToString`, which differs.
 
 ## Why it is kept
 
-It is correct over 162,920 checks including every contract point that had to be *probed* rather than
-assumed: `src == NULL` setting only `dst->Length = 0`; truncation rounding **down to a whole WCHAR**
-when `MaximumLength` is odd; whether a terminating NUL is written when there is room; and
-`dst->MaximumLength` never being modified. It wins 1.1×–1.9× on every class up to 254 characters,
-which is where a `UNICODE_STRING` usually is — a path or an object name — and it is within 2% at the
-one size that fails.
-
-The 32-byte destination alignment note in the source is worth keeping independently: sweeping
-`dst & 63` with length and source fixed gives 96.1 GB/s at offsets 0 and 32 and 55.6–57.6 GB/s at
-every other offset. `malloc` returns 16-byte alignment, so half of all destinations landed on the
-slow column, and that alone had the same code reading 1.38× and 0.84× on neighbouring size classes
-before the loop aligned its stores.
+It is correct over 165,496 checks, it wins **1.45×–1.53×** in the regime real callers are in — a
+`UNICODE_STRING` is usually a path or an object name, and table [1] is the shape all 31 binding
+modules make — and the 4K-aliasing analysis is reusable: any change in this tree that widens a
+copy inherits the same exposure, and `probes/twoaxes.c` is how to tell it apart from a cache-line
+split.
