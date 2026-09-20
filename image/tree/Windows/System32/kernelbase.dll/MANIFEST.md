@@ -1,4 +1,4 @@
-# kernelbase.dll — reimplemented exports (29)
+# kernelbase.dll — reimplemented exports (30)
 
 | export | speedup | source |
 |---|---|---|
@@ -24,6 +24,7 @@
 | `UrlHashA` | 2.68x | [changes/249-urlhasha](../../../../../changes/249-urlhasha/) |
 | `UrlUnescapeA` | 34.66x | [changes/248-urlunescapea](../../../../../changes/248-urlunescapea/) |
 | `UrlUnescapeW` | 14.24x | [changes/245-urlunescapew](../../../../../changes/245-urlunescapew/) |
+| `WideCharToMultiByte` | 2.71x | [changes/289-widechartomultibyte](../../../../../changes/289-widechartomultibyte/) |
 | `lstrcatA` | 26.15x | [changes/228-lstrcata](../../../../../changes/228-lstrcata/) |
 | `lstrcatW` | 27.83x | [changes/230-lstrcatw](../../../../../changes/230-lstrcatw/) |
 | `lstrcpyA` | 11.48x | [changes/227-lstrcpya](../../../../../changes/227-lstrcpya/) |

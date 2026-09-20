@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (85)
+# ntdll.dll — reimplemented exports (86)
 
 | export | speedup | source |
 |---|---|---|
@@ -77,6 +77,7 @@
 | `RtlUTF8ToUnicodeN` | 3.96x | [changes/034-rtlutf8tounicoden](../../../../../changes/034-rtlutf8tounicoden/) |
 | `RtlUdiv128` | 6.66x | [changes/204-rtludiv128](../../../../../changes/204-rtludiv128/) |
 | `RtlUnicodeStringToAnsiString` | 12.79x | [changes/018-rtlunicodestringtoansistring](../../../../../changes/018-rtlunicodestringtoansistring/) |
+| `RtlUnicodeStringToInteger` | 1.63x | [changes/295-rtlunicodestringtointeger](../../../../../changes/295-rtlunicodestringtointeger/) |
 | `RtlUnicodeStringToOemString` | 7.68x | [changes/024-rtlunicodestringtooemstring](../../../../../changes/024-rtlunicodestringtooemstring/) |
 | `RtlUnicodeStringToUTF8String` | 3.53x | [changes/268-rtlunicodestringtoutf8string](../../../../../changes/268-rtlunicodestringtoutf8string/) |
 | `RtlUnicodeToMultiByteN` | 3.93x | [changes/021-rtlunicodetomultibyten](../../../../../changes/021-rtlunicodetomultibyten/) |
