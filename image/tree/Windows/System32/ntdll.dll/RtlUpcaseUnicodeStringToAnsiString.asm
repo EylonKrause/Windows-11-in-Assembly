@@ -30,7 +30,19 @@ wia_u2au PROC
         movzx     eax, word ptr [rdx]              ; src Length (bytes)
         shr       eax, 1                            ; n = out bytes (wchar count)
         movzx     r9d, word ptr [rcx + 2]          ; dst MaximumLength
-        cmp       eax, r9d
+        ; THE EXPORT NUL-TERMINATES, so it needs room for the conversion PLUS one byte. This used
+        ; to be `cmp eax, r9d / ja overflow` -- room for the conversion alone -- and the success
+        ; path wrote no terminator. Both halves were wrong together, which is exactly why the
+        ; change's own gate saw neither: it ran every case with MaximumLength fixed and generous,
+        ; so the size rule never bound, and compared only indices 0..Length-1, so the byte at
+        ; [Length] was outside the comparison by construction.
+        ;
+        ; Measured: a 4-character source needs MaximumLength >= 5. On overflow this one writes
+        ; NOTHING and leaves dst->Length as the caller had it -- unlike its sibling 018, which
+        ; truncates and partially writes. Four functions in one family, two failure disciplines.
+        ; Found by live substitution; see live-substitution/live_subst_ntconv2.c.
+        lea       r11d, [rax + 1]                   ; the conversion plus its terminator
+        cmp       r11d, r9d
         ja        overflow
         mov       word ptr [rcx], ax               ; dst->Length = n
         mov       r11, [rdx + 8]                   ; srcBuf
@@ -76,6 +88,7 @@ a_tail:
         add       r9, 1
         jmp       a_tail
 a_done:
+        mov       byte ptr [r10 + r8], 0            ; the terminator, at [Length]
         xor       eax, eax
         vzeroupper
         ret

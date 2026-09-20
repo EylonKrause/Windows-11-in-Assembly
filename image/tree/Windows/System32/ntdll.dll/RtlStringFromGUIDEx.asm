@@ -59,6 +59,32 @@ nodash:
         mov       word ptr [rdi], 7Dh                ; '}'
         add       rdi, 2
         mov       word ptr [rdi], 0                  ; NUL
+        ; AND A SECOND NUL AT THE LAST WCHAR THE BUFFER CAN HOLD.
+        ;
+        ; The shipped export terminates twice: once after the 38 characters, which this already
+        ; did, and once at Buffer[MaximumLength/2 - 1] -- the last whole WCHAR the caller's
+        ; capacity allows. probes/tail.c varies MaximumLength and prints every zero position, and
+        ; the second index TRACKS CAPACITY rather than sitting still: 78 -> 38 (the two coincide),
+        ; 80 -> 39, 82 -> 40, 90 -> 44, 100 -> 49, 120 -> 59, 160 -> 79. It was measured rather
+        ; than assumed to be a fixed offset, which is the lesson the IPv6 pair taught after the
+        ; IPv4 one: the same shape can have a different rule.
+        ;
+        ; Found by live substitution on 13333 of 20000 cases, with the NTSTATUS and Str->Length
+        ; matching on every one of them -- only the bytes past the string differed. The header
+        ; above says "NUL-terminate", singular, and that was an accurate description of what this
+        ; code did and an incomplete description of the export.
+        ;
+        ; MaximumLength is RE-READ from the descriptor, not taken from eax. The first attempt
+        ; assumed eax still held it from the entry check -- it does not, because the hex loop above
+        ; uses eax for every byte it converts, and the store went wherever that left it. The gate
+        ; caught it immediately as an access violation. This is the same mistake the IPv6 fix made
+        ; with rdx, one file earlier: a register that holds the argument AT ENTRY is not a register
+        ; that holds it at the exit.
+        movzx     eax, word ptr [rdx + 2]            ; MaximumLength, in bytes
+        shr       eax, 1                             ; whole WCHARs the buffer holds
+        dec       eax                                ; ... the last of them
+        mov       rsi, [rdx + 8]
+        mov       word ptr [rsi + rax*2], 0
         mov       word ptr [rdx], 76                 ; Str->Length = 38 wchars
         xor       eax, eax                            ; STATUS_SUCCESS
         jmp       epi
