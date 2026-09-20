@@ -9,6 +9,10 @@ to System32; see [the honest-constraints section of the top-level README](../REA
 | [`abi-audit.py`](abi-audit.py) | **Gate 3, static.** Scans every `.asm` in the repo for a callee-saved vector register used without a spill. Instant; covers files no harness drives. |
 | [`vector-reentry-audit.py`](vector-reentry-audit.py) | **Change 263's rule, static.** Scans every `.asm` for a scalar step that jumps straight back into a vector loop — the shape that made four landed changes slower than the code they replace on input their fast path does not handle. Classifies the two innocent look-alikes (a page-safety step, a delimiter-set walk) and prints the rest. |
 | [`revalidate.ps1`](revalidate.ps1) | Re-proves the whole repository against the System32 binaries currently on the machine. |
+| [`vsenv.ps1`](vsenv.ps1) | **Portability.** Imports the MSVC x64 environment from whatever Visual Studio edition this machine actually has, so the 349 hardcoded-path `build.bat` files do not have to be edited. |
+| [`revalidate-here.ps1`](revalidate-here.ps1) | `vsenv.ps1` + `revalidate.ps1`. The entry point for a sweep on any machine but bench #1. |
+| [`new-variant.py`](new-variant.py) | Forks a landed change into a microarchitecture **variant** instead of editing it, so two machines' results stay attributable. |
+| [`platform-probe/`](platform-probe/) | CPUID/XCR0 capture in `name=0/1` form, so two benches can be diffed mechanically. |
 | [`on-update.ps1`](on-update.ps1) | Scheduled-task action: hash-compare the watched DLLs, and run the full sweep only if one actually changed. |
 | [`install-update-watch.ps1`](install-update-watch.ps1) | Registers/removes that scheduled task. |
 
@@ -138,3 +142,67 @@ until it is looked at.
 
 `revalidation/` is machine-local and git-ignored: the hash baseline, the reports and the per-change
 logs are all specific to the PC and the Windows build they were taken on.
+
+
+---
+
+## Running on a machine that is not bench #1
+
+Two things in this repository are hardcoded to the machine it started on, and both fail *silently*
+on any other. Neither is fixed by editing the files that contain them.
+
+### The `build.bat` path wall
+
+All 349 `changes/*/build.bat` and `live-substitution/build*.bat` files open with
+
+```bat
+call "C:\Program Files (x86)\Microsoft Visual Studio8\BuildTools\VC\Auxiliary\Buildcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1
+```
+
+On a machine with VS **Community**, **Professional** or **Enterprise**, or a VS under the x64
+`Program Files`, that path does not exist. The `>nul 2>&1` swallows the error, so the build does not
+fail there — it fails several lines later with `'ml64' is not recognized`, a long way from its cause.
+
+The fix is **not** to rewrite 349 batch files. A batch file inherits the environment of whatever
+launched it, and these only need `ml64`/`cl`/`link` to resolve. So `vsenv.ps1` finds the real
+`vcvarsall.bat` (vswhere first, then the known layouts), imports its x64 environment into the current
+session, and every `build.bat` launched from there inherits `PATH`/`INCLUDE`/`LIB` while its own dead
+`call` becomes a harmless no-op.
+
+Keeping the batch files byte-identical across machines is the point: it is what makes two benches'
+`RESULTS.md` comparable. A build that differed per machine would put the toolchain into the
+measurement.
+
+```powershell
+. .	oolssenv.ps1                    # dot-source into the session
+.	oolsevalidate-here.ps1 -Baseline  # then anything that shells out to a build.bat
+.	oolsevalidate-here.ps1 -Only 003
+```
+
+`revalidate.ps1` needs nothing else: it already skips its own hardcoded vcvars lookup when
+`VSCMD_VER` is set, which `vsenv.ps1` sets.
+
+### Results that belong to a machine
+
+A ratio is a statement about hardware. `docs/PLATFORM.md` describes bench #1 (Ryzen 9 5950X, Zen 3)
+and every geomean in `SUMMARY.md` was measured there; `docs/PLATFORM-i9-11900H.md` describes bench #3
+(Intel i9-11900H, Tiger Lake-H), which has AVX-512, GFNI and VBMI2 that bench #1 does not, a 48 KB
+L1d against 32 KB, and Intel's ERMS/FSRM `rep movsb` as a competitor at mid sizes.
+
+So a change can legitimately **land on one bench and regress on another**, and the difference is
+information, not a bug to be patched away. When it happens:
+
+> **Do not edit the parent.** Fork it.
+
+`new-variant.py` does exactly that — it copies the change wholesale, keeps `reference.c`,
+`correctness.c` and `bench.c` **byte-for-byte** so both versions are graded by the same oracle and
+the same gates, leaves `impl.asm` identical to the parent so the fork starts from an observed-passing
+state, and writes a RESULTS.md stub marked **UNPROVEN** rather than inheriting numbers it has not
+measured.
+
+```bash
+py tools/new-variant.py 023-rtlnumberofsetbits tgl --note "AVX512VPOPCNTDQ vpopcntq"
+```
+
+The suffix (`tgl`, `zen3`, `zen4`) sorts the variant directly after its parent, so a sweep prints
+them adjacent and a divergence is visible at a glance.
