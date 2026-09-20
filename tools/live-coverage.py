@@ -25,9 +25,23 @@ Every live harness assembles the impl.asm of each change it covers, by path, in 
 
 so a change is covered iff some build_*.bat in live-substitution/ mentions its directory name. That
 is a structural fact about how the harnesses are built, not a naming convention anyone has to
-maintain, which is what makes it hard to get wrong. A harness that links a change but never calls it
-would be counted here and should not be -- the harnesses print a per-routine call count precisely so
-that mistake is visible when the harness runs.
+maintain, which is what makes it hard to get wrong.
+
+LINKED IS NOT CALLED, and this used to say so and do nothing about it. A change could be assembled
+into a harness, linked, and never invoked, and would have been reported as proven -- the one failure
+mode that would make a 100% figure a lie. So the harness SOURCE is read too (its name taken from the
+build script, not guessed from the script's name), and a change counts only if one of the `wia_`
+symbols it offers actually appears in the text that harness can reach.
+
+Two things that cost false positives before the check was right, both worth stating because they are
+properties of this repository rather than of this tool:
+
+  * A CHANGE'S PUBLIC SYMBOL IS NOT ALWAYS IN ITS ASSEMBLY. Change 229's impl.asm exports
+    `wia_lstrcpyw_core`; the entry point the harness calls is `wia_lstrcpyw`, the SEH wrapper in
+    seh.c. Reading impl.asm alone flagged ten changes that are called perfectly well.
+  * A CALL CAN BE TRANSITIVE. Change 034's `wia_u82u` appears nowhere in live_subst_u8str.c -- but
+    change 268, which that harness does call, calls it five times, and the build script links 034
+    for exactly that reason.
 
 WHAT IT DOES NOT TELL YOU
 -------------------------
@@ -118,10 +132,79 @@ def covered_set(names):
         if not (fn.startswith("build") and fn.endswith(".bat")):
             continue
         text = read(os.path.join(LIVE, fn))
-        for name in names:
-            if name in text:
+        # A build script links objects; it does not call them. So the harness SOURCE that this
+        # script builds is read too, and a change counts as covered only if one of the `wia_`
+        # symbols its impl.asm exports actually appears there. Without this a change could be
+        # assembled into a harness, linked, and never called -- and would be reported as proven.
+        # That is the one failure mode that would make a 100% figure a lie, and it is the failure
+        # mode this file's own header admitted to before the check existed.
+        # The build script names its harness source; read it from there rather than guessing it
+        # from the script's own name. Guessing worked for most and fell back to the wrong file for
+        # the rest, which is how a false positive gets a confident-looking warning.
+        src = ""
+        m = re.search(r"(live_subst[A-Za-z0-9_]*\.c)", text)
+        if m:
+            src = read(os.path.join(LIVE, m.group(1)))
+
+        built = [n for n in names if n in text]
+
+        # A CALL CAN BE TRANSITIVE. Change 034's symbol `wia_u82u` appears nowhere in
+        # live_subst_u8str.c -- but change 268, which that harness does call, calls it five times,
+        # and the build script links 034 for exactly that reason. So the text a symbol may appear
+        # in is the harness source PLUS the sources of every change the same harness builds.
+        # Without this the tool reports a change as unproven because it is reached one level down,
+        # which is the opposite of a finding.
+        reach = src
+        for n in built:
+            reach += sources_of(n)
+
+        for name in built:
+            syms = syms_of(name)
+            if syms and reach and not any(sym in reach for sym in syms):
+                covered.setdefault(name, []).append(fn + " [LINKED BUT NOT CALLED]")
+            else:
                 covered.setdefault(name, []).append(fn)
     return covered
+
+
+SYM_RE = re.compile(r"\bwia_[A-Za-z0-9_]+")
+# The gate's own files are not part of the change's interface; a harness naming `ref_x` or the
+# bench's helpers proves nothing about whether it calls the change.
+NOT_INTERFACE = {"bench.c", "correctness.c", "reference.c"}
+
+
+def sources_of(name):
+    """The change's own implementation text, for following a call one level down."""
+    d = os.path.join(CHANGES, name)
+    out = []
+    if os.path.isdir(d):
+        for fn in os.listdir(d):
+            if fn in NOT_INTERFACE:
+                continue
+            if fn.endswith(".asm") or fn.endswith(".c"):
+                out.append(read(os.path.join(d, fn)))
+    return "\n".join(out)
+
+
+def syms_of(name):
+    """Every wia_* symbol a change offers, from its assembly AND its helper C files.
+
+    Reading impl.asm alone is not enough, and assuming it was produced ten false positives the
+    first time this check ran. Change 229 is the clearest case: impl.asm exports
+    `wia_lstrcpyw_core`, while the entry point the harness actually calls -- `wia_lstrcpyw` -- is
+    the SEH wrapper in seh.c, which calls the core. A change's public symbol is not always in its
+    assembly, so the whole source of the change is read.
+    """
+    d = os.path.join(CHANGES, name)
+    syms = set()
+    if not os.path.isdir(d):
+        return syms
+    for fn in os.listdir(d):
+        if fn in NOT_INTERFACE:
+            continue
+        if fn.endswith(".asm") or fn.endswith(".c"):
+            syms.update(SYM_RE.findall(read(os.path.join(d, fn))))
+    return syms
 
 
 def family(name, export):
@@ -181,6 +264,14 @@ def main():
     if unknown:
         print("  no verdict in RESULTS   %4d   %s"
               % (len(unknown), ", ".join(n for n, _, _ in unknown[:6])))
+
+    linked_only = [r for r in landed
+                   if r[2] and all("[LINKED BUT NOT CALLED]" in b for b in r[2])]
+    if linked_only:
+        print("\n  WARNING: %d change(s) are BUILT by a harness whose source never names their\n"
+              "  wia_ symbol -- linked, not called, and therefore not actually proven:" % len(linked_only))
+        for name, export, by in linked_only:
+            print("      %-44s %s" % (name, export or "?"))
 
     stale = [r for r in parked if r[2]]
     if stale:
