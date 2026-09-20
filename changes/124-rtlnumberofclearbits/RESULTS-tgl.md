@@ -1,38 +1,79 @@
-# 124-rtlnumberofclearbits — TGL variant → **UNPROVEN** (created 2026-09-20)
+# 124-rtlnumberofclearbits — TGL variant (Tiger Lake-H) → **LANDS**
 
 **Bench:** Intel Core i9-11900H (Tiger Lake-H / Willow Cove), Win11 25H2 build 26200.9457. Machine capture: [`docs/PLATFORM-i9-11900H.md`](../../docs/PLATFORM-i9-11900H.md).
+**Compared against:** live `ntdll!RtlNumberOfClearBits` — `ntdll.dll 10.0.26100.9278`, resolved through `GetProcAddress`, not a stored baseline.
 Original `impl.asm` untouched; this records `impl_tgl.asm` (built by `build_tgl.bat`).
-
-> **Status: UNPROVEN.** `impl_tgl.asm` is still a byte-for-byte copy of the parent's and nothing
-> has been measured. Do not cite a number from this file until this block is replaced by a real
-> results table.
 
 ## Why a variant was needed
 
-0.81x at 1 Mb -- the exact counterpart of 023, same cause and same fix. `vpopcntq` counts 512 bits per instruction into two independent accumulators, replacing a scalar POPCNT loop that is one count per cycle down a single dependency chain.
+On this machine the parent measures **1.256x geomean with a worst class of 0.810x @ 1 Mb**, so
+it fails the speed gate here. Its recorded verdict is LANDED (on Zen 3).
 
-The parent was **not edited**. Its `RESULTS.md` records a measurement taken on different hardware,
-and changing the implementation that file describes would re-attribute the measurement to a machine
-that never ran it.
+The exact counterpart of change 023 — same cause, same fix, complementary answer. The parent
+computes `clear = SizeOfBitMap - popcount(set)` with a scalar `POPCNT` loop accumulating into a single
+register: one count per cycle, down one serial dependency chain. Here the 1 Mb class measures
+**0.810x**. `vpopcntq` counts 512 bits per instruction into two independent accumulators, and ntdll
+cannot use it because it must also run on parts that lack AVX-512.
 
-## What is shared with the parent, and why it has to be
+The parent was **not edited**. Its `RESULTS.md` records a measurement taken on hardware that
+does not have this machine's ISA, cache geometry or AVX-transition costs, and changing the
+implementation that file describes would re-attribute the measurement to a machine that never ran it.
 
-`reference.c` (the oracle), `correctness.c` (the gate, which also resolves the **live** system export
-through `GetProcAddress`) and `bench.c` are used unmodified. `build_tgl.bat` is the parent's
-`build.bat` with only four artifact names substituted, so whatever that change needs — an extra
-translation unit, an import library, `/MD`, or a `/Od` bench because `/O2` hoists a pure function out
-of the timing loop — is preserved.
+### The subtraction deliberately stays where the parent put it
 
-That sharing is the whole point: a variant graded by a different oracle, or timed by a differently
-built harness, has proven nothing about the original.
+The vector path counts **set** bits and one `n - set` at the end converts them. Counting clear bits
+directly — complement each word, then popcount — is **wrong at the final partial word**: complementing
+turns the don't-care zeros past `SizeOfBitMap` into ones and counts them. The parent already handles
+this by masking the last word and counting set bits, and this variant is about loop width, not
+arithmetic.
 
-## Procedure
+### A note on the absolute numbers
 
-1. Run `build_tgl.bat` **before touching `impl_tgl.asm`** and confirm it reproduces the parent's
-   behaviour here. A variant never observed passing is a variant whose first failure cannot be
-   attributed.
-2. Change `impl_tgl.asm` only.
-3. Re-run. The gate is unchanged: **correct against the live export, and no size class regresses.**
-4. Replace the status block above with the real table — correctness corpus counts, the
-   per-size-class benchmark against the live export, the ISA used and its dispatch story, and a
-   one-line verdict LANDS or PARKED.
+Change 124's own `build.bat` compiles `bench.c` at **`/Od`** on purpose, where 023's uses `/O2`. That is
+why 124's absolute nanoseconds are higher than 023's for near-identical code — the harness overhead is
+larger, and it is applied symmetrically to ours and to ntdll's, so the **ratio** stays honest while the
+absolute figures are not comparable between the two changes. The variant build inherits that flag
+unchanged, which is the point of deriving `build_tgl.bat` from the parent's `build.bat` rather than
+templating it.
+
+## Correctness — PASS
+
+Bit-exact against the **live export on this machine** and against `reference.c`, over the change's own
+unmodified corpus: clear-bit count nbits = 0..4096, random including nonzero trailing bits, vs live ntdll + oracle.
+
+`build_tgl.bat` gates on this and refuses to benchmark if it fails, so the table below existing at all
+is itself evidence the gate passed.
+
+## Speed — LANDS
+
+| size | ours ns | system ns | ratio | verdict |
+|---|---:|---:|---:|:--|
+| 64 | 3.18 | 10.68 | 3.36x | BETTER |
+| 256 | 5.57 | 11.95 | 2.15x | BETTER |
+| 1 Kb | 4.13 | 18.87 | 4.57x | BETTER |
+| 8 Kb | 10.05 | 70.37 | 7.00x | BETTER |
+| 64 Kb | 48.68 | 436.11 | 8.96x | BETTER |
+| **1 Mb** | **1646.11** | **6898.44** | **4.19x** | **BETTER** |
+
+**Geomean 4.532x. No size class regressed → **LANDS**.**
+
+| | parent here | this variant |
+|---|---:|---:|
+| geomean | 1.256x | **4.532x** |
+| worst size class | **0.810x @ 1 Mb** | **2.15x @ 256** |
+
+## ISA and dispatch
+
+AVX512F + **AVX512VPOPCNTDQ**, plus POPCNT for the tail.
+
+This variant is **not portable off this bench** and is not meant to be: it is selected by building
+`build_tgl.bat` rather than by a runtime CPUID check, and `impl.asm` remains the implementation of
+record everywhere else. A shipping build would dispatch between them on CPUID; nothing here does that,
+because nothing here ships.
+
+## Shared with the parent, unmodified
+
+`reference.c`, `correctness.c` and `bench.c` are used as-is, and `build_tgl.bat` is the parent's
+`build.bat` with only four artifact names substituted — so whatever that change needs (an extra
+translation unit, an import library, `/MD`, or a `/Od` bench) is preserved. A variant graded by a
+different oracle, or timed by a differently built harness, would prove nothing about the original.

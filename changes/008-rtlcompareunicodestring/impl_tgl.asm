@@ -3,50 +3,68 @@
 ;   [Win64: rcx, rdx, r8b -> eax]
 ;
 ; Tiger Lake / Willow Cove variant of change 008. Same contract, same oracle, same gates. Only the
-; SHORT CASE-INSENSITIVE path differs; every other path below is the parent's code, spliced in
-; unchanged.
+; SHORT CASE-INSENSITIVE path differs; every other path below is the parent's, spliced in unchanged.
 ;
 ; WHY A VARIANT AND NOT AN EDIT
 ; -----------------------------
-; On Zen 3 the parent wins every size class, including 8 bytes case-insensitive, which is what its
-; RESULTS.md records. Here that one class measures 0.94x against ntdll while the change still wins
-; 3.2x overall. Eight bytes is FOUR wchars, so the measurement is almost entirely fixed overhead,
-; and the parent pays two kinds of it before doing any useful work:
+; The parent wins every class on Zen 3. Here the 8-wchar case-insensitive class measures 0.94x
+; against ntdll while the change still wins 3.2x overall. Below 16 wchars the parent takes
+; `ci_small`, a scalar walk costing FOUR loads per character in two DEPENDENT pairs -- load the
+; wchar, then index the OS upcase table with the value just loaded, for each side. The second load
+; of each pair cannot issue until the first retires, and at eight characters there is nothing else
+; in flight to hide sixteen such latencies behind.
 ;
-;   1. Five push/pop pairs in a prologue executed before the length is known. A four-character
-;      compare never needs rbx/rsi/rdi/r12/r13, but pays to save and restore all five, plus a
-;      `vzeroupper` in the shared epilogue that the scalar path did not earn.
+; THE FIRST ATTEMPT AT THIS WAS WORSE, AND WHY THAT IS WORTH RECORDING
+; --------------------------------------------------------------------
+; The obvious fix is to compare the two RAW wchars first and consult the table only when they
+; differ. That is sound -- upcase is a function, so bit-identical inputs have bit-identical folds.
+; Written as a per-character test it measured **0.78x**: worse than the parent it was meant to fix.
 ;
-;   2. A chain of two DEPENDENT loads per character. Upcasing goes through the OS-built table
-;      (`wia_upcase`), so each character costs a load of the wchar and then a second load indexed
-;      by the value just loaded. The second cannot begin until the first retires. Four characters
-;      is four such chains back to back, and at this length there is nothing else in flight to
-;      hide them.
+; The saving was real; the shape was not. Skipping the table put the common case behind a TAKEN
+; branch into the loop tail, so every matching character paid two taken branches where the parent
+; paid one. Two loads saved, one extra taken branch spent, net loss. The lesson is not that the
+; idea was wrong -- it is that at eight characters this function is branch-bound rather than
+; load-bound, and only a measurement says which.
 ;
-; This variant changes the SHAPE of the short path, not the arithmetic:
+; So the unit is the BLOCK, not the character. One 128-bit load pair covers eight wchars, and a
+; single `vpcmpeqw` plus a mask compare answers "is this whole block identical?" with no per-
+; character branch at all. Raw-equal implies fold-equal, so an identical block needs no case table,
+; no ASCII test and no folding. Only a block that DIFFERS pays for any of that.
 ;
-;   * It decides "short and case-insensitive" using only volatile registers, so that path touches
-;     no callee-saved register, needs no `vzeroupper`, and spends one push instead of five.
+; WHY 128-BIT AND NOT 256
+; -----------------------
+; The parent's vector path is 256-bit and needs five ymm constants, which forces it to spill
+; ymm6/ymm7 -- 64 bytes of stack -- because Win64 preserves the low 128 bits of xmm6-xmm15. At
+; eight wchars that spill costs more than the extra width earns. At 128 bits the constants fit in
+; xmm0-xmm5, which are volatile. So the short path saves nothing to the stack, and being
+; VEX/EVEX-128 throughout it never dirties the upper state and owes no `vzeroupper`.
 ;
-;   * It compares the two RAW wchars first and consults the table only when they DIFFER. If two
-;     characters are bit-identical their upcased forms are identical -- the table is a function, so
-;     upcase(x) == upcase(x) holds with no assumption about what the table contains. Every equal
-;     position therefore costs two independent loads and a compare, and the dependent chain is paid
-;     only at a position that actually differs, which for a compare that is not an immediate
-;     mismatch is at most one position in the whole call.
+; The fold itself is where this machine pays off. On AVX-512 a compare writes a MASK REGISTER, and
+; the subtract can be predicated on it -- so `islower` costs two compares, one `kandw` and a masked
+; `vpsubw` IN PLACE, with no AND of two 128-bit compare results and no temporary vector register to
+; hold them. The parent needs five vector operations per side and a spare register for each; this
+; needs four and none. k0-k7 are volatile under Win64, so again nothing is saved.
 ;
-; The FOLDING ITSELF IS UNCHANGED: a differing pair is still resolved through `wia_upcase`, the same
-; table the parent uses, built once from the OS so the result is bit-exact rather than an ASCII
-; approximation. This matters -- a variant that folded arithmetically would be fast and wrong above
-; U+007F, and correctness is not the axis being traded here.
+; (An earlier draft tried to keep the parent's shape and put the two compare results in xmm16/xmm17.
+; MASM rejects it, correctly: VPCMPGTW has no EVEX form that writes a vector -- the EVEX encoding
+; IS the mask-writing one, and the VEX form cannot reach xmm16-31. The instruction set was pointing
+; at the better sequence.)
 ;
-; The parent is left untouched: its numbers were taken on a machine with different push/pop and
-; AVX-transition costs, and editing it would re-attribute them.
+; EXACTNESS IS UNCHANGED. A differing block is still resolved through `wia_upcase`, the table built
+; once from the OS, so the answer is bit-exact rather than an ASCII approximation. The vectorized
+; ASCII fold runs only after `vptest` has proved every wchar in BOTH blocks is < 0x80 -- the same
+; guard the parent's 256-bit path uses -- and a pair that survives the fold as different is
+; resolved through the table, so the returned magnitude comes from the source it always did.
 ;
-; ISA: AVX2 + BMI1, same as the parent. Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) --
-; see docs/PLATFORM-i9-11900H.md.
+; The parent is left untouched: its numbers were taken on a machine with no AVX-512 at all and
+; different branch and AVX-transition costs, and they remain the record there.
 ;
-; UNICODE_STRING: Length @+0 (u16 bytes), Buffer @+8.
+; ISA: AVX2 for the parent's paths; VEX-128 plus AVX512BW+VL (mask registers k1/k2 and a
+; masked 128-bit vpsubw) for the short CI path.
+; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+;
+; UNICODE_STRING: Length @+0 (u16 BYTES), MaximumLength @+2, Buffer @+8. Length is in BYTES, so the
+; bench row labelled "8/CI" is 16 bytes -- eight wchars, exactly one 128-bit block.
 
 EXTERN wia_upcase:WORD
 
@@ -60,12 +78,12 @@ CFF80   DW      16 dup(0FF80h)
 .code
 wia_rtlcmpustr PROC
         ; ---- header read, entirely in volatile registers ------------------------------------
-        ; Nothing here may touch rbx/rsi/rdi/r12/r13: the whole point is that the short CI path
-        ; reaches its answer without ever having saved them.
+        ; Nothing here touches rbx/rsi/rdi/r12/r13: the short CI path must reach its answer without
+        ; ever having saved them.
         movzx     r9d, word ptr [rcx]              ; Length1 (bytes)
         movzx     r10d, word ptr [rdx]             ; Length2 (bytes)
         mov       r11, [rcx + 8]                   ; Buffer1
-        mov       rcx, [rdx + 8]                   ; Buffer2   (rcx is free from here)
+        mov       rcx, [rdx + 8]                   ; Buffer2   (rcx free from here)
         mov       eax, r9d
         sub       eax, r10d                        ; lenDiff = L1 - L2, the prefix-equal answer
         cmp       r9d, r10d
@@ -74,39 +92,94 @@ wia_rtlcmpustr PROC
         test      r8b, r8b
         jz        heavy                            ; case-sensitive -> the parent's path
         cmp       r9d, 32
-        jae       heavy                            ; long enough to vectorize -> the parent's path
+        jae       heavy                            ; long enough for the parent's 256-bit fold
 
-; ---------------- short, case-insensitive: the only path this variant changes ----------------
-; Live here: r11 = Buffer1, rcx = Buffer2, r9d = common bytes, eax = lenDiff, rdx = offset,
-; r8d/r10d = scratch, rbx = the upcase table base (the one register worth saving).
+; ================ short, case-insensitive: the only path this variant changes ================
+; Live: r11 = Buffer1, rcx = Buffer2, r9d = common bytes, eax = lenDiff, rdx = offset,
+;       r8d/r10d = scratch. No callee-saved register is touched unless the table is needed.
+        xor       edx, edx
+nci_blk:
+        mov       r8d, r9d
+        sub       r8d, edx
+        cmp       r8d, 16
+        jb        nci_scalar                       ; fewer than 8 wchars left
+
+        vmovdqu   xmm0, xmmword ptr [r11 + rdx]
+        vmovdqu   xmm1, xmmword ptr [rcx + rdx]
+        vpcmpeqw  xmm2, xmm0, xmm1
+        vpmovmskb r8d, xmm2
+        cmp       r8d, 0FFFFh
+        je        nci_adv                          ; identical block -> identical folds
+
+        ; The block differs. Only now does anything else get paid for.
+        vpor      xmm2, xmm0, xmm1
+        vpand     xmm2, xmm2, xmmword ptr [CFF80]
+        vptest    xmm2, xmm2
+        jnz       nci_scalar                       ; some wchar >= 0x80 -> the OS table decides
+
+        vmovdqu   xmm3, xmmword ptr [C0060]
+        vmovdqu   xmm4, xmmword ptr [C007B]
+        vmovdqu   xmm5, xmmword ptr [C0020]
+        ; AVX-512 does this in half the instructions the parent needs, because a compare writes a
+        ; MASK and the subtract can then be predicated on it -- no AND of two 128-bit compare
+        ; results, and no temporary vector register to hold them. k0-k7 are volatile under Win64.
+        vpcmpgtw  k1, xmm0, xmm3                   ; a > 0x60
+        vpcmpgtw  k2, xmm4, xmm0                   ; 0x7B > a
+        kandw     k1, k1, k2                       ; islower(a)
+        vpsubw    xmm0{k1}, xmm0, xmm5             ; fold in place, only where lower
+        vpcmpgtw  k1, xmm1, xmm3
+        vpcmpgtw  k2, xmm4, xmm1
+        kandw     k1, k1, k2                       ; islower(b)
+        vpsubw    xmm1{k1}, xmm1, xmm5
+        vpcmpeqw  k1, xmm0, xmm1                   ; 8 words -> 8 mask bits
+        kmovw     r8d, k1
+        cmp       r8d, 0FFh
+        je        nci_adv                          ; equal once folded
+        not       r8d
+        and       r8d, 0FFh
+        tzcnt     r8d, r8d                         ; index of the first differing WORD
+        lea       rdx, [rdx + r8*2]                ; -> byte offset
+        jmp       nci_diff                         ; resolve it through the OS table, as always
+nci_adv:
+        add       rdx, 16
+        jmp       nci_blk
+
+nci_diff:                                          ; rdx = offset of the differing wchar
         push      rbx
         lea       rbx, wia_upcase
-        xor       edx, edx
-cis_loop:
-        cmp       edx, r9d
-        jae       cis_done                         ; common exhausted; eax already holds lenDiff
-        movzx     r8d, word ptr [r11 + rdx]
+        movzx     r8d,  word ptr [r11 + rdx]
+        movzx     r8d,  word ptr [rbx + r8*2]
         movzx     r10d, word ptr [rcx + rdx]
-        cmp       r8d, r10d
-        je        cis_next                         ; identical raw wchars fold identically
-        ; They differ, so and only so does the fold decide the answer. Two dependent loads, once.
-        movzx     r8d, word ptr [rbx + r8*2]
+        movzx     r10d, word ptr [rbx + r10*2]
+        pop       rbx
+        mov       eax, r8d
+        sub       eax, r10d                        ; sign is the contract; magnitude unspecified
+        ret
+
+nci_scalar:                                        ; the tail, or a block containing non-ASCII
+        push      rbx
+        lea       rbx, wia_upcase
+ns_loop:
+        cmp       edx, r9d
+        jae       ns_out                           ; common exhausted; eax already holds lenDiff
+        movzx     r8d,  word ptr [r11 + rdx]
+        movzx     r8d,  word ptr [rbx + r8*2]
+        movzx     r10d, word ptr [rcx + rdx]
         movzx     r10d, word ptr [rbx + r10*2]
         cmp       r8d, r10d
-        jne       cis_sub
-cis_next:
+        jne       ns_sub
         add       edx, 2
-        jmp       cis_loop
-cis_sub:
+        jmp       ns_loop                          ; one taken branch per character, as the parent
+ns_sub:
         mov       eax, r8d
-        sub       eax, r10d                        ; sign is the contract; magnitude is unspecified
-cis_done:
+        sub       eax, r10d
+ns_out:
         pop       rbx
-        ret                                        ; no vzeroupper: no ymm was ever written
+        ret                                        ; no vzeroupper: only VEX/EVEX-128 was used
 
-; ---------------- everything below is the parent's, reached via this shim --------------------
+; ================ everything below is the parent's, reached via this shim ================
 ; The parent's body expects its own register assignment, so it is restored here rather than
-; rewritten -- the case-sensitive scan and the CI vector path are not what this variant is about.
+; rewritten -- the case-sensitive scan and the 256-bit CI fold are not what this variant is about.
 heavy:
         push      rbx
         push      rsi
