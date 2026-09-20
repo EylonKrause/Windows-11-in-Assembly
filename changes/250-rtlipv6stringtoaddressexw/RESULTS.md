@@ -1,4 +1,4 @@
-# 250 — `RtlIpv6StringToAddressExW`
+# 250 — `RtlIpv6StringToAddressExW` — **LANDED** (2.46–2.50× geomean over five runs, up to 4.96×, worst size class 1.14×)
 
 `ntdll!RtlIpv6StringToAddressExW` — **the last missing member of a sixteen-function family.**
 **LANDED — 2.46–2.50× geomean over five runs, up to 4.96×, worst size class 1.14×.**

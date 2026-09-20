@@ -1,4 +1,4 @@
-# 249 — `UrlHashA`
+# 249 — `UrlHashA` — **LANDED** (2.18–2.22× geomean over five runs, up to 2.68×, worst size class 1.42×)
 
 `shlwapi!UrlHashA`, patched at `kernelbase!UrlHashA` — **and `UrlHashW` along with it, without
 patching `UrlHashW`.**
