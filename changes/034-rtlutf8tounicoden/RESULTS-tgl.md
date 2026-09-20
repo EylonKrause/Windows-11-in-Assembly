@@ -1,13 +1,14 @@
-# 034 `RtlUTF8ToUnicodeN` — TGL variant (AVX-512 VBMI2) → **DO NOT LAND — a confirmed defect its own gate cannot see**
+# 034 `RtlUTF8ToUnicodeN` — TGL variant (AVX-512 VBMI2) → **LANDS (variant)** — 2.57× geomean
 
 **Bench:** #3, Intel Core i9-11900H (Tiger Lake-H) — [`docs/PLATFORM-i9-11900H.md`](../../docs/PLATFORM-i9-11900H.md).
 Original `impl.asm` untouched; this records `impl_tgl.asm`, built by `build_tgl.bat`.
 
-> **Status: the width-agnostic decoder WORKS, and there is a real bug in the malformed path.** Both
-> halves of that sentence are measured. It is not committed as LANDED and must not be, until the
-> defect below is fixed and `correctness.c` can see it.
+> This file previously read **DO NOT LAND — a confirmed defect its own gate cannot see**. The defect
+> was real, it is now found and fixed, and the gate that could not see it has been extended until it
+> can. The history is kept below rather than deleted, because the *reason* the corpus could not
+> express the case is the most reusable thing this change produced.
 
-## What works — and it is the thing this variant was written for
+## What it is for
 
 Change 034's own weakness is documented twice in `discovery/`: it is fast only on **homogeneous**
 UTF-8, and [`utf8_width_mixtures.c`](../../discovery/utf8_width_mixtures.c) narrowed the cause to the
@@ -25,66 +26,94 @@ change 294's and 296's lessons applied, so these are floors):
 | `2+3` Greek + punctuation | **0.29×–0.41×** | **1.47×–2.00×** |
 | `1234` all four widths | 0.39×–0.42× | **1.60×–1.91×** |
 | `rand` 32000 | 1.01× | **13.26×** |
-| geomean | 1.111× | 2.46×–2.52× |
 
-It also runs the **parent's own bench** at **3.347× with no regression**, so the original classes
-are not traded away. `vpermb` ×9, `vpcompressb` ×3, `vpmovb2m`, `kortestq` — the shuffle-table shape.
+`vpermb` ×9, `vpcompressb` ×3, `vpmovb2m`, `kortestq` — the shuffle-table shape.
 
-**[`probes/classcheck.c`](probes/classcheck.c) confirms those wins are real**: a three-way check
-against the live export over eight well-formed classes × four lengths writes a sentinel across the
-destination and compares the status, the byte count **and every output byte**. All 32 well-formed
-subjects match.
+## Five runs, after the fix
 
-## The defect
+Every run is a full `build_tgl.bat`: the strengthened corpus, then the parent's own bench, then the
+mixed-width bench.
 
-The same probe, on the bench's `bad32` class — ASCII with one malformed byte every 32, which is what
-a log file or a network buffer looks like:
+| run | correctness | parent bench | mixed-width bench | verdict |
+|---|---|---:|---:|---|
+| 1 | PASS 331916 | 3.352× | 2.572× | LANDS / LANDS |
+| 2 | PASS 331916 | 3.364× | 2.567× | LANDS / LANDS |
+| 3 | PASS 331916 | 3.379× | 2.583× | LANDS / LANDS |
+| 4 | PASS 331916 | 3.371× | 2.565× | LANDS / LANDS |
+| 5 | PASS 331916 | 3.403× | 2.590× | LANDS / LANDS |
 
+No size class regressed in any run, on either table. The parent's own `build.bat` also passes the
+strengthened corpus — **331916 cases, 3.308×** — so extending the gate cost the implementation of
+record nothing.
+
+## The defect that was found, and how
+
+`bad32` is the bench's ASCII-with-one-malformed-byte-every-32 class. Before the fix it read **~9.4 ns
+at 64, 512, 4000 and 32000 bytes alike** and was reported as **1262×**. The giveaway was not the
+size of the number but its **flatness**: ntdll's own time moved with length and ours did not, and
+9.4 ns for 32000 bytes is 3379 GB/s, which no part costs. A number that does not move with input
+size is a claim that the input was not read.
+
+[`probes/classcheck.c`](probes/classcheck.c) asked the live export and the variant the same question
+on identical input, writing a `0xAB` sentinel across the destination first and comparing the status,
+the byte count **and every output byte**. All 32 well-formed subjects matched. `bad32` at ≥512 bytes
+returned the **correct status and the correct byte count** and never wrote past wchar 88.
+
+Four more probes narrowed it, and the order matters because each one killed a hypothesis:
+
+| probe | question | answer |
+|---|---|---|
+| [`badscan.c`](probes/badscan.c) | does the stop point move with length? | no — fixed, but it moves with the *spacing* of the bad bytes (16→72, 32→88, 33→96) |
+| [`onebad.c`](probes/onebad.c) | one bad byte at offset *k* | 240 of 300 offsets fail; stop = `64 + (k & ~7)`. `0xE0`/`0xF0` clean, `0x80`/`0xC0`/`0xF5`/`0xFF` fail |
+| [`badmap.c`](probes/badmap.c) | which units are written? | the first **64** are correct, every one after is untouched; smallest failing n is **65** |
+| [`whereto.c`](probes/whereto.c) | do the missing stores land elsewhere? | **no** — 128 bytes touched, nothing outside the buffer. Not memory corruption |
+
+That left one possibility: a path advancing the output cursor without storing. Instrumenting
+`mainloop` showed the whole 100-byte subject consumed in a single step, by the 64-byte
+"ASCII with rubbish in it" block.
+
+### The cause, in one line
+
+```asm
+        mov       r11d, r13d
+        sub       r11d, r14d        ; the bytes that really remain  <-- ALL of them
+        ...
+        add       r15, r11          ; advance the cursors by r11 ...
+        add       r14, r11          ; ... but the block only converted 64 bytes
 ```
-bad32   64      live 00000107 128    | ours 00000107 128    match
-bad32   512     live 00000107 1024   | ours 00000107 1024   *** DIFFER ***
-        first differing wchar 88 of 512: live U+0069 ours U+ABAB  (ours never wrote it)
-bad32   4000    ... same, first differing wchar 88
-bad32   32000   ... same, first differing wchar 88
-```
 
-The variant returns the **correct** `STATUS_SOME_NOT_MAPPED` and the **correct** byte count — 64000
-for a 32000-byte input — and then **stops writing the destination after wchar 88**. Everything past
-that is the caller's memory, untouched.
+`r11` was the **whole remaining source length**, while the block loads, converts and stores exactly
+**64 bytes**. So it wrote 64 correct units and then claimed the entire rest of the buffer as
+finished. The returned count came out right *because it is derived from that same cursor* — the
+count and the data were wrong in the same direction, which is why status and length agreed.
 
-That is why the `bad32` row in `bench_tgl.c` reads **~9.4 ns at 64, 512, 4000 and 32000 bytes
-alike** — a flat 9.4 ns for 32000 bytes would be 3379 GB/s. The benchmark reported it as **1262×**.
-A ratio that large is not a result, it is a symptom, and the giveaway is that it does not move with
-the input size while ntdll's 12000 ns does.
+The fix clamps the block to its own width; `r11` is dead afterwards (`gen64_full` reloads it), so
+nothing else moves. **Every other cursor advance in the file was audited for the same pattern**:
+`mix16`/`mix8` advance by popcounts bounded by the block width and `gen_done` by a bit index bounded
+by 64, so this was the only instance.
 
-## Why `correctness.c` passes anyway — and this is the part worth keeping
+## Why 327758 cases could not fail
 
-**327,758 cases, 0 mismatches**, including "every malformed byte planted in each of the six runs the
-vector blocks exist for" and a no-access page guard at every length 0..64. It still cannot see this.
+Not bad luck — **structural**. Every malformed subject in the old corpus was at most 200 bytes and
+carried **one** planted byte, at `src[n/2]`. A 64-byte block is a *full* block only when 64 or more
+source bytes still remain, and with the bad byte at the midpoint of a ≤200-byte subject the decoder
+always reached the block holding it with fewer than 64 bytes left. So **every malformed byte the
+corpus ever planted was handled by a short block**, and a defect that needs a full one was
+unreachable. At n=100 with the spoil at 50, the block is entered with 52 bytes remaining.
 
-The corpus tests malformed bytes **inside short, structured subjects**. The failing shape is a
-malformed byte **recurring every 32 bytes across a long buffer**, so the first block is handled and
-the loop then loses the destination cursor. No case in the corpus is long enough *and* repeatedly
-malformed enough to express it.
+`correctness.c` now adds a seventh section: one bad byte at **every offset** of a 300-byte subject
+for each of seven malformed classes, plus recurring bad bytes at seven periods in subjects up to 800
+bytes, at full and exhausted capacity. 331916 cases.
 
-This repository has been here before, and named it: change **288** found a mutant that survived
-because "the gate helper derives the destination from `cchDest`, and so could only ever pair NULL
-with 0 — **a corpus that could not express the case**". The same sentence applies.
+**The gate was verified against the bug, not just against the fix** — the same discipline change 288
+used. The old implementation was rebuilt and run under the new corpus: it **fails**, exit 1, in the
+n=300 sweep, with `ntdll st=107 l=600 / ours st=107 l=600` and differing bytes. A gate that has not
+been shown to fail on the defect it was written for has not been tested.
 
-`probes/classcheck.c` exists so the next attempt starts with a check that *can* express it.
+This is change 288's lesson a second time: *a corpus that cannot express a case cannot fail on it,
+and passing it proves only its own reach.*
 
-## What has to happen before this lands
+## Also on record
 
-1. Fix the destination cursor on the malformed path past the first block.
-2. **Extend `correctness.c`** with long, repeatedly-malformed subjects — at minimum the `bad32`
-   shape at 512, 4000 and 32000 bytes — so the gate can fail on this class.
-3. Re-measure, five runs, and confirm `bad32` becomes proportional to length rather than flat.
-
-Until then the earlier state of this file — before the malformed path was touched — is the honest
-comparison point: it measured `bad32 64` at **0.41×** and was slow but not wrong.
-
-## What it would unlock
-
-Change **290** (`kernelbase!MultiByteToWideChar`, 211 desktop modules) is PARKED solely because it
-inherits 034's mixed-width behaviour. The well-formed numbers above are exactly the ones that would
-unpark it, so finishing this is worth more than the next tier of the fan-in list.
+`bad32` after the fix is **proportional to length** — 9.2 / 38 / 260 / 2080 ns at 64 / 512 / 4000 /
+32000 — instead of flat. That is the check that the win is a conversion and not a skipped one.

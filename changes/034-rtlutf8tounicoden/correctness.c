@@ -20,6 +20,22 @@
  *   5. the boundary leads the blocks deliberately do NOT take: 0xE0, 0xED, 0xF0 with a second byte
  *      below 0x90, and 0xF4, each of which must fall through to the scalar path and still be exact;
  *   6. the assembler-generated compaction table, checked against the same rule written in C.
+ *   7. LONG subjects with malformed bytes in them -- added 2026-09-20, and the reason is below.
+ *
+ * WHAT (1) TO (6) COULD NOT EXPRESS, and why a variant passed all 327758 of them while being
+ * wrong. Every malformed subject above is at most 200 bytes and carries ONE planted byte, at
+ * src[n/2]. A 64-byte block is a FULL block only when at least 64 source bytes still remain when
+ * it is entered -- and with the spoil byte at the midpoint of a <=200-byte subject, the decoder
+ * always reaches the block holding it with fewer than 64 bytes left. So every malformed byte this
+ * corpus ever planted was handled by a SHORT block, and a defect that needs a full one was
+ * structurally unreachable: this change's TGL variant advanced both cursors by the whole
+ * remaining length instead of by 64, wrote the first 64 units correctly, silently skipped the
+ * rest, and still returned the right count because the count is derived from that same cursor.
+ *
+ * The shape that catches it is a malformed byte with a LONG remainder after it. Section 7 sweeps
+ * one bad byte across every offset of a 300-byte subject and plants recurring bad bytes at seven
+ * periods in subjects up to 800 bytes. This is change 288's lesson again: a corpus that cannot
+ * express a case cannot fail on it, and passing it proves only its own reach.
  *
  * AND NOTHING MAY BE WRITTEN AT OR PAST THE CAPACITY. The old comparison stopped at
  * min(len, dstBytes) and the destination was a fixed array, so an implementation that wrote past
@@ -192,6 +208,47 @@ int main(void){
                cases-before);
     }
 
+    /* LONG SUBJECTS WITH MALFORMED BYTES -- the shape sections 2 to 5 cannot express.
+     *
+     * A block is a FULL 64-byte block only when 64 or more source bytes still remain. Above, the
+     * one planted byte always sits at the midpoint of a subject of at most 200 bytes, so the block
+     * that meets it always has a short remainder. Here the bad byte is early and the remainder is
+     * long, which is the only way to reach a full block's malformed path. */
+    {
+        long before=cases;
+        static unsigned char lsrc[900];
+        static const unsigned char SPOIL[7]={0x80,0x9F,0xBF,0xC0,0xC1,0xF5,0xFF};
+        static const int PERIOD[7]={16,32,33,64,65,97,128};
+        static const int LEN[7]={65,100,128,200,300,512,800};
+        int sp,pi,li,k,kd;
+
+        /* one bad byte at EVERY offset of a 300-byte subject, for each malformed class */
+        for(sp=0;sp<7 && failures<10;sp++){
+            for(k=0;k<300;k++){
+                build(0,lsrc,300);
+                lsrc[k]=SPOIL[sp];
+                one(sys,lsrc,300,1800);
+            }
+        }
+        /* recurring bad bytes, seven periods, seven lengths, over three base runs */
+        for(kd=0;kd<3 && failures<10;kd++){
+            int kind = kd==0?0:(kd==1?1:4);
+            for(sp=0;sp<7;sp++){
+                for(pi=0;pi<7;pi++){
+                    for(li=0;li<7;li++){
+                        int n2=LEN[li];
+                        build(kind,lsrc,n2);
+                        for(k=PERIOD[pi]-1;k<n2;k+=PERIOD[pi]) lsrc[k]=SPOIL[sp];
+                        one(sys,lsrc,n2,1800);
+                        one(sys,lsrc,n2,(ULONG)n2);          /* and with the room exhausted */
+                    }
+                }
+            }
+        }
+        printf("  LONG subjects with malformed bytes -- one at every offset of 300, and recurring\n"
+               "      at seven periods in lengths to 800: %ld cases\n", cases-before);
+    }
+
     /* THE SOURCE AT THE END OF A PAGE: no block may read past the bytes it was given.
      *
      * A vector block reads more than it consumes -- the three-byte block reads 28 bytes to consume
@@ -239,7 +296,8 @@ int main(void){
 
     if(!failures) printf("CORRECTNESS: PASS (UTF-8 decode, %ld cases: the random fuzz, the six runs the\n"
                          "vector blocks exist for at every length and capacity, every malformed byte\n"
-                         "planted in each of them, the declined boundary leads, and the compaction table)\n", cases);
+                         "planted in each of them, the declined boundary leads, the long\n"
+                         "malformed subjects, and the compaction table)\n", cases);
     else printf("CORRECTNESS: FAIL (%d)\n",failures);
     return failures?1:0;
 }

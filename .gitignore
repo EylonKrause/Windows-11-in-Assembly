@@ -28,3 +28,5 @@ revalidation/
 # audit build artifacts
 audits/*/*.obj
 audits/*/*.exe
+
+tools/__pycache__/

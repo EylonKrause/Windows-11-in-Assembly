@@ -653,11 +653,21 @@ gen64_load:
         ; COUNT the padding, which is what the two masks below are for.
         ; -----------------------------------------------------------------------------------------
         mov       r11d, r13d
-        sub       r11d, r14d                        ; the bytes that really exist
+        sub       r11d, r14d                        ; the bytes that really remain
         mov       rdx, -1
         cmp       r11d, 64
-        jae       gen64_wide
-        bzhi      rdx, rdx, r11
+        jb        gen64_part
+        ; A FULL BLOCK IS SIXTY-FOUR BYTES, however many remain. r11 is both the width of the
+        ; masked store below and the amount the two cursors advance by at the end, so leaving it
+        ; at the whole remaining length made this block convert 64 bytes and then claim the
+        ; ENTIRE REST OF THE BUFFER as finished: the first 64 units were written and correct, the
+        ; source cursor jumped to the end, and the returned count came out right by accident
+        ; because it is derived from that same cursor. probes/onebad.c pins it -- one byte the
+        ; blocks cannot decode anywhere in the first 64, and every unit from 64 on is unwritten.
+        mov       r11d, 64
+        jmp       gen64_wide
+gen64_part:
+        bzhi      rdx, rdx, r11                     ; a short block: only these bytes exist
 gen64_wide:
         kmovq     k1, rdx
         kmovq     k0, rdx                           ; kept here: every GPR below is spoken for
