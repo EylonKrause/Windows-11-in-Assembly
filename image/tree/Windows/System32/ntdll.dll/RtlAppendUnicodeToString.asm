@@ -97,6 +97,19 @@ have_len:
         sub       r9d, eax                           ; room = MaximumLength - newlen
         mov       word ptr [rbx], ax                 ; dest->Length = newlen
         mov       rdi, qword ptr [rbx + 8]
+        ; AN ODD Length APPENDS AT A CHARACTER BOUNDARY, NOT AT THE BYTE.
+        ;
+        ; A UNICODE_STRING Length is in bytes and is even for any well-formed string, but the
+        ; shipped export has a definite answer when it is not, and it is not this one: with
+        ; Length = 1 and a source of "a", ntdll leaves 61 00 00 00 -- it appends at byte 0 -- while
+        ; appending at byte `Length` leaves 9A 61 00 00 00, one byte along. The resulting Length is
+        ; the same either way (1 + 2 = 3, computed from the ORIGINAL odd value above), so only the
+        ; destination bytes differ, and only a whole-destination comparison can see it: live
+        ; substitution found it on 1201 of 20000 cases and probes/oddlen.c on 8255 of 153856.
+        ;
+        ; The write position is therefore truncated to a character while the length arithmetic is
+        ; left alone. For an even Length -- every well-formed caller -- this changes nothing.
+        and       edx, -2
         add       rdi, rdx                           ; dest ptr = Buffer + old Length
         mov       ecx, r8d                            ; bytes to copy
 copy16:

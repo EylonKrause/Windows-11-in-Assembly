@@ -582,3 +582,48 @@ sign-extends anyway produces a plausible wrong answer.
 Nothing is printed while the patch is on, for the same reason as the string primitives: the CRT's
 own `printf` formats integers, and these are the integer formatters.
 
+## Seven more ntdll routines (094/095/096/098/026/051/101) — added 2026-09-20, and it found a third defect
+
+`build_rtlinit_live.bat` / [`live_subst_rtlinit.c`](live_subst_rtlinit.c).
+
+**`RtlAppendUnicodeToString` with an ODD `Length` appends at a character boundary, not at the byte.**
+With `Length = 1` and a source of `"a"`, ntdll leaves `61 00 00 00` — it appends at byte 0 — where
+change 101 left `9A 61 00 00 00`, one byte along. The resulting `Length` is 3 either way, computed
+from the original odd value, so **the status and the length agreed and only the bytes differed**:
+1201 of 20000 cases here, and 8255 of 153856 in
+[`probes/oddlen.c`](../changes/101-rtlappendunicodetostring/probes/oddlen.c), which sweeps every
+`Length` from 0 to 255 against every source length to 600.
+
+An odd `Length` is malformed input no conforming caller produces — but the shipped export has a
+definite answer for it, and matching costs one `and edx, -2` that changes nothing for an even
+length. After the fix: **0 of 153856 in the probe, 0 of 20000 here.**
+
+```
+  [patched]    20000 cases, 0 differ (every descriptor FIELD, every status, and the
+               whole 512-byte append buffer)
+               RtlInitUnicodeString       fields differ 0   padding-only 20000
+               RtlInitString              fields differ 0   padding-only 20000
+               RtlInitUnicodeStringEx     fields differ 0   padding-only 20000
+               RtlInitStringEx            fields differ 0   padding-only 20000
+               RtlCompareMemoryUlong      fields differ 0   padding-only     0
+               RtlFindCharInUnicodeString fields differ 0   padding-only     0
+               RtlAppendUnicodeToString   fields differ 0   padding-only     0
+  [post]       20000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+**The padding column is reported and deliberately not failed.** A `UNICODE_STRING` is sixteen bytes
+with four of padding between `MaximumLength` and `Buffer`; ntdll stores all sixteen at once and so
+zeroes it, while these implementations write the three fields and leave it. That is a genuine
+difference and it is printed on every run — but unlike the terminator findings in 059/061/063/064,
+which were bytes of a **character array a caller can legitimately read**, no field names this padding
+and C leaves its value indeterminate. Matching it would cost a store on every call to buy agreement
+no conforming caller can observe.
+
+**Two harness bugs were fixed before this result could be trusted**, and both were caught by the
+same check: the **post-restore pass differing from the pre-patch pass**, which is impossible if the
+harness is measuring the subject. It was comparing `appd.Buffer`, which this harness points at its
+own per-pass answer array, and it was `memcmp`-ing whole descriptors, which conflates a wrong
+`Length` with untouched padding. A harness that disagrees with itself across a restore is measuring
+itself.
+
