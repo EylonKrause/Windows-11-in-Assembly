@@ -173,11 +173,11 @@ the real `ucrtbase.dll` exports in a running process so calls to them execute ou
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
 cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap.
 
-### The 2026-09-20 coverage push — eight new harnesses, and **five defects in sixteen landed changes**
+### The 2026-09-20 coverage push — twelve new harnesses, and **seven defects in twenty-two landed changes**
 
 An audit found that only **135 of the 270 LANDED changes** had their export hot-patched anywhere.
-Eight new harnesses closed most of that gap, and every one of them compares the **whole
-destination** rather than the answer. Five of them found something:
+Twelve new harnesses took that past **215**, and every one of them compares the **whole destination**
+rather than the answer. Seven of them found something:
 
 | what was wrong | changes | why no per-change gate could see it |
 |---|---|---|
@@ -186,10 +186,25 @@ destination** rather than the answer. Five of them found something:
 | `RtlAppendUnicodeToString` with an **odd `Length`** appends at a *character* boundary, not the byte | 101 | same status, same resulting `Length`; 8255 of 153856 in the follow-up probe |
 | `strncat_s`/`wcsncat_s` with a **NULL source and `count == 0`** still validate the destination | 156, 157 | needed an installed invalid-parameter handler to observe at all |
 | `CryptBinaryToString{A,W}` set **`ERROR_INVALID_PARAMETER` when `cb == 0`** | 081, 083, 085, 087, 090, 091, 092, 093 | return value, both sizes and every byte matched — only `GetLastError` differed |
+| `RtlEthernetStringToAddress{A,W}` write **nothing on a failed parse** — we wrote the groups already read | 119, 120 | status and terminator were right; our partial result reached the caller's buffer |
+| the `strtoX` family treat an **invalid base** as a reported error (`EINVAL` + an invalid-parameter report), not a failed parse | 110, 111, 112, 113 | value and endptr agreed; only `errno` and the handler count differed — and without an installed handler an invalid base *terminates the process* |
 
 Every one of those gates was **correct about everything it compared**. That is the whole argument
 for this directory: a per-change gate checks the answer, and a live gate checks what the caller's
 memory looks like afterwards.
+
+**One finding is deliberately left open**, counted apart from its verdict and printed on every run:
+on a *failed* parse the IPv6 entries (121/122) leave the caller's buffer untouched where ntdll
+writes partial data — 13822 of 40000 calls, with the status and the terminator agreeing. That is the
+*safe* direction, and matching it means reproducing ntdll's abandonment behaviour across a grammar
+with compression, embedded IPv4, scope ids and ports. The counter drops to zero when somebody gets
+it right.
+
+Two harnesses also **declined to answer questions the implementations decline to answer**: the
+crypt32 decoders state that malformed input is out of scope, so their 688-of-1200 damaged-case
+divergence is measured and printed rather than failed, and the `CryptBinaryToString` dispatcher's
+first draft claimed `CRYPT_STRING_NOCRLF` coverage for two formats that never documented it.
+
 
 Two of the harnesses also had to be fixed before their results could be trusted, and the same check
 caught both — **the post-restore pass differing from the pre-patch pass**, which is impossible if
