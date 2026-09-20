@@ -5,6 +5,40 @@ Windows 11 install runs hot, each **bit-exact / behavior-identical to the live s
 **faster on this machine**, proven change-by-change. See `README.md` for the method and `docs/` for the
 platform capture and gates.
 
+## Re-proved on three machines
+
+Every geomean below was measured on bench #1 (Ryzen 9 5950X, Zen 3). The other two benches re-run the
+same gates against their own live exports, which is the only way to tell a real contract from one that
+happened to hold on one build of one binary.
+
+| bench | machine | Windows | result |
+|---|---|---|---|
+| #1 | Ryzen 9 5950X (Zen 3) | 26200.8655 | the numbers in this file |
+| #2 | Ryzen 9 8940HX (Zen 4) | 26200.9445 | 165/165 correct — [`RESULTS-2ND-PC.md`](RESULTS-2ND-PC.md) |
+| #3 | **Intel i9-11900H (Tiger Lake-H)** | **26200.9457** | **288 swept, 0 correctness failures** — [`RESULTS-3RD-PC.md`](RESULTS-3RD-PC.md) |
+
+Bench #3 is the first **Intel** machine and the first with **AVX-512, GFNI and VBMI2**. It also runs the
+newest Windows of the three: `ntdll` 10.0.26100.9278, `ucrtbase` …9444 and `kernelbase` …9278 are all
+serviced past what bench #1 disassembled. Because every `correctness.c` resolves its comparand through
+`GetProcAddress` against the **live** export, that sweep is not a replay — it re-proves each contract
+against newer Windows code than it was written for.
+
+**Zero correctness failures across all 288.** The IPv6 grammar, the UTF-8 maximal-subpart rule, the
+CRC-64 polynomial, the four distinct MAX_PATH behaviours, the three different `_s` error shapes — every
+reverse-engineered contract still reproduces the live export bit-exactly on a different
+microarchitecture and a newer OS. None of the RE work turned out to be build-specific.
+
+Eight changes fail the **speed** gate there, all on one size class, and none is edited: each carries an
+`impl_tgl.asm` + `build_tgl.bat` + `RESULTS-tgl.md` alongside the original, built against that change's
+unmodified oracle and gates. Two results from that pass are worth repeating here:
+
+* **`RtlNumberOfSetBits` goes from 0.74× to 9.13× at 1 Mb** (geomean 1.21× → 5.34×). `vpopcntq` counts
+  512 bits per instruction where `POPCNT` does 64, and ntdll *cannot* use it — one binary ships to every
+  x86-64 Windows machine and most have no AVX-512. That asymmetry is the whole win.
+* **`RtlAppendUnicodeStringToString` is PROMOTED**: PARKED on Zen 3 as "ntdll already optimal", it lands
+  at 1.48× here. A routine can be not-worth-replacing on one microarchitecture and replaceable on
+  another, and only running both finds it.
+
 ## What was optimized, and how much
 
 Every "landed" change beats the shipped `ntdll.dll` / `ucrtbase.dll` function on **every** benchmarked size
