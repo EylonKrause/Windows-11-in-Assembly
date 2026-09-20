@@ -117,3 +117,28 @@ and passing it proves only its own reach.*
 
 `bad32` after the fix is **proportional to length** — 9.2 / 38 / 260 / 2080 ns at 64 / 512 / 4000 /
 32000 — instead of flat. That is the check that the win is a conversion and not a skipped one.
+
+## Gate 4 — proved live, with the malformed path actually exercised
+
+[`live-substitution/build_u8str_tgl_live.bat`](../../live-substitution/build_u8str_tgl_live.bat) is
+`build_u8str_live.bat` with one line changed, `impl.asm` → `impl_tgl.asm`. That harness patches
+change 268's wrappers over the live `ntdll` exports, and those wrappers **call this decoder**, so
+what converts the bytes inside the patched export is the variant.
+
+```
+[pre-patch]  40000 cases recorded from the SHIPPED exports;  SUCCESS 13541,
+             BUFFER_TOO_SMALL 10437, BUFFER_OVERFLOW 14510, SOME_NOT_MAPPED 1512,
+             and 4445 of them took the ALLOCATING path
+[patched]    40000 cases, 0 differ (status, Length, MaximumLength and the WHOLE
+             destination);  our-code calls = 20002 + 19998
+[post]       40000 cases through the RESTORED exports, 0 differ;  our-code calls = 0
+LIVE SUBSTITUTION: PASS
+```
+
+**`SOME_NOT_MAPPED 1512` is the line to read.** That status is returned precisely when a byte was
+malformed and substituted — the path this variant was silently wrong on — so this is not a run that
+merely avoided the defect. The comparison covers the whole destination buffer, not just the produced
+length, which is what would have caught the original bug had it still been there.
+
+`our-code calls = 0` after the restore proves the prologues really were put back, and every
+allocated block was freed by the **unpatched** `RtlFreeUTF8String`.
