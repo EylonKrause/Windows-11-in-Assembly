@@ -8,7 +8,7 @@
 ; The copying core of kernelbase!lstrcpyW. The NULL checks and the __try/__except that turns an
 ; access violation into NULL live in seh.c, for the reasons given there.
 ;
-; WHY THIS TARGET. discovery/kernelbase_str.c:
+; Why this target. discovery/kernelbase_str.c:
 ;
 ;     lstrcpyA  4000 bytes   1600.61 ns    2.50 bytes/ns   <- a byte loop   (change 227 -> 90 B/ns)
 ;     lstrcpyW  4000 wchars   799.57 ns   10.01 bytes/ns   <- 16-byte SSE2
@@ -22,15 +22,15 @@
 ; CONTRACT, measured in probes/cpyw.c against the live export. Nothing is inherited from change 227
 ; even though the narrow form is the same function on half-width elements:
 ;
-;   * it returns the DESTINATION; the destination is TERMINATED, NOT PADDED;
-;   * a NULL source returns NULL and LEAVES THE DESTINATION ALONE; a NULL destination returns NULL;
+;   * it returns the destination; the destination is terminated, not padded;
+;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL;
 ;   * an unterminated source at a NOACCESS page RETURNS NULL rather than faulting, 80 of 80, with
-;     EXACTLY the readable prefix transferred;
-;   * a destination too small ALSO returns NULL rather than faulting, 80 of 80, filled EXACTLY to
+;     exactly the readable prefix transferred;
+;   * a destination too small ALSO returns NULL rather than faulting, 80 of 80, filled exactly to
 ;     its last writable character;
 ;   * element-wise: all 65535 non-zero code unit values copied verbatim, surrogates included.
 ;
-; THE SPLIT CHARACTER -- the question the narrow form could not ask, and the one that shapes this
+; The split character -- the question the narrow form could not ask, and the one that shapes this
 ; code. If a destination has an ODD number of writable bytes, the last character cannot be stored
 ; whole. probes/cpyw.c measured it at every odd width from 1 to 11 bytes:
 ;
@@ -39,8 +39,8 @@
 ;     5 writable bytes -> returns NULL,  4 bytes modified
 ;     ...
 ;
-; WHOLE CHARACTERS ONLY. It never leaves half a character behind. So the page clamp is computed in
-; bytes and then ROUNDED DOWN TO AN EVEN COUNT -- `and r9d, -2` -- which is the one line that makes
+; Whole characters only. It never leaves half a character behind. So the page clamp is computed in
+; bytes and then rounded down to an even count -- `and r9d, -2` -- which is the one line that makes
 ; an odd-aligned destination behave. Without it a byte-granular tail would write one byte into the
 ; last character and the buffer would differ from the shipped function's.
 ;
@@ -118,7 +118,7 @@ cp_try32:
         add       rcx, 32
         jmp       cp_loop
 
-        ; ---- the last 1..16 characters, terminator included. EXACTLY that many: the destination is
+        ; ---- the last 1..16 characters, terminator included. exactly that many: the destination is
         ;      terminated, not padded. eax holds the WORD-compare mask for the 32 bytes at [rdx], in
         ;      which each matching character contributes TWO set bits, so tzcnt already gives a BYTE
         ;      offset and the count below is in bytes throughout.

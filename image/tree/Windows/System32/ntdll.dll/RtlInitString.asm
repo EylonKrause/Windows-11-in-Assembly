@@ -11,7 +11,7 @@
 ; RtlInitUnicodeString (094) it is called constantly and ntdll's version makes a real `call`
 ; into strlen. We inline the page-safe AVX2 strlen (change 032) so there is no call and the
 ; scan is 64 bytes/iteration, then fill the struct with ntdll's 0xFFFF clamp. STRING =
-; {USHORT Length; USHORT MaximumLength; PCHAR Buffer@+8}. ISA: AVX2 + BMI1. Bit-exact vs live.
+; {Ushort Length; ushort MaximumLength; pchar Buffer@+8}. Isa: AVX2 + BMI1. Bit-exact vs live.
 
 .code
 wia_rtlinitstr PROC

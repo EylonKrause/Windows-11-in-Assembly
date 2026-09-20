@@ -19,9 +19,9 @@
 ;      result: a 260-character path fails even when the new extension would SHORTEN it to 252;
 ;   4. the extension contains a space, a backslash, or a dot anywhere but position 0
 ;                                      -> E_INVALIDARG, buffer untouched. A full 65536-character
-;      sweep says those are the ONLY three rejected: '/' is allowed, so ".a/b" succeeds;
+;      sweep says those are the only three rejected: '/' is allowed, so ".a/b" succeeds;
 ;   4b. the extension BODY -- what follows the one permitted leading dot -- is longer than 255
-;      characters                      -> E_INVALIDARG, buffer untouched. This beats BOTH size
+;      characters                      -> E_INVALIDARG, buffer untouched. This beats both size
 ;      failures below: a 257-character extension with cch at its minimum still answers 80070057.
 ;      With a leading dot the boundary is a total of 257, without one 256; both are a body of 256,
 ;      so it is the body that is limited. It moves with neither the path length nor cch.
@@ -54,7 +54,7 @@
 ; so one pass answers both "how long is it" and "is it legal".
 ;
 ;
-; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
@@ -203,7 +203,7 @@ pc_eblock:
         add       rcx, r11                          ; total byte length of the extension body
         shr       rcx, 1
         mov       r14, rcx                          ; extension body length, in characters
-        ; THE EXTENSION HAS A LENGTH LIMIT OF ITS OWN: the body -- what is left after the one
+        ; The extension has a length limit of its own: the body -- what is left after the one
         ; permitted leading dot -- may be at most 255 characters. 256 or more is E_INVALIDARG, and
         ; it BEATS both size failures: probes/extlen2.c drives a 257-character extension with cch
         ; at its minimum and still gets 80070057 rather than 8007007A.
@@ -302,7 +302,7 @@ pc_xhave:
         mov       r11, rax                          ; pos
 
         ; ---- 4. build the result ---------------------------------------------------------------
-        ; TWO SIZE LIMITS BIND HERE, NOT ONE, and which of them binds decides the returned code.
+        ; Two size limits bind here, not one, and which of them binds decides the returned code.
         ; This used to compute avail from cch alone and always report STRSAFE_E_INSUFFICIENT_BUFFER,
         ; which is right only when cch is the smaller of the two. The real limit is
         ;

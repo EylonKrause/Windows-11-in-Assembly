@@ -29,7 +29,7 @@ So the tables apply unchanged, the export is symmetric, and **a multi-member set
 of its members' rows** — which matters, because with an intransitive relation there are no equivalence
 classes to collapse and that union is all there is.
 
-**The contradiction was mine.** `n[0x200B]` is **0**: the ZERO WIDTH SPACE matches only itself and is
+**The contradiction was mine.** `n[0x200B]` is **0**: the zero width space matches only itself and is
 not one of the 3,237 ignorables at all, while `match(0x00AD, 0x034F)` is 1. Two landed changes had a
 corpus filler built on that wrong belief and were quietly testing the empty case; both are fixed in
 `af5ba7a`.

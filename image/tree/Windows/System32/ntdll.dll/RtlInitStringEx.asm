@@ -9,7 +9,7 @@
 ; if strlen(src) > 0xFFFE bytes returns STATUS_NAME_TOO_LONG (0xC0000106) leaving
 ; Length=MaximumLength=0 (no clamp), else Length = strlen, MaximumLength = Length + 1,
 ; STATUS_SUCCESS. src==NULL -> zeroed, STATUS_SUCCESS. Same inline page-safe AVX2 strlen
-; (change 032, no `call`) as 095. STRING = {USHORT Length; USHORT MaximumLength; PCHAR
+; (change 032, no `call`) as 095. String = {ushort Length; ushort MaximumLength; pchar
 ; Buffer@+8}. ISA: AVX2 + BMI1. Bit-exact vs live.
 
 .code

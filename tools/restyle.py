@@ -45,6 +45,16 @@ KEEP = {
     "VEX", "VEX-128", "SWAR", "PCLMUL", "VPCLMULQDQ", "QPC", "TSC", "WRP", "MASM", "SEH",
     "NOACCESS", "S_OK", "S_FALSE", "E_INVALIDARG", "TRUE", "FALSE", "NULL",
     "GB", "KB", "MB", "RAM", "L1", "L2", "L3", "I",
+    # Verdicts. Tools parse these: image/materialize.py looks for "LANDED" in a README
+    # table cell, tools/live-coverage.py for LANDS/PARKED in a RESULTS.md title, and
+    # tools/revalidate-variants.ps1 for LANDS in a variant's title. A pass that lowered
+    # them cost the image tree 143 files.
+    "LANDED", "LANDS", "PARKED", "WITHDRAWN", "SUPERSEDED", "PASS", "FAIL", "BETTER",
+    "WORSE", "REGRESSED", "UNPROVEN", "TODO", "FIXME",
+    # ISA and hardware names, which are not words.
+    "ISA", "FMA", "ADX", "SHA-NI", "SHA", "SSE4.2", "AVX-512", "CLMUL", "MMX", "RDTSC",
+    "SMT", "NUMA", "SKU", "UEFI", "WIN64", "X64", "ARM64", "IEEE", "UTC", "BOM",
+    "FILETIME", "SYSTEMTIME", "HVCI", "VBS",
 }
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_.\-']*")
 INLINE_CODE = re.compile(r"`[^`]*`")
@@ -56,14 +66,14 @@ SHOUT_RE = re.compile(r"(?<![A-Za-z0-9_])(" + "|".join(SHOUT_WORDS) + r")(?![A-Z
 
 
 def is_shouted(tok):
-    core = tok.strip(".,:;()'`\"?!-")
+    core = tok.strip("*~.,:;()'`\"?!-")
     if len(core) < 2 or not any(c.isalpha() for c in core):
         return False
     return core.upper() == core and core not in KEEP
 
 
 def lower_tok(tok):
-    core = tok.strip(".,:;()'`\"?!")
+    core = tok.strip("*~.,:;()'`\"?!")
     if core in KEEP or "_" in core:
         return tok
     return tok.lower()
@@ -71,7 +81,7 @@ def lower_tok(tok):
 
 def classify(tok):
     """SHOUT = a shouted word. Anything with a digit or an underscore is a name."""
-    core = tok.strip(".,:;()'`\"?!-[]")
+    core = tok.strip("*~.,:;()'`\"?!-[]")
     if not core or core in KEEP:
         return "OTHER"
     if "_" in core or any(c.isdigit() for c in core):
@@ -99,7 +109,7 @@ def fix_runs(line):
     def low(tok, kind):
         if kind == "SHOUT":
             return tok.lower()
-        if tok.strip(".,:;()'`\"?!-[]") == "A":
+        if tok.strip("*~.,:;()'`\"?!-[]") == "A":
             return tok.lower()
         return tok
     out = [low(p, k) for p, k in zip(parts, kinds)]
@@ -152,7 +162,12 @@ def restyle_text(text, ext):
                 in_fence = not in_fence
                 out.append(line)
                 continue
-            editable = not in_fence and not line.startswith("    ") and not line.startswith("\t")
+            # A table row is structured data, not prose: image/materialize.py reads
+            # "LANDED" out of a README cell and lost 143 tree files when a pass lowered
+            # it. Leave rows, indented blocks and fenced blocks alone.
+            stripped = line.lstrip()
+            editable = (not in_fence and not line.startswith("    ")
+                        and not line.startswith("\t") and not stripped.startswith("|"))
         else:
             editable = is_comment_line(line, ext)
         if not editable:

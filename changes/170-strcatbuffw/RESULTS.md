@@ -24,7 +24,7 @@ shares change 168's fused copy verbatim. Confirmed against the live export on th
 
 Two points worth keeping:
 
-* **`cchDestBuffSize` is the size of the WHOLE buffer, not the room remaining** — `StrCatBuffW(d,
+* **`cchDestBuffSize` is the size of the whole buffer, not the room remaining** — `StrCatBuffW(d,
   L"de", 6)` on `d = "abc"` yields `"abcde"` exactly filling 5 chars + NUL.
 * **The no-room case writes nothing at all.** With `dst = "abcdef"` and a bound of 4 — already below
   `wcslen(dst)` — the buffer is untouched; it is *not* truncated to the bound. The subtraction is

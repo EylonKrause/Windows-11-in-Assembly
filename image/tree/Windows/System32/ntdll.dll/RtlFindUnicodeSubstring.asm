@@ -12,8 +12,8 @@
 ; margin -- 6.0 and 9.4 MICROSECONDS to scan a 4000-character string for an eight-character needle
 ; that is not there.
 ;
-; THE SHIPPED CODE IS A NAIVE O(n*m) SCAN, and in the case-insensitive path it makes TWO FUNCTION
-; CALLS PER CHARACTER COMPARISON:
+; The shipped code is a naive O(n*m) scan, and in the case-insensitive path it makes two function
+; Calls per character comparison:
 ;
 ;     00049938  movzx edx, word ptr [r10]            the needle character
 ;     0004993C  cmp word ptr [r14 + r10], dx         raw compare first
@@ -25,7 +25,7 @@
 ;     00049964  cmp ax, r9w
 ;     0004996F  add rbx, 2 / jmp                     mismatch -> shift the window by ONE character
 ;
-; THE GO/NO-GO WAS THE FOLD, and it is the same question that decided change 167. A table pointer in
+; The go/no-go was the fold, and it is the same question that decided change 167. a table pointer in
 ; rcx with a helper called on it is the shape of RtlUpcaseUnicodeChar; `call qword ptr [rax+0xF0]`
 ; would be the NLS sort machinery, which is why StrCmpLogicalW, StrChrIW and StrStrIW are all out of
 ; reach. Shape is evidence, not proof, so probes/gonogo.c asked the export over ALL 65535 code units:
@@ -44,9 +44,9 @@
 ;     does not match, and nothing is read past Length.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW THIS SEARCHES -- the two-anchor block filter. Compare sixteen haystack positions against the
+; How this searches -- the two-anchor block filter. Compare sixteen haystack positions against the
 ; needle's FIRST character and, in the same iteration, the sixteen positions m-1 further along
-; against its LAST. Only where BOTH agree can a match begin, and in ordinary text that is a handful
+; against its LAST. Only where both agree can a match begin, and in ordinary text that is a handful
 ; of positions per block instead of all sixteen. Every load is inside the counted buffer BY
 ; CONSTRUCTION: the vector loop runs only while i+15 <= n-m, which places the far anchor's last read
 ; at index (n-m)+(m-1) = n-1 exactly. So there is no page-safety clamp anywhere in the loop and none
@@ -55,22 +55,22 @@
 ; page butted against the end of the haystack, so an over-read of even one character faults.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE CASE-INSENSITIVE FILTER IS EXACT, AND THE FIRST VERSION OF IT WAS NOT. This is the part of the
+; The case-insensitive filter is exact, and the first version of it was not. This is the part of the
 ; change worth reading, because the first formulation was correct, shipped every gate, and was still
 ; wrong in a way only the benchmark could show.
 ;
-; THE FIRST VERSION folded the haystack block to ASCII upper case and compared it against the folded
+; The first version folded the haystack block to ASCII upper case and compared it against the folded
 ; anchor, then OR-ed in the clause "a non-ASCII haystack unit is always a candidate". That clause is
 ; unavoidable for an ASCII fold: no amount of arithmetic brings U+00E0 and U+00C0 together without
 ; also merging units that must stay apart. The filter was therefore a SUPERSET -- correct, since the
 ; scalar verifier settles every candidate exactly -- and it measured:
 ;
 ; (CORRECTION, 2026-09-16, found while probing kernelbase!FindStringOrdinal for change 254: an
-; earlier version of this comment justified the non-ASCII clause with U+017F LATIN SMALL LETTER
+; earlier version of this comment justified the non-ASCII clause with U+017F latin small letter
 ; LONG S, claiming it ordinally upcases to the ASCII 'S' and so proves a non-ASCII unit can match an
-; ASCII anchor. THAT IS WRONG. RtlUpcaseUnicodeChar(U+017F) = U+017F. The NT ordinal table is
+; ASCII anchor. That is wrong. RtlUpcaseUnicodeChar(U+017F) = U+017F. The nt ordinal table is
 ; considerably NARROWER than Unicode's full case folding -- U+017F, U+0130, U+0131, U+00DF and
-; U+00B5 all map to themselves, and NOTHING in 0x80..0xBF folds at all -- so no non-ASCII unit
+; U+00B5 all map to themselves, and nothing in 0x80..0xBF folds at all -- so no non-ASCII unit
 ; upcases into ASCII and that particular argument never held. The non-ASCII clause was still
 ; REQUIRED, for the reason stated above and now standing alone: an ASCII fold cannot bring U+00E0
 ; and U+00C0 together. Nothing in the shipped code changes, because the version that shipped does
@@ -84,12 +84,12 @@
 ; world's text -- and on it the filter admitted every one of the 4000 positions and handed all of
 ; them to the scalar verifier. A filter that degrades to "yes" on entire scripts is not a filter.
 ;
-; THE SECOND VERSION STOPS FOLDING THE HAYSTACK AND ENUMERATES THE NEEDLE INSTEAD. The test wanted
+; The second version stops folding the haystack and enumerates the needle instead. The test wanted
 ; is upcase(hay) == upcase(anchor), which is precisely "hay is a member of the anchor's
 ; case-equivalence class". probes/classsize.c measured that distribution over the entire ordinal
 ; table:
 ;
-;       64563 distinct classes -- 63590 singletons, 973 of size two, AND NOTHING LARGER
+;       64563 distinct classes -- 63590 singletons, 973 of size two, and nothing larger
 ;
 ; So membership is at most TWO comparisons, known before the loop starts, and a vector unit can do
 ; two comparisons and an OR as easily as one. The anchor character and its case partner are
@@ -104,17 +104,17 @@
 ; to a figure in line with the ASCII rows, and every other insensitive row improved as well because
 ; the fold went away.
 ;
-; THE ONE PLACE A FOLD STILL LIVES is the scalar verifier, and there it is one table load rather
+; The one place a fold still lives is the scalar verifier, and there it is one table load rather
 ; than two: a candidate character matches when it EQUALS the needle character or equals that
 ; character's case partner. The shipped code loads both sides and folds both; this folds neither and
 ; looks up one.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THE FAR ANCHOR IS CHOSEN, NOT ASSUMED, and this is the third thing the benchmark forced.
+; The far anchor is chosen, not assumed, and this is the third thing the benchmark forced.
 ;
 ; A two-anchor filter is only as selective as its two characters are rare, and the textbook choice
 ; -- position 0 and position m-1 -- can pick the same character twice. A needle shaped "a......a"
-; searched inside a run of 'a' then admits EVERY position, and the scalar verifier runs at all of
+; searched inside a run of 'a' then admits every position, and the scalar verifier runs at all of
 ; them. Measured, with the far anchor fixed at m-1:
 ;
 ;       run of 'a', both anchors      5664 - 7192 ns     0.91x - 1.17x     (unstable, straddling)
@@ -123,11 +123,11 @@
 ; gate at random from run to run, and a gate that reports a different verdict on the same code is
 ; not a gate. So it had to be removed rather than documented.
 ;
-; THE OBVIOUS FIX WAS A THIRD ANCHOR at the needle's midpoint, and it was rejected before being
-; written: it costs three more vector operations in EVERY block -- roughly 30% of a loop measured at
-; 3.2 cycles per iteration -- to rescue one degenerate shape. THE FIX ACTUALLY TAKEN costs nothing
-; per block at all. The near anchor stays at position 0; the far anchor becomes THE LAST POSITION
-; WHOSE CHARACTER DIFFERS FROM needle[0] -- one O(m) walk per call, before the loop starts. Any two
+; The obvious fix was a third anchor at the needle's midpoint, and it was rejected before being
+; written: it costs three more vector operations in every block -- roughly 30% of a loop measured at
+; 3.2 cycles per iteration -- to rescue one degenerate shape. The fix actually taken costs nothing
+; per block at all. The near anchor stays at position 0; the far anchor becomes the last position
+; Whose character differs from needle[0] -- one O(m) walk per call, before the loop starts. Any two
 ; distinct positions p < q are a valid filter, and q <= m-1 keeps the same bound that makes the far
 ; read safe, so nothing else in the loop changes.
 ;
@@ -269,7 +269,7 @@ fs_nosimd:
 
         ; ============================== case-SENSITIVE ==============================
 fs_sens:
-        ; CHOOSE THE FAR ANCHOR RATHER THAN ASSUMING IT -- see the header. r15 moves from m-1 to
+        ; Choose the far anchor rather than assuming it -- see the header. r15 moves from m-1 to
         ; the LAST needle position whose character differs from needle[0]; if every character is
         ; needle[0] it stays at m-1, which costs nothing because such a needle matches at the first
         ; position it is tested against anyway. O(m) once per call, nothing per block.
@@ -334,7 +334,7 @@ fs_ci:
         movzx     r10d, word ptr [rdi]        ; c0 = needle[0]
         movzx     r9d,  word ptr [r8 + r10*2] ; mate0
         ; Choose the far anchor, as the sensitive path does, except that "differs" here means "is
-        ; in a DIFFERENT CASE CLASS" -- picking 'A' as the far anchor when the near one is 'a'
+        ; in a different case class" -- picking 'a' as the far anchor when the near one is 'a'
         ; would add a second test that admits exactly the same positions as the first.
         mov       eax, r15d
 fs_i_pk:

@@ -9,7 +9,7 @@
 ; 0.046 ns/byte -- a strlen and a struct fill, where ntdll makes a real `call` into strlen.
 ;
 ; ------------------------------------------------------------------------------------------------
-; THIS EXPORT IS RtlInitString AT A SECOND ADDRESS, AND THAT WAS MEASURED, NOT ASSUMED.
+; This export is RtlInitString at a second address, and that was measured, not assumed.
 ;
 ; The name says UTF-8, and a function that validated its input, rejected an overlong encoding,
 ; counted CHARACTERS rather than bytes, or refused a lone continuation byte would produce a struct
@@ -17,29 +17,29 @@
 ; contains. Inheriting a rule because it looks like the same rule is how the SPACE bug got into four
 ; landed changes at once, so probes/equiv.c enumerates rather than samples:
 ;
-;       every byte 0x01..0xFF and EVERY ORDERED PAIR of bytes        65280 cases
+;       every byte 0x01..0xFF and every ordered pair of bytes        65280 cases
 ;         -- every lead/continuation combination, every overlong
 ;            prefix and every truncated sequence there is
 ;       every length from 0 to 300                                     301
 ;       every length from 65400 to 65700, across the USHORT clamp       301
 ;       randomised: ASCII, high-bit, valid UTF-8, malformed UTF-8     60000
 ;
-;       125883 cases, 0 differences, comparing ALL THREE FIELDS against a poisoned struct.
+;       125883 cases, 0 differences, comparing all three fields against a poisoned struct.
 ;
-; It counts BYTES, it validates NOTHING, and it clamps exactly as RtlInitString does: Length
+; It counts BYTES, it validates nothing, and it clamps exactly as RtlInitString does: Length
 ; saturates at 65534 and MaximumLength at 65535, and a NULL source zeroes all three fields. Note
 ; that RtlInitAnsiString, which appears in the same survey, is not merely equivalent to
 ; RtlInitString but IS it -- the two share one address -- while this export does not, which is why
 ; it needs code of its own at all.
 ;
 ; ------------------------------------------------------------------------------------------------
-; SO IT IS AN ALIAS, NOT A COPY, and that is the whole point of writing it this way.
+; So it is an alias, not a copy, and that is the whole point of writing it this way.
 ;
 ; Change 095 already ships the page-safe AVX2 strlen and the struct fill this export needs, proved
 ; bit-exact against the live RtlInitString. Pasting eighty lines of it here would create a second
 ; copy that a future correction to 095 would silently leave behind -- which is precisely how change
 ; 132's extension rule ended up wrong in changes 140, 143, 144 and 158 simultaneously. The ALIAS
-; directive resolves this export's symbol to change 095's code IN THE LINKER, so there is one
+; directive resolves this export's symbol to change 095's code in the linker, so there is one
 ; implementation, no duplication, and not even a jump instruction between them.
 ;
 ; The gates are NOT shared, and that is the part that makes this a change rather than a footnote:

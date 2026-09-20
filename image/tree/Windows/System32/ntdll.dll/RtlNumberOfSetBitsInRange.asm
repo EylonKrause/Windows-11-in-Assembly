@@ -5,8 +5,8 @@
 ; changes/257-rtlnumberofsetbits/impl.asm
 ;   ULONG wia_numberofsetbits       (RTL_BITMAP* bm)
 ;   ULONG wia_numberofclearbits     (RTL_BITMAP* bm)
-;   ULONG wia_numberofsetbitsinrange(RTL_BITMAP* bm, ULONG StartingIndex, ULONG Length)
-;   ULONG wia_numberofclearbitsinrange(RTL_BITMAP* bm, ULONG StartingIndex, ULONG Length)
+;   Ulong wia_numberofsetbitsinrange(RTL_BITMAP* bm, ulong StartingIndex, ulong Length)
+;   Ulong wia_numberofclearbitsinrange(RTL_BITMAP* bm, ulong StartingIndex, ulong Length)
 ;
 ; ntdll!RtlNumberOfSetBits (RVA 0x0F2E30) and its three relatives. From the bitmap survey
 ; (discovery/ntdll_bitmap.c), over a 64 Kbit map:
@@ -15,13 +15,13 @@
 ;       RtlNumberOfClearBits, whole map          415.07 ns   0.051
 ;       RtlNumberOfSetBitsInRange 100..60100     381.03 ns   0.051
 ;
-; 0.050 ns/byte is about TWO CYCLES PER 64-BIT WORD, and the interesting part is WHY -- because the
+; 0.050 ns/byte is about two cycles per 64-BIT word, and the interesting part is why -- because the
 ; shipped code is not missing the right instruction. It already uses it:
 ;
 ;     000F2F33  popcnt rax, rax
 ;     000F2EC8  movzx eax, byte ptr [rcx + r12 + 0x1971f0]    a byte table, for the ragged ends
 ;
-; Two cycles per word is what a SERIAL ACCUMULATOR CHAIN costs: POPCNT has about three cycles of
+; Two cycles per word is what a serial accumulator chain costs: POPCNT has about three cycles of
 ; latency against one per cycle of throughput, so `total += popcnt(w)` in a single register can
 ; never run faster than its own dependency. The room here is not a better instruction, it is
 ; removing the chain -- and the cheapest way to remove it entirely is to leave the general-purpose
@@ -31,19 +31,19 @@
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
 ;
-;   * THE RANGE IS (start, LENGTH), not (start, end). On an all-ones bitmap (100, 300) counts 300.
-;   * THE RANGE FORMS REFUSE RATHER THAN CLAMP. They return 0xFFFFFFFF when the length is ZERO or
+;   * The range is (start, length), not (start, end). On an all-ones bitmap (100, 300) counts 300.
+;   * The range forms refuse rather than clamp. They return 0xFFFFFFFF when the length is zero or
 ;     when start + length runs past SizeOfBitMap -- (0,0), (100,10) on a 100-bit map and (0,101)
 ;     all return -1, not 0 and not a clamped count. Verified over all 111 x 111 combinations of
 ;     start and length with zero disagreements.
-;   * clear == SizeOfBitMap - set EXACTLY, over 20000 random bitmaps, and for a valid range
+;   * clear == SizeOfBitMap - set exactly, over 20000 random bitmaps, and for a valid range
 ;     clear == length - set. So ONE core serves all four exports.
 ;   * The slack past SizeOfBitMap never counts: an all-ones buffer declared as any size from 1 to
 ;     40 counts exactly its own size.
 ;   * SizeOfBitMap = 0 gives 0 from both whole-bitmap forms.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT COUNTS. The body of the range is done thirty-two bytes at a time with the nibble table:
+; How it counts. The body of the range is done thirty-two bytes at a time with the nibble table:
 ;
 ;       lo = v & 0x0F                    hi = (v >> 4) & 0x0F
 ;       vpshufb(LUT, lo) + vpshufb(LUT, hi)     -> a per-BYTE population count, 0..8
@@ -58,7 +58,7 @@
 ; Win64 leaves only ymm0-ymm5 usable, and this needs exactly six: the table, the 0x0F mask, a zero,
 ; the accumulator and two temporaries. Nothing is spilled.
 ;
-; THE EDGES ARE THE PART THAT CAN GO WRONG, and there are three of them. Bits below the start and at
+; The edges are the part that can go wrong, and there are three of them. Bits below the start and at
 ; or past the end must not count, which is a mask on the first and last words. And a partial word at
 ; either end may NOT be readable as sixty-four bits: an RTL_BITMAP buffer is an array of ULONG, so a
 ; 96-bit bitmap is twelve bytes and a 64-bit read of its second pair would touch four bytes the
@@ -309,7 +309,7 @@ nsb_body ENDP
 
 ; LEAF entry stubs with no unwind data that TAIL-JUMP, so the framed body is entered exactly as a
 ; call would leave it.
-; -- THE SINGLE-WORD FAST PATH. A LEAF: no frame, no saved registers, no call. --
+; -- The single-word fast path. a leaf: no frame, no saved registers, no call. --
 ; A bitmap of sixty-four bits or fewer is one masked load and one POPCNT, and routing it through the
 ; framed body cost five pushes, a stack adjustment and two calls to do that. Measured at 0.58x on a
 ; one-bit bitmap before this existed. rcx, rdx and r8 are left untouched so anything this path

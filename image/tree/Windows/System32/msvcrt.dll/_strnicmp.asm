@@ -11,7 +11,7 @@
 ; bytes remain in n; else it steps one byte at a time. Terminator stops the scan.
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
 ; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark

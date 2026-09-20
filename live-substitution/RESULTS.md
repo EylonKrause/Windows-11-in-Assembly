@@ -236,7 +236,7 @@ report anything.
 
 **A third of the corpus is forced to MISS.** Planting the target at 1-in-8 per character means a long
 string almost always contains it, and the first run of this block produced only **406** misses in
-8 000 -- while the miss is the case that scans the WHOLE string, and so the one that exercises page
+8 000 -- while the miss is the case that scans the whole string, and so the one that exercises page
 safety and the terminator search. With a third forced, the split is **5 030** hits to **2 970**
 misses, across **3 893** unbounded (forward path) and **4 107** bounded (backward path) cases.
 
@@ -266,7 +266,7 @@ tables and an ASCII-only corpus cannot tell a swapped blend from a correct one. 
 over the full byte range almost never contain the subject's *first* character, so a span corpus built
 like 214's would return **0** nearly every time -- passing cleanly while proving nothing about the
 scan at all. So 216's sets are drawn from the subject's own alphabet, and two thirds of cases use a
-set that covers the subject ENTIRELY: that is the case which runs to the terminator, and therefore
+set that covers the subject entirely: that is the case which runs to the terminator, and therefore
 the one that tests the inverted mask's ability to stop there with no NUL compare of its own. Of
 8 000 cases, **6 101** spanned the whole string, **1 899** stopped early and **7 306** had a
 high-byte alphabet.
@@ -296,7 +296,7 @@ our code for each export, identical results, both prologues restored byte-for-by
 ### 218 - the entry where comparing the whole buffer is the only thing that works
 
 Most blocks here compare a return value and a resulting string. For `StrTrimA` that would prove
-nothing, because the function writes ONLY what it must and **the order of its two writes is
+nothing, because the function writes only what it must and **the order of its two writes is
 observable**: trimming both ends of `"xxabcxx"` leaves TWO terminators behind --
 
     a b c \0 c \0 x \0        and NOT        a b c \0 c  x  x \0
@@ -307,7 +307,7 @@ on every single input. So every case poisons the buffer, runs both, and compares
 
 The corpus also has to make the MOVE happen at every alignment, because the source and destination
 overlap -- which is what made a short-copy idiom borrowed from change 211 wrong here. Leading and
-trailing runs are planted deliberately, and **a fifth of the corpus is forced to trim NOTHING**:
+trailing runs are planted deliberately, and **a fifth of the corpus is forced to trim nothing**:
 drawing the two runs independently makes a genuine no-op one case in 36, and the first run produced
 only about 160 of them, while the no-op is precisely the case that must write nothing at all.
 
@@ -375,7 +375,7 @@ session: change 132 shipped it with only the backslash stopping the backward sca
 It also straddles the MAX_PATH boundary, which is the one rule this function has that its find-only
 sibling does not: 259 characters truncate, 260 are left completely untouched.
 
-**336 080** cases, each comparing the WHOLE BUFFER (the export writes exactly one byte and clears
+**336 080** cases, each comparing the whole BUFFER (the export writes exactly one byte and clears
 nothing past it): **238 267** containing a space, **110 881** actually cutting an extension, and
 **87** at 260+ characters where the guard must do nothing.
 

@@ -8,27 +8,27 @@
 ; The copying core of kernelbase!lstrcpyA. The NULL checks and the __try/__except that turns an
 ; access violation into NULL live in seh.c, for the reasons given there.
 ;
-; WHY THIS TARGET. Change 225 found lstrlenA running a 16-byte SSE2 loop and took it to 158.7 GB/s.
+; Why this target. Change 225 found lstrlenA running a 16-byte SSE2 loop and took it to 158.7 GB/s.
 ; lstrcpyA is the same family, is not converted, and is worse: probes/cpya.c proves it copies ONE
-; BYTE AT A TIME, end to end, by two independent measurements --
+; Byte at a time, end to end, by two independent measurements --
 ;
-;   * with the destination overrunning into a guard page, 80 of 80 rooms were filled EXACTLY to the
+;   * with the destination overrunning into a guard page, 80 of 80 rooms were filled exactly to the
 ;     last writable byte. A 16- or 32-byte chunked copy cannot land on an arbitrary boundary.
 ;   * with overlapping arguments, cpy(b+2, b) on "abcdefghij" smears to "ababababab..." -- a period
 ;     of TWO. A 16-byte chunked copy would smear with a period of sixteen.
 ;
-; THE FAULT PATHS ARE PART OF THE CONTRACT, and they are what shapes this implementation. Measured
+; The fault paths are part of the contract, and they are what shapes this implementation. Measured
 ; in probes/cpya.c:
 ;
-;   * a NULL source returns NULL and LEAVES THE DESTINATION ALONE; a NULL destination returns NULL;
+;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL;
 ;   * an unterminated source running into a PAGE_NOACCESS page RETURNS NULL rather than faulting,
-;     80 of 80 distances -- and the destination holds EXACTLY the bytes that were readable;
+;     80 of 80 distances -- and the destination holds exactly the bytes that were readable;
 ;   * a destination too small, ending at a guard page, ALSO returns NULL rather than faulting -- and
-;     is filled EXACTLY to its last writable byte. lstrcpyA has no bound, so it always runs off the
+;     is filled exactly to its last writable byte. lstrcpyA has no bound, so it always runs off the
 ;     end of a short destination; this is not an exotic case;
-;   * the destination is TERMINATED, NOT PADDED: the bytes after the terminator are left alone.
+;   * the destination is terminated, not padded: the bytes after the terminator are left alone.
 ;
-; SO A CHUNKED COPY HAS TO PAGE-CLAMP BOTH SIDES, not just the source. That is the whole design:
+; So a chunked copy has to page-clamp both sides, not just the source. That is the whole design:
 ;
 ;   n = min(bytes left in the SOURCE's page, bytes left in the DESTINATION's page)
 ;
@@ -38,12 +38,12 @@
 ; the shipped byte loop would stop. Clamping only the source would pass every ordinary test and then
 ; write a whole chunk into a destination the shipped function fills only partway.
 ;
-; AND THE CLAMP IS HOISTED OUT OF THE LOOP. It only changes when one of the pointers crosses a page
+; And the clamp is hoisted out of the loop. It only changes when one of the pointers crosses a page
 ; boundary -- once per 4096 bytes -- so recomputing it per chunk charged six instructions per 64
 ; bytes to re-answer a question whose answer had not changed. Carrying the remaining count and
 ; decrementing it costs one `sub` instead.
 ;
-; Byte-wise is correct here: GetCPInfo reports ZERO DBCS lead bytes for ACP 1252 -- measured, not
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured, not
 ; assumed -- and probes/cpya.c sweeps all 255 non-NUL byte values at three positions and 64 start
 ; alignments x lengths 0..300 against a plain byte copy, with 0 disagreements.
 ;
@@ -117,7 +117,7 @@ cp_try32:
         add       rcx, 32
         jmp       cp_loop
 
-        ; ---- the last 1..32 bytes, terminator included. It must be EXACTLY that many: the
+        ; ---- the last 1..32 bytes, terminator included. It must be exactly that many: the
         ;      destination is terminated, not padded, and the bytes past the terminator are the
         ;      caller's. eax holds the terminator mask for the 32 bytes at [rdx].
 cp_tail:

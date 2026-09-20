@@ -9,7 +9,7 @@
 ; cost of every shlwapi export this project had not converted, behind only HashData (which became
 ; change 244) and PathCommonPrefixW (which became change 167).
 ;
-; AND IT IS ALMOST ENTIRELY CHANGE 167 ALREADY. From kernelbase!PathIsSameRootW, RVA 0x0CBC30:
+; And it is almost entirely change 167 Already. From kernelbase!PathIsSameRootW, rva 0x0CBC30:
 ;
 ;     000CBC56  call 0x02B150            = PathSkipRootW
 ;     000CBC67  call 0x0CBD10            = PathCommonPrefixW   <- change 167, LANDED
@@ -25,14 +25,14 @@
 ; the slowest remaining shlwapi functions". That prediction was wrong about PathIsPrefixW (change
 ; 177 needed no root parser at all) and right about this one.
 ;
-; PathSkipRootW IS PathCchSkipRoot PLUS ONE RULE, measured over 1365 strings with zero disagreements
+; PathSkipRootW is PathCchSkipRoot plus one rule, measured over 1365 strings with zero disagreements
 ; (probes/skiproot.c):
 ;
 ;     PathSkipRootW(p) = PathCchSkipRoot(p, &end) failed ? NULL
 ;                      : (end == p + 2 && p[1] == ':')  ? NULL     /* a bare "C:" is not a root */
 ;                      : end
 ;
-; THE ROOT PARSER ITSELF, read out of kernelbase!PathCchSkipRoot (RVA 0x02B2F0) and then REFUTED
+; The root parser itself, read out of kernelbase!PathCchSkipRoot (rva 0x02B2F0) and then refuted
 ; against the live export over 210720 cases with ZERO differences (probes/skiproot4.c):
 ;
 ;     p NULL or empty                    -> E_INVALIDARG
@@ -44,7 +44,7 @@
 ;
 ;   the UNC walk from i -- this is 0x2B47C literally, two wcschr calls and a cmove:
 ;     consume the server; if no separator follows it, stop there;
-;     consume that separator EVEN IF THE SERVER WAS EMPTY;
+;     consume that separator even if the server was empty;
 ;     consume the share; if the share was EMPTY stop BEFORE its separator, otherwise consume it.
 ;
 ;   the extended branch (0x2B4CD), in order:
@@ -54,13 +54,13 @@
 ;     "Volume{" + 8-4-4-4-12 hex + "}"   -> 48, or 49 if p[48] is a separator
 ;     otherwise                          -> E_INVALIDARG
 ;
-; THREE THINGS THAT LOOK LIKE SPECIAL CASES AND ARE NOT:
-;   * "\\.\" IS NOT A PREFIX. "\\.\PhysicalDrive0" is 18 because it is the ORDINARY UNC walk with
+; Three things that look like special cases and are not:
+;   * "\\.\" Is not a prefix. "\\.\PhysicalDrive0" is 18 because it is the ordinary unc walk with
 ;     server "." -- only '?' at index 2 is special.
-;   * THE EMPTY-SHARE RULE is why leading backslash runs look non-monotonic: "\"->1, "\\"->2,
+;   * The empty-share rule is why leading backslash runs look non-monotonic: "\"->1, "\\"->2,
 ;     "\\\"->3, "\\\\"->3, and 3 for every longer run. Change 163 recorded that as "no single rule
 ;     fits"; it is one rule, and it is the `cmove` at 0x2B4C4.
-;   * "\\?aa:" IS AN ERROR even though a drive sits at index 4. The model said 6 until the sweep
+;   * "\\?aa:" Is an error even though a drive sits at index 4. The model said 6 until the sweep
 ;     said otherwise -- 24 of 210720 cases, all this shape -- because the prefix is the four
 ;     characters "\\?\", trailing separator included.
 ;

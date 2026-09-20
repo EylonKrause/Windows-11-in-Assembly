@@ -1,7 +1,7 @@
 # 100 — `RtlLargeIntegerToChar` — **LANDS** (1.43× geomean)
 
 The 64-bit sibling of [097](../097-rtlintegertochar/): `ntdll!RtlLargeIntegerToChar(
-PLARGE_INTEGER Value, ULONG Base, LONG Length, PCHAR String)` formats the unsigned 64-bit
+PLARGE_INTEGER Value, ulong Base, long Length, pchar String)` formats the unsigned 64-bit
 `*Value`. Same contract as 097 — `Length` is the buffer capacity, minimal digits
 left-justified + NUL iff `Length > dc`, `dc > Length` → `STATUS_BUFFER_OVERFLOW`, base 0 →
 10, only 2/8/10/16 valid (else `STATUS_INVALID_PARAMETER`), uppercase hex, `Value == 0` → `"0"`.

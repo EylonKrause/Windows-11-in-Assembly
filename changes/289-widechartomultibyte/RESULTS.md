@@ -2,7 +2,7 @@
 
 > **Correctness is settled: 615,202 cases, 0 mismatches**, three-way against `reference.c` and the
 > live export, with `GetLastError` and the whole destination buffer compared on every one.
-> **The timings below are INDICATIVE ONLY** — other agents were running on this machine. One row
+> **The timings below are INDICATIVE only** — other agents were running on this machine. One row
 > (`Cyril 4095 conv`) swings between 0.77× and 1.22× across harness runs while an isolated, pinned
 > measurement of the identical call with the identical buffers pins it at **1.88×–2.00×** with no
 > dependence on buffer placement; that evidence is in *Speed* below and the decision on that row
@@ -359,7 +359,7 @@ rule at the point the shipped code states it, and the mutation run is what turns
 
 ## Speed — LANDS (no size class regressed)
 
-**These numbers are INDICATIVE ONLY.** Other agents were running on this machine while they were
+**These numbers are INDICATIVE only.** Other agents were running on this machine while they were
 taken; the authoritative table is a serial re-measurement on an idle box. Min-of-60, pinned core,
 generous destination on the converting rows.
 

@@ -117,7 +117,7 @@ So every row is self-restoring, in one of two ways, at a cost of zero instructio
 
 - **NOT FOUND** — the call scans everything and, by contract, writes nothing. Perfectly repeatable,
   and it is the survey's own subject.
-- **A PAIR THAT IS ITS OWN INVERSE** — over an all-ones bitmap, and-clear clears bits 0…N-1 and
+- **a Pair that is its own inverse** — over an all-ones bitmap, and-clear clears bits 0…N-1 and
   clear-and-set then finds exactly those N clear bits and sets them again. Both halves do a real
   search *and* a real mutation, and the bitmap is identical afterwards. This is the only way the
   **mutation** gets measured at all.

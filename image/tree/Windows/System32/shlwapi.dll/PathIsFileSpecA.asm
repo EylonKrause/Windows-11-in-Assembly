@@ -12,10 +12,10 @@
 ;
 ; THE CONTRACT, measured in probes/pifsa.c:
 ;
-;   * EXACTLY TWO byte values are separators: 0x5C and 0x3A. Confirmed at the FIRST, MIDDLE and LAST
-;     positions -- 2 of 255 at each -- so neither is position-dependent. A FORWARD SLASH IS NOT ONE:
+;   * Exactly two byte values are separators: 0x5C and 0x3A. Confirmed at the first, middle and last
+;     positions -- 2 of 255 at each -- so neither is position-dependent. a forward slash is not one:
 ;     "a/b" and "/" are both TRUE.
-;   * THE EMPTY STRING IS TRUE. That is the one case a natural model gets wrong, and it was the only
+;   * The empty string is TRUE. That is the one case a natural model gets wrong, and it was the only
 ;     mismatch in 488281 enumerated strings when this probe first ran with "non-empty" in its rule.
 ;     It is not a special case in the code either -- a string with no characters trivially contains
 ;     no separator, so the scan falls straight through to TRUE.

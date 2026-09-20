@@ -31,7 +31,7 @@
 ; which is a known collation wall.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THIS CHANGE IMPLEMENTS ONE OF FIVE FLAG PATHS, AND THE SCOPE WAS MEASURED RATHER THAN CHOSEN.
+; 2. This change implements one of five flag paths, and the scope was measured rather than chosen.
 ;
 ; FoldStringW is five functions behind one entry point. probes/contract.c folded every code unit on its
 ; own, one flag at a time, and counted what came back:
@@ -43,7 +43,7 @@
 ;      MAP_COMPOSITE         12197         4             2082             468
 ;      MAP_EXPAND_LIGATURES    710         3                0               0
 ;
-; MAP_FOLDDIGITS is the ONLY strictly 1:1 flag. Every other one turns a single input unit into several --
+; MAP_FOLDDIGITS is the only strictly 1:1 flag. Every other one turns a single input unit into several --
 ; up to EIGHTEEN for one MAP_FOLDCZONE input -- and a mapping that changes the length is not a
 ; per-character table at any width. Composition additionally depends on neighbouring characters, which
 ; is the same wall changes 274 and 276 died on.
@@ -57,18 +57,18 @@
 ; LOCALE INVARIANCE (the whole table rebuilt under seven thread locales, 0 entries different).
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. THE REST OF THE CONTRACT, ALL MEASURED.
+; 3. The rest of the contract, all measured.
 ;
-;   * cchSrc > 0 is a count; cchSrc == -1 is NUL-terminated AND INCLUDES THE TERMINATOR, so "abc" gives 4;
+;   * cchSrc > 0 is a count; cchSrc == -1 is NUL-terminated and includes the terminator, so "abc" gives 4;
 ;   * cchDest == 0 is a LENGTH QUERY: return the required count and write nothing;
-;   * cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes NOTHING -- measured: the
+;   * cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes nothing -- measured: the
 ;     destination's first word was still its sentinel afterwards;
 ;   * cchSrc == 0 returns 0 with ERROR_INVALID_PARAMETER. probes/contract.c first reported
 ;     ERROR_INSUFFICIENT_BUFFER, and that was a measurement bug rather than a fact: it read GetLastError
 ;     without resetting it, so it reported the 122 left by the preceding too-small-buffer call. The
 ;     correctness gate resets before every call and got 87;
 ;   * a NULL source returns 0 with ERROR_INVALID_PARAMETER;
-;   * dest == src is refused with ERROR_INVALID_PARAMETER, and the check is POINTER EQUALITY ONLY:
+;   * dest == src is refused with ERROR_INVALID_PARAMETER, and the check is pointer equality only:
 ;     dest = src+1, src+4, src+8 and src-4 all SUCCEED. The documentation calls overlap illegal; the
 ;     export only rejects the exact-equality case, and a replacement has to match the export.
 ;     probes/overlap.c then measured WHAT it produces for the accepted overlaps: exactly what a naive
@@ -76,7 +76,7 @@
 ;     overwritten rather than buffering, which is unspecified by the documentation and entirely
 ;     deterministic in fact -- so this implementation drops its unroll when the buffers overlap;
 
-;   * A NULL DESTINATION IS REFUSED ONLY WHEN cchDest IS NON-ZERO, and THE WHOLE REFUSAL ORDER IS
+;   * a NULL destination is refused only when cchDest is non-zero, and the whole refusal order is
 ;     OBSERVABLE. probes/nulldest.c exists because of a mutation survivor: mutant #10 deleted the
 ;     NULL-destination refusal and the correctness gate still passed 66,410 cases with 0 mismatches,
 ;     because not one of them passed a NULL destination together with a non-zero cchDest. The corpus
@@ -101,7 +101,7 @@
 ;       - dest NULL with cchDest 0 SUCCEEDS and returns the count (3 for three units, 4 for cchSrc -1
 ;         on a three-unit string), so step 4 is conditional on cchDest and cannot simply reject NULL;
 ;       - dest NULL with cchDest 2 against a 3-unit string gives 87, NOT 122, so step 4 runs BEFORE
-;         step 7. THIS FILE HAD IT THE OTHER WAY ROUND AND WAS WRONG: the NULL test sat after the
+;         step 7. This file had it the other way round and was wrong: the NULL test sat after the
 ;         buffer test, so that input returned ERROR_INSUFFICIENT_BUFFER. A real defect, shipped in the
 ;         draft, found only because a mutant survived;
 ;       - an unsupported flag with valid pointers and cchDest 0 gives 1004, but the SAME flag with a
@@ -196,7 +196,7 @@ wia_foldstringw_digits PROC FRAME
         ; it to [rsp+96].
         mov       r14d, dword ptr [rsp + 96]      ; cchDest
 
-        ; ---- THE REFUSALS, IN THE ORDER probes/nulldest.c MEASURED (see section 3). The order is
+        ; ---- The refusals, in the order probes/nulldest.c measured (see section 3). The order is
         ; observable, this file had two steps of it wrong, and the flag test is FIFTH on purpose.
         test      rdx, rdx
         jz        f_badparam                      ; 1. a NULL source
@@ -218,7 +218,7 @@ f_dest_ok:                                        ;       BEFORE the buffer test
         mov       rsi, rdx                        ; the source
         mov       rdi, r9                         ; the destination
 
-        ; ---- the count. cchSrc < 0 is NUL-terminated AND INCLUDES THE TERMINATOR.
+        ; ---- the count. cchSrc < 0 is NUL-terminated and includes the terminator.
         mov       r12d, r8d
         test      r12d, r12d
         jns       f_have_count
@@ -250,7 +250,7 @@ f_have_count:
         sub       eax, r15d
         mov       r8d, eax
 
-        ; ---- OVERLAPPING BUFFERS DROP THE UNROLL, and that is a measured requirement.
+        ; ---- Overlapping buffers drop the unroll, and that is a measured requirement.
         ;
         ; dest == src is refused above, but every other overlap is ACCEPTED by the export, and
         ; probes/overlap.c measured what it then produces: exactly what a naive forward

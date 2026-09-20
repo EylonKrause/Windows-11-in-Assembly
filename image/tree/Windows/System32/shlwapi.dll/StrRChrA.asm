@@ -3,7 +3,7 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/213-strrchra/impl.asm
-; PSTR wia_strrchra(PCSTR pszStart, PCSTR pszEnd, WORD wMatch)   [Win64: rcx, rdx, r8w -> rax]
+; Pstr wia_strrchra(PCSTR pszStart, pcstr pszEnd, word wMatch)   [Win64: rcx, rdx, r8w -> rax]
 ;
 ; Reimplements shlwapi!StrRChrA, which carries the biggest ratio the narrow survey found: 14351.08 ns
 ; to search 4000 characters against 874.77 ns for StrRChrW over the same character count. SIXTEEN
@@ -11,7 +11,7 @@
 ;
 ; ---- what the probe found, and why the number is what it is -----------------------------------------
 ; probes/srca.c pinned the shipped algorithm exactly, and one observation did most of the work: an
-; pszEnd placed past the string's terminator makes the live export NEVER RETURN. Two different inputs
+; pszEnd placed past the string's terminator makes the live export never RETURN. Two different inputs
 ; did it -- "abc" with pszEnd = s+4, and "abc\0ZZZZ\0" with pszEnd = t+9 -- and the first cost a
 ; 300-second timeout to locate. That pins the loop:
 ;
@@ -19,7 +19,7 @@
 ;     while (p != end) { if (*p == (char)wMatch) last = p;  p = CharNextA(p); }
 ;
 ; CharNextA does not advance past a terminator -- it returns the same pointer -- so when `end` lies
-; beyond the NUL the walk can never reach it and spins. EVERY OTHER MEASUREMENT FALLS OUT OF THAT ONE
+; beyond the NUL the walk can never reach it and spins. Every other measurement falls out of that one
 ; LOOP: pszEnd is EXCLUSIVE because the test is `p != end` before the body (pszEnd = s+7, sitting on
 ; a match, finds the PREVIOUS one); searching for the TERMINATOR always returns NULL because a valid
 ; range stops at or before the NUL and so never contains one; and the cost is what it is because
@@ -31,7 +31,7 @@
 ; That is a deliberate, documented divergence on inputs where the shipped function produces no
 ; result at all, and correctness.c stays inside the domain.
 ;
-; AND THAT DOMAIN IS NARROWER THAN THE WIDE FORM'S. Change 134 recorded, verified, that StrRChrW
+; And that domain is narrower than the wide form's. Change 134 recorded, verified, that StrRChrW
 ; searches the RAW range when given an explicit pszEnd -- ignoring embedded NULs and running past the
 ; terminator if asked. The A form cannot, because CharNextA is in its loop. Two functions with the
 ; same name and different domains; one more reason this project re-probes every A form instead of
@@ -41,7 +41,7 @@
 ;   * BYTE-WISE on this code page. Every byte value 0x01..0xFF was placed where a lead byte would
 ;     swallow the character after it: ZERO of 255 behave as one (GetACP() is 1252, which has none).
 ;     A vector scan reproduces this exactly.
-;   * wMatch is a WORD but only its LOW BYTE is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
+;   * wMatch is a word but only its low byte is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
 ;     and 0x5A00 (low byte NUL) finds nothing.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm4 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm4 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .code
 wia_strrchra PROC
@@ -75,7 +75,7 @@ wia_strrchra PROC
         jbe       rc_null                           ; end <= start: the range is empty
 
         ; ---- bounded: backward over [start, end) ----
-        ; ONLY THE FIRST AND LAST BLOCKS NEED MASKING, so neither test is in the loop. The first cut
+        ; Only the first and last blocks need masking, so neither test is in the loop. The first cut
         ; recomputed both end-masks on every block and measured 10.02 ns on a 254-character bounded
         ; miss -- SLOWER than the 5.11 ns the unbounded path took over the same string, which does
         ; two compares per block instead of one. That is the giveaway that the cost was bookkeeping,

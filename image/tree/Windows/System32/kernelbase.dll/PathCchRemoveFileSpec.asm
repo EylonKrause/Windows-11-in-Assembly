@@ -14,14 +14,14 @@
 ; where the gap is: discovery/kernelbase_pathcch.c found only twelve converted functions there against
 ; ucrtbase's 75 and ntdll's 68, and this family exactly half done.
 ;
-; THE CONTRACT. Four rules, and THREE OF THEM WERE FOUND BY ISOLATING A DERIVED QUANTITY AND
+; The contract. Four rules, and three of them were found by isolating a derived quantity and
 ; ENUMERATING IT rather than by reasoning about the implementation -- the same move that cracked
 ; change 236's cut. probes/pcrfs6.c validates the whole model against the live export over roughly
 ; 5.8 million cases, comparing the HRESULT AND the whole buffer: 0 mismatches.
 ;
-;   1. THE PROTECTED ROOT, measured as the FIXED POINT of the function itself -- apply it until it
+;   1. The protected root, measured as the fixed point of the function itself -- apply it until it
 ;      returns S_FALSE and what is left is exactly what it refuses to cut into. That is what showed
-;      PathCchSkipRoot to be the WRONG SOURCE for it: SkipRoot INCLUDES the root's trailing separator
+;      PathCchSkipRoot to be the wrong source for it: SkipRoot includes the root's trailing separator
 ;      and this function's protected prefix does not, a consistent difference of one on every UNC path
 ;      ("\\srv\shr\dir": root 9, SkipRoot 10). 793 disagreements over 21 845 strings, and SkipRoot
 ;      declines outright on 15 355 more. Borrowing the sibling's answer was change 232's mistake in a
@@ -39,29 +39,29 @@
 ;          otherwise: 0
 ;
 ;      server/share parse: scan to the next separator -- that ends the SERVER; if no separator follows
-;      it, the root ends there; otherwise scan the next segment, and if that SHARE IS EMPTY the root
+;      it, the root ends there; otherwise scan the next segment, and if that share is empty the root
 ;      falls back to the end of the server. The empty-share clause is what "\\a\" -> 3, "\\\" -> 2 and
 ;      "\\\\" -> 2 require, and no reading of the documentation produces it.
 ;
-;   2. A DRIVE LETTER IS 114 VALUES, NOT 52: the ASCII letters plus the CP1252 accented letters, with
+;   2. a drive letter is 114 Values, not 52: the ASCII letters plus the CP1252 accented letters, with
 ;      0xD7 and 0xF7 -- the multiplication and division signs -- absent and 0xDF present. Derived by
 ;      sweeping ALL 65 536 wchar values, because this is a WIDE function and 1..255 is not a sweep.
 ;      This is the mirror image of change 232, which found the NARROW PathRemoveBackslashA taking
 ;      ASCII-only drive letters where its wide sibling takes Latin-1; there, inheriting the wide set
 ;      would have wrongly protected 78 byte values. Here the wide set is the correct one.
 ;
-;   3. THE CUT, and the writes. j = the index of the LAST separator at or after the root.
+;   3. The cut, and the writes. j = the index of the last separator at or after the root.
 ;          no such j -> the result is the root itself
-;          otherwise -> cut at j, clearing that slot, and then AT MOST ONE more:
+;          otherwise -> cut at j, clearing that slot, and then at most one more:
 ;                         if the result still ends in a separator, clear that one too and shorten;
-;                         or, if the cut landed ON the root AND the root is a SERVER/SHARE root,
+;                         or, if the cut landed on the root and the root is a server/share root,
 ;                         clear one more slot at j+1.
-;      IT CLEARS A SLOT PER REMOVED SEPARATOR, not one terminator at the cut -- only a whole-buffer
+;      It clears a slot per removed separator, not one terminator at the cut -- only a whole-buffer
 ;      comparison sees that, and "\\\a\aaa" proves only ONE extra character goes by keeping its last
 ;      two 'a's. The extra slot is a property of the root's TYPE, not of whether the root ends in a
 ;      separator: "\\\" (root "\\") clears it, "a:\\aa" (root "a:\") does not.
 ;
-;   4. cch BOUNDS THE HIGHEST INDEX WRITTEN -- not the result and not the input. Measured as min_cch(P),
+;   4. cch bounds the highest index written -- not the result and not the input. Measured as min_cch(P),
 ;      the smallest cch that is not rejected: it equals (highest index written) + 1 on all 87 381
 ;      strings swept. So "C:\dir\file.txt" is 15 characters and succeeds at cch = 7 because its answer
 ;      is 6 plus a terminator, while "\\srv\shr" -- already its own root -- needs cch >= 10 to say
@@ -83,7 +83,7 @@
 ; vectorising it would cost more in setup than it saves.
 ;
 ; Page safety: the wcslen issues a 32-byte load only when (cursor & 4095) <= 4064, stepping one
-; character otherwise. THE BACKWARD SCAN NEEDS NO CHECK -- it reads only inside [root, n), bytes the
+; character otherwise. The backward scan needs no check -- it reads only inside [root, n), bytes the
 ; wcslen has already proved are mapped -- and the root parse reads only up to index 7 plus characters
 ; it has already seen to be non-terminating. probes/pcrfs.c confirms the shipped export does not
 ; overread either: 99 of 99 guard-page cases clean.
@@ -342,7 +342,7 @@ no_sep:
         mov       rdx, r13                       ; end = rl
 cut_done:
 
-; ---- cch bounds the HIGHEST INDEX WRITTEN -------------------------------------------------------
+; ---- cch bounds the highest index written -------------------------------------------------------
         mov       rax, rdx
         cmp       r8, rax
         cmovg     rax, r8

@@ -6,16 +6,16 @@
 ; int wia_stricmp(const char* s1, const char* s2)   [Win64: rcx, rdx -> eax]
 ;
 ; Case-insensitive byte compare. Like 042 _wcsicmp but at byte granularity: ucrtbase in
-; the default C locale folds ONLY ASCII A-Z (0x41-0x5A) -> a-z; bytes >= 0x80 are compared
+; the default C locale folds only ASCII A-Z (0x41-0x5A) -> a-z; bytes >= 0x80 are compared
 ; as-is (verified against the live export: 0xC0 vs 0xE0 -> raw -32). Return =
 ; fold(b1) - fold(b2) at the first differing position. ucrtbase's is scalar (~2.2 GB/s).
 ;
 ; Fold both 32-byte vectors in-register (A-Z via two signed vpcmpgtb, +0x20) then compare.
-; Two unbounded pointers -> page-safe: a 32-byte load is issued only when BOTH pointers
+; Two unbounded pointers -> page-safe: a 32-byte load is issued only when both pointers
 ; have >= 32 bytes to their page end; otherwise it steps one byte at a time. The
 ; terminator stops the scan. ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 (their low 128 bits are;
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 (their low 128 bits are;
 ; the upper halves are volatile), so an earlier cut of this function -- which parked constants in
 ; ymm6/ymm7 -- silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers. See tools/abi-check.

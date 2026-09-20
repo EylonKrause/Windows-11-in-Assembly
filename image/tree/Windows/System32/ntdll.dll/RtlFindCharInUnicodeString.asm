@@ -21,7 +21,7 @@
 
 EXTERN wia_upcase:WORD
 
-; REGISTER NOTE. This function may only touch xmm0-xmm5: xmm6-xmm15 are CALLEE-SAVED under Win64
+; Register note. This function may only touch xmm0-xmm5: xmm6-xmm15 are callee-saved under Win64
 ; (their low 128 bits are; the upper halves are volatile). An earlier cut held the haystack chunk in
 ; ymm6, which silently destroyed any double the caller had live -- invisible to a correctness test,
 ; which compares an NTSTATUS and a position. Only registers 0, 4 and 6 were ever in use here, so

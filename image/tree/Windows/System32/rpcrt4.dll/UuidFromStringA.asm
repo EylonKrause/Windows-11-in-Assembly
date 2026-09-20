@@ -18,12 +18,12 @@
 ;     interchangeable;
 ;   * StringUuid == NULL is SUCCESS: it returns 0 and writes the nil UUID (16 zero bytes). Measured,
 ;     not guessed -- rpcrt4 really does treat a null pointer as "the nil uuid";
-;   * anything else malformed -> 1705 and THE OUTPUT IS NOT TOUCHED. A pre-poisoned GUID came back
+;   * anything else malformed -> 1705 and the output is not touched. a pre-poisoned GUID came back
 ;     byte-identical from every failing case, so this implementation accumulates into a stack
 ;     scratch and only stores on success. (Change 118 writes as it parses, which would be wrong
 ;     here.)
 ;
-; VALIDATION IS BRANCHLESS. Every character goes through a 256-entry table that maps hex digits to
+; Validation is branchless. Every character goes through a 256-entry table that maps hex digits to
 ; their value and everything else to 0FFh. All 32 looked-up values are OR-ed into one accumulator,
 ; and a single `test acc, 0F0h` at the end catches any invalid character: a real nibble only ever
 ; sets bits 0..3, so any 0FFh in the input leaves a high bit set. That replaces 32 conditional

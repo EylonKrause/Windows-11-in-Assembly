@@ -8,7 +8,7 @@
 ; Reimplements shlwapi!PathAddExtensionW (the body lives in kernelbase!PathAddExtensionW at RVA
 ; 0x100DE0; shlwapi's export is a jmp thunk).
 ;
-; THE WHOLE FUNCTION, read out of the disassembly and then confirmed by probes/addext.c:
+; The whole function, read out of the disassembly and then confirmed by probes/addext.c:
 ;
 ;     00100DF9  test rcx, rcx / je                    pszPath NULL -> FALSE
 ;     00100E01  lea  rsi, [rip + 0x1A8198]            a DEFAULT extension...
@@ -34,7 +34,7 @@
 ;     burned by inheriting this rule by name;
 ;   * the bound is on the RESULT: n + extlen <= 259 appends, >= 260 refuses. Swept over path lengths
 ;     250..262 against extension lengths 0..5, and the boundary tracks the SUM, not either operand;
-;   * A REFUSAL WRITES NOTHING AT ALL -- a 300-character path comes back byte-for-byte unchanged,
+;   * a refusal writes nothing at all -- a 300-character path comes back byte-for-byte unchanged,
 ;     poison past the terminator intact;
 ;   * an EMPTY extension returns TRUE and writes nothing, not even the terminator it already has;
 ;   * an extension with no leading dot is appended verbatim ("file" + "zzz" -> "filezzz");
@@ -42,7 +42,7 @@
 ;     this -- the scan below is page-safe, which means it faults on exactly the strings the shipped
 ;     one faults on and not on a string that ends one character before an unmapped page.
 ;
-; COMPOSED ON CHANGE 132, the way 246 is composed on 243. The extension point is the one part of this
+; Composed on change 132, the way 246 is composed on 243. The extension point is the one part of this
 ; function with a rule subtle enough to get wrong, 132 already gets it right, and 132's correctness is
 ; proved TOGETHER with 217 against an exhaustive corpus. Reimplementing it here would be re-deriving a
 ; rule this project has already been wrong about once.

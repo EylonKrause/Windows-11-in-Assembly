@@ -1,6 +1,6 @@
 # 082 — `CryptStringToBinaryA` (base64 decode) — **LANDS**
 
-`BOOL CryptStringToBinaryA(LPCSTR pszString, DWORD cchString, DWORD dwFlags, BYTE* pbBinary, DWORD*
+`BOOL CryptStringToBinaryA(LPCSTR pszString, dword cchString, dword dwFlags, byte* pbBinary, dword*
 pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)` (crypt32.dll), for `CRYPT_STRING_BASE64` — base64 text →
 binary. The inverse of [081](../081-cryptbinarytostring-base64/), and just as hot (cert/PEM/token/TLS
 *parsing*). crypt32's is scalar (~0.13 GB/s). The project's biggest single win so far.

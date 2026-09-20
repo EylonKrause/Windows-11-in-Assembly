@@ -7,7 +7,7 @@
 ;
 ; Reimplements shlwapi!PathIsPrefixA: is path a a whole-component prefix of path b?
 ;
-; 9.20 ns PER BYTE at 254 characters against 2.46 for the wide form -- 3.7x the wide cost for HALF
+; 9.20 ns per byte at 254 characters against 2.46 for the wide form -- 3.7x the wide cost for half
 ; the bytes. That is within a hair of PathCommonPrefixA's 9.40, and the two numbers being that close
 ; is what suggested the relationship this change is built on.
 ;
@@ -28,17 +28,17 @@
 ; pairs -- exactly change 236's 61 two-member classes counted as ordered pairs. Assuming it would
 ; have been the same kind of mistake the SPACE-rule bug was.
 ;
-; THE LENGTH-TWO DEFECT IS NOT INCIDENTAL HERE -- IT IS VISIBLE IN THE ANSWER. PathCommonPrefixA
+; The length-two defect is not incidental here -- it is visible in the answer. PathCommonPrefixA
 ; REPORTS 3 for a common prefix of exactly 2, and composing that with the rule above produces two
 ; results that read like nonsense and are exactly what the shipped export does. probes/pipa2.c
 ; predicted both, then measured both, and the counts are closed forms:
 ;
-;   * A TWO-CHARACTER PATH IS NOT A PREFIX OF ITSELF. PathIsPrefixA("aa","aa") is FALSE, because the
+;   * a two-character path is not a prefix of itself. PathIsPrefixA("aa","aa") is FALSE, because the
 ;     count comes back 3 and the length is 2. Lengths 0, 1 and 3..10 are all TRUE, so it is a hole at
 ;     exactly one length. Over {a,b,backslash,colon} to length 6, 16 strings fail the self test --
 ;     and 4^2 = 16 is every string of length 2 in that alphabet.
 ;
-;   * A LONGER PATH CAN BE A PREFIX OF A SHORTER ONE. PathIsPrefixA("xy\","xy") is TRUE: the scan
+;   * a longer path can be a prefix of a shorter one. PathIsPrefixA("xy\","xy") is TRUE: the scan
 ;     stops at k = 2 with b exhausted and a continuing with a separator, which is the whole-component
 ;     shape, so the count is 2, the fixup reports 3, and strlen(a) is 3. Over the same corpus there
 ;     are 16 such pairs -- and 4*4 = 16 is exactly "a of length 3 ending in a separator, b its first
@@ -46,8 +46,8 @@
 ;
 ; Both are reproduced. A realistic path corpus contains neither, which is why they are enumerated.
 ;
-; THE LENGTH TEST, AND WHY IT IS NOT strlen. The answer is "n == strlen(a)", but computing strlen(a)
-; outright would both cost a second pass and, in one case, READ PAST A CALLER'S TERMINATOR: when the
+; The length test, and why it is not strlen. The answer is "n == strlen(a)", but computing strlen(a)
+; outright would both cost a second pass and, in one case, read past a caller's terminator: when the
 ; fixup has reported 3 for a two-character path, a[3] is one byte beyond the NUL. So the test walks
 ; only from k to n -- at most ONE byte, and only when the fixup fired -- and stops at the terminator:
 ;

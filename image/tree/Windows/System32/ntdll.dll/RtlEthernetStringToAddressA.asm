@@ -5,7 +5,7 @@
 ; changes/119-rtlethernetstringtoaddress/impl.asm
 ; NTSTATUS wia_ethstra(PCSTR S, PCSTR* Terminator, DL_EUI48* Addr)   [rcx, rdx, r8 -> eax]
 ;
-; ntdll!RtlEthernetStringToAddressA: parse a MAC address "XX-XX-XX-XX-XX-XX" / "XX:XX:XX:XX:XX:XX"
+; ntdll!RtlEthernetStringToAddressA: parse a mac address "xx-xx-xx-xx-xx-xx" / "xx:xx:xx:xx:xx:xx"
 ; (six groups of exactly two hex digits, '-' or ':' separators, mixable) into 6 bytes. *Terminator =
 ; the first char after the 6th group; a hex digit there is an error. Malformed -> STATUS_INVALID_PARAMETER
 ; (0xC000000D). Terminator quirk: when a hex digit is expected but a separator ('-'/':') appears, the
@@ -67,9 +67,9 @@ lo_sep:
 lo_ok:
         shl       r11b, 4
         or        r11b, al
-        ; THE SIX BYTES ARE BUFFERED AND COMMITTED ONLY ON SUCCESS.
+        ; The six bytes are buffered and committed only on success.
         ;
-        ; ntdll writes NOTHING to the caller's address on a failed parse -- not even the groups it
+        ; ntdll writes nothing to the caller's address on a failed parse -- not even the groups it
         ; read successfully first. "00-11-22-33-44-55-66" parses six groups cleanly and fails on
         ; the seventh, and the export still leaves all six bytes as the caller had them. Storing
         ; each group as it was parsed put OUR partial result into the caller's buffer on every
@@ -80,7 +80,7 @@ lo_ok:
         ; only a whole-destination comparison could see it: live substitution found it on 10678 of
         ; 20000 cases and probes/failbuf.c shows the bytes.
         ;
-        ; The groups accumulate in the CALLER'S SHADOW SPACE, which a leaf may use, so this stays
+        ; The groups accumulate in the caller's shadow space, which a leaf may use, so this stays
         ; frameless -- there is no spare volatile register here and pushing one would cost more
         ; than the two stores it saves.
         mov       byte ptr [rsp + r10 + 8], r11b      ; addr[g], staged

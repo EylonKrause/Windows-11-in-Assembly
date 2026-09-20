@@ -3,7 +3,7 @@
 **Bench:** #3, Intel Core i9-11900H (Tiger Lake-H) — [`docs/PLATFORM-i9-11900H.md`](../../docs/PLATFORM-i9-11900H.md).
 Original `impl.asm` untouched; this records `impl_tgl.asm`, built by `build_tgl.bat`.
 
-> This file previously read **DO NOT LAND — a confirmed defect its own gate cannot see**. The defect
+> This file previously read **do not land — a confirmed defect its own gate cannot see**. The defect
 > was real, it is now found and fixed, and the gate that could not see it has been extended until it
 > can. The history is kept below rather than deleted, because the *reason* the corpus could not
 > express the case is the most reusable thing this change produced.

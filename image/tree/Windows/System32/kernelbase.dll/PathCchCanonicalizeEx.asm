@@ -6,7 +6,7 @@
 ; kernelbase!PathCchCanonicalizeEx, dwFlags == 0, in AVX2 assembly.
 ;
 ; THE CONTRACT is derived and evidenced in RESULTS.md and modelled independently in reference.c. In
-; brief: ONE LINEAR WALK over the input with a write cursor, dispatched on the LENGTH of each component
+; brief: One linear walk over the input with a write cursor, dispatched on the length of each component
 ;   0                 emit one separator                    (this is why doubled separators survive)
 ;   1 and it is "."   skip it AND the separator after it; if there is none, remove one character from
 ;                     the output unless the output is empty or PathCchIsRoot
@@ -19,17 +19,17 @@
 ; output of exactly two characters whose second is ':' gets a separator. Both of those last two are
 ; BEST EFFORT -- when the buffer cannot hold the extra character the function returns S_OK unfixed.
 ;
-; THE DOMAIN IS dwFlags == 0, which is what PathCchCanonicalize passes and what every caller in this
+; The domain is dwFlags == 0, which is what PathCchCanonicalize passes and what every caller in this
 ; project's corpus uses. Flag 0x01 is not a post-step: it selects a different backward walk (measured
 ; "C:a\.." as "\" with flags 0 and "C:a\" with 0x01), so it is a second contract. Any nonzero flags
 ; TAIL-JUMP to the original implementation through wia_pccx_fallback, which the harness installs, so
 ; those paths behave identically by construction rather than by reimplementation.
 ;
-; WHERE THE SPEED COMES FROM. The shipped code makes an indirect call per component to find the
+; Where the speed comes from. The shipped code makes an indirect call per component to find the
 ; component end and copies one wchar_t at a time with a bounds test per character. This one:
 ;   * pre-scans the whole input with AVX2 for the only thing that can complicate it -- a '.' at a
 ;     component start, found as the two-character pattern "\." plus the first-character case. Blocks
-;     OVERLAP BY ONE CHARACTER so that pattern can never straddle a block boundary and no carry between
+;     Overlap by one character so that pattern can never straddle a block boundary and no carry between
 ;     iterations is needed.
 ;   * when there is none, and the input is at most 256 characters (a longer one cannot pass the
 ;     MAX_PATH result cap anyway, and 256 is also the per-component cap, so one test covers both), the
@@ -125,7 +125,7 @@ wia_pathcchcanonicalizeex PROC FRAME
         mov     rdi, rbx                        ; cursor
 
 ; ---- the extended prefix ---------------------------------------------------------------------------
-; "\\?\" followed by a drive letter and a colon is dropped -- NOTHING is required after the colon.
+; "\\?\" followed by a drive letter and a colon is dropped -- nothing is required after the colon.
 ; "\\?\UNC\rest" walks exactly as "\\" + rest, because the two leading separators of the rewritten
 ; string are themselves zero-length components that emit themselves, so seeding them and skipping to
 ; rest is the same computation without a copy.
@@ -269,7 +269,7 @@ fc_1:
         jmp     finish
 
 ; ---- the scalar walk: the contract, component by component -----------------------------------------
-; THE DISPATCH READS THE FIRST CHARACTER AND BRANCHES BEFORE MEASURING ANYTHING. Only an ordinary
+; The dispatch reads the first character and branches before measuring anything. Only an ordinary
 ; component needs its end found, and only an ordinary component gets copied. A separator is its own
 ; zero-length component and every second component in a path is one, so calling a scan to be told that
 ; the component ends where it starts was most of the per-component cost.
@@ -474,7 +474,7 @@ wia_pathcchcanonicalizeex ENDP
         ALIGN 16
 find_sep PROC
         mov     rdx, rsi
-        ; A SCALAR PROBE FIRST, for eight characters. Real components are a handful of characters long,
+        ; a scalar probe first, for eight characters. Real components are a handful of characters long,
         ; and the vector path's load -> compare -> compare -> or -> movmsk -> tzcnt chain is about
         ; twenty cycles of LATENCY that the next component's scan cannot start until it resolves -- the
         ; scans are serially dependent through the read pointer. Eight characters of two predicted
@@ -523,7 +523,7 @@ find_sep ENDP
 ; destination bound, and the source is known to hold r10 characters, so the reads stay inside the
 ; string. Clobbers rax, rcx, ymm0, ymm1.
 ;
-; THE TAIL IS A LADDER OF OVERLAPPING MOVES, not a character loop. Components in a real path are a
+; The tail is a ladder of overlapping moves, not a character loop. Components in a real path are a
 ; handful of characters long, so the tail IS the cost: a 7-character component was 7 iterations of a
 ; 4-instruction loop and is now two 8-byte moves. Each overlapping move re-copies characters the
 ; previous one already wrote, which is why no case needs a branch per character.
@@ -593,10 +593,10 @@ copy_n ENDP
 ; PathCchIsRoot over 8587 strings: 0 differences. The output can still carry an extended prefix -- an
 ; input like "\\?\a\.." keeps it, because only a drive or UNC prefix is stripped -- so the prefix forms
 ; are part of this test. Clobbers rax, rcx, r8, r9, r10. PRESERVES rdx, rsi, rdi, rbx, r11.
-; THE LENGTH IS ALREADY KNOWN -- it is rdi - rbx -- so the two cheapest rejections come first. An
+; The length is already known -- it is rdi - rbx -- so the two cheapest rejections come first. An
 ; output that does not begin with a separator can only be the drive root "X:\", which is exactly three
 ; characters, so a single length test rejects every ordinary path in four instructions. That matters
-; because isroot is called on EVERY ".." and every trailing "." in the path.
+; because isroot is called on every ".." and every trailing "." in the path.
         ALIGN 16
 isroot PROC
         mov     rax, rdi

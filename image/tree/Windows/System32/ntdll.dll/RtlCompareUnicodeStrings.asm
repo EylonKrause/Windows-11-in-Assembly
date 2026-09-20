@@ -12,14 +12,14 @@
 ;       RtlCompareUnicodeStrings, equal            607.35 ns   0.076 ns/byte
 ;       ... case-INSENSITIVE                       812.08 ns   0.102 ns/byte
 ;
-; TWO THINGS WERE SETTLED BEFORE ANY OF THIS WAS WRITTEN (discovery/rtl_cmpstrings_probe.c), because
+; Two things were settled before any of this was written (discovery/rtl_cmpstrings_probe.c), because
 ; either answer going the other way would have ended the change:
 ;
-;   * IT IS A DISTINCT EXPORT. The singular RtlCompareUnicodeString is a different address and is
+;   * It is a distinct export. The singular RtlCompareUnicodeString is a different address and is
 ;     already landed. In the same survey RtlInitAnsiString looked like a target and turned out to be
 ;     the SAME ADDRESS as RtlInitString, which change 095 landed long ago -- so the addresses are
 ;     compared rather than the names.
-;   * THE CASE-INSENSITIVE FLAG IS NOT LINGUISTIC. It is EXACTLY RtlUpcaseUnicodeChar: over a dense
+;   * The case-insensitive flag is not linguistic. It is exactly RtlUpcaseUnicodeChar: over a dense
 ;     sweep of character pairs, 66462 compared equal and not one was a pair the table disagreed
 ;     about, in either direction. discovery/lstrcmp_is_linguistic.c and strcmpn_is_linguistic.c both
 ;     ABANDONED their targets on this question.
@@ -27,45 +27,45 @@
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
 ;
-;   * THE RETURN IS THE DIFFERENCE, NOT A SIGN. `A` against `Z` is -25, U+FFFF against U+0000 is
-;     65535, U+0000 against U+FFFF is -65535 -- the two characters ZERO EXTENDED and subtracted.
-;   * WHEN THE COMMON PREFIX IS EQUAL THE ANSWER IS len1 - len2, IN CHARACTERS: "abc" against
+;   * The return is the difference, not a sign. `a` against `Z` is -25, u+ffff against U+0000 is
+;     65535, U+0000 against u+ffff is -65535 -- the two characters zero extended and subtracted.
+;   * When the common prefix is equal the answer is len1 - len2, in characters: "abc" against
 ;     "abcdef" is -3. A difference inside the common part wins over the lengths: "abz" against
 ;     "abcd" is 23, and "aba" against "abcd" is -2.
-;   * CASE-INSENSITIVE RETURNS THE UPCASED DIFFERENCE: `a` against `B` is -1, which is A - B, not
+;   * Case-insensitive returns the upcased difference: `a` against `B` is -1, which is a - B, not
 ;     the raw 31. The fold happens BEFORE the subtraction, not merely as an equality test.
-;   * A NULL POINTER WITH LENGTH ZERO IS NEVER READ.
+;   * a NULL pointer with length zero is never read.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS, and why the case-insensitive path is not a table lookup per character.
+; How it works, and why the case-insensitive path is not a table lookup per character.
 ;
-; THE RAW CHARACTERS ARE COMPARED FIRST, ALWAYS -- with or without the flag. Two strings that are
+; The raw characters are compared first, always -- with or without the flag. Two strings that are
 ; equal are almost always equal exactly, and VPCMPEQW settles sixteen characters in one instruction.
 ; The fold is only ever computed on a block that actually disagrees, which is change 236's shape:
 ; there, comparing the raw bytes first and folding only a differing block made 254 identical
 ; characters cost 18.64 ns against 32.85 for ones differing in case.
 ;
-; THAT LEAVES ONE CASE WHERE THE FOLD IS ON THE CRITICAL PATH FOR EVERY CHARACTER: two strings that
-; differ ONLY in case, where every block disagrees raw and every block has to be folded. A
+; That leaves one case where the fold is on the critical path for every character: two strings that
+; differ only in case, where every block disagrees raw and every block has to be folded. A
 ; 65536-entry table lookup per character would lose to the shipped code outright there, so the fold
 ; has an in-vector form, and probes/fold.c measured exactly where that form is legal:
 ;
-;       the ASCII quarter is EXACTLY "a-z becomes A-Z, nothing else changes" -- 0 disagreements
+;       the ASCII quarter is exactly "a-z becomes A-Z, nothing else changes" -- 0 disagreements
 ;       outside it, only 947 characters of 65408 fold at all, by SEVEN different offsets
 ;
 ; So a block whose every character is below 0x80 folds with two compares and a masked subtract, and
 ; a block containing anything else goes through the table one character at a time. Real text takes
 ; the first path; the second exists to be correct, not to be fast.
 ;
-; THE ALL-ASCII TEST IS ONE COMPARE PER BLOCK, and it has to be an UNSIGNED one: U+FFFF is a
+; The all-ascii test is one compare per block, and it has to be an unsigned one: U+ffff is a
 ; perfectly ordinary character here and as a signed word it is -1, which would read as "below
 ; 0x80". AVX2 has no unsigned word compare, so both sides are biased by 0x8000 and the threshold
 ; 0x007F is biased with them to 0x807F -- the standard trick, and cheaper than a min/max pair.
 ;
-; READING PAST EITHER STRING CANNOT HAPPEN: the vector loop runs only while sixteen whole characters
-; remain inside BOTH strings, and the tail is read one character at a time.
+; Reading past either string cannot happen: the vector loop runs only while sixteen whole characters
+; remain inside both strings, and the tail is read one character at a time.
 ;
-; NO FRAME AND NO SAVED REGISTERS: the length tie-break is computed at entry and parked in the
+; No frame and no saved registers: the length tie-break is computed at entry and parked in the
 ; caller's shadow space, which frees the register it would otherwise have occupied for the upcase
 ; table's base -- x64 cannot address a global with an index register without one. Only ymm0..ymm5
 ; are touched, because the low halves of xmm6-xmm15 belong to the caller (see the note by the fold).
@@ -87,8 +87,8 @@ c_20    dq  00020002000200020h, 00020002000200020h, 00020002000200020h, 00020002
 
 .code
 
-; NOTHING IS KEPT IN A VECTOR REGISTER ACROSS THE LOOP, and that is an ABI requirement rather than
-; a style choice. The first draft parked its four constants in ymm4..ymm7, and the LOW 128 BITS OF
+; Nothing is kept in a vector register across the loop, and that is an ABI requirement rather than
+; a style choice. The first draft parked its four constants in ymm4..ymm7, and the low 128 Bits of
 ; xmm6-xmm15 ARE NON-VOLATILE under Win64 -- so it destroyed two registers the caller owned. It was
 ; not subtle in its effects and it was still nearly invisible: the compiler had a `double` live in
 ; xmm6 across the call, and the symptom was a BENCHMARK PRINTING 0.00 ns for every case-insensitive
@@ -232,7 +232,7 @@ ci_s_fold:
         jne       cmp_out
         jmp       ci_s_next
 
-; THE SCALAR TAIL COMPARES RAW FIRST TOO, which is the same principle as the vector loop and not
+; The scalar tail compares raw first too, which is the same principle as the vector loop and not
 ; merely a shortcut: two characters that are identical cannot be made to differ by folding them, so
 ; the table is touched only where they disagree. The draft looked both of them up unconditionally
 ; and parked one through the stack, and a 16-character case-insensitive comparison of two EQUAL

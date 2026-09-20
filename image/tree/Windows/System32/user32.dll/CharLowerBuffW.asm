@@ -11,10 +11,10 @@
 ; about 0.02 -- roughly forty and fifty-eight times the headroom.
 ;
 ; --------------------------------------------------------------------------------------------------
-; WHY THIS ONE AND NOT ANOTHER WRAPPER. Changes 274 and 276 were both parked because the rows they
+; Why this one and not another wrapper. Changes 274 and 276 were both parked because the rows they
 ; could not win turned out to be an operating-system call this project does not own -- a 13.25 ns
 ; private allocator and a 33 ns collation, with about a nanosecond of our code beside them. This
-; export has neither. probes/mapping.c established that it is a PURE PER-CHARACTER TABLE:
+; export has neither. probes/mapping.c established that it is a pure per-character table:
 ;
 ;   * it agrees with ntdll!RtlUpcaseUnicodeChar on all 65536 code units (and the lower form with
 ;     RtlDowncaseUnicodeChar on all 65536);
@@ -25,8 +25,8 @@
 ; So the whole measured cost is a lookup, and a lookup is something this project can write.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE SHAPE IS CHANGE 015's, IN PLACE. A 16-character block with no code unit at or above 0x80 is
-; handled ENTIRELY IN REGISTERS by a range subtract -- there is no table access at all for ASCII,
+; The shape is change 015's, in place. a 16-character block with no code unit at or above 0x80 is
+; handled entirely in registers by a range subtract -- there is no table access at all for ASCII,
 ; which is what the forty-times gap is made of. Any block with a high code unit falls back to the
 ; table, one character at a time, for that block only.
 ;
@@ -34,7 +34,7 @@
 ; rule this vector path depends on: that below 0x80 the table agrees with the range rule, all 128 of
 ; them. If it ever did not, the fast path would be silently wrong on ordinary text.
 ;
-; THE CONTRACT AT THE EDGES, measured in probes/mapping.c:
+; The contract at the edges, measured in probes/mapping.c:
 ;
 ;     count 0            returns 0 and does not touch the buffer -- and a NULL buffer with a
 ;                        NON-ZERO count FAULTS, which is an access violation and not a refusal

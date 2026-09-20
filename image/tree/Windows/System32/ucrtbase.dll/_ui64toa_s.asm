@@ -14,7 +14,7 @@
 ; hard zero and calls the same address. So this is change 194 with `negative` permanently 0, and
 ; every contract detail 194 records applies unchanged:
 ;
-;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), NOTHING written;
+;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
 ;   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation;
 ;   * SizeInChars <= 1 -> ERANGE (34) before a digit is emitted (the `negative + 1` test with
 ;     negative fixed at 0);

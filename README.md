@@ -281,7 +281,7 @@ The `_s` harnesses must install the invalid-parameter handler through **ucrtbase
 case, because that family's error path writes; the wide-parser harness compares **value, `*endptr`
 and `errno`** on a corpus deliberately weighted onto the derived character tables, so what it proves
 is not only that our assembly is fast but that those tables are the ones ucrtbase actually uses.
-The ntdll harness does the same for change 193, whose contract was READ OUT OF THE SHIPPED
+The ntdll harness does the same for change 193, whose contract was read out of the shipped
 DISASSEMBLY rather than derived black-box: it compares the BOOL and the rewritten `*lpi` on every
 case, across a corpus weighted onto the two slots that were misread on the first pass.
 See its RESULTS.md.
@@ -294,10 +294,10 @@ nowhere, and leaves exactly one extra byte behind — and it places every one of
 units in both strings. 142 compares the **returned pointer as an offset** into the buffer when it
 points there and as a raw value when it does not, so NULL is never confused with the same answer in a
 different buffer.
-244 patches **`kernelbase!HashData`**, which is the body BOTH names reach — `shlwapi!HashData` is a
+244 patches **`kernelbase!HashData`**, which is the body both names reach — `shlwapi!HashData` is a
 jmp thunk through `api-ms-win-core-url-l1-1-0` into it — and its corpus drives every relative
 placement of source against digest inside one buffer, because the fast path holds twelve digest lanes
-in registers and that is valid ONLY while the two are disjoint: the shipped inner loop re-reads the
+in registers and that is valid only while the two are disjoint: the shipped inner loop re-reads the
 source byte for every lane, so a digest write landing on it changes what the remaining lanes consume.
 
 ## Status

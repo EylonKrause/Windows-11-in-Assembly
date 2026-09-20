@@ -8,12 +8,12 @@
 ; Reimplements ucrtbase!_wtoi. `_wtol` resolves to the SAME code address, so one implementation
 ; covers both exported names (verified: both at ucrtbase+0x73F40 on this build).
 ;
-; THIS FUNCTION WAS EXPLICITLY SCOPED OUT OF THIS REPO AND IS NOW UNBLOCKED.
+; This function was explicitly scoped out of this repo and is now unblocked.
 ; changes/109-atoi64/RESULTS.md said: "a bit-exact reimpl would need the CRT's full Unicode digit
 ; table, not an ASCII loop. Scoped out rather than shipped as a silently-diverging ASCII-only
 ; version." Two exhaustive sweeps replaced that assumption with a measurement:
 ;
-;   * DIGITS -- over all 65536 code units the accepted set is EXACTLY 18 CONTIGUOUS BLOCKS OF TEN,
+;   * Digits -- over all 65536 code units the accepted set is exactly 18 Contiguous blocks of ten,
 ;     each ascending 0..9 with no exceptions:
 ;         0030 0660 06F0 0966 09E6 0A66 0AE6 0B66 0C66 0CE6
 ;         0D66 0E50 0ED0 0F20 1040 17E0 1810 FF10

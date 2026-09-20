@@ -12,9 +12,9 @@
 ;
 ; Contract (derived in probes/scnw.c, fuzz-confirmed bit-exact against the live export over
 ; 3,000,000 cases):
-;   - The search is bounded by BOTH cchMax and the terminator, and the NUL test comes FIRST:
+;   - The search is bounded by both cchMax and the terminator, and the NUL test comes FIRST:
 ;     the terminator stops the search and can never itself be matched. Consequently
-;     wMatch == 0 ALWAYS returns NULL, which this implementation short-circuits.
+;     wMatch == 0 always returns NULL, which this implementation short-circuits.
 ;   - The match is ORDINAL / case-SENSITIVE ('A' does not find 'a'); StrChrIW is the
 ;     documented case-insensitive sibling, and that one is collation-based and out of scope.
 ;   - cchMax is UNSIGNED: 0xFFFFFFFF means "effectively unbounded", not "negative".

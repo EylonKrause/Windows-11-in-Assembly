@@ -3,7 +3,7 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/068-rtlipv6addresstostringexa/impl.asm
-; NTSTATUS wia_v6ex(const void* Addr, ULONG ScopeId, USHORT Port, char* Str, ULONG* Size)
+; NTSTATUS wia_v6ex(const void* Addr, ulong ScopeId, ushort Port, char* Str, ulong* Size)
 ;   [rcx=Addr(16), edx=ScopeId, r8w=Port(net order), r9=Str, [rsp+28h]=Size -> eax]
 ;
 ; Reimplements ntdll!RtlIpv6AddressToStringExA. Format the IPv6 (via the validated 063

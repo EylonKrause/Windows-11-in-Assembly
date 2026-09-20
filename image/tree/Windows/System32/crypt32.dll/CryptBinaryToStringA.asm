@@ -16,7 +16,7 @@
 ; from changes/081-cryptbinarytostring-base64/impl.asm   (24.5x vs shipped)
 ;======================================================================
 ; changes/081-cryptbinarytostring-base64/impl.asm
-; BOOL wia_b2s(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; BOOL wia_b2s(const byte* pb, dword cb, dword flags, char* out, dword* pcch)
 ;   [Win64: rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; Reimplements ntdll... no: crypt32!CryptBinaryToStringA for the CRYPT_STRING_BASE64 format
@@ -260,7 +260,7 @@ fail_moredata:
         xor       eax, eax
         jmp       epilogue
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also
@@ -287,7 +287,7 @@ END
 ; from changes/085-cryptbinarytostring-hexraw/impl.asm   (920x vs shipped)
 ;======================================================================
 ; changes/085-cryptbinarytostring-hexraw/impl.asm
-; BOOL wia_b2sh(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; BOOL wia_b2sh(const byte* pb, dword cb, dword flags, char* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; crypt32!CryptBinaryToStringA for CRYPT_STRING_HEXRAW (0x0c) [+ CRYPT_STRING_NOCRLF]: lowercase raw hex,
@@ -391,7 +391,7 @@ fail_moredata:
         xor       eax, eax
         jmp       epilogue
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also
@@ -417,11 +417,11 @@ END
 ; from changes/090-cryptbinarytostring-hexfmt/impl.asm   (150x vs shipped)
 ;======================================================================
 ; changes/090-cryptbinarytostring-hexfmt/impl.asm
-; BOOL wia_b2shf(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; BOOL wia_b2shf(const byte* pb, dword cb, dword flags, char* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; crypt32!CryptBinaryToStringA for the FORMATTED hex modes:
-;   CRYPT_STRING_HEX (0x4), HEXASCII (0x5), HEXADDR (0xa), HEXASCIIADDR (0xb).
+;   CRYPT_STRING_HEX (0x4), hexascii (0x5), hexaddr (0xa), hexasciiaddr (0xb).
 ; 16 bytes/line: optional "addr\t" (lowercase hex offset, min 4 digits); hex bytes "XX"
 ; single-spaced with a DOUBLE space after byte 8; optional pad-to-col-51 + ASCII column
 ; (0x20..0x7e -> char else '.'); CRLF per line. crypt32's is scalar and glacial (~0.01 GB/s).
@@ -705,7 +705,7 @@ ret_moredata:
         xor       eax, eax
         jmp       epi
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also
@@ -734,12 +734,12 @@ END
 ; from changes/092-cryptbinarytostring-base64header/impl.asm   (16.1x vs shipped)
 ;======================================================================
 ; changes/092-cryptbinarytostring-base64header/impl.asm
-; BOOL wia_b2sh64(const BYTE* pb, DWORD cb, DWORD flags, char* out, DWORD* pcch)
+; BOOL wia_b2sh64(const byte* pb, dword cb, dword flags, char* out, dword* pcch)
 ;   [rcx=pb, edx=cb, r8d=flags, r9=out, [rsp+28h]=pcch -> eax]
 ;
 ; crypt32!CryptBinaryToStringA for the PEM-header base64 modes:
 ;   CRYPT_STRING_BASE64HEADER (0x0)        -----BEGIN CERTIFICATE-----
-;   CRYPT_STRING_BASE64REQUESTHEADER (0x3) -----BEGIN NEW CERTIFICATE REQUEST-----
+;   CRYPT_STRING_BASE64REQUESTHEADER (0x3) -----begin new certificate request-----
 ;   CRYPT_STRING_BASE64X509CRLHEADER (0x9) -----BEGIN X509 CRL-----
 ; = "-----BEGIN <mid>-----\r\n" + the CRYPT_STRING_BASE64 body (81's SSSE3 base64, CRLF every
 ; 64 chars incl the last) + "-----END <mid>-----\r\n". crypt32's is scalar (~0.3 GB/s).
@@ -1007,7 +1007,7 @@ fail_moredata:
         xor       eax, eax
         jmp       epilogue
 fail:
-        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
         ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also

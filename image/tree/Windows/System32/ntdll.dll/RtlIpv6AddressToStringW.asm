@@ -155,7 +155,7 @@ htail:
 
 finish:
         mov       word ptr [r8], 0
-        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD -- at the same
+        ; The shipped export writes a second terminator, at the end of the field -- at the same
         ; INDEX as its narrow sibling 063, which for a UTF-16 destination is byte 90. Measured,
         ; not assumed to be symmetric: probes/tail.c prints the zero positions for both forms
         ; and both report exactly 45 in CHARACTER units at every address shape.

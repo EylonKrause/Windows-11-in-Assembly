@@ -13,7 +13,7 @@
 ; than StrRStrIW's 21816.97 ns because a forward search stops at the first hit.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. NOTHING HERE WAS INHERITED FROM CHANGE 283. IT WAS RE-MEASURED.
+; 2. Nothing here was inherited from change 283. It was re-measured.
 ;
 ; This is the forward sibling of StrRStrIW, and the obvious move is to take change 283 and reverse
 ; the scan. Change 283 is the reason not to: it shipped TWO wrong drafts, both of which passed a
@@ -21,7 +21,7 @@
 ; question again, in the shape that can tell a real load from a virtual NUL -- with NON-ZERO data
 ; written after the terminator. The answers:
 ;
-;   * PER CHARACTER, not a collation over spans: "ab<SOFT HYPHEN>cd" does NOT contain "abc". Had it
+;   * Per character, not a collation over spans: "ab<SOFT HYPHEN>cd" does not contain "abc". Had it
 ;     been a span collation, a three-character needle could match a four-character span and no
 ;     per-character loop could reproduce it -- the wall changes 274 and 276 parked on.
 ;   * change 281's relation, unchanged: locale-invariant, symmetric, INTRANSITIVE (so no equivalence
@@ -30,24 +30,24 @@
 ;     not contain {x,D7B1,y}.
 ;   * THE FIRST match, not the last.
 ;   * THE VIRTUAL NUL, exactly as in change 283. The string behaves as though the terminator were
-;     followed by endless NULs, and those NULs are NEVER LOADED. With 'W' written after the
-;     terminator of "zzzq": needle {Q, SOFT HYPHEN} -> found at the last character, {Q,SHY,SHY} ->
+;     followed by endless NULs, and those NULs are never LOADED. With 'W' written after the
+;     terminator of "zzzq": needle {q, soft hyphen} -> found at the last character, {q,shy,shy} ->
 ;     still found, {Q,W} -> NOT found. 3320 code units match a NUL (change 282's foldnul.c), so a
 ;     needle whose TRAILING characters all match a NUL can match across the end.
-;   * A NEEDLE LONGER THAN THE WHOLE STRING CAN MATCH: "q" contains {Q,SHY} at 0. But "q" does not
+;   * a needle longer than the whole string can match: "q" contains {q,shy} at 0. But "q" does not
 ;     contain "QQ".
-;   * A MATCH MAY START ONLY AT A REAL CHARACTER: the needle {SOFT HYPHEN} alone finds nothing in
+;   * a match may start only at a real character: the needle {soft hyphen} alone finds nothing in
 ;     "zzzq", so the terminator is not itself a candidate position. The highest start is hlen-1.
-;   * AN EMBEDDED NUL ENDS THE SEARCH -- "ab\0cd" does not contain "CD" -- but a NUL-matching needle
+;   * An embedded NUL ends the search -- "ab\0cd" does not contain "cd" -- but a NUL-matching needle
 ;     character MATCHES that embedded NUL: {B,SHY} is found at 1. It still does not read the real
 ;     character behind it: {B,SHY,C} is NOT found.
-;   * AN EMPTY NEEDLE RETURNS NULL. This is worth stating because it is the opposite of C strstr,
+;   * An empty needle returns NULL. This is worth stating because it is the opposite of C strstr,
 ;     which returns the haystack. An empty string, and any NULL argument, also return NULL.
 ;   * And with the terminator as the last readable code unit before an unmapped page, nothing faults
 ;     at any needle-tail length.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. WHAT THE VIRTUAL NUL DOES TO THE CANDIDATE RANGE.
+; 3. What the virtual NUL does to the candidate range.
 ;
 ; Let maxtail be the length of the needle's longest suffix whose every character matches a NUL. A
 ; candidate at index q needs q + nlen - hlen virtual NULs, so the highest candidate is
@@ -68,7 +68,7 @@
 ;
 ; For every needle whose last character is not one of those 3320 -- which is every ordinary needle --
 ; maxtail is zero, region B is empty, and the top collapses to hlen - nlen. maxtail costs a
-; match_pair call, so it is computed ONLY when it can change the answer.
+; match_pair call, so it is computed only when it can change the answer.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 4. THE ALGORITHM: a vector filter in front of a scalar verifier.
@@ -76,16 +76,16 @@
 ;   (a) measure the needle and the haystack, each to its terminator;
 ;   (b) rbx = start + (hlen - nlen)*2, region A's inclusive top. The terminator is recoverable as
 ;       rbx + nlen*2, so no register has to carry hlen past setup;
-;   (c) scan FORWARDS for a code unit matching THE NEEDLE'S FIRST CHARACTER, sixteen at a time: four
+;   (c) scan forwards for a code unit matching the needle's first character, sixteen at a time: four
 ;       broadcasts of that character's match set, both edge masks, BSF for the LOWEST hit in a block;
-;   (d) verify that candidate LAST CHARACTER FIRST, then the middle, and on failure resume the vector
+;   (d) verify that candidate last character first, then the middle, and on failure resume the vector
 ;       scan just above it;
 ;   (e) then region B, scalar, with the comparison length clamped to what is really there.
 ;
 ; A first character with more than four partners cannot be held in the four broadcast registers, so
 ; it takes a WIDE path that bypasses the filter and verifies every position left to right.
 ;
-; ISA: AVX2 + BMI1 + BMI2 (BZHI). VZEROUPPER on every exit that touched a YMM register.
+; Isa: AVX2 + BMI1 + BMI2 (bzhi). Vzeroupper on every exit that touched a ymm register.
 ; --------------------------------------------------------------------------------------------------
 
 OPTION PROC:PRIVATE
@@ -100,7 +100,7 @@ EXTERN wia_sci_bmap:DWORD
 
 ; ---------------------------------------------------------------------------------------------
 ; match_pair -- ZF=1 if the needle code unit in r14w matches the haystack code unit in r15w.
-; Clobbers EXACTLY rax, r12, r13. Everything else survives, which is why the maxtail loop below
+; Clobbers exactly rax, r12, r13. Everything else survives, which is why the maxtail loop below
 ; needs no spills at all.
 ; ---------------------------------------------------------------------------------------------
 match_pair PROC PRIVATE
@@ -293,8 +293,8 @@ nlen_loop:
 nlen_done:
         mov       r10, r9                         ; nlen
 
-        ; AN EMPTY NEEDLE IS A ONE-CHARACTER NEEDLE WHOSE CHARACTER IS THE TERMINATOR, AND THAT IS
-        ; NOT WHAT StrRStrIW DOES.
+        ; An empty needle is a one-character needle whose character is the terminator, and that is
+        ; Not what StrRStrIW does.
         ;
         ; probes/contract.c asked this over "abcXYZabc" and got NULL, so the first draft refused an
         ; empty needle outright, the way change 283 correctly does for StrRStrIW. The
@@ -303,7 +303,7 @@ nlen_done:
         ; settled it:
         ;
         ;     StrStrIW  with an empty needle -> the FIRST code unit matching a NUL, or NULL
-        ;     StrRStrIW with an empty needle -> ALWAYS NULL, whatever the haystack holds
+        ;     StrRStrIW with an empty needle -> always NULL, whatever the haystack holds
         ;
         ; "abcXYZabc" contains no code unit that matches a NUL, so the original probe was right about
         ; that string and wrong about the rule -- the same blind corpus this family keeps producing.
@@ -319,7 +319,7 @@ nlen_done:
         mov       r10, 1
 nlen_ok:
 
-        ; ---- (b) THE HAYSTACK'S TERMINATOR, IN VECTORS. This is not a detail.
+        ; ---- (b) The haystack's terminator, in vectors. This is not a detail.
         ;
         ; The first draft found it with the same one-code-unit-at-a-time loop used for the needle, and
         ; the bench said what that costs: the row "hit near the START (1)" came out at 1.00x -- a
@@ -411,7 +411,7 @@ verify_at:
         movzx     r15d, word ptr [r11]
         call      match_pair
         jne       cand_next
-        ; THE LAST CHARACTER IS TESTED BEFORE THE MIDDLE ONES. The vector filter keys on the
+        ; The last character is tested before the middle ones. The vector filter keys on the
         ; needle's FIRST character, so a needle beginning with a character that matches everything
         ; filters nothing and every position reaches the verifier. One extra comparison, at the END
         ; of the needle where the rare character usually is, rejects those candidates immediately.
@@ -485,7 +485,7 @@ wide_next:
 ;
 ; Searched last, because forwards these are the higher positions. Only the characters that are
 ; really there are compared; the rest of the needle is already known to match a NUL by the
-; definition of maxtail. NOTHING HERE LOADS PAST THE TERMINATOR.
+; definition of maxtail. Nothing here loads past the terminator.
 region_b:
         vzeroupper
         ; Region B is empty unless the needle is at least two characters long: with nlen == 1 the top

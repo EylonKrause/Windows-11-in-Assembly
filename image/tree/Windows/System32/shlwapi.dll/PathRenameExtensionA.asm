@@ -17,18 +17,18 @@
 ; of 335923 enumerated strings until it was corrected in this session, together with 132, 140, 143,
 ; 144, 159, 160 and 174 -- eight landed changes on one missing rule.
 ;
-;   * The extension position is THE LAST '.' AFTER THE LAST BACKSLASH OR SPACE. Measured, not
+;   * The extension position is the last '.' after the last backslash or space. Measured, not
 ;     assumed: '/' and ':' do NOT stop the backward scan ("a.b/c" + ".obj" -> "a.obj", "a.b:c" ->
 ;     "a.obj"), and neither does a TAB ("a.b<TAB>c" -> "a.obj") -- the stopper is 0x20 specifically.
 ;     A space DOES stop it ("a.b c" + ".obj" -> "a.b c.obj"). When there is no extension the
 ;     position is the terminator, so the extension is appended with no special case.
-;   * THE MAX_PATH LIMIT IS ON THE RESULT, NOT THE INPUT. Swept in probes/ren.c across extension
+;   * The MAX_PATH limit is on the result, not the input. Swept in probes/ren.c across extension
 ;     lengths 1..6 and input lengths 240..275: the first FALSE moves with the extension length, and
 ;     the last successful RESULT length is 259 in every one of the six sweeps. So the test is
 ;     pos + elen > 259, and nothing else.
-;   * ON FAILURE THE BUFFER IS UNTOUCHED -- so the length must be decided BEFORE the first store,
+;   * On failure the buffer is untouched -- so the length must be decided before the first store,
 ;     which is why this measures the extension before copying it rather than copying as it goes.
-;   * THE EXTENSION IS NOT VALIDATED. All 255 non-NUL byte values inside it are copied verbatim,
+;   * The extension is not validated. All 255 non-NUL byte values inside it are copied verbatim,
 ;     including a space, a backslash and a non-leading dot. This is where the shlwapi function
 ;     differs from its PathCch siblings (changes 159/160), which reject exactly those three.
 ;   * A NULL path returns FALSE without faulting; a NULL extension returns FALSE and leaves the
@@ -37,7 +37,7 @@
 ;     "file.o\0txxxxxx" -- the stale tail past the new terminator is the shipped behaviour, so
 ;     every test here compares the whole buffer rather than the string.
 ;
-; Byte-wise is correct here: GetCPInfo reports ZERO DBCS lead bytes for ACP 1252 -- measured, not
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured, not
 ; assumed -- and probes/ren.c sweeps all 255 non-NUL byte values at five positions in the path and
 ; every byte value inside the extension, with 0 disagreements. That is the stronger screen adopted
 ; after StrStrA survived three weaker ones and died on the fourth.
@@ -170,7 +170,7 @@ scan_done_at_cursor:
         mov       rcx, r9                        ; assume no usable dot: append
         cmp       r11, 0
         jl        have_pos                       ; no '.' anywhere (r11 is the -1 sentinel, so
-                                                 ; this test MUST be signed)
+                                                 ; this test must be signed)
         cmp       r11, rbx
         jb        have_pos                       ; the '.' is before the last STOPPER -- backslash
                                                  ;   OR space. Using the backslash alone here is
@@ -178,7 +178,7 @@ scan_done_at_cursor:
         mov       rcx, r11
 have_pos:
 
-        ; ---- elen = strlen(ext). MEASURED BEFORE ANYTHING IS WRITTEN, because the buffer must be
+        ; ---- elen = strlen(ext). Measured before anything is written, because the buffer must be
         ;      left untouched when the result does not fit. ----
         mov       rax, r10
 elen:

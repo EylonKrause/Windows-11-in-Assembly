@@ -9,7 +9,7 @@
 ; Reimplements shlwapi!UrlUnescapeW (the body lives in kernelbase!UrlUnescapeW at RVA 0xFBD0;
 ; shlwapi's export is a jmp thunk through api-ms-win-core-url-l1-1-0).
 ;
-; WHY THIS TARGET, and it is not the transform. discovery/shlwapi_url_str.c timed the wide form at
+; Why this target, and it is not the transform. discovery/shlwapi_url_str.c timed the wide form at
 ; 1.57 ns per character on a 1000-character URL. The same string through URL_UNESCAPE_INPLACE -- the
 ; unescape walk and nothing else -- costs 529 ns of that 1575, and a memcpy of the same buffer costs
 ; 0.2 ns. Two thirds of the measured cost is scaffolding, and the disassembly says exactly what:
@@ -28,16 +28,16 @@
 ; THE CONTRACT, measured in probes/unesc.c against the live export -- reference.c lists all of it.
 ; The three facts that shape the code:
 ;
-;   1. THE HEX SET IS 22 ASCII CHARACTERS AND NOTHING ELSE. Swept over all 65535 non-NUL code units
-;      in BOTH escape positions: 22 accepted in each, the positions agree everywhere, ZERO non-ASCII
+;   1. The hex set is 22 ASCII characters and nothing else. Swept over all 65535 non-NUL code units
+;      in both escape positions: 22 accepted in each, the positions agree everywhere, ZERO non-ASCII
 ;      accepted. No locale, so a 128-byte table settles it.
-;   2. %00 RETURNS E_INVALIDARG WITH THE DESTINATION AND *pcch UNTOUCHED, even when it sits in the
+;   2. %00 Returns E_INVALIDARG with the destination and *pcch untouched, even when it sits in the
 ;      middle of an otherwise valid string. So nothing may be written before the whole input is known
 ;      to be free of it -- which is what forces a measuring pass.
-;   3. THE SIZE TEST IS STRICT and its failure must also leave the destination untouched:
+;   3. The size test is strict and its failure must also leave the destination untouched:
 ;      *pcch must be GREATER than the result length, and E_POINTER reports result+1.
 ;
-; STRUCTURE: TWO VECTOR PASSES, and both 2 and 3 above are why there are two rather than one.
+; Structure: Two vector passes, and both 2 and 3 above are why there are two rather than one.
 ;   pass 1 measures -- it scans for the next '%' (and for '#' or '?' when URL_DONT_UNESCAPE_EXTRA_INFO
 ;          is set), accumulates the result length, and refuses %00 before anything is written;
 ;   pass 2 writes -- the same walk, copying each literal run with 32-byte moves and decoding each
@@ -46,20 +46,20 @@
 ; memcpy speed. Against five scalar walks and an allocation, two vector passes is still a large win.
 ; The IN-PLACE form needs neither the size test nor the %00 pre-scan, so it is a single pass.
 ;
-; ONE SCAN LOOP, NOT TWO. The extra-info flag adds '#' and '?' to the match set. Rather than
+; One scan loop, not two. The extra-info flag adds '#' and '?' to the match set. Rather than
 ; duplicate the loop, the two extra comparands are set to '%' itself when the flag is clear, so the
 ; three compares and two ORs are always executed and always correct. Two extra compares per sixteen
 ; characters is not measurable; a second copy of the loop would be.
 ;
-; WHAT IS DELEGATED, and why that is not a hedge:
+; What is delegated, and why that is not a hedge:
 ;   * URL_UNESCAPE_AS_UTF8 (bit 18). It gathers runs of escaped bytes and hands them to
 ;     MultiByteToWideChar(CP_UTF8, ...) with no WC_ERR_INVALID_CHARS, so "%FF%FE" becomes two U+FFFD
 ;     and "%C3" becomes one. Re-deriving that by hand is the change-239 failure mode exactly.
-;   * ANY OTHER BIT outside {INPLACE, DONT_UNESCAPE_EXTRA_INFO}. probes/unesc.c swept all 32 bits
-;     singly against a subject built to discriminate all three live flags and found ONLY bits 18 and
+;   * Any other bit outside {inplace, DONT_UNESCAPE_EXTRA_INFO}. probes/unesc.c swept all 32 bits
+;     singly against a subject built to discriminate all three live flags and found only bits 18 and
 ;     25 changing the answer -- but "no effect on one subject" is not "no effect", and this project
 ;     has been wrong that way before, so anything not implemented is handed to the original body.
-;   * OVERLAP IN THE UNSAFE DIRECTION. The shipped function stages through a temporary, so
+;   * Overlap in the unsafe direction. The shipped function stages through a temporary, so
 ;     overlapping pszUrl and pszUnescaped are well-defined and probes/unesc.c confirms all five
 ;     placements give copy-then-unescape. A direct writer reproduces that only while the destination
 ;     is at or BELOW the source: the result is never longer than the input, so the write cursor never
@@ -67,7 +67,7 @@
 ;     first write lands on a character not yet read, and there is no allocation here to stage
 ;     through -- so that case goes to the original body too.
 ;
-; REGISTER DISCIPLINE. Every helper takes its inputs in REGISTERS, never at a frame offset. The first
+; Register discipline. Every helper takes its inputs in registers, never at a frame offset. The first
 ; draft of this file read the end pointer as [rsp+32+8] inside a helper, which was correct until a
 ; `push rdi` before one of the calls made it silently wrong by eight bytes. The write cursor lives in
 ; r14 for the same reason -- so that nothing has to be pushed around a call.
@@ -196,7 +196,7 @@ uu_no_extra:
 uu_dir_ok:
         lea       rdx, [c_hex]                    ; hoisted: the decode is inline from here on
 
-        ; ---- IS THE MEASURING PASS NEEDED AT ALL? It exists for exactly two reasons: the %00
+        ; ---- Is the measuring pass needed at all? It exists for exactly two reasons: the %00
         ;      refusal and the strict size test. When the caller's buffer is already larger than the
         ;      INPUT -- which it is whenever anyone sizes a buffer the obvious way -- the size test
         ;      cannot fail, because the result is never longer than the input. What is left is the
@@ -206,7 +206,7 @@ uu_dir_ok:
         ;
         ;      That it is sound takes one observation: a '%' can never be swallowed by a preceding
         ;      escape, because an escape's two payload characters are hex digits and '%' is not one.
-        ;      So EVERY '%' in the string is an escape start, and the literal text "%00" occurs if
+        ;      So every '%' in the string is an escape start, and the literal text "%00" occurs if
         ;      and only if a zero-valued escape does. (Both digits must be '0': no other character
         ;      has hex value zero.)
         ;
@@ -288,7 +288,7 @@ uu_m_done:
         jmp       uu_ret
 
         ; ================= pass 2: write =================
-        ; THE ESCAPE STEP IS INLINE AND CONSECUTIVE ESCAPES STAY IN A TIGHT LOOP. The first version
+        ; The escape step is inline and consecutive escapes stay in a tight loop. The first version
         ; of this file went back through scan_special and a decode_escape CALL for every escape, and
         ; an escape-dense string paid about six nanoseconds each for it: "1000, all escapes" measured
         ; 2371 ns against the shipped 1098, i.e. 0.46x, while every other row was between 2.8x and
@@ -575,7 +575,7 @@ scan_special ENDP
 ;
 ; The pattern is found the way change 243 found "\.": build the mask of '%' and the mask of '0',
 ; shift the second mask down by one and two CHARACTERS -- two and four bits, since vpmovmskb gives
-; two bits per 16-bit lane -- and AND the three together. Blocks therefore OVERLAP BY TWO
+; two bits per 16-bit lane -- and and the three together. Blocks therefore overlap by two
 ; CHARACTERS, because the top two lanes of each block have no room for their own lookahead.
 ;
 ; IT BORROWS ymm3. All six volatile vector registers are already in use and xmm6 upward are
@@ -659,7 +659,7 @@ de_no:
 decode_escape ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; Copy exactly rbx BYTES from rsi to r14, advancing both. EXACTLY that many: the destination has
+; Copy exactly rbx BYTES from rsi to r14, advancing both. exactly that many: the destination has
 ; only the room the size test proved, so an overlapping tail could write past it.
 ; Clobbers rax, rbx, ymm0.
 ; ---------------------------------------------------------------------------------------------

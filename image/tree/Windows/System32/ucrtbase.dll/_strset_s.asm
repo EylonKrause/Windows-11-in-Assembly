@@ -13,8 +13,8 @@
 ; 1,000,000 cases). The FILL family is shaped DIFFERENTLY from the `_s` case-fold family, and
 ; that had to be measured rather than assumed:
 ;
-;   * numberOfElements == 0  -> EINVAL (22) and NOTHING is written at all.
-;   * No terminator strictly inside numberOfElements -> it PERFORMS A PARTIAL FILL of
+;   * numberOfElements == 0  -> EINVAL (22) and nothing is written at all.
+;   * No terminator strictly inside numberOfElements -> it performs a partial fill of
 ;     numberOfElements-1 cells and only THEN writes str[0] = 0, returning EINVAL (22):
 ;         "abcdef" n=6 -> 0 x x x x f      (5 cells filled, then emptied)
 ;         "abcdef" n=3 -> 0 x c d e f      (2 cells filled, then emptied)
@@ -22,14 +22,14 @@
 ;   * Otherwise -> fill every cell before the terminator, keep the terminator, return 0.
 ;   * Every one of the 256 fill byte values behaves the same, including 0.
 ;
-; THAT IS A THIRD DISTINCT `_s` BEHAVIOUR IN THIS CRT:
+; That is a third distinct `_s` behaviour in this CRT:
 ;     changes 178-181 (case fold) : validate FIRST, no partial write at all
 ;     change 150 (strcpy_s)       : partial COPY before ERANGE
 ;     this one (fill)             : partial FILL of n-1, then empty the string
 ;   Assuming any of them from the others would be wrong. The first candidate reference here
 ;   used the 178-181 shape and was refuted on 407 604 of 1 000 000 cases.
 ;
-; Method: because BOTH outcomes fill, the fill count is computed once --
+; Method: because both outcomes fill, the fill count is computed once --
 ;     count = (no terminator found) ? numberOfElements-1 : length
 ; and a single AVX2 broadcast-store loop runs it, 32 bytes per step. Only the epilogue differs.
 ;
@@ -92,7 +92,7 @@ no_term:
         lea       r11, [rdx - 1]                 ; count = numberOfElements - 1
         mov       r10d, 1                        ; outcome = EINVAL
 
-        ;================ one fill loop serves BOTH outcomes ================
+        ;================ one fill loop serves both outcomes ================
 do_fill:
         movzx     eax, r8b
         vmovd     xmm2, eax

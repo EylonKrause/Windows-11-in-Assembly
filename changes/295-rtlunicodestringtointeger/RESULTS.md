@@ -1,4 +1,4 @@
-# 295 — `ntdll!RtlUnicodeStringToInteger` — **LANDS** (1.63× geomean, 5 clean runs of 5, EVERY ROW BETTER)
+# 295 — `ntdll!RtlUnicodeStringToInteger` — **LANDS** (1.63× geomean, 5 clean runs of 5, every ROW BETTER)
 
 - **Contract:** `NTSTATUS RtlUnicodeStringToInteger(const UNICODE_STRING* s, ULONG Base, ULONG* Value)`
 - **Compared against:** live `ntdll!RtlUnicodeStringToInteger` via `GetProcAddress`. `ntdll.dll`

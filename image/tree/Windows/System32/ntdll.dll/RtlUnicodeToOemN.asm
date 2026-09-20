@@ -3,7 +3,7 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/028-rtlunicodetooemn/impl.asm
-; NTSTATUS wia_u2oemn(char* dst, ULONG maxBytes, PULONG outLen, const wchar_t* src, ULONG srcBytes)
+; NTSTATUS wia_u2oemn(char* dst, ulong maxBytes, pulong outLen, const wchar_t* src, ulong srcBytes)
 ;   [Win64: rcx, edx, r8, r9, [rsp+0x28] -> eax; *outLen = bytes written]
 ;
 ; Reimplements ntdll!RtlUnicodeToOemN (UTF-16 -> single-byte ANSI codepage,

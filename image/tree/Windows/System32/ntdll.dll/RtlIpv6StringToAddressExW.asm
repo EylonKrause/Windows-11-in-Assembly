@@ -6,18 +6,18 @@
 ; NTSTATUS wia_ip6exw(PCWSTR S, IN6_ADDR* Addr, ULONG* ScopeId, USHORT* Port)
 ;   [Win64: rcx, rdx, r8, r9 -> eax]
 ;
-; ntdll!RtlIpv6StringToAddressExW -- THE LAST MISSING MEMBER of a sixteen-function family this
+; ntdll!RtlIpv6StringToAddressExW -- the last missing member of a sixteen-function family this
 ; project had otherwise finished. Ipv4/Ipv6 x StringToAddress/AddressToString x A/W/ExA/ExW is
 ; sixteen exports; image/tree carried fifteen.
 ;
-; AND IT WAS MISSED ON PURPOSE, FOR A REASON THAT TURNED OUT TO BE WRONG. Change 122 landed
+; And it was missed on purpose, for a reason that turned out to be wrong. Change 122 landed
 ; RtlIpv6StringToAddressExA, and its README row says in as many words: "`ExW` scoped out -- Unicode
 ; digits". Change 166 then landed RtlIpv6StringToAddressW and settled what the wide ADDRESS parser
 ; folds -- exactly seventeen contiguous blocks of ten, the frozen Unicode 3.0 Nd list. The natural
 ; reading was that ExW would need that table again for its scope and its port, and that reading is
 ; what kept this function unwritten.
 ;
-; IT IS FALSE, AND probes/ip6exw.c SETTLES IT BY SWEEPING ALL 65536 UTF-16 UNITS THROUGH BOTH
+; It is FALSE, and probes/ip6exw.c settles it by sweeping all 65536 UTF-16 units through both
 ; POSITIONS:
 ;
 ;     scope, "[::1%<u>]"      10 units accepted,  0 of them >= 0x80
@@ -25,9 +25,9 @@
 ;     port octal              10 units accepted,  0 of them >= 0x80     run starts 0030 0058 0078
 ;     port hex                22 units accepted,  0 of them >= 0x80     run starts 0030 0041 0061
 ;
-; THE ENVELOPE IS PURE ASCII. Not one non-ASCII unit is a digit in either position, at any base --
+; The envelope is pure ASCII. Not one non-ASCII unit is a digit in either position, at any base --
 ; and U+0661, U+0665, U+FF10, U+FF11 are all refused outright in both. The seventeen blocks live
-; ONLY in the address body, and the address body here is change 166's own export. (The "octal" row's
+; only in the address body, and the address body here is change 166's own export. (The "octal" row's
 ; three runs are '0'-'7' plus 'X' and 'x', which are not octal digits at all: they turn "0<u>" into
 ; a 0x prefix with an empty body, which the shipped parser accepts as port 0.)
 ;
@@ -36,7 +36,7 @@
 ;
 ;     000C314C..0C316A  four NULL checks -> STATUS_INVALID_PARAMETER
 ;     000C3177  cmp bp, 0x5b            a leading '[', remembered
-;     000C318E  call 0x0C33F0           <== AND 0x0C33F0 IS RtlIpv6StringToAddressW's OWN RVA.
+;     000C318E  call 0x0C33F0           <== and 0x0C33F0 is RtlIpv6StringToAddressW's own rva.
 ;                                       Not a copy, not a shared worker: the export itself.
 ;     000C31A6  cmp word ptr [rdi],0x25 '%' -> the scope
 ;     000C31B4  cmp bx, 0x80 / jae err  <== the scope's ASCII gate, in the binary
@@ -44,18 +44,18 @@
 ;     000C31FE  cmp ax, 0x3a            ':' -> the port
 ;     000C3211..0C323A                  "0x"/"0X" -> 16, a leading '0' -> 8, otherwise 10
 ;
-; THE REST OF THE CONTRACT, measured rather than assumed:
+; The rest of the contract, measured rather than assumed:
 ;
-;   * THE WHOLE STRING MUST BE CONSUMED. The Ex form has no Terminator out-parameter, so where
+;   * The whole string must be consumed. The Ex form has no Terminator out-parameter, so where
 ;     RtlIpv6StringToAddressW ACCEPTS "::0x1" and "::1.2.3.0x5" -- stopping and reporting where --
 ;     this one REFUSES them. Over fifteen shapes the two forms differ on exactly those two, and on
 ;     ZERO address bytes: same parser, plus a consumed-everything test.
-;   * ON FAILURE THE ADDRESS IS WRITTEN AND *ScopeId / *Port ARE NOT. The core writes Addr before
+;   * On failure the address is written and *ScopeId / *Port are not. The core writes Addr before
 ;     the envelope can know whether the rest of the string is valid, so a failing call still leaves
 ;     a parsed address behind -- seeded sentinels confirm ScopeId and Port survive untouched.
-;   * ':port' ONLY INSIDE BRACKETS. "::1:80" is an address, not an address and a port.
+;   * ':port' Only inside brackets. "::1:80" is an address, not an address and a port.
 ;   * ']' WITHOUT '[' is an error, and '[' without ']' is an error.
-;   * AN EMPTY PORT IS ZERO: "[::1]:" and "[::1]:0x" both give port 0.
+;   * An empty port is zero: "[::1]:" and "[::1]:0x" both give port 0.
 ;   * port <= 65535 and scope <= 2^32-1, both refused one past.
 ;   * *Port is NETWORK order (80 -> 0x5000); *ScopeId is host order.
 ;
@@ -71,12 +71,12 @@ STATUS_INVALID_PARAMETER_ EQU 0C000000Dh
 
 .code
 
-; ONE SAVED REGISTER, NOT FIVE, and the first version of this got that wrong. An envelope over a
+; One saved register, not five, and the first version of this got that wrong. An envelope over a
 ; call has to keep whatever it still needs ACROSS that call -- but only Addr, which is dead the
 ; moment the core returns, and the cursor actually need registers at all. ScopeId, Port and the
 ; bracket flag are written once and read once and live perfectly well in this frame's own slots, so
 ; pushing r12, r13, rbx and rdi for them bought nothing and cost eight instructions of prologue and
-; epilogue on EVERY call. That is invisible on a long address and decisive on a short one: with five
+; epilogue on every call. That is invisible on a long address and decisive on a short one: with five
 ; pushes the shortest row, "::", measured 19.67/19.89/20.55 ns against the shipped 15.70/15.81/16.03
 ; -- 0.78-0.83x, a REGRESSION, and the only row in the table that failed.
 ;
@@ -132,7 +132,7 @@ ex_scope:
         jae       ex_noscope
         lea       r10, [r10 + r10*4]
         lea       r10, [rax + r10*2]          ; scope = scope*10 + digit
-        ; THE OBVIOUS `cmp r10, 0FFFFFFFFh` IS WRONG HERE AND IT COST A TEST RUN. CMP r/m64, imm32
+        ; The obvious `cmp r10, 0FFFFFFFFh` is wrong here and it cost a test run. Cmp r/m64, imm32
         ; SIGN-EXTENDS the immediate, so 0FFFFFFFFh becomes 0FFFFFFFFFFFFFFFFh and the bound is
         ; 2^64-1 -- which nothing reaches, so "::1%4294967296" came back S_OK with scope 0. Testing
         ; the high half is both correct and shorter.

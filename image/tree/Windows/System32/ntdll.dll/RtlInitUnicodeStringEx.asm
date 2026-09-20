@@ -10,7 +10,7 @@
 ; (0xC0000106) leaving Length=MaximumLength=0 (no clamp), else Length = wcslen*2,
 ; MaximumLength = Length + 2, and returns STATUS_SUCCESS. src==NULL -> zeroed, STATUS_SUCCESS.
 ; Same inline page-safe AVX2 wcslen (change 001) as 094 (no `call`). UNICODE_STRING =
-; {USHORT Length; USHORT MaximumLength; PWSTR Buffer@+8}. ISA: AVX2 + BMI1. Bit-exact vs live.
+; {Ushort Length; ushort MaximumLength; PWSTR Buffer@+8}. Isa: AVX2 + BMI1. Bit-exact vs live.
 
 .code
 wia_rtlinitusex PROC

@@ -1,6 +1,6 @@
 # 081 — `CryptBinaryToStringA` (base64) — **LANDS**
 
-`BOOL CryptBinaryToStringA(const BYTE* pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD*
+`BOOL CryptBinaryToStringA(const byte* pbBinary, dword cbBinary, dword dwFlags, lpstr pszString, dword*
 pcchString)` (crypt32.dll), for the `CRYPT_STRING_BASE64` format — binary → base64 text. Used **everywhere**:
 certificates/PEM, TLS, tokens, PowerShell `[Convert]::ToBase64String` paths, .NET interop. crypt32's is
 scalar (~0.32 GB/s). This is a **new DLL** for the project (first crypt32 conversion).

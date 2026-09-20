@@ -233,7 +233,7 @@ ours: NULL      oracle: NULL      LIVE EXPORT: offset 75
 and the bytes at offset 75 are C2 88 — not C2 5E
 ```
 
-`0x5E` is `^` and `0x88` is U+02C6 MODIFIER LETTER CIRCUMFLEX on code page 1252. Three measurements
+`0x5E` is `^` and `0x88` is U+02C6 modifier letter circumflex on code page 1252. Three measurements
 said "a fold — reproduce it": a single-byte sweep over all 65 025 ordered pairs found **no** two bytes
 equal (so it is context-dependent); a per-position sweep found exactly **one** conflated pair,
 `{5E, 88}`, with the needle's first character still exact; and it is **not** the code page's best-fit

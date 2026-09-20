@@ -8,7 +8,7 @@
 ; Reimplements shlwapi!PathCanonicalizeW (the body lives in kernelbase; shlwapi's export is a jmp
 ; thunk through api-ms-win-core-shlwapi-legacy-l1-1-0).
 ;
-; THIS CHANGE IS A WRAPPER, AND THAT IS THE ENTIRE POINT. The disassembly says so in fourteen
+; This change is a wrapper, and that is the entire point. The disassembly says so in fourteen
 ; instructions, and the probe proves it:
 ;
 ;     kernelbase!PathCchCanonicalizeEx  RVA 0F5780:  jmp 0x10C30     <- ONE instruction
@@ -18,7 +18,7 @@
 ;         test rdx, rdx / je            pszSrc NULL
 ;         xor  r9d, r9d                 dwFlags = 0
 ;         mov  edx, 0x104               cch = MAX_PATH
-;         call 0x10C30                  THE SAME BODY
+;         call 0x10C30                  the same body
 ;         test eax, eax / js            HRESULT < 0 ?
 ;         lea  eax, [rbx + 1]           TRUE
 ;       failure:
@@ -29,13 +29,13 @@
 ; So the work was already done by change 243, which modelled that body over 11 772 366 enumerated
 ; cases with 0 mismatches and landed at 13.12x. What remains here is the BOOL and the error mapping.
 ;
-; AND IT WAS PROVED BEFORE IT WAS BUILT, which is the rule change 242 established: probes/compose.c
+; And it was proved before it was built, which is the rule change 242 established: probes/compose.c
 ; ran 451 543 cases -- the enumerated {\, ., a, :} subspace to length 7 and {\, ., a} to length 9,
 ; 45 shapes the Ex contract turns on, every input length 250..300 plus shrinking and over-long ones,
-; and 400 000 fuzz cases -- comparing the BOOL, the WHOLE destination buffer and GetLastError against
+; and 400 000 fuzz cases -- comparing the BOOL, the whole destination buffer and GetLastError against
 ; PathCchCanonicalizeEx(dst, MAX_PATH, src, 0) wrapped exactly as above. Zero disagreements.
 ;
-; THE ORDER OF THE TWO NULL CHECKS IS OBSERVABLE, and it is the one thing a careless wrapper would
+; The order of the two NULL checks is observable, and it is the one thing a careless wrapper would
 ; get wrong: pszDst[0] is cleared BETWEEN them, so PathCanonicalizeW(dst, NULL) returns FALSE having
 ; already cleared dst. The probe checks exactly that.
 ;

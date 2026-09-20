@@ -8,7 +8,7 @@
 ; The core of kernelbase!lstrcatA. The NULL checks and the __try/__except that turns an access
 ; violation into NULL live in seh.c, for the reasons given there.
 ;
-; WHY THIS TARGET. discovery/kernelbase_str.c:
+; Why this target. discovery/kernelbase_str.c:
 ;
 ;     lstrcatA 4000 onto empty    804.49 ns    4.97 bytes/ns   <- a byte loop
 ;     lstrcatW 4000 onto empty    802.49 ns    9.94 bytes/ns   <- 16-byte SSE2
@@ -20,7 +20,7 @@
 ; quadratic that appears whenever a caller appends in a loop. Making the SCAN fast is most of the
 ; win, and the scan is exactly change 225's problem.
 ;
-; TWO HALVES, BOTH ALREADY SOLVED IN THIS REPOSITORY -- and neither inherited by name. Every rule
+; Two halves, both already solved in this repository -- and neither inherited by name. Every rule
 ; below was re-measured against lstrcatA itself in probes/cata.c, because inheriting a sibling's
 ; rule is how eight landed changes shipped wrong earlier in this session.
 ;
@@ -31,7 +31,7 @@
 ;     so a chunk can never fault halfway, and the clamp hoisted out of the 64-byte loop because it
 ;     only changes once per 4096 bytes.
 ;
-; THREE STRUCTURAL CHANGES WENT IN WHEN THIS CHANGE WAS UNPARKED, and together they moved the geomean
+; Three structural changes went in when this change was unparked, and together they moved the geomean
 ; from 3.60x to 4.15-4.52x and the shortest row from 0.88-1.04x -- a coin flip against the gate -- to
 ; 1.15-1.37x over twelve runs. None of them touches a rule; each is documented where it lives:
 ;
@@ -40,29 +40,29 @@
 ;   2. the copy leads with a SINGLE 32-byte chunk and only then enters the 64-byte pair loop, which
 ;      also stopped the pair loop recomputing the clamp every 32 bytes -- "4000 onto empty" went
 ;      1.54x -> 2.92x and "4000 onto 4000" 2.97x -> 4.31x on that alone;
-;   3. the 1..32-byte tail is TWO OVERLAPPING MOVES instead of a 16/8/4/2/1 ladder, which removed
+;   3. the 1..32-byte tail is two overlapping moves instead of a 16/8/4/2/1 ladder, which removed
 ;      four conditional branches from the shortest call in the benchmark.
 ;
-; THE FAULT PATHS, measured -- and there are THREE pointers here, not two, because lstrcat READS the
+; The fault paths, measured -- and there are three pointers here, not two, because lstrcat reads the
 ; destination before it writes it:
 ;
 ;   * an UNTERMINATED DESTINATION at a NOACCESS page returns NULL rather than faulting, 80 of 80;
-;   * an unterminated SOURCE returns NULL, and EXACTLY the readable prefix reaches the destination,
+;   * an unterminated SOURCE returns NULL, and exactly the readable prefix reaches the destination,
 ;     80 of 80;
-;   * a DESTINATION TOO SMALL returns NULL and is filled EXACTLY to its last writable byte, 79 of 79;
+;   * a destination too small returns NULL and is filled exactly to its last writable byte, 79 of 79;
 ;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL.
 ;
-; AND NO EARLY EXIT ON AN EMPTY SOURCE. Appending "" leaves the buffer byte-for-byte identical, which
+; And no early exit on an empty source. Appending "" leaves the buffer byte-for-byte identical, which
 ; looks like "it writes nothing" -- but writing a 0 over a 0 is indistinguishable from not writing.
 ; probes/cata.c settled it with a PAGE_READONLY destination: `lstrcatA(readonly, "")` returns NULL,
 ; so the shipped function DOES perform the store. This implementation performs it too, by falling
 ; into the copy with a one-byte length rather than branching around it.
 ;
-; Byte-wise is correct here: GetCPInfo reports ZERO DBCS lead bytes for ACP 1252 -- measured -- and
-; probes/cata.c sweeps all 255 non-NUL byte values in BOTH strings (510 placements, 0 disagreements)
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured -- and
+; probes/cata.c sweeps all 255 non-NUL byte values in both strings (510 placements, 0 disagreements)
 ; and every destination length 0..120 against every source length 0..120.
 ;
-; REJECTED EXPERIMENT, recorded so it is not tried again. The two scans are INDEPENDENT -- finding
+; Rejected experiment, recorded so it is not tried again. The two scans are independent -- finding
 ; the end of the destination and finding the end of the source do not need each other, only the
 ; store needs both -- so issuing the source block before the destination is resolved lets two
 ; ~15-cycle load/compare/movmsk/tzcnt chains overlap instead of running back to back. For a short
@@ -90,14 +90,14 @@ wia_lstrcata_core PROC
         mov       r11, rdx                       ; park the source; rdx is needed as scratch below
         vpxor     ymm1, ymm1, ymm1               ; the terminator
 
-        ; ---- AN EMPTY DESTINATION IS THE ONE CASE THE SCAN CANNOT HELP WITH, and it is common:
+        ; ---- An empty destination is the one case the scan cannot help with, and it is common:
         ;      appending to a buffer a caller has just initialised. The whole scan -- align down,
         ;      load, compare, movmsk, shift by the misalignment, tzcnt -- exists to discover that the
         ;      terminator is at offset zero. One byte load and one branch answer it instead.
         ;
         ;      The page clamp is computed HERE rather than after the branch, because both halves of
         ;      it are pure ALU on the two pointers the caller passed and neither depends on the load,
-        ;      so they can hide inside its latency. THE ORDER MATTERS AND WAS MEASURED: putting the
+        ;      so they can hide inside its latency. The order matters and was measured: putting the
         ;      clamp's ten instructions BEFORE a `cmp byte ptr [rcx], 0` delays the issue of the one
         ;      long-latency operation on the path, and on the wide sibling that cost 0.2 ns on every
         ;      short row. Loading into a register FIRST and testing it LAST issues the load in the
@@ -177,7 +177,7 @@ cp_loop:
         cmp       r9d, eax
         cmova     r9d, eax                       ; r9d = the smaller of the two
 
-        ; ---- A SINGLE 32-BYTE CHUNK FIRST, AND ONLY THEN PAIRS. Most appended strings fit in one
+        ; ---- a single 32-BYTE chunk first, and only then pairs. Most appended strings fit in one
         ;      chunk, and leading with the pair loop makes that case pay for it twice: vpminub folds
         ;      the two halves together, so the combined mask does not say WHICH half held the
         ;      terminator and the hit path has to compare the first half again. Leading with a single
@@ -228,11 +228,11 @@ cp_64_nul:                                       ; the terminator is somewhere i
         vpmovmskb eax, ymm3
         jmp       cp_tail
 
-        ; ---- the last 1..32 bytes, terminator included. EXACTLY that many: the destination is
+        ; ---- the last 1..32 bytes, terminator included. exactly that many: the destination is
         ;      terminated, not padded. An empty source lands here with a length of one and stores
         ;      the terminator, which is what the shipped function does -- see the PAGE_READONLY
         ;      measurement in probes/cata.c.
-        ; OVERLAPPING PAIRS, NOT A DESCENDING LADDER. The ladder this replaced walked 16/8/4/2/1 with
+        ; Overlapping pairs, not a descending ladder. The ladder this replaced walked 16/8/4/2/1 with
         ; a conditional branch at every rung, so a nine-byte tail -- eight characters and a
         ; terminator, the commonest one in the benchmark -- executed five conditional branches to move
         ; two chunks. Each rung is individually cheap, but they are four more entries competing for
@@ -241,11 +241,11 @@ cp_64_nul:                                       ; the terminator is somewhere i
         ; three-cycle step, same executable, same data, decided at process start. Two overlapping
         ; moves cover any width in the range with one branch and no loop.
         ;
-        ; THE OVERLAP IS PAGE-SAFE. rax is at most the clamp r9d computed above, and every one of
-        ; those bytes is inside both pointers' pages, so [rdx + rax - 16] .. [rdx + rax] is too. BOTH
-        ; LOADS PRECEDE BOTH STORES, which is what makes it safe when the two regions overlap.
+        ; The overlap is page-safe. rax is at most the clamp r9d computed above, and every one of
+        ; those bytes is inside both pointers' pages, so [rdx + rax - 16] .. [rdx + rax] is too. both
+        ; Loads precede both stores, which is what makes it safe when the two regions overlap.
         ;
-        ; THE WIDEST CASE FALLS THROUGH INTO THE RETURN, and the three narrow ones sit past it. Same
+        ; The widest case falls through into the return, and the three narrow ones sit past it. Same
         ; instructions either way; the point is that the path the benchmark actually takes ends with
         ; no taken branch at all, which is the same reasoning that collapsed the ladder.
 cp_tail:

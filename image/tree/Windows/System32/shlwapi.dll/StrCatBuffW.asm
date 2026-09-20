@@ -7,7 +7,7 @@
 ;   [Win64: rcx, rdx, r8d -> rax (returns dst)]
 ;
 ; Reimplements shlwapi!StrCatBuffW: append src to dst, where cchDestBuffSize is the size of
-; the WHOLE destination buffer, not the room remaining. shlwapi's is scalar throughout --
+; the whole destination buffer, not the room remaining. shlwapi's is scalar throughout --
 ; 109 ns to append a 254-char string.
 ;
 ; Contract (derived in probes/scb.c, fuzz-confirmed bit-exact against the live export over

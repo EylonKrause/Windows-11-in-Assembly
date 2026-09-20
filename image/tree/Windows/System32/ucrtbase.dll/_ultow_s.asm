@@ -10,7 +10,7 @@
 ; the last of the bounded integer formatters. Its entry passes a HARD ZERO for `negative` to the
 ; same worker, so this is change 200 with the sign permanently absent.
 ;
-; THE 32-BIT FAMILY IS THE SAME MACHINE, HALF THE WIDTH. ucrtbase lays it out identically to the
+; The 32-BIT family is the same machine, half the width. ucrtbase lays it out identically to the
 ; 64-bit one: the signed entry computes `negative = (Radix == 10 && Value < 0)` and calls a shared
 ; worker (0x0003588C, mirroring 0x00079DAC), the unsigned entry passes a hard zero to the same
 ; address, and the worker tail-jumps to a digit emitter (0x000654D0, mirroring 0x00076F10) that
@@ -18,13 +18,13 @@
 ; are the same code with `mov r10d, ecx` where the 64-bit one has `mov r10, rcx`, and `div eax, edi`
 ; where it has `div rax, rdi`.
 ;
-; THAT ONE DIFFERENCE IS THE WHOLE CONTRACT DIFFERENCE: the magnitude is 32 bits, so for any radix
+; That one difference is the whole contract difference: the magnitude is 32 bits, so for any radix
 ; other than 10 the value is formatted as an UNSIGNED 32-BIT quantity. _itoa_s(-1, buf, n, 16)
 ; gives "ffffffff" -- eight f's, not the sixteen that change 194 produces.
 ;
 ; Everything else is change 194's contract, read out of the shipped disassembly because the ERANGE
 ; path could not be fitted from probing:
-;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), NOTHING written;
+;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
 ;   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation;
 ;   * SizeInChars <= negative + 1 -> ERANGE (34) before a single digit is emitted;
 ;   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0;
@@ -89,7 +89,7 @@ wia_ultow_s PROC
         ja        e_inval_wrote
 
         ;================ emit the digits FORWARD into the scratch ================
-        ; CAN THE BUFFER EVEN BE TOO SMALL? Decide here, once, instead of bound-checking every
+        ; Can the buffer even be too small? Decide here, once, instead of bound-checking every
         ; digit. ucrtbase emits straight into the caller's buffer and stops when full; generating
         ; every digit and only then finding it does not fit made the 10-digit-into-6-cells case
         ; measure 0.93x -- a regression -- because a 32-bit `div` is cheap enough for the extra
@@ -122,12 +122,12 @@ wia_ultow_s PROC
         ; This is what took the ERANGE class from below 1.00x to a win: the old code generated into
         ; the scratch and then walked it back out one cell at a time, and that second dependent
         ; loop was the entire deficit against ucrtbase.
-        ; RADIX 10 GETS ITS OWN BOUNDED LOOP. This path is the ERANGE case, and ERANGE is
+        ; Radix 10 Gets its own bounded loop. This path is the erange case, and erange is
         ; dominated by two calls into ucrtbase (_errno and _invalid_parameter_noinfo) that our
         ; contract obliges us to make and that ucrtbase pays too -- so the only part of the class
         ; we can actually win is the digit loop, and at the generic `div` it was an exact tie.
         ; Radix 10 is a compile-time constant here, so the divide becomes a constant reciprocal:
-        ; v/10 == (v * 0CCCCCCCDh) >> 35 for EVERY 32-bit v (verified exhaustively near both ends
+        ; v/10 == (v * 0CCCCCCCDh) >> 35 for every 32-bit v (verified exhaustively near both ends
         ; of the range and over 500k random values). imul+shr is a ~4-cycle loop-carried chain
         ; against the divider's ~10-12.
         cmp       r10d, 10
@@ -185,7 +185,7 @@ fits_for_sure:
         jmp       dpow
 
 dgen:
-        ; MEASURED, NOT ASSUMED: a reciprocal multiply was tried here and is NOT faster on this
+        ; Measured, not assumed: a reciprocal multiply was tried here and is not faster on this
         ; core. Two forms were built and benchmarked against this divide, both bit-exact:
         ;   * magic scaled to 2^38, quotient extracted with `shrd rax, rdx, 38` -- base 36 went
         ;     8.19 ns -> 10.45 ns (0.99x -> 0.77x); shrd-with-immediate is multi-uop here;

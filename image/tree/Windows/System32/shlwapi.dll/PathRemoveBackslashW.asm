@@ -13,7 +13,7 @@
 ; 2,000,000 cases):
 ;
 ;   n = wcslen(psz)
-;   THE RETURN VALUE IS ALWAYS psz + max(n-1, 0) -- a pointer to the LAST CHARACTER, not to
+;   The return value is always psz + max(n-1, 0) -- a pointer to the last character, not to
 ;   the terminator. That is the same address in both outcomes, which is why this
 ;   implementation computes it once and never branches on it:
 ;       "abc"     -> returns +2 and changes nothing
@@ -34,7 +34,7 @@
 ;   '/' is NOT a separator here: "abc/" and "C:/dir/" are returned unchanged. (A fifth
 ;   separator convention in this DLL, after 132, 138, 161 and 167.)
 ;
-; THE DRIVE-LETTER SET, PINNED BY AN EXHAUSTIVE 65535-CHARACTER SWEEP
+; The drive-letter set, pinned by an exhaustive 65535-CHARACTER sweep
 ;   It is NOT `isalpha`, and it is NOT `(c|0x20) in 'a'..'z'` -- both differ in 62 cases.
 ;   Exactly 114 code units qualify, and they are exactly the ASCII letters plus the Latin-1
 ;   letters:

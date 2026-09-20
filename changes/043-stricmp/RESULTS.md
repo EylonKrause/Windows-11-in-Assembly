@@ -4,7 +4,7 @@
 ASCII option/keyword/filename matching. ucrtbase's is scalar (~2.2 GB/s).
 
 ## Fold semantics (verified vs live export)
-Default C locale folds ONLY ASCII A-Z -> a-z; bytes >= 0x80 compare as-is (`0xC0` vs `0xE0` -> −32).
+Default C locale folds only ASCII A-Z -> a-z; bytes >= 0x80 compare as-is (`0xC0` vs `0xE0` -> −32).
 Return = `fold(b1) - fold(b2)` at the first differing position.
 
 ## Approach

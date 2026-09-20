@@ -52,12 +52,12 @@ no_dot:
         cmp       r9d, 4
         jb        oct_loop
         mov       word ptr [r8], 0
-        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD -- exactly as its
+        ; The shipped export writes a second terminator, at the end of the field -- exactly as its
         ; narrow sibling 059 does, at the same INDEX, which for a UTF-16 destination is byte 30.
         ; RtlIpv4AddressToStringW always stores a zero at destination character 15, the last of the
         ; 16-character maximum, as well as the one after the text; for "255.255.255.255" they
         ; coincide and for everything shorter they do not. Found by live substitution on 17462 of
-        ; 20000 cases WITH THE SAME TEXT AND THE SAME RETURNED POINTER, then confirmed against the
+        ; 20000 cases with the same text and the same returned pointer, then confirmed against the
         ; export directly at every rendered length by probes/tail.c.
         mov       word ptr [rdx + 30], 0
         mov       rax, r8

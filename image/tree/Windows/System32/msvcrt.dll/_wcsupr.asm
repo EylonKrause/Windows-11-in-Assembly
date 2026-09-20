@@ -5,7 +5,7 @@
 ; changes/050-wcsupr/impl.asm
 ; wchar_t* wia_wcsupr(wchar_t* s)   [Win64: rcx -> rax (returns s)]
 ;
-; Uppercase a UTF-16 string in place. In the default C locale ucrtbase folds ONLY ASCII
+; Uppercase a UTF-16 string in place. In the default C locale ucrtbase folds only ASCII
 ; a-z -> A-Z (verified); its impl is scalar. We fold+store 16 wchars at a time, an 8-wchar
 ; block for the 8..15 remainder, and a scalar tail. Bounds-safe: a vector load+STORE is
 ; issued only when its bytes are that far from the page end AND the block holds no
@@ -13,7 +13,7 @@
 ; In-register fold (A-Z via two signed vpcmpgtw, +0x20), constants from memory.
 ; ISA: AVX2. Validated on Zen3.
 
-; ONLY ymm0-ymm5 MAY BE USED. xmm6-xmm15 are CALLEE-SAVED under Win64 -- their LOW 128 BITS are,
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
 ; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
@@ -23,7 +23,7 @@
 ;       (c > LO) AND (HI+1 > c)
 ; whose second compare wants the constant as the FIRST operand, so it had to live in a register.
 ; Rewritten as
-;       (c > LO) AND NOT (c > HI)
+;       (c > Lo) and not (c > hi)
 ; both compares take c first, so the bound becomes an ordinary register compare and the two ANDs
 ; collapse into one vpandn; the fold delta and the zero vector become memory operands. Identical
 ; instruction count, three fewer live registers.

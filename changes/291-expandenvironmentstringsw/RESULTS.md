@@ -307,7 +307,7 @@ The gate was not trusted until it was shown to fail.
 
 ---
 
-## Benchmark — **INDICATIVE ONLY**
+## Benchmark — **INDICATIVE only**
 
 Other agents were running on this machine concurrently. These numbers are directional; the
 authoritative measurement is the serial re-run on an idle box. Row-to-row *ordering* was stable

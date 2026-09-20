@@ -64,7 +64,7 @@ changes\157-wcsncat-s\build.bat
 
 ## Correction — a NULL source with `count == 0` still validates the destination (2026-09-20)
 
-This implementation's rule 3 read *"count == 0 AND src == NULL -> return 0, NOTHING WRITTEN and no
+This implementation's rule 3 read *"count == 0 And src == NULL -> return 0, nothing written and no
 handler"*. That is right only when the destination is **already a valid string within `size`**.
 
 `wcsncat_s(L"A", 1, NULL, 0)` — no terminator in `dst[0..size)` — returns **EINVAL**, sets `dst[0] = 0`

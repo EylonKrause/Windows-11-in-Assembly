@@ -13,7 +13,7 @@
 ; ../184-strnset-s/probes/sns.c fuzzed the byte and wide forms side by side against the live
 ; exports, 1,000,000 cases each, 0 mismatches for both, on the first candidate:
 ;
-;   * numberOfElements == 0 -> EINVAL (22) and NOTHING is written, regardless of count.
+;   * numberOfElements == 0 -> EINVAL (22) and nothing is written, regardless of count.
 ;   * No terminator strictly inside numberOfElements -> fill min(count, numberOfElements-1)
 ;     cells, and only THEN write str[0] = 0, returning EINVAL (22).
 ;   * Otherwise -> fill min(count, length) cells, leave the rest of the string and the
@@ -21,7 +21,7 @@
 ;   * _TRUNCATE ((size_t)-1) is NOT special-cased -- it saturates to the other limit.
 ;   * Every fill value behaves the same, including 0.
 ;
-; THE SCAN CANNOT BE SHORTENED BY `count`: even at count 0 the return value still depends on
+; The scan cannot be shortened by `count`: even at count 0 the return value still depends on
 ; whether a terminator exists strictly inside numberOfElements. Only the FILL is clipped.
 ;
 ; Method: one limit --
@@ -92,7 +92,7 @@ no_term:
         cmova     r10, r9                        ; r10 = min(count, numberOfElements-1)
         mov       edx, 1                         ; outcome = EINVAL
 
-        ;================ one fill loop serves BOTH outcomes ================
+        ;================ one fill loop serves both outcomes ================
 do_fill:
         movzx     eax, r8w
         vmovd     xmm2, eax

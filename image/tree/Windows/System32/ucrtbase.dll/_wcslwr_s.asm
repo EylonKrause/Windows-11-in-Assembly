@@ -14,13 +14,13 @@
 ; 1,000,000 cases -- confirmed on the first attempt). Probed on its OWN terms rather than
 ; inherited from change 178, on the principle change 179 established: 178 and 179 validate
 ; first, but change 150's strcpy_s does the opposite, so this family cannot be reasoned about.
-;   * THE FOLD IS EXACTLY THE 26 ASCII LETTERS A-Z, mapping U+0041..U+005A -> U+0061..U+007A.
+;   * The fold is exactly the 26 ASCII letters a-z, mapping U+0041..U+005A -> U+0061..U+007A.
 ;     0 differences from the plain ASCII rule, 947 from RtlDowncaseUnicodeChar -- so this is
 ;     NOT the OS case table, the same conclusion change 049 reached for the unbounded form.
 ;   * Success -> 0, lowercased in place, nothing past the terminator touched.
 ;   * No terminator strictly inside numberOfElements -> EINVAL (22) AND str[0] = 0, including
 ;     when numberOfElements is ZERO.
-;   * VALIDATE FIRST, THEN FOLD: on the EINVAL path nothing but str[0] is modified -- there is
+;   * Validate first, then fold: on the einval path nothing but str[0] is modified -- there is
 ;     NO partial fold, which is why this is two passes rather than a fused scan-and-fold.
 ;   * The invalid-parameter handler is invoked through ucrtbase's OWN exported
 ;     `_invalid_parameter_noinfo` (the convention changes 150-157 established).

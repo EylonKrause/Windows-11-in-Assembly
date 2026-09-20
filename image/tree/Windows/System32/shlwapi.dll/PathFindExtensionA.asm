@@ -10,7 +10,7 @@
 ; against 37.64 ns for PathFindExtensionW on the SAME path -- 4.86x the wide cost for HALF the bytes,
 ; the MBCS-walk signature the whole narrow shlwapi family has shown.
 ;
-; ---- THIS TARGET FOUND A BUG IN LANDED CODE ---------------------------------------------------------
+; ---- This target found a bug in landed code ---------------------------------------------------------
 ; Probing this function is what caught the missing SPACE rule in change 132, which had shipped and
 ; been passing its own tests for weeks while disagreeing with the live PathFindExtensionW on 295513
 ; of 2015539 enumerated strings. The account is in 132's impl.asm; the short version is that its
@@ -23,7 +23,7 @@
 ;
 ; Contract:
 ;   the extension is the LAST '.' that occurs after the last STOPPER, where a stopper is a
-;   **backslash OR A SPACE**. '/' and ':' do NOT stop the search, even though PathFindFileNameW
+;   **backslash Or a space**. '/' and ':' do not stop the search, even though PathFindFileNameW
 ;   treats both as separators. So "a.b/c" -> the '.' at index 1, while "a.b\c" and "a.b " both ->
 ;   the terminator. A leading dot counts (".hidden" -> index 0) and a trailing dot counts ("a.b." ->
 ;   the final '.').

@@ -18,26 +18,26 @@
 ; discovery/ucrt_ntdll_sweep.c showed that what is left in those two is already vectorised in the
 ; shipped DLL, nothing above 0.07 ns/byte.
 ;
-; THE HEADLINE IS HOW MUCH THESE DIVERGE FROM CHANGE 240, WHICH IS THE SAME FAMILY. Five measured
+; The headline is how much these diverge from change 240, which is the same family. Five measured
 ; differences, every one of which would have been wrong if the rule had been inherited:
 ;
 ;   1. THE cch CEILING. PathCchRemoveFileSpec rejects anything above 0x8000. AddBackslashEx rejects
 ;      when cch > 0x7FFFFFFF + n -- the REMAINING count reaching STRSAFE_MAX_CCH -- matched exactly at
-;      n = 1, 4, 7, 10, 13, 16 and 19. RemoveBackslashEx has NO CEILING AT ALL and accepts SIZE_MAX at
+;      n = 1, 4, 7, 10, 13, 16 and 19. RemoveBackslashEx has no ceiling at all and accepts SIZE_MAX at
 ;      every length. Three functions, three ceilings.
-;   2. THE CEILING APPLIES ONLY WHERE IT WRITES. AddBackslashEx on a path that already ends in a
+;   2. The ceiling applies only where it writes. AddBackslashEx on a path that already ends in a
 ;      separator accepts SIZE_MAX too: the limit exists on the appending path and nowhere else.
-;   3. THE ERROR CODE. AddBackslashEx returns ERROR_INSUFFICIENT_BUFFER (0x8007007A) for a too-small
+;   3. The error code. AddBackslashEx returns ERROR_INSUFFICIENT_BUFFER (0x8007007A) for a too-small
 ;      cch; RemoveBackslashEx returns E_INVALIDARG for the same condition.
-;   4. THE PROTECTED PREFIX. RemoveBackslashEx keeps the separator of "C:\", "\", "\\" and "\\?\C:\",
-;      and REMOVES it from "\\srv\", "\\srv\shr\", "\\a\", "\\\" and "\\?\UNC\s\h\" -- so THE SERVER
-;      AND SHARE ARE NOT PROTECTED. That is neither change 240's root (which protects them and excludes
+;   4. The protected prefix. RemoveBackslashEx keeps the separator of "c:\", "\", "\\" and "\\?\c:\",
+;      and removes it from "\\srv\", "\\srv\shr\", "\\a\", "\\\" and "\\?\UNC\s\h\" -- so the server
+;      And share are not protected. That is neither change 240's root (which protects them and excludes
 ;      the root's trailing separator) nor PathCchSkipRoot's (which protects them and includes it).
 ;      Three conventions in one family. Measured as this function's own FIXED POINT -- apply it until it
 ;      stops returning S_OK and what is left is exactly the protected prefix -- 0 disagreements over
 ;      97 656 strings.
 ;   5. NULL FAULTS. PathCchRemoveFileSpec returns E_INVALIDARG for a NULL path; both of these read it
-;      and crash. There is no value to be bit-exact against, so the honest match is to READ IT TOO,
+;      and crash. There is no value to be bit-exact against, so the honest match is to read it too,
 ;      which costs nothing because the length scan's first load does it. correctness.c asserts only
 ;      that all three fault, exactly as change 233 did for its post-fault state.
 ;
@@ -63,23 +63,23 @@
 ;       e == n                 -> S_FALSE   (no trailing separator to take)
 ;       e < the structural prefix -> S_FALSE (it would cut into it)
 ;       otherwise              -> write a terminator at e, S_OK
-;       end = p+e and rem = cch-e IN ALL THREE CASES -- that single formula is what the S_FALSE rows
+;       end = p+e and rem = cch-e in all three cases -- that single formula is what the S_FALSE rows
 ;       prove: "C:\" reports end = +2 while declining and "\" reports +0. `end` is not the terminator,
 ;       it is where the terminator WOULD go.
 ;
-;   The structural prefix: "\" -> 1, "\\" -> 2, "X:\" -> 3, "X:" -> 2, "\\?\X:\" -> 7, "\\?\X:" -> 6,
+;   The structural prefix: "\" -> 1, "\\" -> 2, "X:\" -> 3, "X:" -> 2, "\\?\x:\" -> 7, "\\?\x:" -> 6,
 ;   "\\?\UNC\" -> 8, an incomplete "\\?..." -> 1, relative -> 0. A drive letter is the 114 wchar values
 ;   change 240 derived by sweeping all 65 536 -- ASCII letters plus the CP1252 accented ones, with 0xD7
 ;   and 0xF7 absent -- re-verified here over all 65 536 rather than inherited.
 ;
-; METHOD, AND WHY THERE IS NOT A SINGLE PUSH. Both functions are one vectorised wcslen -- 16 characters
+; Method, and why there is not a single push. Both functions are one vectorised wcslen -- 16 characters
 ; per 32-byte block -- followed by O(1) work: two compares and at most one store. The whole cost is
 ; therefore the length scan plus the fixed overhead, and at 16 characters the fixed overhead IS the
 ; measurement. The first version of this file pushed four registers and called a shared wcslen helper,
 ; and the 16-character add row came out at 0.84x -- a regression that would have parked the change.
 ;
 ; Both functions fit entirely in the seven volatile registers (rcx, rdx, r8, r9, r10, r11, rax), so
-; this version pushes NOTHING and calls NOTHING: the scan and the structural prefix are both inlined,
+; this version pushes nothing and calls nothing: the scan and the structural prefix are both inlined,
 ; and each export is a true leaf. That also means no unwind data is needed for the deliberate NULL
 ; fault to be unwindable -- a leaf with no stack adjustment is unwound through [rsp] -- where the
 ; earlier version's faults could not be caught by a caller's __try at all, and took correctness.exe
@@ -95,7 +95,7 @@
 
 ; ---- the drive-letter test, as one macro so the 114-value set exists once -------------------------
 ; CH is a 32-bit register holding the character; sets OUT to 1 or 0. Clobbers CH's scratch partner.
-; CH is a 32-bit register holding the character, SCR a 32-bit scratch. Falls through when CH IS a
+; Ch is a 32-bit register holding the character, scr a 32-bit scratch. Falls through when ch is a
 ; drive letter and jumps to NOTLETTER when it is not -- a flag would need a third register, and at the
 ; point this is used only two are free.
 IS_LETTER_JMP MACRO CH, SCR, NOTLETTER
@@ -118,7 +118,7 @@ ENDM
 
 ; ---- the vectorised wcslen, inlined ---------------------------------------------------------------
 ; P is the base register, N the result (also the cursor), SCR a 32/64-bit scratch pair.
-; 64 BYTES PER ITERATION -- 32 characters -- with a 32-byte block and then a single character as the
+; 64 Bytes per iteration -- 32 characters -- with a 32-byte block and then a single character as the
 ; page end approaches. Two ymm loads whose compare masks are OR-ed together cost one dependency chain
 ; instead of two, so a 16-character string resolves in ONE iteration rather than two. That is worth
 ; about 4 cycles, and at 16 characters those 4 cycles are the difference between this landing and
@@ -196,18 +196,18 @@ wia_pathcchaddbackslashex PROC
         ; No NULL check: the scan's first load faults exactly as the shipped export does, and this is
         ; a leaf, so that fault is unwindable.
         ;
-        ; ---- THE SHORT-STRING FAST PATH, and why it exists ----
+        ; ---- The short-string fast path, and why it exists ----
         ; This row was the one that parked the change at 0.90x, and the reason was LATENCY, not work:
         ; "does it already end in a separator" was a load of [n-1], which cannot issue until the length
         ; scan has produced n, so it added about six cycles of pure serial delay to a function that only
-        ; costs twenty-five. Here BOTH questions are answered from the same vector compares: the
+        ; costs twenty-five. Here both questions are answered from the same vector compares: the
         ; terminator mask gives n, and the separator mask -- shifted by one character and indexed by the
         ; terminator's own bit position -- says whether the character before it was a separator, in
         ; parallel with computing n rather than after it.
         ;
         ; The 64-bit mask combine that change 241 already tried and REVERTED (it cost the 4000-character
         ; row 10.07x -> 7.69x, because the shl/or sat on the critical path of a loop that runs many
-        ; times) is used HERE ONLY -- in a path that runs once, for strings that end within 32
+        ; times) is used HERE only -- in a path that runs once, for strings that end within 32
         ; characters, and that replaces two dependent movmskb chains with one. Longer strings still take
         ; the loop below, unchanged.
         mov       eax, ecx
@@ -282,7 +282,7 @@ add_fits:
         ret
 
 add_nothing:
-        ; NO UPPER CEILING ON THIS PATH: it accepts SIZE_MAX, measured.
+        ; No upper ceiling on this path: it accepts SIZE_MAX, measured.
         lea       rax, [r11 + 1]
         cmp       rdx, rax
         jb        add_buf                        ; cch < n+1
@@ -401,7 +401,7 @@ sp_check:
 rem_false:
         mov       eax, 1                         ; S_FALSE
 rem_out:
-        ; end = p+e and rem = cch-e on EVERY one of the three paths
+        ; end = p+e and rem = cch-e on every one of the three paths
         test      r8, r8
         jz        @F
         lea       r11, [rcx + r10*2]

@@ -12,13 +12,13 @@
 ;
 ; x86-64 already has this instruction. `div r64` divides rdx:rax by a 64-bit operand in ~20-40
 ; cycles. The only reason a software loop exists is that `div` raises #DE when the quotient will not
-; fit in 64 bits, and that is EXACTLY the condition
+; fit in 64 bits, and that is exactly the condition
 ;
 ;       quotient >= 2^64   <=>   hi:lo >= Divisor * 2^64   <=>   DividendHigh >= Divisor
 ;
 ; so one unsigned compare separates the two regions with no slack at all.
 ;
-; WHY THE OVERFLOW REGION IS NOT FOLDED INTO A FORMULA. Two closed forms were tried and both are
+; Why the overflow region is not folded into a formula. Two closed forms were tried and both are
 ; wrong, and both survived a badly-chosen corpus long enough to be believed:
 ;
 ;   * "the quotient saturates to all-ones, remainder = DividendLow + Divisor". True for

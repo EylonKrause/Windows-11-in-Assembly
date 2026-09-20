@@ -168,7 +168,7 @@ six-character string never reaches the vector path at all.
 ### A correction to this document, found while probing change 254
 
 An earlier version of the passage above justified the non-ASCII clause by claiming that **U+017F
-(LATIN SMALL LETTER LONG S) ordinally upcases to the ASCII `'S'`**, and therefore that a non-ASCII
+(Latin small letter long S) ordinally upcases to the ASCII `'S'`**, and therefore that a non-ASCII
 unit can match an ASCII anchor. **That is wrong**: `RtlUpcaseUnicodeChar(U+017F) = U+017F`. The NT
 ordinal table is considerably **narrower** than Unicode's full case folding —
 

@@ -96,7 +96,7 @@ once**, which is the case a mask written for two separate blocks gets wrong. `BS
 | the bitmap path walks forwards | caught | caught |
 | **the bottom block is skipped (`je` → `jbe`)** | **survives — equivalent** | **survives** |
 
-**The fourth mutant is the one that matters, and it survived BOTH gates.** `BSR` reports the high
+**The fourth mutant is the one that matters, and it survived both gates.** `BSR` reports the high
 byte of a matching word, so without `and ecx, -2` the returned pointer is off by **one byte**, into
 the middle of a `wchar_t`. Both gates compared `p - base` on a `wchar_t*` — which **divides the odd
 byte away**, so two different addresses compared equal. Both now compare **byte** offsets. That is

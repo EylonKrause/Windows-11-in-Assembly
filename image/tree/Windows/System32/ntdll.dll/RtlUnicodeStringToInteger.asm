@@ -3,12 +3,12 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/295-rtlunicodestringtointeger/impl.asm
-; LONG wia_ustr2int(const UNICODE_STRING* s, ULONG Base, ULONG* Value)   [Win64: rcx, edx, r8 -> eax]
+; Long wia_ustr2int(const UNICODE_STRING* s, ulong Base, ulong* Value)   [Win64: rcx, edx, r8 -> eax]
 ;
 ; Reimplements ntdll!RtlUnicodeStringToInteger -- the COUNTED-UNICODE sibling of the landed
 ; 129 RtlCharToInteger, and the parse-side complement of 278 RtlIntegerToUnicodeString.
 ;
-; THE CONTRACT IS NOT 129's. Two rules differ, both measured, and taking either one from the ANSI
+; The contract is not 129's. Two rules differ, both measured, and taking either one from the ANSI
 ; sibling instead of from this export would have been silently wrong:
 ;
 ;   * the leading skip here is an UNSIGNED 16-bit compare against 0x20, so U+0000..U+0020 are all
@@ -21,7 +21,7 @@
 ;     length rejections and the base rejection `jmp` to a point that falls straight into the COMMON
 ;     `mov [r14],eax` with eax still zero.
 ;
-; Accepted bases are 0, 2, 8, 10, 16 and nothing else. Base 0 infers "0x"/"0o"/"0b" LOWERCASE ONLY and
+; Accepted bases are 0, 2, 8, 10, 16 and nothing else. Base 0 infers "0x"/"0o"/"0b" LOWERCASE only and
 ; a bare leading '0' means DECIMAL. Digits are 0-9 plus A-F/a-f. Accumulation is mod 2^32 with no
 ; overflow detection and no status change. reference.c carries the full rule list and where each one
 ; was measured; probes/contract.c and probes/pageguard.c are the measurements.
@@ -39,22 +39,22 @@
 ;       r10  a NEGATIVE byte offset from that end; the current code unit is [r9+r10]
 ;       r11  the '-' flag
 ;
-; TWO STRUCTURAL CHOICES, and both of them are about uops per character rather than instructions:
+; Two structural choices, and both of them are about uops per character rather than instructions:
 ;
-;  1. THE CURSOR IS A NEGATIVE OFFSET FROM THE END, not a pointer compared against one. Advancing and
+;  1. The cursor is a negative offset from the end, not a pointer compared against one. Advancing and
 ;     testing for the end then become a single `add r10,2 / jz`, where a forward cursor needs
-;     `add / cmp / jae`. That is one fewer uop in EVERY loop in this file, including the whitespace
+;     `add / cmp / jae`. That is one fewer uop in every loop in this file, including the whitespace
 ;     skip -- and because Length is a USHORT count of bytes and the odd case has already been
 ;     refused, the offset lands exactly on zero and can never step over it.
 ;
-;  2. FOUR DIGIT LOOPS INSTEAD OF ONE. The shipped export runs a single loop carrying the base in one
+;  2. Four digit loops instead of one. The shipped export runs a single loop carrying the base in one
 ;     register and a shift count in another, so every iteration pays `cmp edx,r9d` against a register
 ;     plus a `test r11d,r11d` to choose between a multiply and a shift. Splitting on the base at
 ;     dispatch time turns both into immediates, and that is what frees the seventh register: with the
 ;     base gone from the loop there is room for the sign flag, and the whole function then needs no
 ;     stack slot, no push, and no non-volatile register at all.
 ;
-; THE STEADY-STATE LOOP IS ROTATED: the first digit is PEELED, then the loop loads at the top and
+; The steady-state loop is rotated: the first digit is peeled, then the loop loads at the top and
 ; closes with a conditional back-edge. That removes the entry test from the common case of a short
 ; decimal number, which is what the bench's "dec 1 digit" and "dec 2 digits" rows measure.
 .code

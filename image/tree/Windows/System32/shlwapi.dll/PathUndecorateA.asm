@@ -21,13 +21,13 @@
 ;   (c) the contents are decimal digits, and there may be NONE ("file[].txt" -> "file.txt");
 ;   (d) the '[' is not the component's first character.
 ;
-; THE SPACE IN (b) IS WHY THIS CHANGE WAS WORTH WRITING TWICE. probes/space2.c enumerated the narrow
+; The space in (b) Is why this change was worth writing twice. probes/space2.c enumerated the narrow
 ; export against 174's rule as it shipped and found 2724 of 335923 mismatches -- and then put the
 ; same question to the WIDE export and got the same 2724. Change 174 had been wrong since it landed,
 ; and so had 132, 140, 143, 144, 158, 159 and 160, all on one missing stopper. All eight are
 ; corrected; this one was built on the corrected rule from the start.
 ;
-; NOTE THE ASYMMETRY: the space bounds the EXTENSION search in (b) but does NOT start a component
+; Note the asymmetry: the space bounds the extension search in (b) but does not start a component
 ; for (d), so the scan tracks two positions -- `comp` past the last backslash, and `stop` past the
 ; last backslash OR space. That is what rbx is pushed for.
 ;
@@ -183,7 +183,7 @@ scan_done_at_cursor:
         mov       rdx, r9                        ; assume no usable dot
         cmp       r11, 0
         jl        have_ext                       ; no '.' anywhere (r11 is the -1 sentinel, so
-                                                 ; this test MUST be signed)
+                                                 ; this test must be signed)
         cmp       r11, rbx
         jb        have_ext                       ; the '.' is before the last STOPPER -- backslash
                                                  ;   OR space. Using `comp` here, which is
@@ -237,9 +237,9 @@ mv_blk:
         vmovdqu   ymmword ptr [r10 + rdx - 32], ymm0
         jmp       mv_blk
 mv_tail:
-        ; A DESCENDING CHUNK LADDER, NOT A BYTE LOOP. The tail is what this function actually moves
+        ; a descending chunk ladder, not a byte loop. The tail is what this function actually moves
         ; in practice: the decoration sits near the end of the name, so "...[1].txt" moves five or
-        ; six bytes and NOTHING goes through the 32-byte loop at all. A byte-at-a-time tail put a
+        ; six bytes and nothing goes through the 32-byte loop at all. A byte-at-a-time tail put a
         ; ~2.5 ns floor under every size class, which at 16 characters was most of the time spent --
         ; it measured SLOWER there than at 64, where the scan does strictly more work.
         ; Each chunk is read in full before it is written and dst is strictly below src, so the

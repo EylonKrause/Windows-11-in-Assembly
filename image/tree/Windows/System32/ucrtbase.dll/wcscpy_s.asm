@@ -19,7 +19,7 @@
 ;
 ; Everything below works in BYTES: `size` is doubled up front, with a saturating
 ; `shl / sbb / or` so a nonsensical size near 2^63 clamps instead of wrapping to a small bound.
-; From there this is a byte-for-byte port of 150 with `vpcmpeqb` -> `vpcmpeqw`. `vpcmpeqw` sets BOTH
+; From there this is a byte-for-byte port of 150 with `vpcmpeqb` -> `vpcmpeqw`. `vpcmpeqw` sets both
 ; bytes of a matching word, so `tzcnt` lands on the low (even) byte of the terminator -- no rounding
 ; is needed here, unlike the `bsr` in change 132/149.
 ;

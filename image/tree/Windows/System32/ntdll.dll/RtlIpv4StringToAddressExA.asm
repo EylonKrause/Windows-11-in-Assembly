@@ -7,7 +7,7 @@
 ;   [rcx, dl, r8, r9 -> eax]
 ;
 ; ntdll!RtlIpv4StringToAddressExA: the inet_aton IPv4 parser (as in 114) that also accepts an optional
-; ":port" and requires the WHOLE string to be consumed. There is no Terminator output. The address is
+; ":port" and requires the whole string to be consumed. There is no Terminator output. The address is
 ; written to *Addr as soon as it parses (even if the port then fails); *Port (network byte order) is
 ; written only on full success. The port reuses the same number parser (decimal / octal / hex) with the
 ; octal-8/9 rule, but rejects a lone octal "0", requires the value to fit a USHORT, and must reach the

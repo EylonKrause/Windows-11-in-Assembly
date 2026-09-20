@@ -14,10 +14,10 @@
 ; from change 154 and each was confirmed directly.
 ;   1. count == 0 AND dst == NULL AND size == 0 -> return 0, no handler, nothing written;
 ;   2. dst == NULL or size == 0                 -> handler, EINVAL (22), dst untouched;
-;   3. count == 0 AND src == NULL               -> return 0, NOTHING WRITTEN and no handler -- not
+;   3. count == 0 And src == NULL               -> return 0, nothing written and no handler -- not
 ;      even the terminator, and the dst walk does not run, so an unterminated dst is not reported;
 ;   4. src == NULL (count != 0)                 -> dst[0] = 0, handler, EINVAL;
-;   5. no terminator in dst[0..size)            -> dst[0] = 0, handler, EINVAL, and ONLY dst[0] is
+;   5. no terminator in dst[0..size)            -> dst[0] = 0, handler, EINVAL, and only dst[0] is
 ;      written. This is reached with count == 0 too, as long as src is non-NULL;
 ;   6. it fits                                  -> exactly n+1 bytes written at dst+L, return 0.
 ;      count == 0 lands here with n = 0, so it rewrites the existing terminator -- a write, but not
@@ -184,14 +184,14 @@ nc_c0_dst:
         jz        nc_einval
         test      r8, r8
         jnz       nc_walk                           ; src non-NULL: the ordinary dst walk
-        ; A NULL SOURCE WITH count == 0 STILL VALIDATES THE DESTINATION, and skipping that was a
-        ; real divergence. Rule 3 in the header above said "return 0, NOTHING WRITTEN and no
+        ; a NULL source with count == 0 Still validates the destination, and skipping that was a
+        ; real divergence. Rule 3 in the header above said "return 0, nothing WRITTEN and no
         ; handler", which is right only when the destination is ALREADY a valid string within
         ; `size`. The shipped export with dst = "A" and size = 1 -- no terminator in dst[0..size)
         ; -- returns EINVAL, sets dst[0] = 0 and calls the handler, and this returned 0 in silence.
         ;
         ; probes/ncat0.c drives the whole small grid and the rule is exact: with count == 0 and a
-        ; NULL src the answer is 0 ONLY when size != 0 and a terminator lies within dst[0..size);
+        ; NULL src the answer is 0 only when size != 0 and a terminator lies within dst[0..size);
         ; otherwise it is the ordinary not-terminated refusal. dst = "A" size >= 2 returns 0 and
         ; leaves the string alone; dst = "" size >= 1 returns 0; size == 0 is EINVAL either way.
         ;

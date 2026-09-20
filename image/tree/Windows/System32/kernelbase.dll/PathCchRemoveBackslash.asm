@@ -16,7 +16,7 @@
 ;     cchPath. "abc\" (length 4) gives E_INVALIDARG for cchPath 0, 1 and 4, and S_OK for 5.
 ;     An unterminated buffer also gives E_INVALIDARG, so the length scan must be BOUNDED --
 ;     it may never read past cchPath characters.
-;   * NO UPPER BOUND on cchPath was found: 32768, 32769 and 0x7FFFFFFF are all accepted. That
+;   * No upper bound on cchPath was found: 32768, 32769 and 0x7FFFFFFF are all accepted. That
 ;     differs from change 143's PathCchFindExtension, which rejects anything outside
 ;     [1, 32768] -- another inconsistency inside the same "safe" API family.
 ;   * Removed a backslash -> S_OK (0). Nothing to remove -> S_FALSE (1), buffer untouched.
@@ -54,7 +54,7 @@ wia_pathcchremovebackslash PROC
         ; Two 8-byte SWAR has-zero tests. Narrow loads forward from a caller's recent narrow
         ; write where a 32-byte load cannot -- the hazard change 164 records and change 172 had
         ; to fix. Without this the 4-character and drive-root classes sat at 0.94x and 0.83x.
-        ; It is taken ONLY when cchPath allows reading 8 characters, because the bound is part
+        ; It is taken only when cchPath allows reading 8 characters, because the bound is part
         ; of the CONTRACT here (an unterminated buffer must give E_INVALIDARG), not merely a
         ; safety matter -- reading past cchPath could find a terminator that does not count.
         cmp       rdx, 8

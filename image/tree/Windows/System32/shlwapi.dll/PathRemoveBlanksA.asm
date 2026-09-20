@@ -13,8 +13,8 @@
 ; form at 4.68x.
 ;
 ; ---- what the probe settled (probes/blanks.c) -------------------------------------------------------
-;   * A BLANK IS 0x20 AND NOTHING ELSE. Every byte value was tried leading and trailing: exactly one
-;     qualifies in each position. A TAB IS NOT A BLANK -- "\ta\t" comes back unchanged -- which is
+;   * a blank is 0x20 and nothing else. Every byte value was tried leading and trailing: exactly one
+;     qualifies in each position. a tab is not a blank -- "\ta\t" comes back unchanged -- which is
 ;     worth stating because "remove blanks" reads like it should mean whitespace.
 ;   * Both ends are stripped; blanks in the MIDDLE survive.
 ;   * A string made entirely of blanks becomes empty. An empty string is left completely untouched.
@@ -24,9 +24,9 @@
 ;     values INSIDE a candidate -- so this probe varied every byte value where the function actually
 ;     looks, immediately inside both runs: 0 of 254 behave unexpectedly.
 ;
-; ---- AND THE WRITE ORDER, WHICH IS THE OPPOSITE OF CHANGE 218's ------------------------------------
+; ---- And the write order, which is the opposite of change 218's ------------------------------------
 ; Change 218 established that StrTrimA cuts the TRAILING end first and then moves the leading end
-; down, leaving two terminators behind. PathRemoveBlanksA does it the OTHER WAY ROUND, and the buffer
+; down, leaving two terminators behind. PathRemoveBlanksA does it the other way round, and the buffer
 ; says so. Stripping "  abc  " leaves
 ;
 ;       a b c \0 <space> \0 <space> \0
@@ -38,7 +38,7 @@
 ;
 ; What it writes, in full: nothing at all when there is nothing to strip; one terminator when only
 ; the trailing end goes; a move plus nothing when only the leading end goes; a move plus one
-; terminator when both do. Nothing is ever padded or cleared, so correctness.c compares the WHOLE
+; terminator when both do. Nothing is ever padded or cleared, so correctness.c compares the whole
 ; buffer against a poison fill.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@
 ; The first block's mask has the bits BEFORE the string cleared rather than shifted out, so the block
 ; base can be the signed value -(psz & 31) and every later block is simply +32 -- one uniform loop.
 ;
-; The move is forward with the destination at or below the source, so each block is LOADED BEFORE IT
+; The move is forward with the destination at or below the source, so each block is loaded before it
 ; IS STORED and the store lands entirely behind the next block's read. The overlapping head/tail pair
 ; would be wrong here, as change 218 proved the hard way, so the remainder walks DOWN 16/8/4/2/1.
 ;
@@ -58,7 +58,7 @@
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shlx). Validated on Zen 4.
 ;
-; ONLY ymm0-ymm5 ARE USED. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 
 .const
 ALIGN 16
@@ -149,7 +149,7 @@ pb_nomore:
         je        pb_allblank
 
         ; ---- r8 = first kept, r11 = last kept, rdx = length ----
-        ; THE LEADING MOVE HAPPENS FIRST. See the note at the top: the export moves and then cuts,
+        ; The leading move happens first. See the note at the top: the export moves and then cuts,
         ; which is the opposite of StrTrimA, and the buffer is how you can tell.
         test      r8, r8
         jz        pb_trail                   ; already at the front: nothing to move

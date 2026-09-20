@@ -115,7 +115,7 @@ was down to **three disagreements out of 429,776**, and all three had the same s
 | `S-1-5-1;` | the same |
 | `S-1-5-1a` | `FALSE`, `ERROR_INVALID_SID`, pointer **left alone** — like the other 65,532 |
 
-`)`, `,` and `;` are the **SDDL ACE terminators** — a SID appears inside an ACE as
+`)`, `,` and `;` are the **sddl ace terminators** — a SID appears inside an ace as
 `(A;;FA;;;S-1-5-18)`. The parser underneath this export has a mode that stops at them and reports
 where it stopped; the public wrapper, which does not accept trailing text, rejects the result *after*
 the inner call has already stored its answer, and then clears it. `terminators.c` went on to ask the

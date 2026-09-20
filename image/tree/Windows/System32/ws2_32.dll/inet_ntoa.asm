@@ -10,17 +10,17 @@
 ; the bottom up.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE TEXT IS "%u.%u.%u.%u" OF THE FOUR BYTES, and that is measured rather than assumed:
-; probes/contract.c compares the export against wsprintfA for EVERY one of the 256 byte values in
+; The text is "%u.%u.%u.%u" of the four bytes, and that is measured rather than assumed:
+; probes/contract.c compares the export against wsprintfA for every one of the 256 byte values in
 ; EACH of the four positions -- all 1024 combinations -- with zero disagreements.
 ;
-; THE ANSWER GOES IN A PER-THREAD BUFFER. The same pointer on every call from one thread, a
+; The answer goes in a per-thread buffer. The same pointer on every call from one thread, a
 ; different one per thread, undisturbed by inet_addr, htonl, WSAGetLastError or inet_ntop. The
 ; caller owns nothing and the text is valid until that thread calls again. tls.c owns that buffer and
 ; says why the access is the compiler's.
 ;
 ; --------------------------------------------------------------------------------------------------
-; WHY THIS CHANGE EXISTS WHEN 274 IS PARKED. probes/floor.c timed four things per call:
+; Why this change exists when 274 Is parked. probes/floor.c timed four things per call:
 ;
 ;     ws2_32!inet_ntoa                    7.47 ns
 ;     C, wsprintfA                       22.12 ns     the naive replacement, for scale
@@ -32,7 +32,7 @@
 ; times; here the answer came back yes.
 ;
 ; --------------------------------------------------------------------------------------------------
-; ONE DWORD STORE PER FIELD. The table holds every value 0..255 already rendered, WITH ITS TRAILING
+; One dword store per field. The table holds every value 0..255 already rendered, with its trailing
 ; DOT, packed into four bytes -- "7." , "42." , "255." -- and a second table holds how far to step.
 ; So a field costs a table load, an unaligned four-byte store and an add, and the dots come free
 ; because they are part of the rendering. The last dot is then overwritten with the terminator,

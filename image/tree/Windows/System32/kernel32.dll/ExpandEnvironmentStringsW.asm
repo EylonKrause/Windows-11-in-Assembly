@@ -10,8 +10,8 @@
 ; is a thin wrapper over ntdll!RtlExpandEnvironmentStrings. Both were disassembled before a line of
 ; this was written; RESULTS.md carries the listings.
 ;
-; WHAT THE SHIPPED CODE SPENDS ITS TIME ON. The wrapper calls wcslen, and then the ntdll loop walks
-; the string ONE CHARACTER AT A TIME -- load, compare against '%', compare the remaining destination
+; What the shipped code spends its time on. The wrapper calls wcslen, and then the ntdll loop walks
+; the string one character at a time -- load, compare against '%', compare the remaining destination
 ; against 1, store, four pointer updates, reload the environment argument from the stack, branch:
 ;
 ;       00000001800BB0A0: cmp  word ptr [rbx],25h        ; is it a '%'
@@ -37,7 +37,7 @@
 ; 254-character path with nothing in it to expand at 294 ns -- 0.580 ns per byte, which is the cost
 ; of DECIDING there is nothing to do. That is what this file replaces.
 ;
-; WHAT THIS FILE DOES INSTEAD. Finding a byte in a string is what this repository does best, so the
+; What this file does instead. Finding a byte in a string is what this repository does best, so the
 ; per-character walk becomes a 32-byte-at-a-time search for the two characters that can end a run --
 ; the terminator and '%' -- and everything between two such characters moves as a block:
 ;
@@ -45,13 +45,13 @@
 ;     vpcmpeqw against zero OR'd with a vpcmpeqw against '%' answers both questions per 16
 ;     characters, so the common input -- no '%' anywhere -- is one scan plus one block copy, and the
 ;     length the return value needs falls out of the same scan.
-;   * THE FAST PATH TOUCHES NO NON-VOLATILE REGISTER AND ALLOCATES NO FRAME. A string with nothing
+;   * The fast path touches no non-volatile register and allocates no frame. a string with nothing
 ;     to expand never reaches the general loop; it never pushes, never calls the lookup, and returns
 ;     from a body of about twenty instructions plus two vector loops.
-;   * THE SCAN CARRIES ITS MASK. This is the difference between the first version of this file and
+;   * The scan carries its mask. This is the difference between the first version of this file and
 ;     this one, and it is worth the paragraph, because the first version LOST a size class. Every
 ;     "%NAME%" costs two searches -- one for the '%' that opens it, one for the '%' that closes it --
-;     and a name is usually four to ten characters, so BOTH of them live in the same 32-byte block.
+;     and a name is usually four to ten characters, so both of them live in the same 32-byte block.
 ;     Reloading that block and re-deriving the mask costs a 6-cycle load and a 4-cycle vpmovmskb for
 ;     an answer already in a register. `NEXTSTOP` therefore keeps the block base in r10 and its stop
 ;     mask in r11d, and the second search is a shift, a tzcnt and an lea. Measured on eight
@@ -59,21 +59,21 @@
 ;     it replaces, on the one row where the vector work is spread thinnest. With it, that row is a
 ;     win. The cache is invalidated (r10 := 0) immediately after each lookup call, which is the only
 ;     thing that can clobber it.
-;   * THE LOOKUP IS NOT REIMPLEMENTED. ntdll!RtlQueryEnvironmentVariable -- the export the shipped
+;   * The lookup is not reimplemented. ntdll!RtlQueryEnvironmentVariable -- the export the shipped
 ;     RtlExpandEnvironmentStrings itself calls at 0x1800BB17F -- is resolved once and called with
 ;     the identical six arguments, so the process environment block walk, its cached hash table, its
 ;     critical section and the four virtual variables ntdll answers ahead of the block (__CD__,
 ;     __APPDIR__, FIRMWARE_TYPE, NUMBER_OF_PROCESSORS) are bit-for-bit the shipped behaviour rather
 ;     than a guess at it. That call is a real call and it is not what was slow.
 ;
-; A SCALAR WALK MUST NOT RE-ENTER A VECTOR LOOP (change 263's rule). The input that would provoke it
+; a scalar walk must not re-enter a vector loop (change 263's rule). The input that would provoke it
 ; here is a run of consecutive '%', because the shipped semantics make all but the LAST of them a
 ; literal -- "%%" is two percent signs, not an escape -- so a naive loop would re-probe 32 bytes to
 ; emit one character. `ap_run` walks the whole run once with a two-instruction scalar loop, the run
 ; is then copied as a block, and the scan is re-entered once for the name that follows it. A
 ; 512-character all-'%' subject costs one scalar pass and one block copy, not 512 probes.
 ;
-; PAGE SAFETY. Every vector load is 32-byte ALIGNED: the address is rounded down and the bits before
+; Page safety. Every vector load is 32-byte aligned: the address is rounded down and the bits before
 ; the string's real start are shifted out of the mask. A 32-byte aligned load cannot straddle a page
 ; boundary, and the scan stops at the terminator, so no page the string does not already occupy is
 ; ever touched -- including a string whose last character is the last one in its page with the next
@@ -211,7 +211,7 @@ ENDM
 
 ; ------------------------------------------------------------------------------------------------
 ; copy_w(rcx = destination, rdx = source, r8 = characters). No stack, no calls, and it CLOBBERS
-; ONLY rax, r8, r9 and ymm0/ymm1 -- r10, r11 and ymm3/ymm4 survive it deliberately, because they
+; only rax, r8, r9 and ymm0/ymm1 -- r10, r11 and ymm3/ymm4 survive it deliberately, because they
 ; carry the fast path's answer and the general loop's scan state across it. (The first version of
 ; this file used r10 and r11 as the copy cursors and returned a character of the string as the
 ; length: 46079 mismatches, all of them that one line.)
@@ -409,7 +409,7 @@ fp_nullsrc_n0:
 wia_expand_env_w ENDP
 
 ; ------------------------------------------------------------------------------------------------
-; The general path. Entered by JMP, not CALL, so its RET returns to wia_expand_env_w's caller:
+; The general path. Entered by jmp, not call, so its ret returns to wia_expand_env_w's caller:
 ;   r11 = lpSrc, rdx = lpDst, r8 = nSize, rax -> the first '%' the fast scan already found.
 ;
 ;   rsi source cursor   rdi destination cursor   r12 free destination cells

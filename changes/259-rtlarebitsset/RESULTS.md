@@ -103,7 +103,7 @@ in the corpus that proves it.
 implementation that always said "no" would agree with the live export on nearly every random range
 over a random bitmap, because almost none of them is uniform. So every corpus is built to produce
 **both** answers, and the harness **counts how many of each it got** and fails if either is zero: the
-live exports answered YES **72 689** times for SET and **45 621** for CLEAR.
+live exports answered yes **72 689** times for set and **45 621** for clear.
 
 | | cases |
 |---|---|

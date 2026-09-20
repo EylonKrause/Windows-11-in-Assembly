@@ -3,7 +3,7 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/012-rtlcomparestring/impl.asm
-; LONG wia_rtlcmpstr(const STRING* s1, const STRING* s2, BOOLEAN ci)  [rcx, rdx, r8b -> eax]
+; Long wia_rtlcmpstr(const string* s1, const string* s2, BOOLEAN ci)  [rcx, rdx, r8b -> eax]
 ;
 ; Reimplements ntdll!RtlCompareString (ANSI/8-bit STRING). Matches ntdll's exact
 ; return (byte difference of the first differing char, or Length1-Length2). CS:

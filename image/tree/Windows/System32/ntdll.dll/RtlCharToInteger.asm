@@ -9,7 +9,7 @@
 ; Contract (reverse-engineered and validated bit-exact vs the live export):
 ;   1. skip while (signed char)*s <= ' '  -- a SIGNED compare, so it skips 0x01-0x20 AND 0x80-0xFF;
 ;   2. one optional '+' or '-' (whitespace is skipped only BEFORE the sign: "- 42" yields 0);
-;   3. Base == 0 auto-detects "0x"/"0b"/"0o" -- LOWERCASE ONLY ("0X10" parses as decimal 0) -- and a
+;   3. Base == 0 auto-detects "0x"/"0b"/"0o" -- LOWERCASE only ("0X10" parses as decimal 0) -- and a
 ;      bare leading '0' means DECIMAL, not octal ("0777" -> 777);
 ;   4. Base outside {0,2,8,10,16} -> STATUS_INVALID_PARAMETER and *Value is left UNTOUCHED;
 ;   5. digits accumulate mod 2^32 with NO overflow detection ("4294967296" -> 0);
@@ -39,7 +39,7 @@ dgval:
 
 .code
 wia_char2int PROC
-        ; ---- A LEADING NUL IS STEPPED OVER. ONE. AT INDEX 0 ONLY.
+        ; ---- a leading NUL is stepped over. One. At index 0 Only.
         ;
         ; This is a real contract rule and this implementation shipped without it, returning 0 for every
         ; string whose first byte is a terminator while the export parses from byte 1. probes/pastnul.c
@@ -61,7 +61,7 @@ wia_char2int PROC
         ; compare against ' ', and 00 satisfies it -- but the shape is crisp and total, and a drop-in has
         ; to reproduce it.
         ;
-        ; WHY THE CORRECTNESS GATE PASSED FOR YEARS WITHOUT THIS. Its no-digit cases are string LITERALS
+        ; Why the correctness gate passed for years without this. Its no-digit cases are string literals
         ; ("" and "abc"), so what follows the terminator is whatever the linker put there -- and it
         ; happened to yield 0 for all sixteen bases, which is exactly what this implementation returned.
         ; The corpus could not express a controlled byte after the NUL, so it could not see the rule. It
@@ -99,7 +99,7 @@ c_signed:
         inc       rcx
         movzx     eax, byte ptr [rcx]             ; a sign moved rcx, so this one must reload
 c_base:
-        ; ---- A BASE WE CHOSE OURSELVES DOES NOT NEED VALIDATING.
+        ; ---- a base we chose ourselves does not need validating.
         ;
         ; Every exit from this block sets edx to 10, 2, 8 or 16, all of which are valid by construction,
         ; so each one jumps straight to c_go and skips the validity ladder entirely. Only a
@@ -132,7 +132,7 @@ c_b8:   mov       edx, 8
         add       rcx, 2
         jmp       c_go                            ; must jump: c_valid no longer falls through to here
 c_valid:
-        ; ---- VALIDATING A CALLER-SUPPLIED BASE.
+        ; ---- Validating a caller-supplied base.
         ;
         ; Only a base the CALLER passed can be wrong -- the auto-detect block above jumps straight to
         ; c_go with a base it chose itself -- so this ladder now sits on one path instead of two, and it
@@ -167,14 +167,14 @@ c_loop:
         cmp       r11d, 9
         jbe       c_have
 
-        ; ---- FOR BASE <= 10 A LETTER CAN NEVER BE A DIGIT, SO DO NOT DECODE ONE.
+        ; ---- For base <= 10 a letter can never be a digit, so do not decode one.
         ;
         ; Below this point the byte is not '0'-'9', and the only remaining way it could be a digit is as
         ; a letter -- which requires a digit value of at least 10, so it is impossible for base 2, 8 and
         ; 10. Those three bases can stop right here, and the case fold, the range check and the compare
         ; against the base underneath are all dead work for them.
         ;
-        ; EVERY decimal parse reaches this point exactly once, on its terminating NUL, so this shortcut
+        ; every decimal parse reaches this point exactly once, on its terminating NUL, so this shortcut
         ; pays on every base-10 and base-8 row rather than only on the awkward ones. It was measured
         ; because two rows would not come up to parity -- "0777" and "0X10", base 0 with a leading '0' --
         ; and in both of those the character that ends the parse is decoded as a letter, given a digit

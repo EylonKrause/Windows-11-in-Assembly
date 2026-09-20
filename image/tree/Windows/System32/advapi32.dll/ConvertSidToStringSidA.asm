@@ -10,7 +10,7 @@
 ; 44-character string costs.
 ;
 ; --------------------------------------------------------------------------------------------------
-; THE ANSI FORM IS THE WIDE FORM NARROWED ONE BYTE PER CHARACTER, AND THAT WAS MEASURED, NOT ASSUMED.
+; The ANSI form is the wide form narrowed one byte per character, and that was measured, not assumed.
 ;
 ; probes/contract.c asks both exports the same question over every shape of SID -- every
 ; sub-authority count 0..255, every revision 0..255, the identifier authority at every decimal and
@@ -25,7 +25,7 @@
 ; iteration through VPACKUSWB, which needs no lane fix-up at 128 bits.
 ;
 ; --------------------------------------------------------------------------------------------------
-; EVERYTHING ELSE IS CHANGE 270's CONTRACT, and it is linked rather than restated: the formatter is
+; Everything else is change 270's contract, and it is linked rather than restated: the formatter is
 ; change 067, the failure codes and the allocation are change 270's alloc.c, and the block is
 ; LocalAlloc(LMEM_FIXED) of exactly characters+1 bytes -- one byte per character here rather than
 ; two, which probes/contract.c measured at four counts.

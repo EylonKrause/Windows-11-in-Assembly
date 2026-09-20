@@ -112,7 +112,7 @@ Three-way on every case: **ours vs the scalar model in `reference.c` vs the live
 | 7. randomised content, length, flags and locale | 60,000 |
 | | **65,016** |
 
-**0 mismatches.** The live export answered EQ 33,242, LT 11,917, GT 7,304 and an **error 12,553**
+**0 mismatches.** The live export answered eq 33,242, lt 11,917, gt 7,304 and an **error 12,553**
 times — the gate fails if any of those is missing, and the error count is the one that matters,
 because a fast path that skipped validation would pass everything else.
 

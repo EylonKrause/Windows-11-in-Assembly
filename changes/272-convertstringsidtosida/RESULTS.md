@@ -33,7 +33,7 @@ This is the opposite situation to change 271. There the *output* is ASCII by con
 **input is arbitrary caller bytes**, and change 269 established that the wide parser accepts **180**
 different code units as decimal digits and **25** as whitespace. Under code page 1252 the byte `0xA0`
 is U+00A0 NO-BREAK SPACE, which that parser treats as skippable; under 65001 a two-byte sequence
-reaches U+0660 ARABIC-INDIC DIGIT ZERO, which it treats as a digit worth zero. What a high byte
+reaches U+0660 arabic-indic digit zero, which it treats as a digit worth zero. What a high byte
 *means* is genuinely a code-page question.
 
 But a byte **below** 0x80 might not be. `probes/asciilen.c` asked whether every byte `0x00`–`0x7F` is

@@ -32,7 +32,7 @@
 ; bit against the highest backslash bit -- no per-character loop.
 ;
 ;
-; ---- CORRECTED 2026-09-15: THE SPACE RULE WAS MISSING -----------------------------------------------
+; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same

@@ -9,18 +9,18 @@
 ; headroom survey: 719 ns for a 508-byte buffer, about 2.9 ns PER 16-BIT UNIT, where everything
 ; else here that scans memory runs at 20-80 GB/s.
 ;
-; WHY IT IS WORTH CONVERTING AT ALL -- and this had to be measured before any work started:
+; Why it is worth converting at all -- and this had to be measured before any work started:
 ;   the shipped cost SATURATES. 16 B -> 56 ns, 256 B -> 368 ns, 508 B -> 719 ns, and then FLAT at
 ;   ~735 ns from 1 KB all the way to 128 KB. The disassembly says why: "mov r14d,100h ; cmova
 ;   edx,r14d" clamps the unit count to 256, so ntdll never inspects more than 512 bytes. That
-;   means a vectorised version wins on EVERY size at or above the cap, not just on small buffers.
+;   means a vectorised version wins on every size at or above the cap, not just on small buffers.
 ;
 ; The contract is in reference.c. It could not be derived black-box -- three probe rounds failed to
 ; explain ASCII16 and STATISTICS -- so it was read out of the shipped code (dumpbin /disasm,
 ; RVA 0x000D3A10) and then fuzz-confirmed: 3 000 000 cases, 0 mismatches, plus every buffer of
 ; length 2..6 over the alphabet {00,09,0A,0D,1A,20,30,61,FE,FF} exhaustively.
 ;
-; THE KEY TO VECTORISING IT: both statistics are TOTAL VARIATION sums,
+; The key to vectorising it: both statistics are total variation sums,
 ;     lo_var = sum |b[2i]   - b[2i-2]| ,  hi_var = sum |b[2i+1] - b[2i-1]|
 ; i.e. both are |b[j] - b[j-2]| over the same byte stream, split by the parity of j. So ONE
 ; unaligned load at cursor-2 gives every predecessor at once, vpmaxub/vpminub/vpsubb gives the
@@ -416,7 +416,7 @@ epilogue:
 
 ; ---------------------------------------------------------------------------
 ; presence_scalar -- internal. IN: r8d = the unit. Sets r14d / r15d / ebx if the unit belongs to
-; the CONTROLS / REVERSE_CONTROLS / ILLEGAL group. Clobbers r8d and eax ONLY.
+; the controls / REVERSE_CONTROLS / illegal group. Clobbers r8d and eax only.
 ; It must NOT touch r9: the caller holds the unit count there and computes the end pointer from it
 ; immediately after the first call. Using r9 as the scratch here sent the end pointer to
 ; rsi + 2*0x6100 and faulted on the very first two-byte buffer.

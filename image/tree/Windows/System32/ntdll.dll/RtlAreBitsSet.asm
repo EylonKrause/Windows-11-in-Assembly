@@ -9,7 +9,7 @@
 ;
 ; ntdll!RtlAreBitsSet (RVA 0x0F5970) and ntdll!RtlAreBitsClear.
 ;
-; THE FIRST BITMAP SURVEY ASKED THIS PAIR A QUESTION THEY COULD ANSWER IMMEDIATELY. It measured
+; The first bitmap survey asked this pair a question they could answer immediately. It measured
 ; 1.60 ns and 2.20 ns, and both rows returned 0, meaning NO -- and a range check that answers no
 ; stops at the first bit that disagrees, which on those subjects was inside the first word. Those
 ; rows timed a two-word function. discovery/ntdll_bitmap2.c asked the expensive question instead,
@@ -18,7 +18,7 @@
 ;       RtlAreBitsSet   0..60000 over an all-ones bitmap      745.65 ns    0.099 ns/byte
 ;       RtlAreBitsClear 0..60000 over an all-zero bitmap      741.05 ns    0.099 ns/byte
 ;
-; and the middle loop is SIX INSTRUCTIONS PER 32-BIT WORD:
+; and the middle loop is six instructions per 32-BIT word:
 ;
 ;       000F5A05  add rdx, 4        ; the next DWORD
 ;       000F5A09  mov eax, [rdx]
@@ -36,46 +36,46 @@
 ; is visible in the disassembly, which is exactly why it was asked: a rule read out of a branch is
 ; a guess about what the branch is for.
 ;
-;   * THE SECOND ARGUMENT IS A LENGTH, not an end index: with bits 100..109 set, (100,10) is TRUE,
+;   * The second argument is a length, not an end index: with bits 100..109 set, (100,10) is TRUE,
 ;     (100,11) is false and (100,109) -- which an end index would satisfy -- is false.
-;   * LENGTH ZERO IS REFUSED. (0,0) over an all-ones bitmap is FALSE, not the vacuous truth a
+;   * Length zero is refused. (0,0) over an all-ones bitmap is FALSE, not the vacuous truth a
 ;     caller would assume. Both exports agree.
-;   * A RANGE PAST SizeOfBitMap IS REFUSED, NOT CLAMPED. Over an all-ones buffer declared as 100
+;   * a range past SizeOfBitMap is refused, not clamped. Over an all-ones buffer declared as 100
 ;     bits, (0,100) is TRUE and (0,101) is false -- and the bits out there really are ones, so a
 ;     clamping implementation would have said TRUE.
-;   * A START AT OR PAST SizeOfBitMap is false. (99,1) is TRUE, (100,1) is false.
+;   * a start at or past SizeOfBitMap is false. (99,1) is TRUE, (100,1) is false.
 ;   * THE SLACK past SizeOfBitMap is out of bounds, not merely unset: an entirely-ones buffer
 ;     declared as 40 bits answers false to (0,41).
-;   * THE SINGLE-BIT CASE is separate code in ntdll (a `bt`), so it is asked separately and agrees.
+;   * The single-bit case is separate code in ntdll (a `bt`), so it is asked separately and agrees.
 ;
 ; A NULL RTL_BITMAP has no contract to match: the shipped code dereferences rcx on its first
 ; instruction, so there is only a fault to reproduce, and this does not reproduce it.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. The range covers at most one partial word at each end and whole words between them.
+; How it works. The range covers at most one partial word at each end and whole words between them.
 ; The two ends are masked and compared; the middle is thirty-two bytes at a time:
 ;
 ;       set:    VPTEST ymm, all-ones      CF is set only if every bit of ymm is one
 ;       clear:  VPTEST ymm, ymm           ZF is set only if every bit of ymm is zero
 ;
-; TWO INSTRUCTIONS AND A BRANCH PER THIRTY-TWO BYTES, and no accumulator: an accumulated AND over
+; Two instructions and a branch per thirty-two bytes, and no accumulator: an accumulated and over
 ; several chunks would test less often, but this function has an early exit that matters -- the
 ; answer NO is the cheap case and the shipped code leaves at the first word that disagrees. Testing
 ; per chunk keeps that: a range whose first word is wrong is answered after one load.
 ;
-; AND A RANGE TOO SHORT FOR ONE VECTOR STEP NEVER TOUCHES A VECTOR REGISTER. That is not tidiness:
+; And a range too short for one vector step never touches a vector register. That is not tidiness:
 ; a function that has executed a VEX instruction must VZEROUPPER before it returns, and on ranges of
 ; a word or two that instruction is a measurable part of the whole call -- the short rows measured
 ; 0.75x-0.93x with one unconditional VZEROUPPER at the exit. The middle and the tail are therefore
 ; written twice, once for the path that ran the vector loop and once for the path that never
 ; reached it, and only the first pays for it.
 ;
-; NO XOR NORMALISES THE TWO FORMS. The set and clear searches are generated from one macro, and
+; No xor normalises the two forms. The set and clear searches are generated from one macro, and
 ; each keeps its own comparison -- `cmp dword ptr, -1` against `cmp dword ptr, 0`, and the two
 ; VPTEST forms above -- because a shared core would need the transform in the loop and the
 ; transform is the only work there is.
 ;
-; READING PAST THE BUFFER CANNOT HAPPEN: the range is refused unless start + length <= SizeOfBitMap,
+; Reading past the buffer cannot happen: the range is refused unless start + length <= SizeOfBitMap,
 ; so the last word touched is the one holding bit start+length-1, which is inside the ULONG array by
 ; construction. That is also why this needs no guard-page special case in the loop, only in the
 ; corpus that proves it.
@@ -100,7 +100,7 @@ ELSE
 ENDIF
 ENDM
 
-; -- test one WHOLE word; jump to `bad` if it is not uniform --
+; -- test one whole word; jump to `bad` if it is not uniform --
 WORDFULL MACRO inv, mem, bad
 IF inv
         cmp       mem, 0
@@ -135,10 +135,10 @@ AREBITS MACRO inv
         cmp       r10d, 64
         ja        multi
 
-        ; A RANGE OF SIXTY-FOUR BITS OR FEWER IS ONE MASKED COMPARE, of whichever width reaches it.
+        ; a range of sixty-four bits or fewer is one masked compare, of whichever width reaches it.
         ; This is not a flourish for a rare case, it is most calls -- and reaching it through the
         ; general path, head word then middle loop then tail word, is about forty instructions to
-        ; examine two words. With that path the short rows STRADDLED THE GATE, measuring 0.88x on
+        ; examine two words. With that path the short rows straddled the gate, measuring 0.88x on
         ; one run of a binary and 1.36x on the next. The 64-bit form is taken only when the range
         ; really does reach into the following word, so it can never read a ULONG that is not there.
         mov       rdx, -1
@@ -156,7 +156,7 @@ two:    bzhi      rdx, rdx, r10
         jmp       yes
 
 multi:  ; three words or more: a masked word at each end and whole words between them.
-        ; THE FIRST WORD IS TESTED BEFORE ANYTHING IS COMPUTED ABOUT THE LAST. A range whose very
+        ; The first word is tested before anything is computed about the last. a range whose very
         ; first word disagrees is the cheap answer this function is expected to give quickly -- the
         ; shipped code leaves at the first word too -- and working out where the range ends before
         ; looking at where it starts spends four instructions on a question already answered.

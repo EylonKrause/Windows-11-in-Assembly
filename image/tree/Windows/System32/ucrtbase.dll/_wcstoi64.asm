@@ -274,7 +274,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. IN: r10d = code unit. OUT: eax = 1 if it is a decimal digit with VALUE 0
+; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; ---------------------------------------------------------------------------
 is_zero:

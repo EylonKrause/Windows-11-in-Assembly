@@ -13,7 +13,7 @@
 ; ../182-strset-s/probes/sss.c fuzzed the byte and wide forms side by side against the live
 ; exports, 1,000,000 cases each, 0 mismatches for both:
 ;
-;   * numberOfElements == 0  -> EINVAL (22) and NOTHING is written at all.
+;   * numberOfElements == 0  -> EINVAL (22) and nothing is written at all.
 ;   * No terminator strictly inside numberOfElements -> PARTIAL FILL of numberOfElements-1
 ;     cells, and only THEN str[0] = 0, returning EINVAL (22).
 ;   * Otherwise -> fill every cell before the terminator, keep the terminator, return 0.
@@ -23,7 +23,7 @@
 ;  letters and so does change 050, but the Rtl* family diverges -- so the wide form was fuzzed
 ;  in its own right.)
 ;
-; Method: because BOTH outcomes fill, the fill count is computed once --
+; Method: because both outcomes fill, the fill count is computed once --
 ;     count = (no terminator found) ? numberOfElements-1 : length
 ; and a single AVX2 vpbroadcastw store loop runs it, 16 characters per step. Only the epilogue
 ; differs.
@@ -89,7 +89,7 @@ no_term:
         lea       r11, [rdx - 1]                 ; count = numberOfElements - 1
         mov       r10d, 1                        ; outcome = EINVAL
 
-        ;================ one fill loop serves BOTH outcomes ================
+        ;================ one fill loop serves both outcomes ================
 do_fill:
         movzx     eax, r8w
         vmovd     xmm2, eax

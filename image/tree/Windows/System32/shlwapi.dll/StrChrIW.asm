@@ -8,7 +8,7 @@
 ; shlwapi!StrChrIW -- the case-insensitive character search.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 1. THE NUMBER THAT STARTED THIS.
+; 1. The number that started this.
 ;
 ; discovery/charclass_strcmp_2026.c measured the shipped export scanning a 511-character string:
 ;
@@ -19,7 +19,7 @@
 ; Forty-three nanoseconds per character is a full collation call for every code unit scanned.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE RELATION, AND THE FOUR HYPOTHESES THAT WERE WRONG FIRST.
+; 2. The relation, and the four hypotheses that were wrong first.
 ;
 ; Six probes in this directory characterise it. Three of them reached confident wrong conclusions
 ; and are kept, because each was wrong in the way this repository keeps auditing others for: a test
@@ -27,7 +27,7 @@
 ;
 ;   contract.c   "it is the ordinal upcase table, exactly" -- 0 disagreements over 3892 candidate
 ;                pairs, and WRONG: it built those pairs from CharUpperW/CharLowerW/RtlUpcase/
-;                RtlDowncase, so (U+1D2C MODIFIER LETTER CAPITAL A, 'a') -- a pair none of the four
+;                RtlDowncase, so (U+1D2C modifier letter capital a, 'a') -- a pair none of the four
 ;                relates -- could never be asked. The gate caught it: 8 mismatches in 140561.
 ;   widerfold.c  NOT linguistic: e-acute does not find 'e', n-tilde does not find 'n', fullwidth
 ;                'a' does not find 'a', sharp s does not expand to "ss".
@@ -43,22 +43,22 @@
 ;                    U+D7B0 matches U+D7A2.  U+D7B1 matches U+D7A2.
 ;                    U+D7B0 does NOT match U+D7B1.
 ;
-; THE RELATION IS SYMMETRIC BUT NOT TRANSITIVE -- 168 intransitive triples. It is a tolerance
+; The relation is symmetric but not transitive -- 168 intransitive triples. It is a tolerance
 ; relation, so it has NO CLASSES, and "the members of the needle's class" is not a well-defined
 ; object. An earlier version of this file compared against class members and was wrong in 66 of
-; 206096 gate cases, every one of them a case where OURS AGREED WITH LIVE and only the class model
+; 206096 gate cases, every one of them a case where ours agreed with live and only the class model
 ; disagreed.
 ;
 ; The fix does not change the inner loop at all: the implementation never needed a class, it needed
-; THE MATCH SET OF THE NEEDLE, which is well defined whether or not the relation is transitive.
+; The match set of the needle, which is well defined whether or not the relation is transitive.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 3. THREE PATHS, chosen once per call from the size of that set (probes/gentable3.c):
 ;
-;     56825 needles match ONLY THEMSELVES     -> one broadcast, one VPCMPEQW per 16 code units
+;     56825 needles match only themselves     -> one broadcast, one vpcmpeqw per 16 code units
 ;      5390 needles have 2..8 partners        -> four broadcasts and four compares when <= 4;
 ;                                                a short inline list when 5..8
-;      3320 needles have more than eight, and between them share only ELEVEN DISTINCT SETS
+;      3320 needles have more than eight, and between them share only eleven distinct sets
 ;                                             -> an 8 KB membership bitmap, one BT per code unit
 ;
 ; FOUR is the register budget, not a guess. Win64 makes xmm6-xmm15 non-volatile, so a leaf that
@@ -73,7 +73,7 @@
 ; was proved to contain no terminator, which means the string really does extend into it. The two
 ; scalar paths read one code unit at a time and need no such argument.
 ;
-; ISA: AVX2 + BMI1 (TZCNT). VZEROUPPER on every exit that touched a YMM register.
+; Isa: AVX2 + BMI1 (tzcnt). Vzeroupper on every exit that touched a ymm register.
 
 OPTION PROC:PRIVATE
 PUBLIC wia_strchriw
@@ -92,7 +92,7 @@ wia_strchriw PROC
         test      rcx, rcx
         jz        ret_null
         movzx     eax, dx
-        ; NEEDLE 0 IS NOT SPECIAL, and believing it was cost a contract error.
+        ; Needle 0 Is not special, and believing it was cost a contract error.
         ; probes/contract.c measured StrChrIW("abcXYZabc", 0) as NULL and wrote down "the
         ; terminator is never found". That string simply contains no ignorable character. NUL has
         ; zero collation weight, so it matches every other zero-weight code unit: in a 275-character
@@ -138,7 +138,7 @@ scan_setup:
         mov       ecx, r10d
         and       ecx, 31                         ; the byte offset of the string inside the block
         vmovdqa   ymm0, ymmword ptr [r8]
-        ; ONLY ymm0-ymm5 MAY BE TOUCHED, so each mask is extracted to a GPR the instant it is
+        ; Only ymm0-ymm5 may be touched, so each mask is extracted to a gpr the instant it is
         ; computed and the single scratch register is reused -- including for the zero vector the
         ; terminator test needs.
         vpcmpeqw  ymm5, ymm0, ymm1

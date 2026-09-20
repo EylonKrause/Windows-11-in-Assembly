@@ -7,13 +7,13 @@
 ;
 ; Reimplements shlwapi!StrTrimW: remove leading and trailing characters that appear in pszTrimChars,
 ; in place, returning TRUE if anything was removed. shlwapi's is O(n*m) scalar -- 462 ns for a 254-char
-; string even when NOTHING is trimmed, which is the case this optimises hardest.
+; string even when nothing is trimmed, which is the case this optimises hardest.
 ;
 ; Contract (probed against the live export): trims both ends; returns 0 when nothing changed; an empty
 ; set or empty string changes nothing; a string entirely of trim characters becomes empty (return 1).
 ; The observable order is **terminate first, then move** -- the trailing NUL is written before the
 ; remainder is shifted down -- which is what determines the leftover bytes past the new terminator, so
-; the correctness harness compares the WHOLE buffer, not just the resulting string.
+; the correctness harness compares the whole buffer, not just the resulting string.
 ;
 ; Work is placed where it pays: the leading span and the length scan are AVX2 (they are what the
 ; nothing-to-trim case spends all its time on), while the trailing scan is scalar because it can only

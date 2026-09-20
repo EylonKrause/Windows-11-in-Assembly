@@ -27,7 +27,7 @@ probes are kept, including the ones that were confidently wrong.
 **1. "It is the ordinal upcase table, exactly."** `probes/contract.c`, 0 disagreements over 3,892
 candidate pairs. **Wrong.** It built its pairs from `CharUpperW`, `CharLowerW`,
 `RtlUpcaseUnicodeChar` and `RtlDowncaseUnicodeChar`, so a pair *none* of those four relates —
-(U+1D2C MODIFIER LETTER CAPITAL A, `'a'`) — could never be asked about. Caught by gate 1: **8
+(U+1D2C Modifier letter capital a, `'a'`) — could never be asked about. Caught by gate 1: **8
 mismatches in 140,561**.
 
 **2. "It is linguistic, so the change must park."** Ruled out by `probes/widerfold.c`: e-acute does

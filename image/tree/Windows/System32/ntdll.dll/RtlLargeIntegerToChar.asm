@@ -10,7 +10,7 @@
 ; 27.75 ns for nineteen decimal digits.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 1. THIS CHANGE SUPERSEDES CHANGE 100, WHICH IS WRONG ON EVERY NEGATIVE LENGTH.
+; 1. This change supersedes change 100, which is wrong on every negative length.
 ;
 ; 100 landed this export at 1.43x. Like change 097 before it -- which change 279 replaced for the
 ; same reason -- its capacity test is an UNSIGNED compare, so a negative length reads as the largest
@@ -23,20 +23,20 @@
 ;     change 100, same call:        31 32 33 34 35 36 37 38 39 ... 00   the digits, then a terminator
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE CONTRACT, MEASURED BY probes/contract.c -- IT IS CHANGE 279's, NOT A NEW ONE.
+; 2. The contract, measured by probes/contract.c -- it is change 279's, not a new one.
 ;
 ;   * bases 0, 2, 8, 10, 16 only; 0 means 10; everything else STATUS_INVALID_PARAMETER.
-;   * THE BASE IS VALIDATED BEFORE THE VALUE POINTER IS DEREFERENCED. The probe put the
+;   * The base is validated before the value pointer is dereferenced. The probe put the
 ;     LARGE_INTEGER on a NOACCESS page and called with base 7: it returned C000000D rather than
 ;     faulting. With a good base and no room it FAULTED -- so the value is read after the base is
 ;     checked and before the room is known. This implementation reads it in exactly that window.
 ;   * UNSIGNED, despite PLARGE_INTEGER being signed: 0x8000000000000000 prints as
 ;     9223372036854775808 and -1 as 18446744073709551615.
-;   * length >= digits, and the terminator is written ONLY IF IT FITS:
+;   * length >= digits, and the terminator is written only if it fits:
 ;         19 digits, length 18 -> STATUS_BUFFER_OVERFLOW, buffer untouched
 ;         19 digits, length 19 -> nineteen characters, NO terminator
 ;         19 digits, length 20 -> nineteen characters AND a terminator
-;   * a NEGATIVE length is a ZERO-PADDED FIELD WIDTH, honoured literally, no terminator:
+;   * a negative length is a zero-padded field width, honoured literally, no terminator:
 ;         -19 -> "1234567890123456789"      -22 -> "0001234567890123456789"
 ;         -96 into a 96-byte buffer succeeds; -97 runs off the end.
 ;   * INT_MIN is the one negative length that refuses -- it cannot be negated.
@@ -44,7 +44,7 @@
 ;   * the longest answers are 64 binary, 22 octal, 20 decimal and 16 hexadecimal digits.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. THE 64-BIT DIVISION, WHICH IS WHY THIS WAS DEFERRED OUT OF CHANGE 279.
+; 3. The 64-BIT division, which is why this was deferred out of change 279.
 ;
 ; Changes 067, 278 and 279 all rest on `(v * 51EB851Fh) >> 37 == v/100`, proved by RUNNING it over
 ; all 2^32 values. That proof says nothing about a 64-bit domain, and 2^64 cases cannot be run.
@@ -56,25 +56,25 @@
 ;     q2 = q1 / 10^8, r2 = q1 - q2*10^8    the next eight
 ;     q2 < 1845                            the top four -- 4 + 8 + 8 = 20, the longest answer
 ;
-; probes/div64.c proves the one 64-bit constant over the WHOLE domain without running 2^64 cases.
+; probes/div64.c proves the one 64-bit constant over the whole domain without running 2^64 cases.
 ; Both sides of the identity are monotone and the right side steps only at multiples of 10^8, so
-; agreement at every step is agreement everywhere -- and it checks EVERY ONE of the 184467440737
+; agreement at every step is agreement everywhere -- and it checks every ONE of the 184467440737
 ; steps, on both sides, in 20.6 seconds. It also computes the Granlund-Montgomery round-up
 ; criterion in exact arithmetic as an independent second opinion: e = M*d - 2^90 = 875776, which is
 ; <= 2^26, so the identity is sufficient by that argument too. Two arguments, one exhaustive and one
 ; arithmetic, that agree.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 4. THE POWER-OF-TWO BASES EMIT SEVERAL DIGITS PER STORE, as change 279's do: a byte is two
+; 4. The power-of-two bases emit several digits per store, as change 279's do: a byte is two
 ;    hexadecimal digits, six bits are two octal digits, and a byte is eight binary digits that go out
 ;    as ONE 8-byte store -- so sixty-four binary digits are eight stores, not sixty-four iterations.
 ;    Their digit counts are arithmetic, not a table: BSR, then >>2 for hex and (n*0AAABh)>>17 for
 ;    octal, proved by div64.c over all 64 bit lengths.
 ;
-; 5. THE ZERO PADDING IS WRITTEN FIRST, NOT LAST. Change 279 padded after the digits, which meant
+; 5. The zero padding is written first, not last. Change 279 padded after the digits, which meant
 ;    holding the buffer pointer to the very end and left no register for the digit tables. Filling
-;    the field before the digits are written frees that register, so this is a LEAF WITH NO FRAME,
-;    NO PUSHES AND NO CALLS -- the same shape as 279 despite doing strictly more work.
+;    the field before the digits are written frees that register, so this is a leaf with no frame,
+;    No pushes and no calls -- the same shape as 279 despite doing strictly more work.
 ;
 ; ISA: baseline x64, plus SSE2 (also baseline on x64) for the field fill. No YMM is touched on any
 ; path, so there is no upper state to clear and no VZEROUPPER anywhere.
@@ -153,10 +153,10 @@ GTAB    LABEL BYTE
         ENDM
 
 ALIGN 16
-; THE THRESHOLD IS INDEXED BY THE BIT LENGTH, NOT BY THE DIGIT COUNT, AND THAT IS THE POINT.
+; The threshold is indexed by the bit length, not by the digit count, and that is the point.
 ;
 ; The obvious form of this is `digits = GTAB[idx] + (v >= POW10[GTAB[idx]])`, which is what change
-; 279 does -- and it costs TWO DEPENDENT LOADS: the power of ten cannot be fetched until the digit
+; 279 does -- and it costs two dependent loads: the power of ten cannot be fetched until the digit
 ; estimate has arrived. Storing 10^GTAB[idx] directly against the same index makes the two loads
 ; INDEPENDENT, so they issue together and the chain is BSR -> load -> compare instead of
 ; BSR -> load -> load -> compare. It is the same arithmetic with five cycles taken out of it.
@@ -208,14 +208,14 @@ M64OFF  EQU     M64   - TB
 
 .code
 
-; THE REGISTER BUDGET. Everything is volatile -- nothing is saved, there is no frame, there are no
+; The register budget. Everything is volatile -- nothing is saved, there is no frame, there are no
 ; calls, and the padding is written BEFORE the digits precisely so that the buffer pointer dies
 ; early and its register can carry the tables:
 ;
 ;   rcx  the value pointer, then the table base while the digit count is computed, then scratch
 ;   rdx  the base, then scratch (MUL writes it, so the dispatch on the base happens first)
-;   r8   the length, then THE WRITE CURSOR, running backwards from the end of the field
-;   r9   the output buffer, then THE TABLE BASE once the padding has been written
+;   r8   the length, then the write cursor, running backwards from the end of the field
+;   r9   the output buffer, then the table base once the padding has been written
 ;   r10  the 64-bit value, consumed as it is converted
 ;   r11  the digit count, then the quotient across the eight-digit peel
 ;   rax  scratch, and the low half of MUL
@@ -262,7 +262,7 @@ p2_oct:
 
 d_base10:
         mov       r10, qword ptr [rcx]
-        ; A SINGLE DIGIT PAYS FOR NOTHING. Everything below -- the BSR, the table load, the
+        ; a single digit pays for nothing. Everything below -- the bsr, the table load, the
         ; threshold compare -- exists to tell nine from ten, and a value under ten already knows.
         ; This is not a benchmark special case: it is the two rows on which the change being
         ; SUPERSEDED was faster, and they were faster for exactly this reason. Change 100 formats a
@@ -280,7 +280,7 @@ d_base10:
         add       r11d, eax                       ; digits10(value), 2..20
         jmp       have_digits
 
-        ; ---- A SINGLE DECIMAL DIGIT, WRITTEN WHERE IT IS DECIDED.
+        ; ---- a single decimal digit, written where it is decided.
         ;
         ; Setting the count to one and falling into the general machinery was measured and it was
         ; NOT enough: the value then walks the room rule, the dispatch and three more comparisons in
@@ -311,7 +311,7 @@ d_one_general:
         mov       r11d, 1
 
 have_digits:
-        ; THE ROOM RULE. A POSITIVE length is room, and the terminator is written only if it fits.
+        ; The room rule. a positive length is room, and the terminator is written only if it fits.
         ; A NEGATIVE length is a zero-padded field width, and no terminator is written at all.
         test      r8d, r8d
         jg        pos_len
@@ -460,7 +460,7 @@ o_last:
         mov       byte ptr [r8], r10b
         jmp       done
 
-; ---- base 10. EIGHT DIGITS AT A TIME while the value does not fit in 32 bits, using the one
+; ---- base 10. Eight digits at a time while the value does not fit in 32 bits, using the one
 ;      64-bit reciprocal probes/div64.c proved; then 067's 32-bit constant for what is left.
 w_dec:
 d_loop:

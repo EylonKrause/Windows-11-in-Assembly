@@ -16,7 +16,7 @@
 ; from changes/082-cryptstringtobinary-base64/impl.asm   (36.3x vs shipped)
 ;======================================================================
 ; changes/082-cryptstringtobinary-base64/impl.asm
-; BOOL wia_s2b(LPCSTR s, DWORD slen, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2b(LPCSTR s, dword slen, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=slen, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; Reimplements crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64 (base64 -> binary). crypt32's is
@@ -175,7 +175,7 @@ END
 ; from changes/086-cryptstringtobinary-hexraw/impl.asm   (259x vs shipped)
 ;======================================================================
 ; changes/086-cryptstringtobinary-hexraw/impl.asm
-; BOOL wia_s2bh(LPCSTR s, DWORD cch, DWORD flags, BYTE* out, DWORD* pcb, DWORD* pskip, DWORD* pflags)
+; BOOL wia_s2bh(LPCSTR s, dword cch, dword flags, byte* out, dword* pcb, dword* pskip, dword* pflags)
 ;   [rcx=s, edx=cch, r8d=flags, r9=out, [rsp+28h]=pcb, [rsp+30h]=pskip, [rsp+38h]=pflags -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_HEXRAW (hex text -> binary). crypt32's is scalar and
@@ -332,8 +332,8 @@ END
 ; from changes/104-cryptstringtobinary-base64header/impl.asm   (11.0x vs shipped)
 ;======================================================================
 ; changes/104-cryptstringtobinary-base64header/impl.asm
-; BOOL wia_s2b_pem(LPCSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                  DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2b_pem(LPCSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                  Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64HEADER (0x0): PEM decode. Find the
@@ -530,8 +530,8 @@ END
 ; from changes/106-cryptstringtobinary-base64any/impl.asm   (5.3x vs shipped)
 ;======================================================================
 ; changes/106-cryptstringtobinary-base64any/impl.asm
-; BOOL wia_s2b_any(LPCSTR pszString, DWORD cchString, DWORD flags, BYTE* pbBinary,
-;                  DWORD* pcbBinary, DWORD* pdwSkip, DWORD* pdwFlags)
+; BOOL wia_s2b_any(LPCSTR pszString, dword cchString, dword flags, byte* pbBinary,
+;                  Dword* pcbBinary, dword* pdwSkip, dword* pdwFlags)
 ;   [rcx, edx, r8d, r9, [rsp+28h], [rsp+30h], [rsp+38h] -> eax]
 ;
 ; crypt32!CryptStringToBinaryA for CRYPT_STRING_BASE64_ANY (0x6): if the input has a

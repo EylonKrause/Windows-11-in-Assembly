@@ -13,7 +13,7 @@
 ; searches.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. THE ONE QUESTION THAT DECIDED WHETHER THIS COULD BE WRITTEN AT ALL.
+; 2. The one question that decided whether this could be written at all.
 ;
 ; A substring search over a collation could compare SPANS rather than characters, and CompareStringW
 ; gives ignorable characters zero weight -- so "ab<SOFT HYPHEN>cd" would contain "abc", a
@@ -28,16 +28,16 @@
 ; "x<D7B0>y" does not match "x<D7B1>y".
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. THE SHAPE IS NOT StrRChrIW's, AND ASSUMING IT WAS WOULD HAVE BEEN WRONG THREE WAYS.
+; 3. The shape is not StrRChrIW's, and assuming it was would have been wrong three ways.
 ;
 ; probes/bounds.c measured each of these against the live export:
 ;
-;   * `end` BOUNDS ONLY WHERE A MATCH MAY START, exclusively. Over "abcXYZabc" the answer becomes 6
+;   * `end` Bounds only where a match may start, exclusively. Over "abcXYZabc" the answer becomes 6
 ;     as soon as end reaches start+7 -- a match at 6 occupies 6,7,8 and is returned even though it
 ;     does not fit inside [start, start+7).
-;   * THE HAYSTACK IS NUL-TERMINATED. A NUL at index 4 hides a match at 9, while matches before it
+;   * The haystack is nul-terminated. a NUL at index 4 hides a match at 9, while matches before it
 ;     are still found. StrRChrIW walks straight through an embedded NUL; this does not.
-;   * AND IT READS TO THE TERMINATOR REGARDLESS OF `end`. With a terminator present, an `end` 64
+;   * And it reads to the terminator regardless of `end`. With a terminator present, an `end` 64
 ;     code units past a guard page does NOT fault -- the NUL stops it first. With NO terminator, an
 ;     `end` of start+6 DOES fault. The caller must supply a terminator; `end` will not save it.
 ;
@@ -50,23 +50,23 @@
 ;   (a) measure the needle and the haystack, each to its terminator;
 ;   (b) the highest candidate start is min(start + hlen - nlen, end - 1) -- below `start`, nothing
 ;       to do;
-;   (c) scan BACKWARDS for a code unit matching THE NEEDLE'S FIRST CHARACTER, sixteen at a time,
+;   (c) scan backwards for a code unit matching the needle's first character, sixteen at a time,
 ;       using change 282's loop: four broadcasts of that character's match set, both edge masks,
 ;       BSR for the highest hit in a block;
 ;   (d) verify that candidate one character at a time, and on failure resume the vector scan just
 ;       below it.
 ;
-; THE FILTER IS THE WHOLE POINT, AND IT WAS MEASURED IN THREE STATES. A scalar first draft of this
+; The filter is the whole point, and it was measured in three states. a scalar first draft of this
 ; file passed every gate at 19.72x geomean. Moving step (c) into vectors took it to 71.88x, with the
 ; MISS rows at 118-123x. Adding the last-character reject in step (d) took it to 77.01x.
 ;
-; The bench keeps a row whose needle begins with a character matching EVERY code unit in the
+; The bench keeps a row whose needle begins with a character matching every code unit in the
 ; haystack -- the case where the filter rejects nothing and every position reaches the verifier. It
 ; sat at 8.09x while every other row was past a hundred, which is exactly why it is in the table:
 ; without it the reported number would be the easy case only. The last-character reject took that
 ; row to 16.88x, and it remains the worst row by a wide margin.
 ;
-; ISA: AVX2 + BMI1 (BSR) + BMI2 (BZHI). VZEROUPPER on every exit that touched a YMM register.
+; Isa: AVX2 + BMI1 (bsr) + BMI2 (bzhi). Vzeroupper on every exit that touched a ymm register.
 
 OPTION PROC:PRIVATE
 PUBLIC wia_strrstriw
@@ -236,7 +236,7 @@ hlen_loop:
         inc       r9
         jmp       hlen_loop
 hlen_done:
-        ; ---- (b) THE VIRTUAL NUL RUN.
+        ; ---- (b) The virtual NUL run.
         ;
         ; This change shipped two wrong models of the terminator before probes/pastnul.c and
         ; probes/pastnul2.c settled it, and both wrong models passed a gate, so the measured rule is
@@ -246,10 +246,10 @@ hlen_done:
         ; either. It treats the string as ending at the terminator and compares every remaining
         ; needle character against a VIRTUAL NUL:
         ;
-        ;   * over "zzzq" the needle {Q, SOFT HYPHEN} is found at the LAST character -- the soft
+        ;   * over "zzzq" the needle {q, soft hyphen} is found at the last character -- the soft
         ;     hyphen is one of the 3320 code units that match a NUL (change 282's foldnul.c), and it
         ;     was matched against the terminator;
-        ;   * with 'W' written immediately after that terminator, {Q, SHY, SHY} is STILL found, while
+        ;   * with 'W' written immediately after that terminator, {q, shy, shy} is still found, while
         ;     {Q, W} is not -- so the characters past the end are compared against NUL, not against
         ;     the memory that is actually there;
         ;   * a tail of 32 soft hyphens still matches, so the run is unbounded;
@@ -424,7 +424,7 @@ verify_at:
         movzx     r15d, word ptr [r11]
         call      match_pair
         jne       cand_next
-        ; THE LAST CHARACTER IS TESTED BEFORE THE MIDDLE ONES, and it is worth its own comment.
+        ; The last character is tested before the middle ones, and it is worth its own comment.
         ; The vector filter keys on the needle's FIRST character, so a needle beginning with a
         ; character that matches everything filters nothing and every position reaches the
         ; verifier. The bench keeps exactly that row -- "QQQQZ" over a haystack of 'q' -- and it sat

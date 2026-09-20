@@ -3,8 +3,8 @@
 ; validated bit-exact vs the live export; see that dir's RESULTS.md.
 ;----------------------------------------------------------------------
 ; changes/256-rtlfindsetbits/impl.asm
-;   ULONG wia_findsetbits  (RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)
-;   ULONG wia_findclearbits(RTL_BITMAP* bm, ULONG NumberToFind, ULONG HintIndex)
+;   Ulong wia_findsetbits  (RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)
+;   Ulong wia_findclearbits(RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)
 ;     [Win64: rcx, edx, r8d -> eax;  0xFFFFFFFF = not found]
 ;
 ; ntdll!RtlFindSetBits (RVA 0x111210) and ntdll!RtlFindClearBits (RVA 0x0D0140). From the bitmap
@@ -14,17 +14,17 @@
 ;       RtlFindSetBits   64, sparse   1084.07 ns   0.132 ns/byte
 ;       RtlFindClearBits 64, sparse    212.07 ns   0.026 ns/byte
 ;
-; FIVE TIMES APART FOR THE SAME FAILING FULL SCAN.
+; Five times apart for the same failing full scan.
 ;
 ; A CORRECTION, 2026-09-16 (probes/topbit.c). This header used to continue "and that is not an
 ; artefact of the subject ... they are simply not the same code". The measurement reproduces; THE
-; EXPLANATION WAS WRONG. Both exports skip words with the SAME seven-instruction loop, differing by
+; Explanation was wrong. Both exports skip words with the same seven-instruction loop, differing by
 ; one `not` (RtlFindClearBits 0x0D0390, RtlFindSetBits 0x1113DF), and both continue skipping WHILE
-; THE SIGN BIT IS SET. RtlFindSetBits inverts the word, so the two loops are driven by OPPOSITE top
+; The sign bit is set. RtlFindSetBits inverts the word, so the two loops are driven by opposite top
 ; bits of the same data -- and 0xA5A5A5A5 has bit 31 set, so every 64-bit word of the survey's
 ; subject has bit 63 set. Rotating the pattern by one bit to 0x5A5A5A5A SWAPS the two timings
 ; exactly (SetBits 1000.50 -> 211.00 ns, ClearBits 212.00 -> 923.00), on the same density and the
-; same failing search. So neither export is badly written: BOTH have a fast path of about one cycle
+; same failing search. So neither export is badly written: both have a fast path of about one cycle
 ; per 64-bit word and a slow path of about five, and the top bit of every word decides which one
 ; runs -- a data dependence no caller can see, on a search whose answer does not depend on it.
 ;
@@ -32,13 +32,13 @@
 ; THE CONTRACT, probed rather than assumed (probes/contract.c). The hint is the whole question, and
 ; the obvious reading of it is wrong:
 ;
-;   * THE SEARCH WRAPS. With the only qualifying run at bit 10 and a hint of 300, it returns 10 --
-;     so it scans [hint, size) and then starts again from the beginning. With runs at BOTH 10 and
+;   * The search wraps. With the only qualifying run at bit 10 and a hint of 300, it returns 10 --
+;     so it scans [hint, size) and then starts again from the beginning. With runs at both 10 and
 ;     400 and a hint of 300 it returns 400: the one after the hint wins.
-;   * A RUN STRADDLING THE WRAP POINT DOES NOT COUNT. Four set bits at 508 and four at 0, hint 500,
+;   * a run straddling the wrap point does not count. Four set bits at 508 and four at 0, hint 500,
 ;     asking for eight: NOT FOUND. The bitmap is not circular, only the search order is.
-;   * A HINT AT OR PAST SizeOfBitMap is treated as zero, not as an error and not as "no results".
-;   * NumberToFind = 0 RETURNS THE HINT ROUNDED DOWN TO A MULTIPLE OF EIGHT, or 0 when the hint is
+;   * a hint at or past SizeOfBitMap is treated as zero, not as an error and not as "no results".
+;   * NumberToFind = 0 Returns the hint rounded down to a multiple of eight, or 0 when the hint is
 ;     at or past the size. probes/contract.c asked and got 0, twice -- from hints of 0 and 7, which
 ;     both round to 0 -- so probes/zeron.c sweeps every hint 0..1200 on both exports.
 ;   * NumberToFind > SizeOfBitMap is NOT FOUND, and the slack past SizeOfBitMap never contributes:
@@ -47,17 +47,17 @@
 ;     at bit 40 gives 40.
 ;
 ; ------------------------------------------------------------------------------------------------
-; HOW IT WORKS. Both exports are the same search for a run of N ONES, because wia_findclearbits
+; How it works. Both exports are the same search for a run of N ones, because wia_findclearbits
 ; inverts each word as it loads it. Out-of-range bits are then forced to ZERO in the transformed
 ; word, where they terminate a run rather than extend it -- the mirror of change 255, which forced
 ; them to one for the same reason.
 ;
-; THE FIRST VERSION OF THIS CHANGE WAS PARKED AT 0.563x, and the reason was not a detail: a generic
+; The first version of this change was parked at 0.563x, and the reason was not a detail: a generic
 ; per-word scanner does about thirty instructions per word whatever the data is, and the shipped
 ; code does five. What replaces it here is ALIGNED-BLOCK FILTERING, and the useful form of it is
 ; sharper than "reject a chunk that cannot contain a run":
 ;
-;   A run of L consecutive ones contains a COMPLETE ALIGNED BLOCK of B bits whenever L >= 2B-1.
+;   a run of L consecutive ones contains a complete aligned block of B bits whenever L >= 2B-1.
 ;
 ; So with B chosen as the largest power of two with N >= 2B-1, every qualifying run contains at
 ; least one aligned all-ones B-block, and 32 bytes are rejected by ONE compare and a mask extract.
@@ -65,7 +65,7 @@
 ; byte, word or qword is all ones, so the entire 8 KB is rejected by 256 vector steps instead of
 ; 1024 word iterations.
 ;
-; AND THE CARRY PROBLEM DISSOLVES, which is what made the first attempt look hard. Call the LOWEST
+; And the carry problem dissolves, which is what made the first attempt look hard. Call the lowest
 ; all-ones aligned B-block of a run its WITNESS. A run cannot extend B or more bits below its own
 ; witness -- the aligned block immediately below would then also be all ones, and would be the
 ; witness instead -- so:
@@ -73,12 +73,12 @@
 ;   * every qualifying run has a witness, and its start is within B-1 bits of it;
 ;   * witnesses appear in the same order as the runs they belong to, because runs are disjoint;
 ;   * a skipped region contains no witness, so no qualifying run is lost by skipping it, and
-;     NOTHING has to be carried across the skip.
+;     nothing has to be carried across the skip.
 ;
 ; That is the whole of it: no running carry, no per-chunk bookkeeping, no boundary state. The scan
 ; is "find the next witness, rebuild the run around it, answer or step past it".
 ;
-; THE REBUILD MEASURES ONE RUN; IT DOES NOT SEARCH. A witness belongs to exactly one run, and every
+; The rebuild measures one run; it does not search. a witness belongs to exactly one run, and every
 ; earlier run either had a witness of its own -- already examined -- or has none, and a run with no
 ; witness is shorter than N. So the rebuild counts ones to the left of the witness (never more than
 ; B-1 <= 63 of them, so one load answers it) and ones to the right, and that is the whole
@@ -89,18 +89,18 @@
 ; measure from; near either edge of the region, where the masks apply; and for the last stretch of
 ; the bitmap, which is too short for a whole 32-byte load.
 ;
-; AND TWO SHAPES GET THEIR OWN ANSWER, because both are common and both are cheap:
+; And two shapes get their own answer, because both are common and both are cheap:
 ;   * the run starting exactly where the search does -- one load, before any of the above exists;
 ;   * a long run, counted 256 bits at a time by the same compare the filter uses. Asking for a
 ;     thousand set bits of an all-ones bitmap is a SUCCESS that still has to walk a thousand bits to
 ;     prove itself, and one word per step left that row at 0.37x.
 ;
-; READING PAST THE BUFFER is bounded by the ULONG array, not by SizeOfBitMap: a 96-bit bitmap is
+; Reading past the buffer is bounded by the ulong array, not by SizeOfBitMap: a 96-bit bitmap is
 ; THREE 32-bit words, so a 64-bit read of the second pair would touch four bytes the caller never
 ; allocated. The vector loop runs only while a whole 32-byte load fits inside the allocation, and
 ; the last stretch is scanned by the scalar code, which reads a final odd ULONG as 32 bits.
 ;
-; THE FILTER MAY SAY YES WHEN THE ANSWER IS NO, AND THAT IS SAFE. It reads the buffer RAW, without
+; The filter may say yes when the answer is no, and that is safe. It reads the buffer raw, without
 ; the masks that force the bits below the search start and at or past SizeOfBitMap to zero. Masking
 ; only ever CLEARS bits, so the raw view has at least as many ones as the masked one: a block that
 ; is all ones after masking is all ones before it. False positives cost a rebuild that rejects them;
@@ -134,7 +134,7 @@ wia_findclearbits ENDP
 
 ; ---------------------------------------------------------------------------------------------
 ; fsb_core -- scan [ecx, size) for the first run of r13d ones, returning its start in eax or -1.
-; A LEAF with no prologue and no unwind data: an internal `call` inside a PROC FRAME would push
+; a leaf with no prologue and no unwind data: an internal `call` inside a proc frame would push
 ; eight bytes the parent's unwind info does not describe.
 ;
 ; In:    ecx  = the first bit to consider
@@ -169,7 +169,7 @@ fsb_core PROC
                                               ; therefore backed by TWO whole ULONGs, so they need
                                               ; neither the width test nor the high mask
 
-; THE MASKS AND THE READ-WIDTH TEST ARE HOISTED. Only the FIRST word can need the low mask and only
+; The masks and the read-width test are hoisted. Only the first word can need the low mask and only
 ; the LAST can need the high mask or a narrow read, but the first version tested for all three on
 ; every word -- about fifteen instructions of bookkeeping per word before any bit was examined, on a
 ; loop whose real work is ten. One compare against nsimple now sends the common case straight to a
@@ -214,7 +214,7 @@ fsb_lowmask:
         shl       rax, cl
         and       rdx, rax
 fsb_nolow:
-        ; clear the bits AT or PAST SizeOfBitMap, where they must TERMINATE a run. This also cleans
+        ; clear the bits at or past SizeOfBitMap, where they must terminate a run. This also cleans
         ; up the upper half of a 32-bit read, and of its inversion.
         mov       eax, r12d
         sub       eax, edi
@@ -250,7 +250,7 @@ fsb_a_have:
         ; B: a run of N wholly inside the word. rbp is DEAD here -- if B succeeds the answer comes
         ;    from TZCNT, and if it fails C overwrites rbp -- so it serves as the shift temporary.
         ;
-        ;    THE STEP HALVES INSTEAD OF COUNTING. `x &= x >> k` leaves a bit wherever k+1 ones
+        ;    The step halves instead of counting. `x &= x >> k` leaves a bit wherever k+1 ones
         ;    began, so shifting by half of what is still wanted and halving again finds a run of N
         ;    in ceil(log2 N) steps rather than N-1 of them -- six for a run of sixty-four where the
         ;    linear form takes sixty-three. ntdll does the same thing at 0x0D025F, and the parked
@@ -302,7 +302,7 @@ fsb_ones:
 fsb_o1: add       rbx, 64
         cmp       rbx, r13
         jae       fsb_o_hit
-        ; A LONG RUN IS COUNTED FOUR WORDS AT A TIME. Asking for a thousand set bits in an
+        ; a long run is counted four words at a time. Asking for a thousand set bits in an
         ; all-ones bitmap is a SUCCESS, not a scan, and it still has to walk a thousand bits to
         ; prove it: one word per iteration made that row 0.37x while every failing row was already
         ; several times better. Four whole words either are all ones or are not, and VPCMPEQQ
@@ -353,7 +353,7 @@ fsb_core ENDP
 ;   ymm2..ymm5 hold whatever constants the filter needs -- Win64 leaves only ymm0-ymm5 usable
 ;
 ; VPCMPEQQ/D/W/B all set every byte of a matching lane, so VPMOVMSKB gives B/8 consecutive bits per
-; matching block and TZCNT of it lands on the block's FIRST BYTE whatever B is. That is why one
+; matching block and tzcnt of it lands on the block's first byte whatever B is. That is why one
 ; rebuild serves all four sizes.
 ; ---------------------------------------------------------------------------------------------
 VSKIP MACRO bb
@@ -452,7 +452,7 @@ fsb_pass:
 fsb_pass_from:
         mov       dword ptr [rsp + 48], eax
 
-        ; THE ANSWER IS OFTEN THE FIRST BIT LOOKED AT, and everything below -- the scanner's setup,
+        ; The answer is often the first bit looked at, and everything below -- the scanner's setup,
         ; the filter's constants, a call -- is too much machinery to answer that with. If the search
         ; starts on a word boundary with a whole word ahead of it, one load says whether the run
         ; begins right there. Four rows that find their run immediately were 0.88x-0.96x without it.
@@ -544,7 +544,7 @@ fsb_v64:
 ; ---- a witness: rebuild the run around it ----
 ;      eax = the candidate mask, r9 = the chunk's byte offset
 ;
-; A WITNESS BELONGS TO EXACTLY ONE RUN, and that run is the only thing worth measuring: every run
+; a witness belongs to exactly one run, and that run is the only thing worth measuring: every run
 ; before it either had a witness of its own -- already examined -- or has none, and a run with no
 ; witness is shorter than N by the block argument. So the rebuild does not need to SEARCH the
 ; neighbourhood, it needs to MEASURE one run, which is a count of ones to the left and a count to
@@ -610,7 +610,7 @@ fsb_vc_left_ok:
         mov       r11d, edx                   ; and how much of it is already counted
         mov       ecx, r10d                   ; p: the first bit not yet counted
 fsb_vc_right:
-        ; A LONG RUN IS COUNTED 256 BITS AT A TIME. Asking for a thousand set bits of an all-ones
+        ; a long run is counted 256 Bits at a time. Asking for a thousand set bits of an all-ones
         ; bitmap is a SUCCESS that still has to walk a thousand bits to prove itself, and one word
         ; per step left that row at 0.82x while every failing row was several times better.
         mov       eax, r13d
@@ -830,7 +830,7 @@ fsb_pass_done:
                                               ; wrap point does not count, so this is a plain
                                               ; second scan and not a circular one.
 fsb_zero_n:
-        ; NumberToFind = 0 does NOT return 0. It returns the HINT ROUNDED DOWN TO A MULTIPLE OF
+        ; NumberToFind = 0 does not return 0. It returns the hint rounded down to a multiple of
         ; EIGHT, or 0 when the hint is at or past the size:
         ;
         ;     0011122B  sbb r9d, r9d / and r9d, r8d     (hint < size) ? hint : 0

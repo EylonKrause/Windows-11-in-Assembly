@@ -11,7 +11,7 @@
 ; bounded UTF-16 compare (change 041). combase is bound across the whole WinRT surface; the sibling
 ; accessors WindowsGetStringLen and WindowsGetStringRawBuffer carry 109 and 113 desktop modules.
 ;
-; WHY THIS ONE IS IN THIS REPOSITORY WHEN ITS NEIGHBOURS ARE NOT. The name says ORDINAL.
+; Why this one is in this repository when its neighbours are not. The name says ordinal.
 ; discovery/strchri_is_linguistic.c and discovery/strcmpn_is_linguistic.c ruled the StrCmp/StrChrI
 ; family OUT precisely because those fold through the locale machinery and would need the OS
 ; collation tables to be bit-exact. A name is not evidence, so probes/wcso.c measured it: 400 000
@@ -19,15 +19,15 @@
 ; U+0130/U+0131, lone and paired surrogates, PUA and non-characters produced ZERO differences from
 ; a plain code-unit compare -- on a corpus where a LINGUISTIC CompareStringW disagrees 19.7% of the
 ; time -- and nothing moved under en-US, tr-TR, lt-LT, az-Latn-AZ, el-GR or ja-JP. Ordering is by
-; UTF-16 CODE UNIT and not code point: U+FFFF compares GREATER than U+10000.
+; UTF-16 code unit and not code point: U+ffff compares greater than U+10000.
 ;
-; WHAT THE SHIPPED EXPORT ACTUALLY DOES (see RESULTS.md for the disassembly). It is a shim: it
+; What the shipped export actually does (see RESULTS.md for the disassembly). It is a shim: it
 ; reads the two handles directly -- `mov r9d,[rdx+4]` length, `mov r8,[rdx+10h]` buffer -- and
 ; forwards to kernelbase!CompareStringOrdinal through the api-ms-win-core-string-l1-1-0 IAT slot,
 ; then maps CSTR_LESS_THAN/EQUAL/GREATER_THAN onto -1/0/1. So the 83 ns is a cross-DLL indirect
-; call plus a scalar-speed compare, and BOTH of those are ours to delete.
+; call plus a scalar-speed compare, and both of those are ours to delete.
 ;
-; WHY THE HANDLE IS READ DIRECTLY RATHER THAN THROUGH THE ACCESSORS. WindowsGetStringLen measures
+; Why the handle is read directly rather than through the accessors. WindowsGetStringLen measures
 ; 1.90 ns and WindowsGetStringRawBuffer 2.20 ns, so routing two handles through them costs about
 ; 8 ns -- which is nothing against 83 ns but is most of a 2 ns answer at the short sizes where this
 ; function has its largest ratio. The layout is not a guess: it is the body of the shipped export,
@@ -51,14 +51,14 @@
 ;     the gate is exact and the corpus forges the header.
 ;   * GetLastError is untouched on every other path.
 ;
-; NO PAGE CHECKS ARE NEEDED. The handle declares its length, so both buffers are guaranteed to hold
+; No page checks are needed. The handle declares its length, so both buffers are guaranteed to hold
 ; min(len1,len2) code units, and every load below lies inside that window -- including the two
 ; OVERLAPPING trailing windows, whose second load starts at n-8 (resp. n-4, n-2) and is therefore
 ; still inside a string that is at least that long. correctness.c proves it the hard way anyway,
 ; with both buffers ending exactly at a page boundary whose successor is PAGE_NOACCESS and with no
 ; terminator at all.
 ;
-; NOTHING IS PUSHED. The two lengths live in the CALLER'S SHADOW SPACE, which is ours to use, so a
+; Nothing is pushed. The two lengths live in the caller's shadow space, which is ours to use, so a
 ; four-character comparison does not pay two pushes and two pops it has no way to amortise. Only
 ; xmm0-xmm4 are touched; xmm6-xmm15 are callee-saved under Win64 (tools/abi-check).
 ;
@@ -100,7 +100,7 @@ wia_WindowsCompareStringOrdinal PROC
         xor       r11d, r11d                    ; r11d = i
 
         ;---------------- 32 code units per iteration ----------------
-        ; TWO THINGS HAPPEN HERE AND THEY WERE MEASURED SEPARATELY, because a combined edit that
+        ; Two things happen here and they were measured separately, because a combined edit that
         ; wins says nothing about which half earned it. Both variants passed the same 618 035-case
         ; corpus; each row is the range over three runs, against the same live export.
         ;
@@ -109,12 +109,12 @@ wia_WindowsCompareStringOrdinal PROC
         ;   HOIST the bound,      one 32B block  9.5-10.3   14.5-14.9   44.9-46.0   132-134   3.31-3.37
         ;   hoist + TWO 32B blocks (this file)       7.78       12.24        33.8       114        3.62
         ;
-        ; HOISTING THE BOUND is the larger of the two and it is pure bookkeeping: written the
+        ; Hoisting the bound is the larger of the two and it is pure bookkeeping: written the
         ; obvious way the loop recomputes `remaining = n - i` and compares it with 16 every
         ; iteration -- four instructions and two branches per 32 bytes. `limit = n - 32` computed
         ; once makes it one compare and one branch, and 4000 characters went 178 -> 133 ns.
         ;
-        ; THE UNROLL is worth most in the MIDDLE, which is not where an unroll is usually pitched:
+        ; The unroll is worth most in the middle, which is not where an unroll is usually pitched:
         ; 1024 characters gained 24% and 128 characters 18%, against 14% at 4000. At 4000 the loop
         ; is closer to load-bound; at 128-1024 it was the loop's own overhead that dominated.
         mov       r9d, eax
@@ -298,7 +298,7 @@ no_result:
 wia_WindowsCompareStringOrdinal ENDP
 
 ; ====================================================================================================
-; THE TWO COLD PATHS ARE SEPARATE `PROC FRAME` FUNCTIONS, AND THAT IS NOT TIDINESS -- IT IS A BUG FIX.
+; The two cold paths are separate `proc frame` functions, and that is not tidiness -- it is a bug fix.
 ;
 ; Both of them call out. Written inline, as `sub rsp,40 / call / add rsp,40` inside the main PROC --
 ; which is the shape change 150 uses for _invalid_parameter_noinfo -- the answers were all correct
@@ -306,7 +306,7 @@ wia_WindowsCompareStringOrdinal ENDP
 ; reproducible, it survived three passes, and reversing the order of the three calls in the harness
 ; made it vanish, which is what said it was not arithmetic.
 ;
-; RoOriginateErrorW CAPTURES THE CALL STACK for the error object it builds. A MASM `PROC` without
+; RoOriginateErrorW captures the call stack for the error object it builds. a MASM `proc` without
 ; FRAME emits no `.pdata` entry, so the unwinder treats it as a LEAF and takes the return address
 ; from `[rsp]` -- and we had just moved `rsp` down by 40 bytes, so it read forty bytes of our own
 ; frame as a return address, handed that to the module lookup, and the lookup failed:

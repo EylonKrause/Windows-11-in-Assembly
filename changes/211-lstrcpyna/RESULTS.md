@@ -57,7 +57,7 @@ not, and the shipped loop reads `src[i]` from that same page. So the load is iss
 *page* allows it, the NUL search runs over all 32 bytes, and only the write is clamped to
 `k = min(NUL index, permitted)`.
 
-**2. The clamped write has to be exact, because the destination is TERMINATED and NOT PADDED.**
+**2. The clamped write has to be exact, because the destination is terminated and not padded.**
 Writing a full vector and letting the tail land wherever would be a different function. `k` in 0..32 is
 covered by a pair of **overlapping** power-of-two stores (16+16, 8+8, 4+4, 2+2, 1) — at most two
 stores, never a byte past `k`. Both carry the same bytes on the overlap, so the duplication is
@@ -83,7 +83,7 @@ At 115 GB/s the loop is at the L1 store limit and the micro-tuning stopped there
 ## Correctness — PASS
 
 Three-way (assembly + SEH wrapper vs the scalar oracle vs the **live export**), comparing the return
-value **and the WHOLE destination buffer** on every case — because the destination is terminated and
+value **and the whole destination buffer** on every case — because the destination is terminated and
 not padded, a strncpy-shaped implementation would pass a prefix-only check.
 
 NULL arguments; **every source length 0..160 × every `n` 0..168**, covering `n==0` which writes nothing

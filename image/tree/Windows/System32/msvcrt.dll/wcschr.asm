@@ -6,7 +6,7 @@
 ; wchar_t* wia_wcschr(const wchar_t* s, wchar_t c)   [Win64: rcx, dx -> rax]
 ;
 ; First wchar == c, else NULL; if c==0 returns the terminator (standard). Each
-; block is compared against BOTH c and 0; the first "stop" position (c or 0)
+; block is compared against both c and 0; the first "stop" position (c or 0)
 ; decides. Page-safe: 32-aligned masked prologue then a 32-aligned loop, so no
 ; load crosses into a page the string does not already occupy.
 ;
