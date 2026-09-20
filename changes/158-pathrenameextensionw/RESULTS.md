@@ -73,6 +73,23 @@ so the insertion point is the terminator and the append runs past the end of a b
 size. The first build of this harness crashed for exactly that reason, in the test rather than the
 code.
 
+## Negative result: no extension-length limit here (2026-09-20)
+
+Changes [159](../159-pathcchrenameextension/) and [160](../160-pathcchaddextension/), the
+`kernelbase` functions that do this job, both turned out to reject an extension whose body exceeds
+255 characters with `E_INVALIDARG` -- a rule neither contract recorded and neither oracle modelled.
+Since 158 is the same job in `shlwapi`, it was asked the same question rather than assumed to be
+different, which is how the rule was found in 160 in the first place.
+
+[`probes/extlen.c`](probes/extlen.c) drives every extension length from 0 to 500 against a short
+path, the 253..259 boundary in full, a 255-character path where the result limit is what should
+decide, and a 300- and 400-character extension replacing an existing one. **0 differences.** This
+export really does accept an extension of any length and is bounded only by the 259-character
+result, exactly as the contract above says.
+
+A negative result is worth the file it takes: it is the difference between "checked" and "not yet
+asked", and without it the next person to notice the asymmetry has to re-derive it.
+
 ## Benchmark — vs live `shlwapi!PathRenameExtensionW`
 geomean **3.99×**, every size class better:
 
