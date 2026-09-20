@@ -1,4 +1,4 @@
-; changes/023-rtlnumberofsetbits-tgl/impl.asm
+; changes/023-rtlnumberofsetbits/impl_tgl.asm
 ; ULONG wia_numsetbits(const RTL_BITMAP* bm)   [Win64: rcx -> eax]
 ;
 ; Tiger Lake / Willow Cove variant of change 023. Same contract, same oracle, same gates; the only

@@ -1,4 +1,4 @@
-; changes/124-rtlnumberofclearbits-tgl/impl.asm
+; changes/124-rtlnumberofclearbits/impl_tgl.asm
 ; ULONG wia_numclearbits(const RTL_BITMAP* bm)   [Win64: rcx -> eax]
 ;
 ; Tiger Lake / Willow Cove variant of change 124, and the exact counterpart of

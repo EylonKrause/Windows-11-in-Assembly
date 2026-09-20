@@ -1,4 +1,4 @@
-; changes/102-rtlappendunicodestringtostring-tgl/impl.asm
+; changes/102-rtlappendunicodestringtostring/impl_tgl.asm
 ; NTSTATUS wia_appendss(PUNICODE_STRING dest, PUNICODE_STRING src)   [rcx=dest, rdx=src -> eax]
 ;
 ; Tiger Lake / Willow Cove variant of change 102. Same contract, same oracle, same gates; this is

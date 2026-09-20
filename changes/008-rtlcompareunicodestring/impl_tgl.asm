@@ -1,4 +1,4 @@
-; changes/008-rtlcompareunicodestring-tgl/impl.asm
+; changes/008-rtlcompareunicodestring/impl_tgl.asm
 ; LONG wia_rtlcmpustr(const UNICODE_STRING* s1, const UNICODE_STRING* s2, BOOLEAN ci)
 ;   [Win64: rcx, rdx, r8b -> eax]
 ;

@@ -1,4 +1,4 @@
-; changes/003-wcschr-tgl/impl.asm
+; changes/003-wcschr/impl_tgl.asm
 ; wchar_t* wia_wcschr(const wchar_t* s, wchar_t c)   [Win64: rcx, dx -> rax]
 ;
 ; Tiger Lake / Willow Cove variant of change 003. Same contract, same oracle, same gates; this is

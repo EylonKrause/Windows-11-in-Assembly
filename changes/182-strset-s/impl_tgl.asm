@@ -1,4 +1,4 @@
-; changes/182-strset-s-tgl/impl.asm
+; changes/182-strset-s/impl_tgl.asm
 ; errno_t wia_strset_s(char* str, size_t numberOfElements, int c)
 ;   [Win64: rcx, rdx, r8d -> eax]
 ;
