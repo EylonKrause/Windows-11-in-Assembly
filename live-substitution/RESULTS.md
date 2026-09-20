@@ -661,3 +661,50 @@ including `_TRUNCATE`, destinations too small, zero sizes and NULL arguments.**
 LIVE SUBSTITUTION: PASS
 ```
 
+## CryptBinaryToStringA/W — EIGHT changes behind TWO exports (2026-09-20), and a fifth defect
+
+`build_b2s_live.bat` / [`live_subst_b2s.c`](live_subst_b2s.c).
+
+**The first harness here that has to assemble a whole export.** Every other one patches a function
+exactly one change implements. `CryptBinaryToStringA` is implemented by **four** — one per format —
+and none of them *is* the export, so what gets patched over it is a **dispatcher** that reads
+`dwFlags` and routes to the change that owns that format. That is the structure
+`image/materialize.py` already records for an export with several landed changes, built and run for
+the first time.
+
+```
+  [patched]    8000 cases, 0 differ (BOOL, required size, written size, last error
+               AND the whole 4096-byte destination, both widths)
+               CryptBinaryToStringA  16000 our-code calls
+               CryptBinaryToStringW  16000 our-code calls
+               unclaimed-format TRAP, during the corpus 0
+  [post]       8000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+**The defect: `cb == 0` sets the last error, and eight changes were leaving the caller's value
+alone.** The export returns FALSE and sets `ERROR_INVALID_PARAMETER` (87) — every format, both
+widths, querying or converting, with `*pcchString` untouched. The return value, both sizes and every
+destination byte matched; **only `GetLastError` differed**.
+[`probes/lasterr.c`](../changes/081-cryptbinarytostring-base64/probes/lasterr.c) pinned the rule and
+also confirmed its other half: a *successful* call leaves the caller's error untouched, which is why
+the store belongs on the failure path and nowhere else. One `mov dword ptr gs:[68h], 87` each.
+
+**A trap stub stands in for what the project does not implement, and the dispatcher's first draft
+over-claimed.** crypt32 defines ten formats; these changes cover four. The dispatcher cannot fall
+back to the real export — that is what it is patched over, and the call would recurse — so anything
+unclaimed reaches a stub that records being entered. The first run routed `CRYPT_STRING_NOCRLF` to
+all four formats and reported **2013 of 8000 differing**; but only 081/083 ("with and without
+CRYPT_STRING_NOCRLF") and 085/087 ("[+ CRYPT_STRING_NOCRLF]") document that modifier — 090/091 say
+"CRLF per line" and 092/093 "CRLF every 64 chars", and neither mentions it. **That was the harness
+claiming coverage nobody wrote, and the fix belonged in the dispatcher, not in any `impl.asm`.**
+The two unclaimed combinations are now driven deliberately through the patched export and asserted
+to reach the trap, so the coverage boundary is measured rather than described.
+
+**And the documented approximation was measured rather than assumed.** Changes 081/083/085 state
+that the too-small-buffer partial-write path is approximated, "not matched byte-for-byte". Driving
+it here would rediscover a declared limit, so it runs in its own labelled section that reports
+without failing — and over 320 shortfall calls it reported **0 differing**. That is what the grid
+found; it is not a claim that the approximation is exact everywhere, and the changes' own statement
+stands.
+

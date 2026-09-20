@@ -103,6 +103,17 @@ fail_moredata:
         xor       eax, eax
         jmp       epilogue
 fail:
+        ; cb == 0 SETS THE LAST ERROR, AND THIS PATH WAS LEAVING THE CALLER'S VALUE ALONE.
+        ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
+        ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
+        ; it across all six flag combinations and the answer never varies; the same probe also
+        ; confirms that a SUCCESSFUL call leaves the caller's error untouched, which is why the
+        ; store is here on the failure path and nowhere else.
+        ;
+        ; Found by live substitution: the return value, *pcch and every destination byte matched,
+        ; and only GetLastError differed. The TEB store is this repository's idiom for it (changes
+        ; 084, 088, 107, 254 all use gs:[68h] rather than an import).
+        mov       dword ptr gs:[68h], 87
         xor       eax, eax
 epilogue:
         pop       r13
