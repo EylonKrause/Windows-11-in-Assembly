@@ -33,6 +33,7 @@ semantics rather than sloppiness.
 | [`sid_inet_bstr.c`](sid_inet_bstr.c) | three families no earlier sweep touched, found by subtracting `image/tree` from the export tables of twenty-four DLLs: advapi32's **SIDs**, ws2_32's **addresses**, oleaut32's **BSTRs**. The SID PARSER costs **45 ns per decimal number** and is where the next change comes from |
 | [`oleaut32_bstr.c`](oleaut32_bstr.c) | oleaut32 was the last DLL in the default set with **zero** conversions — 417 exports, none replaced. Every allocating row is measured against `SysAllocStringLen(NULL, n)`, which performs the same allocation and no conversion, so the remainder is the only part assembly could replace. **Four negative results** and one target |
 | [`oleaut32_sysallocstring.c`](oleaut32_sysallocstring.c) | the follow-up that turned the one unexplained row into a target: `SysAllocString` against its own two documented parts, at matched allocation sizes, from 0 to 4096 characters. The excess is **0.41 ns per character, constant** — a scalar `while (*p++)` |
+| [`msvcrt_vs_ucrt.c`](msvcrt_vs_ucrt.c) | **negative result** — 41 functions are converted for `ucrtbase` and not for `msvcrt`, and the existing assembly cannot simply be pointed at msvcrt's exports: the two CRTs **disagree on 27 cases**. Also two probe bugs worth the file: the invalid-parameter handler and `errno` are both PER-CRT |
 
 ### What `shlwapi_url_str.c` found
 
@@ -504,3 +505,75 @@ the whole difference.
 That makes it a target of a shape this repository already owns twice over (changes 001 and 003), and
 one where the part that is *not* replaceable — the allocation — can simply be left to the real
 `SysAllocStringLen`, the way change 293 leaves its last-error to `ntdll`.
+
+
+## msvcrt is not ucrtbase (2026-09-20) — a negative result with a precise boundary
+
+`msvcrt.dll` is the legacy C runtime, still loaded across much of the desktop, and a **separate
+binary** from `ucrtbase.dll` with its own code. This repository's image tree reflects that unevenly:
+**75** functions covered for ucrtbase, **34** for msvcrt, leaving **41** converted for one CRT and
+not the other — the parsers, the bounds-checked `_s` family, `wcsrchr`, `_swab`, `_memccpy`.
+
+The assembly for all 41 already exists, is gate-validated and is proved live. So the tempting move
+is to point it at msvcrt's exports and call it 41 free conversions. [`msvcrt_vs_ucrt.c`](msvcrt_vs_ucrt.c)
+asks the two questions that have to be answered first, and the answer to the important one is no.
+
+### Are they the same function? **No — 27 differences**
+
+```
+  atoi     "99999999999999999999":        msvcrt 1661992959 errno 0    ucrt 2147483647 errno 34
+  strtoul  "-99999999999999999999" b10:   msvcrt 1          errno 34   ucrt 4294967295 errno 34
+```
+
+Two genuinely different overflow contracts. `atoi` **wraps** in msvcrt and **saturates with ERANGE**
+in the UCRT. `strtoul` on a huge negative returns **1** in msvcrt and **ULONG_MAX** in the UCRT. The
+same disagreement repeats across bases 0, 10, 16 and 36, for 27 cases in total.
+
+So the parser assembly — changes 108–113 and their siblings — **must not** be pointed at msvcrt.
+It is correct for the contract it was written against and wrong for msvcrt's. Doing it anyway would
+have shipped a wrong answer to every `msvcrt` process on the machine, and nothing in the existing
+gates would have caught it, because those gates compare against **ucrtbase**.
+
+The writers agree: `strcpy_s`, `_swab` and `_memccpy` show **0 differences** over the valid-parameter
+corpus.
+
+### Is msvcrt slower? Sometimes
+
+```
+  function        msvcrt ns ucrtbase ns     ratio  verdict
+  strtol              32.65       25.93      1.26x  msvcrt SLOWER
+  _strtoi64           23.12       25.65      0.90x  same speed
+  atoi                32.58       47.17      0.69x  ucrtbase slower
+  wcsrchr              4.58        3.42      1.34x  msvcrt SLOWER
+  _swab               43.80       44.52      0.98x  same speed
+  _memccpy            27.18       28.15      0.97x  same speed
+  strcpy_s           109.65       65.17      1.68x  msvcrt SLOWER
+```
+
+`strcpy_s` is the biggest gap at 1.68×, and `atoi` runs the other way — the UCRT's is the slower
+of the two.
+
+### Why the `_s` family is not a target either, despite agreeing and being slower
+
+**msvcrt does not export `_set_invalid_parameter_handler`.** There is no way to make its `_s`
+functions report instead of terminating, and the termination is `__fastfail`, which SEH cannot catch
+either. Two runs of this file died at `0xC0000409` before that was understood.
+
+That matters beyond the probe. The contract of changes 150–157 *lives* in the invalid-parameter
+behaviour — the defect live substitution found in 156 and 157 was precisely "a NULL source with
+`count == 0` still validates the destination", observable only through an installed handler. On
+msvcrt that half of the contract **cannot be verified at all**. Materialising the `_s` assembly
+there would mean claiming a contract this machine cannot test.
+
+### Two probe bugs worth keeping
+
+Both are the same shape as the defects the live-substitution campaign kept finding — code comparing
+something other than what it claimed to compare:
+
+1. **The invalid-parameter handler is per-CRT.** `_set_invalid_parameter_handler` installs into the
+   CRT that exports it, and this program links the UCRT. An invalid base handed to msvcrt went to
+   *msvcrt's* default handler and terminated the process, with no output at all.
+2. **`errno` is per-CRT.** The `errno` macro resolves to the UCRT's thread-local, so reading it
+   after an msvcrt call reads a variable msvcrt never touched. Every `errno` comparison would have
+   been meaningless while looking perfectly reasonable. Each CRT's `_errno()` is now resolved and
+   read through its own pointer — which is what made the `atoi` disagreement visible.
