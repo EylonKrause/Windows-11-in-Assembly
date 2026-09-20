@@ -1,6 +1,6 @@
 # Image manifest — hand-ASM reimplementations mapped to the Win11 System32 tree
 
-300 `.asm` files across 13 System32 DLL folders (materialized under `tree/Windows/System32/`).
+301 `.asm` files across 13 System32 DLL folders (materialized under `tree/Windows/System32/`).
 
 ## Windows/System32/ntdll.dll — 86 functions
 `RtlAnsiStringToUnicodeString`, `RtlAppendAsciizToString`, `RtlAppendUnicodeToString`, `RtlAreBitsClear`, `RtlAreBitsSet`, `RtlCharToInteger`, `RtlCompareMemory`, `RtlCompareMemoryUlong`, `RtlCompareString`, `RtlCompareUnicodeString`, `RtlCompareUnicodeStrings`, `RtlConvertSidToUnicodeString`, `RtlCrc32`, `RtlCrc64`, `RtlDowncaseUnicodeString`, `RtlEqualString`, `RtlEqualUnicodeString`, `RtlEthernetAddressToStringA`, `RtlEthernetAddressToStringW`, `RtlEthernetStringToAddressA`, `RtlEthernetStringToAddressW`, `RtlFindCharInUnicodeString`, `RtlFindClearBits`, `RtlFindClearRuns`, `RtlFindLastBackwardRunClear`, `RtlFindLongestRunClear`, `RtlFindNextForwardRunClear`, `RtlFindSetBits`, `RtlFindUnicodeSubstring`, `RtlGUIDFromString`, `RtlHashUnicodeString`, `RtlInitString`, `RtlInitStringEx`, `RtlInitUTF8String`, `RtlInitUnicodeString`, `RtlInitUnicodeStringEx`, `RtlInt64ToUnicodeString`, `RtlIntegerToChar`, `RtlIntegerToUnicodeString`, `RtlIpv4AddressToStringA`, `RtlIpv4AddressToStringExA`, `RtlIpv4AddressToStringExW`, `RtlIpv4AddressToStringW`, `RtlIpv4StringToAddressA`, `RtlIpv4StringToAddressExA`, `RtlIpv4StringToAddressExW`, `RtlIpv4StringToAddressW`, `RtlIpv6AddressToStringA`, `RtlIpv6AddressToStringExA`, `RtlIpv6AddressToStringExW`, `RtlIpv6AddressToStringW`, `RtlIpv6StringToAddressA`, `RtlIpv6StringToAddressExA`, `RtlIpv6StringToAddressExW`, `RtlIpv6StringToAddressW`, `RtlIsTextUnicode`, `RtlIsZeroMemory`, `RtlLargeIntegerToChar`, `RtlMultiByteToUnicodeN`, `RtlNumberOfClearBits`, `RtlNumberOfClearBitsInRange`, `RtlNumberOfSetBits`, `RtlNumberOfSetBitsInRange`, `RtlOemStringToUnicodeString`, `RtlOemToUnicodeN`, `RtlPrefixString`, `RtlPrefixUnicodeString`, `RtlSecondsSince1970ToTime`, `RtlStringFromGUIDEx`, `RtlTimeFieldsToTime`, `RtlTimeToTimeFields`, `RtlUTF8StringToUnicodeString`, `RtlUTF8ToUnicodeN`, `RtlUdiv128`, `RtlUnicodeStringToAnsiString`, `RtlUnicodeStringToInteger`, `RtlUnicodeStringToOemString`, `RtlUnicodeStringToUTF8String`, `RtlUnicodeToMultiByteN`, `RtlUnicodeToOemN`, `RtlUnicodeToUTF8N`, `RtlUpcaseUnicodeString`, `RtlUpcaseUnicodeStringToAnsiString`, `RtlUpcaseUnicodeToMultiByteN`, `RtlUpcaseUnicodeToOemN`, `RtlUpperString`
@@ -23,6 +23,9 @@
 ## Windows/System32/advapi32.dll — 4 functions
 `ConvertSidToStringSidA`, `ConvertSidToStringSidW`, `ConvertStringSidToSidA`, `ConvertStringSidToSidW`
 
+## Windows/System32/combase.dll — 3 functions
+`IIDFromString`, `StringFromGUID2`, `WindowsCompareStringOrdinal`
+
 ## Windows/System32/kernel32.dll — 3 functions
 `ExpandEnvironmentStringsW`, `FileTimeToSystemTime`, `SystemTimeToFileTime`
 
@@ -31,9 +34,6 @@
 
 ## Windows/System32/rpcrt4.dll — 2 functions
 `UuidFromStringA`, `UuidFromStringW`
-
-## Windows/System32/combase.dll — 2 functions
-`IIDFromString`, `StringFromGUID2`
 
 ## Windows/System32/ws2_32.dll — 2 functions
 `inet_addr`, `inet_ntoa`
