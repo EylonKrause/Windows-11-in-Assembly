@@ -29,6 +29,54 @@ Each one's log also contains a **complete benchmark table**, which by itself pro
 | `250-rtlipv6stringtoaddressexw` | FAIL | **PASS** |
 | `251-pathissamerootw` | FAIL | **PASS** |
 
+## Live substitution — Windows executed our assembly, 51/51 harnesses PASS
+
+Proving a routine correct and faster is one thing; making the operating system actually run it is a
+different claim, and this is the evidence for it on this machine.
+
+Each harness resolves the real export, makes its page writable, overwrites the prologue with a
+14-byte `jmp qword ptr [rip+0]; <abs64>` to our assembly through a counting wrapper, flushes the
+instruction cache, and then calls **the same system function pointer again**. Because the image
+mapping is copy-on-write, only this process's private copy changes. It is the mechanism Detours
+uses, and it is reversible.
+
+| | |
+|---|---:|
+| live-substitution harnesses run | **51** |
+| harnesses reporting PASS | **51** |
+| individual live-patch proofs | **188** |
+| failures | **0** |
+
+A "proof" is one export for which all four of the following held in the same run:
+
+1. the patched prologue began `FF 25` — the jump we wrote;
+2. calling the **real** function pointer afterwards incremented our counter by exactly the number of
+   calls made, so our code executed and not the shipped code;
+3. every one of those results matched the scalar reference and the live export; and
+4. after unpatching, the counter froze and the original function worked again — the process was
+   left clean.
+
+Point 2 is the one that matters. Without the counter this would only show that *something* produced
+the right answers, which a harness that silently failed to patch would also show.
+
+### What this does and does not establish
+
+It establishes that Windows, inside a process, can be made to run this assembly in place of its own
+and get identical results — including for transforms that write output through OS-built tables, not
+just compares. It does **not** mean any file on disk changed, and it cannot: System32 binaries are
+catalog-signed, owned by TrustedInstaller, guarded by WRP and restored by servicing. See
+[`docs/DEPLOYMENT-REALITY.md`](docs/DEPLOYMENT-REALITY.md), which ranks the forms of "replacement"
+that are actually reachable and says plainly which one this is.
+
+Reproduce with:
+
+```powershell
+.	oolsevalidate-here.ps1 -Only __none__
+```
+
+`-Only` filters change directories by substring and `__none__` matches none of them, so the change
+loop does nothing and the run proceeds straight to the ABI audit and the live harnesses.
+
 ## Microarchitecture divergence — proven elsewhere, regresses here
 
 These are the rows the multi-machine exercise exists to find. **The parent change is not edited.** Each gets a forked variant (`tools/new-variant.py`) so both microarchitectures keep an attributable result.
