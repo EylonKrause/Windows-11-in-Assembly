@@ -627,3 +627,37 @@ own per-pass answer array, and it was `memcmp`-ing whole descriptors, which conf
 `Length` with untouched padding. A harness that disagrees with itself across a restore is measuring
 itself.
 
+## The eight bounds-checked string functions (changes 150–157) — added 2026-09-20, and a fourth defect
+
+`build_secure_live.bat` / [`live_subst_secure.c`](live_subst_secure.c).
+
+**An invalid-parameter handler is installed, and without it this harness cannot run at all.** The
+`_s` functions report a bad argument by calling ucrtbase's `_invalid_parameter_noinfo`, which by
+default **terminates the process**. `_set_invalid_parameter_handler` replaces that with one that
+records the call and returns, which is what makes NULL arguments, zero sizes and unterminated
+destinations drivable instead of fatal. It is process-global inside ucrtbase, so it covers the
+shipped export and our code identically — and the **count of handler calls is compared too**, which
+is what made the fourth defect fully visible.
+
+**The defect: a NULL source with `count == 0` still validates the destination.** Changes 156 and 157
+documented rule 3 as *"count == 0 AND src == NULL → return 0, nothing written and no handler"*, which
+is right only when the destination is already a valid string within `size`.
+`strncat_s(dst, 1, NULL, 0)` with `dst = "A"` — no terminator in `dst[0..size)` — returns **EINVAL**,
+sets `dst[0] = 0` and calls the handler; both implementations returned 0 in silence. Three of 16000
+cases, and all three observables disagreed at once: return code, destination byte, handler count.
+
+[`probes/ncat0.c`](../changes/156-strncat-s/probes/ncat0.c) pinned the rule over the whole small
+grid — destination contents × size × NULL-or-not × count 0-or-not — and it is exact: with
+`count == 0` and a NULL source the answer is 0 **only** when `size != 0` and a terminator lies within
+`dst[0..size)`.
+
+After the fix, and this is the part worth the harness: **0 of 16000, across all eight functions,
+including `_TRUNCATE`, destinations too small, zero sizes and NULL arguments.**
+
+```
+  [patched]    16000 cases, 0 differ (errno-style return, the whole 128-byte destination,
+               and the invalid-parameter handler count);  16000 our-code calls each
+  [post]       16000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+

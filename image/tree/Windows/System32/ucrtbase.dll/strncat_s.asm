@@ -183,8 +183,26 @@ nc_c0_dst:
         test      rdx, rdx
         jz        nc_einval
         test      r8, r8
-        jz        nc_ok                             ; NULL src with count 0: write nothing at all
-        jmp       nc_walk                           ; otherwise the dst walk still runs
+        jnz       nc_walk                           ; src non-NULL: the ordinary dst walk
+        ; A NULL SOURCE WITH count == 0 STILL VALIDATES THE DESTINATION, and skipping that was a
+        ; real divergence. Rule 3 in the header above said "return 0, NOTHING WRITTEN and no
+        ; handler", which is right only when the destination is ALREADY a valid string within
+        ; `size`. The shipped export with dst = "A" and size = 1 -- no terminator in dst[0..size)
+        ; -- returns EINVAL, sets dst[0] = 0 and calls the handler, and this returned 0 in silence.
+        ;
+        ; probes/ncat0.c drives the whole small grid and the rule is exact: with count == 0 and a
+        ; NULL src the answer is 0 ONLY when size != 0 and a terminator lies within dst[0..size);
+        ; otherwise it is the ordinary not-terminated refusal. dst = "A" size >= 2 returns 0 and
+        ; leaves the string alone; dst = "" size >= 1 returns 0; size == 0 is EINVAL either way.
+        ;
+        ; Found by live substitution on 3 of 16000 cases -- the return code, the destination byte
+        ; AND the invalid-parameter handler count all disagreed, and only driving the handler made
+        ; the third observable at all.
+        vpxor     ymm1, ymm1, ymm1
+        cmp       byte ptr [rcx], 0
+        je        nc_ok                             ; empty dst and size >= 1: valid, nothing to do
+        WALKD nc_notterm                            ; no terminator in range -> dst[0]=0, EINVAL
+        jmp       nc_ok                             ; terminated: write nothing at all
 
 nc_have_count:
         test      rcx, rcx

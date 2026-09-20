@@ -155,8 +155,17 @@ wc_c0_dst:
         test      rdx, rdx
         jz        wc_einval
         test      r8, r8
-        jz        wc_ok                             ; NULL src with count 0: write nothing at all
-        jmp       wc_walk
+        jnz       wc_walk                           ; src non-NULL: the ordinary dst walk
+        ; A NULL SOURCE WITH count == 0 STILL VALIDATES THE DESTINATION -- the narrow sibling 156
+        ; had the identical defect and the identical fix. Returning 0 here is right only when the
+        ; destination is ALREADY a valid string within `size`: with dst = L"A" and size = 1 there
+        ; is no terminator in dst[0..size), and the shipped export returns EINVAL, sets dst[0] = 0
+        ; and calls the invalid-parameter handler. Found by live substitution on 3 of 16000 cases.
+        vpxor     ymm1, ymm1, ymm1
+        cmp       word ptr [rcx], 0
+        je        wc_ok                             ; empty dst and size >= 1: valid, nothing to do
+        WALKD wc_notterm                            ; no terminator in range -> dst[0]=0, EINVAL
+        jmp       wc_ok                             ; terminated: write nothing at all
 
 wc_have_count:
         test      rcx, rcx

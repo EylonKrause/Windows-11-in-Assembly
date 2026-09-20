@@ -61,3 +61,26 @@ geomean **2.85×**, every size class better:
 ```
 changes\157-wcsncat-s\build.bat
 ```
+
+## Correction — a NULL source with `count == 0` still validates the destination (2026-09-20)
+
+This implementation's rule 3 read *"count == 0 AND src == NULL -> return 0, NOTHING WRITTEN and no
+handler"*. That is right only when the destination is **already a valid string within `size`**.
+
+`wcsncat_s(L"A", 1, NULL, 0)` — no terminator in `dst[0..size)` — returns **EINVAL**, sets `dst[0] = 0`
+and calls the invalid-parameter handler. This returned 0, in silence, leaving the destination alone.
+
+[`probes/ncat0.c`](probes/ncat0.c) drives the whole small grid and the rule is exact: with
+`count == 0` and a NULL source the answer is 0 **only** when `size != 0` and a terminator lies
+within `dst[0..size)`. `dst = L"A"` with `size >= 2` returns 0 and leaves the string alone;
+`dst = ""` with `size >= 1` returns 0; `size == 0` is EINVAL either way.
+
+Found by [`live-substitution/live_subst_secure.c`](../../live-substitution/live_subst_secure.c) on
+**3 of 16000 cases**, where the return code, the destination byte **and the invalid-parameter
+handler count** all disagreed. The handler count is only observable because that harness installs
+`_set_invalid_parameter_handler` — without it the first NULL argument would terminate the process
+instead of being measured.
+
+Correctness still PASSES and the change still LANDS; the harness that found it now reports **0 of
+16000**.
+
