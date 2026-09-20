@@ -85,9 +85,13 @@ function Get-VariantVerdict {
     $r = Join-Path $dir "RESULTS-$suffix.md"
     if (-not (Test-Path $r)) { return 'UNKNOWN' }
     $head = (Get-Content $r -TotalCount 4 -EA SilentlyContinue) -join ' '
-    if ($head -match '\*\*PARKED\*\*')                 { return 'PARKED' }
-    if ($head -match '\*\*UNPROVEN\*\*')               { return 'UNPROVEN' }
-    if ($head -match '\*\*LANDS\*\*|\*\*LANDED\*\*')   { return 'LANDED' }
+    # THE VERDICT MAY CARRY A QUALIFIER, and requiring the bare word made this return UNKNOWN for
+    # two variants whose heading reads `**LANDS (variant)**` -- so the sweep could not tell whether
+    # a regression in them was expected or news. A verdict that cannot be read is not a neutral
+    # 'unknown': it silently moves the change out of both the expected and the actionable list.
+    if ($head -match '\*\*PARKED')                     { return 'PARKED' }
+    if ($head -match '\*\*UNPROVEN')                   { return 'UNPROVEN' }
+    if ($head -match '\*\*LANDS|\*\*LANDED')        { return 'LANDED' }
     return 'UNKNOWN'
 }
 
