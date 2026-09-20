@@ -3,7 +3,7 @@
 ;   Ulong wia_findclearbitsandset(RTL_BITMAP* bm, ulong NumberToFind, ulong HintIndex)
 ;     [Win64: rcx, edx, r8d -> eax]
 ;
-; ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet -- a search and a MUTATION in one
+; ntdll!RtlFindSetBitsAndClear and ntdll!RtlFindClearBitsAndSet, a search and a MUTATION in one
 ; call. discovery/ntdll_bitmap2.c timed both on a sparse 8 Kbit bitmap where the answer is "not
 ; found", so the whole bitmap is scanned:
 ;
@@ -19,7 +19,7 @@
 ;
 ; probes/contract.c showed a search that wraps, refuses a run straddling the wrap point, treats a
 ; hint at or past SizeOfBitMap as zero, and returns the hint rounded down to a multiple of eight for
-; NumberToFind = 0 -- word for word what change 256 measured for the read-only pair. INHERITING A
+; NumberToFind = 0, word for word what change 256 measured for the read-only pair. INHERITING A
 ; Rule because it looks like the same rule is exactly how the eight-change space bug happened, so
 ; the equivalence was put to the test the way change 237 tested its relationship to change 236:
 ;
@@ -29,7 +29,7 @@
 ; over a planted-run sweep plus 280000 randomised calls plus 40000 where the only run is BEHIND the
 ; hint so the answer is the wrapped one: ZERO disagreements, with 227509 found, 241435 not found and
 ; 14336 at N = 0, so all three arms were exercised rather than merely available. The read-only
-; export is asked FIRST, on an untouched copy -- calling them in the other order over one buffer
+; export is asked FIRST, on an untouched copy, calling them in the other order over one buffer
 ; would compare the second against a bitmap the first had already consumed.
 ;
 ; So this change links change 256's implementation and adds the half that is new.
@@ -39,7 +39,7 @@
 ; rather than checking the bits it expected to have changed):
 ;
 ;   * Exactly NumberToFind bits are written, not the whole run the search found. Asking for 8 inside
-;     a run of 20 set bits at bit 40 returns 40 and clears 40..47 -- bits 48..59 stay set, which is
+;     a run of 20 set bits at bit 40 returns 40 and clears 40..47, bits 48..59 stay set, which is
 ;     why a second call then answers 48.
 ;   * Not found writes nothing at all. Not one bit changes anywhere in the buffer.
 ;   * NumberToFind = 0 Writes nothing either, even though it returns an index (the hint rounded down
@@ -62,7 +62,7 @@
 ;
 ; a middle of fewer than eight words never touches a vector register. That is not tidiness: a
 ; function that has executed a VEX instruction must VZEROUPPER before it returns, and change 259
-; measured that instruction as a visible part of a call that only has a word or two to do -- its
+; measured that instruction as a visible part of a call that only has a word or two to do, its
 ; short rows sat at 0.75x-0.93x until the vector path was made unreachable for them. Here the common
 ; case is a handful of bits, so the vector loop is entered only when there are at least eight whole
 ; words between the two ends.
@@ -73,8 +73,8 @@
 ;
 ;
 ; a bitmap of 64 Bits or fewer never makes the call. That was forced by measurement, and the row
-; that forced it is worth stating: a 64-bit bitmap asked for a run of sixteen -- which is not there
-; -- measured 0.71x. Change 256's search is already at PARITY with the shipped code on a bitmap
+; that forced it is worth stating: a 64-bit bitmap asked for a run of sixteen, which is not there
+; measured 0.71x. Change 256's search is already at PARITY with the shipped code on a bitmap
 ; that small (its own worst class is 1.00x, on the same kind of row), so a frame, a call and a
 ; return on top of it can only lose. There was nothing to tune: the only way to win a two-word
 ; bitmap is not to make the call.
@@ -92,10 +92,10 @@ EXTERN wia_findclearbits:PROC
 .code
 
 ; ---------------------------------------------------------------------------------------------
-; MUT -- write exactly ecx bits starting at bit eax, in the buffer rdx.
+; MUT, write exactly ecx bits starting at bit eax, in the buffer rdx.
 ;   side = clear  ->  the bits become ZERO       side = set  ->  the bits become ONE
 ;
-; Clobbers rcx, r8, r9, r10, r11 -- NOT rax, which still holds the answer and is the return value,
+; Clobbers rcx, r8, r9, r10, r11, NOT rax, which still holds the answer and is the return value,
 ; and not rdx, which stays the buffer. Enter only with ecx != 0.
 ;
 ; The count is consumed in the first instruction (everything after that derives from the start and
@@ -204,16 +204,16 @@ done_m:
 ENDM
 
 ; ---------------------------------------------------------------------------------------------
-; SMALL -- the whole call, search and mutation, for a bitmap of 64 bits or fewer.
+; SMALL, the whole call, search and mutation, for a bitmap of 64 bits or fewer.
 ;
 ; The search fits in one 64-BIT register at that size, which is why this is a fast path and not a
 ; second implementation of anything hard:
 ;
-;   * the run-mark is change 258's DOUBLING AND -- `y &= y >> s` with the shifts summing to N-1
+;   * the run-mark is change 258's DOUBLING AND, `y &= y >> s` with the shifts summing to N-1
 ;     leaves a bit set exactly where a run of N ones BEGINS, in ceil(log2 N) steps, and the zeros
 ;     shifted in at the top are what stops a run from being marked off the end of the word;
 ;   * BZHI forces the bits at or past SizeOfBitMap to zero, where they TERMINATE a run rather than
-;     extend it -- the same treatment change 256 gives them -- and at an index of 64 it leaves the
+;     extend it (the same treatment change 256 gives them) and at an index of 64 it leaves the
 ;     value alone, which is exactly the "the whole word is the bitmap" case;
 ;   * SHRX by the hint gives the first pass and the unshifted value gives the wrap, so the whole of
 ;     "scan from the hint, then from the beginning" is two TZCNTs. TZCNT sets CF when its source is
@@ -249,8 +249,8 @@ have:   test      edx, edx
         or        r9, r11
 no_hi:
         ; The macro parameter names the mutation, not the search, and those are opposites: the
-        ; export that CLEARS is the one that searches for SET bits. So `set` -- meaning
-        ; RtlFindClearBitsAndSet -- is the instantiation that has to complement the word, because
+        ; export that CLEARS is the one that searches for SET bits. So `set`, meaning
+        ; RtlFindClearBitsAndSet, is the instantiation that has to complement the word, because
         ; it is looking for clear bits and everything below searches for ones.
 IFIDNI <side>, <set>
         not       r9
@@ -320,11 +320,11 @@ ENDM
 
 ; ---------------------------------------------------------------------------------------------
 ; The two exports. Each is a LEAF with no unwind data that answers a small bitmap outright and
-; TAIL-JUMPS to its framed body otherwise -- the same shape changes 256 and 260 use, and the reason
+; TAIL-JUMPS to its framed body otherwise, the same shape changes 256 and 260 use, and the reason
 ; is the same: a PROC FRAME cannot have a fast path in front of its prologue.
 ; ---------------------------------------------------------------------------------------------
-; A NULL RTL_BITMAP. The general path inherits change 256's answer for it -- NOT FOUND, not a
-; fault -- and the fast path below has to give the same one: a function that answered -1 for a
+; A NULL RTL_BITMAP. The general path inherits change 256's answer for it, NOT FOUND, not a
+; fault, and the fast path below has to give the same one: a function that answered -1 for a
 ; 4096-bit NULL bitmap and faulted for a 64-bit one would be worse than either choice made
 ; consistently. This was missed when the fast path went in, because no corpus passed NULL.
 ALIGN 16

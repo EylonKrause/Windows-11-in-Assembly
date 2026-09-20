@@ -6,12 +6,12 @@
 //
 //   * The whole buffer is compared against a poison fill, and the function's most distinctive rule
 //     is invisible any other way: when no terminator is found within the first cch bytes it writes
-//     Nothing at all -- it does not truncate the destination and it does not append. Only poison can
+//     Nothing at all; it does not truncate the destination and it does not append. Only poison can
 //     tell "wrote nothing" from "wrote a terminator where one already was".
 //   * The fault case is a fault, not a return. Unlike lstrcpy and lstrcat, StrCatBuffA does not
 //     swallow an access violation: when the caller lies about cch it faults, 37 of 37 distances
 //     (probes/scb2.c). So the harness catches the exception itself and compares WHETHER each side
-//     faulted and HOW MUCH each had written first -- there is no NULL return to compare instead.
+//     faulted and HOW MUCH each had written first; there is no NULL return to compare instead.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
@@ -195,7 +195,7 @@ int main(void){
     }
 
     // ---- The caller lies about cch: both must fault, having written the same bytes ----------------
-    // StrCatBuffA does not swallow this -- measured, 37 of 37. So the comparison is whether each
+    // StrCatBuffA does not swallow this, measured, 37 of 37. So the comparison is whether each
     // side faulted and what each left behind, not a return value.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);

@@ -3,7 +3,7 @@
  * The scalar model for ws2_32!inet_ntoa, written to be obviously right rather than fast.
  *
  * probes/contract.c established that the text is "%u.%u.%u.%u" of the four address bytes in memory
- * order, over every one of the 256 byte values in each of the four positions -- all 1024
+ * order, over every one of the 256 byte values in each of the four positions, all 1024
  * combinations, zero disagreements. So the model divides.
  *
  * It writes into a buffer the CALLER provides, deliberately. The export's contract is a per-thread

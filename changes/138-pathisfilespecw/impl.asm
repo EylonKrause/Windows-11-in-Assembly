@@ -5,14 +5,14 @@
 ; shlwapi's is a scalar scan (119 ns for 254 chars).
 ;
 ; Contract (probed against the live export): FALSE iff the string contains ':' (003A) or '\' (005C),
-; at ANY position. A forward slash does NOT disqualify -- "/abc" is a file spec while "\abc" is not.
+; at ANY position. A forward slash does NOT disqualify, "/abc" is a file spec while "\abc" is not.
 ; The empty string is TRUE.
 ;
 ; That makes this the THIRD separator convention in this one DLL: PathFindExtensionW (change 132) stops
 ; only at '\' and ignores '/' and ':'; PathFindFileNameW treats all three as separators; and this one
 ; treats ':' and '\' but not '/'. Each was measured, not assumed.
 ;
-; Method: the 003/131 dual-compare block scan extended to two "bad" characters -- each 32-byte block is
+; Method: the 003/131 dual-compare block scan extended to two "bad" characters; each 32-byte block is
 ; compared against ':', '\' and 0, and the FIRST stop decides: a bad character returns FALSE, the
 ; terminator returns TRUE. Page-safe: masked aligned prologue, all later loads 32-aligned.
 ;

@@ -3,8 +3,8 @@
 //
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
-// Every case compares the whole buffer. The export writes exactly one byte -- the terminator at the
-// extension position -- and clears nothing past it: "file.txt" becomes "file" with "txt" and the
+// Every case compares the whole buffer. The export writes exactly one byte, the terminator at the
+// extension position, and clears nothing past it: "file.txt" becomes "file" with "txt" and the
 // original terminator still in the buffer. An implementation that zero-filled the removed extension
 // would leave the same STRING on every input, and this function returns nothing at all.
 //
@@ -12,8 +12,8 @@
 // change's own rule was wrong in three landed siblings until earlier today: change 132 shipped a
 // PathFindExtension rule with only the backslash stopping the backward scan, a SPACE stops it too,
 // and changes 140, 143 and 144 inherited the omission. probes/rmext.c measured the narrow REMOVE
-// against both rules over 335923 strings -- 0 mismatches against the corrected one, 46158 against
-// the one 140 shipped with -- and this test keeps it that way.
+// against both rules over 335923 strings, 0 mismatches against the corrected one, 46158 against
+// the one 140 shipped with, and this test keeps it that way.
 //
 // And the MAX_PATH guard is tested at every length across the boundary, because it is the one rule
 // this function has that its find-only sibling does not.

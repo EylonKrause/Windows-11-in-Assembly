@@ -5,11 +5,11 @@
  * This is the same defect as discovery/utf8_nonascii_rows.c found, recurring one level deeper.
  *
  * That file established that changes 016 and 034 were benched on ASCII only and published geomeans that
- * did not hold for the bytes above 0x7F -- the entire reason UTF-8 exists. Both were fixed, and 034 now
+ * did not hold for the bytes above 0x7F; the entire reason UTF-8 exists. Both were fixed, and 034 now
  * benches six classes: ASCII, 2-byte, 3-byte, 4-byte, "mixed", and U+FFFD, at four lengths each, for a
  * published geomean of 3.986x with every row BETTER.
  *
- * Five of those six classes are homogeneous -- every character the same width -- and the sixth, "mixed",
+ * Five of those six classes are homogeneous (every character the same width) and the sixth, "mixed",
  * is documented in its own bench.c as "ASCII alternating with two-byte", which is exactly the case 034's
  * `mix16` block was written for. So the bench covers each width on its own, plus the one mixture that has
  * a kernel, and nothing else.
@@ -25,7 +25,7 @@
  * out, because a row that silently converted nothing would otherwise look like the fastest row here.
  *
  * ------------------------------------------------------------------------------------------------------
- * What causes it -- and a correction to my first explanation.
+ * What causes it, and a correction to my first explanation.
  *
  * The commit that added this file said the cost was "about six vector probes per character": the ASCII16,
  * ASCII8, mix16, mix8 and kernel probes all failing, then one scalar character, then the ladder again.
@@ -44,7 +44,7 @@
  * byte-2 lo/hi range with another cascade (E0 raises lo to A0, ED lowers hi to 9F, F0 raises lo to 90,
  * F4 lowers hi to 8F), then walks the continuation bytes in a loop, then assembles the code point and
  * branches on whether it needs a surrogate pair. Measured, that is about 2.17 ns per output unit on the
- * ASCII+3-byte row -- roughly ten cycles a character -- against ntdll's 0.95.
+ * ASCII+3-byte row (roughly ten cycles a character) against ntdll's 0.95.
  *
  * So the homogeneous kernels are not the problem and neither is the probe ladder: the general case is
  * simply scalar, and mixed-width text is all general case. A fix has to make the general case fast --

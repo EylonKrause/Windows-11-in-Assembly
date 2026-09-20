@@ -2,7 +2,7 @@
 ; int wia_strcspnw(PCWSTR psz, PCWSTR pszSet)   [Win64: rcx, rdx -> eax]
 ;
 ; Reimplements shlwapi!StrCSpnW: length of the initial run of characters that appear in NEITHER pszSet
-; nor {NUL} -- i.e. the complement span. shlwapi's is the naive O(n*m) scalar loop (469 ns for 254 chars
+; nor {NUL}, i.e. the complement span. shlwapi's is the naive O(n*m) scalar loop (469 ns for 254 chars
 ; against a 3-character set).
 ;
 ; The complement of change 135 (StrSpnW), with one real difference: there the terminator needed no

@@ -7,8 +7,8 @@
 //   051 RtlFindCharInUnicodeString                     101 RtlAppendUnicodeToString
 //
 // The four Init forms write a struct, not a string, and that is why they are interesting to a
-// harness that compares whole destinations. The observable result is three fields -- Length,
-// MaximumLength and Buffer -- and two of them are easy to get subtly wrong: `MaximumLength`
+// harness that compares whole destinations. The observable result is three fields, Length,
+// MaximumLength and Buffer, and two of them are easy to get subtly wrong: `MaximumLength`
 // includes the terminator where `Length` does not, and a NULL source must leave a zeroed
 // descriptor rather than an untouched one. The descriptor is poisoned before every call and all
 // three fields are compared, so "it set Length correctly" is not enough to pass.
@@ -20,27 +20,27 @@
 // families are allowed to disagree.
 //
 // 101 RtlAppendUnicodeToString is the one that mutates, and its failure mode is the one change 265
-// documented for the ANSI side: on STATUS_BUFFER_TOO_SMALL nothing may be touched -- not the
+// documented for the ANSI side: on STATUS_BUFFER_TOO_SMALL nothing may be touched, not the
 // buffer, not Length. A third of its cases are given a destination that cannot hold the append, and
 // the whole destination buffer is compared afterwards, not just the fields.
 //
 // The padding is reported and deliberately not failed, and the distinction is the point.
 //
-// A UNICODE_STRING is {USHORT Length; USHORT MaximumLength; PWSTR Buffer} -- sixteen bytes with
+// A UNICODE_STRING is {USHORT Length; USHORT MaximumLength; PWSTR Buffer}, sixteen bytes with
 // FOUR of padding between MaximumLength and Buffer. ntdll stores all sixteen at once, so it zeroes
 // that padding; these implementations write the three fields and leave it. That shows up on all
 // 20000 cases and is counted in its own column.
 //
 // It is NOT treated as a failure, and that is a considered position rather than a convenience.
 // The terminator divergences this directory found in changes 059/061/063/064 were bytes of a
-// CHARACTER ARRAY the caller can legitimately read -- a real observable difference. Struct padding
+// CHARACTER ARRAY the caller can legitimately read, a real observable difference. Struct padding
 // is not: no field names it, C leaves its value indeterminate, and a program that reads it has no
 // defined behaviour to depend on. Matching it would cost a store on every call to buy agreement
 // no conforming caller can observe. It is measured, printed on every run, and left alone.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these seven is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.

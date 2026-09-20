@@ -13,7 +13,7 @@
  *      test ebx,ebx / jne  scan_leap_table
  *
  * contract.c found LeapSecondData NON-NULL on this machine, so the first two tests do NOT take the
- * plain body -- the inlined body runs instead. This probe reads the structure to find out whether
+ * plain body; the inlined body runs instead. This probe reads the structure to find out whether
  * the COUNT is zero, i.e. whether the leap-second scan is ever entered, because if it is not then
  * the arithmetic that actually executes is the unmodified civil-from-days path and change 126's
  * engine is a legal substitute. If the count were non-zero the contract would have to change.

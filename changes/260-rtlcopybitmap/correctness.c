@@ -10,12 +10,12 @@
  * after it, and the words past the end are all part of the contract.
  *
  * And the buffer is larger than the declared bitmap, deliberately. a TargetBit past the
- * destination's size makes the shipped export WRITE PAST SizeOfBitMap -- the count subtraction is
- * done in 32 bits and wraps -- so the corpus has to be able to see those writes rather than crash
+ * destination's size makes the shipped export WRITE PAST SizeOfBitMap; the count subtraction is
+ * done in 32 bits and wraps, so the corpus has to be able to see those writes rather than crash
  * on them, and the comparison has to cover them.
  *
  *   1. EXHAUSTIVE over every (target, source size) pair in a small window, both exports, with the
- *      source, destination and sizes all varied -- this is where every shift 0..31 and every
+ *      source, destination and sizes all varied; this is where every shift 0..31 and every
  *      combination of partial first and last word occurs.
  *   2. THE WRAP: a target at, just before and just past the destination's size.
  *   3. LONG copies at every shift, so the vector step runs many times and its seams with the head

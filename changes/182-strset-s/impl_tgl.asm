@@ -16,7 +16,7 @@
 ;     test and walks eight bytes one at a time.
 ;   * `vpbroadcastb ymm2` then runs unconditionally, and the fill likewise falls straight to
 ;     `f_tail` and stores eight bytes one at a time.
-;   * Both ymm writes have dirtied the upper state, so the epilogue owes a `vzeroupper` -- which is
+;   * Both ymm writes have dirtied the upper state, so the epilogue owes a `vzeroupper`, which is
 ;     mandatory (the caller's later SSE code would otherwise pay a transition penalty) and bought
 ;     nothing here.
 ;
@@ -28,7 +28,7 @@
 ;     CLEAN and no `vzeroupper` is owed on that path at all.
 ;   * The scan probes 16 bytes, then 8, instead of walking. At numberOfElements = 9 the terminator
 ;     is found by a single 8-byte probe rather than eight compares.
-;   * The fill uses OVERLAPPING stores rather than a byte loop -- writing the same byte twice is
+;   * The fill uses OVERLAPPING stores rather than a byte loop, writing the same byte twice is
 ;     free, branching once per byte is not. The broadcast is built with an imul against
 ;     0x0101010101010101, so no vector register is involved.
 ;
@@ -38,7 +38,7 @@
 ; The parent is left untouched: its measurement was taken on hardware with different AVX transition
 ; costs, where dirtying the upper state for a short call is cheap enough not to show.
 ;
-; CONTRACT -- unchanged, and it is unusual enough to restate, because two of the three `_s` shapes
+; CONTRACT, unchanged, and it is unusual enough to restate, because two of the three `_s` shapes
 ; in this CRT would be wrong here (see the parent's header for how it was pinned):
 ;
 ;   * numberOfElements == 0 -> EINVAL (22) and nothing is written.
@@ -48,13 +48,13 @@
 ;   * All 256 fill byte values behave the same, including 0.
 ;
 ; Page safety: a probe is issued only when that many bytes of the caller's declared buffer remain,
-; and is additionally guarded against crossing into the next page -- the same two-part discipline
+; and is additionally guarded against crossing into the next page, the same two-part discipline
 ; the parent uses, applied at 16 and 8 bytes as well as 32. The fill writes at most
 ; numberOfElements-1 bytes, and the overlapping stores land strictly inside that span, so the
 ; variant touches no byte the parent would not.
 ;
 ; ISA: AVX2 for the >= 32 path (the parent's), VEX-128 + GPR below. Validated on bench #3
-; (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 
 EXTERN _invalid_parameter_noinfo:PROC
 
@@ -68,8 +68,8 @@ wia_strset_s PROC
         jae       wide                           ; only now is dirtying a ymm worth it
 
 ;================ narrow path: bound < 32. No ymm is written anywhere below. ================
-; The whole budget is under 32 bytes, so the fill count -- length on success, numberOfElements-1
-; on failure -- is at most 30 and the small ladder covers every case.
+; The whole budget is under 32 bytes, so the fill count, length on success, numberOfElements-1
+; on failure, is at most 30 and the small ladder covers every case.
 n_scan16:
         cmp       r10, 16
         jb        n_scan8

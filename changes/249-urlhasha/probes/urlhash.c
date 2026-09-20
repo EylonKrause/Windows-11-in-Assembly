@@ -7,37 +7,37 @@
  *
  *     0012F768  test rcx, rcx / je    pszUrl  NULL -> 0x80070057
  *     0012F76D  test rdx, rdx / je    pbHash  NULL -> 0x80070057
- *     0012F772  call 0x4C150          = lstrlenA -- the one with an SEH HANDLER
+ *     0012F772  call 0x4C150          = lstrlenA, the one with an SEH HANDLER
  *     0012F782  call 0x0C0A10         the hash worker, (pszUrl, len, pbHash, cbHash)
- *     0012F787  xor eax, eax          S_OK, UNCONDITIONALLY -- the worker's result is discarded
+ *     0012F787  xor eax, eax          S_OK, UNCONDITIONALLY; the worker's result is discarded
  *
  * and kernelbase!UrlHashW (rva 0x12F7B0) is a wide-to-narrow converter that then calls UrlHashA:
  * a 65-byte inline string builder at [rsp+0x20] with its capacity 0x41 written at [rsp+0x70], the
- * conversion at 0x4AF18, and then `call 0x12F750` -- which IS UrlHashA. So there is one hash in this
+ * conversion at 0x4AF18, and then `call 0x12F750`, which IS UrlHashA. So there is one hash in this
  * pair, not two, and a patch on the narrow export is a patch on both.
  *
  * What the worker at 0xC0A10 is. discovery/README.md records it as "byte-identical to the HashData
  * export at 0xBB750 down to the same permutation table", and that is very slightly overstated. The
  * two instruction streams were diffed for this change: the worker is the export's body MINUS the
- * export's own two NULL checks and MINUS its trailing `xor eax, eax` -- it returns nothing, and its
+ * export's own two NULL checks and MINUS its trailing `xor eax, eax`; it returns nothing, and its
  * caller supplies the S_OK. Everything else matches instruction for instruction, and both reach the
  * SAME permutation table: `lea rsi,[rip+0x1E55C4]` at 0x0C0A45 and `lea rsi,[rip+0x1EA874]` at
  * 0x0BB795 both resolve to RVA 0x2A6010, which is the table change 244 reproduced as c_tab.
  *
- * So UrlHashA should be exactly:  lstrlenA, then HashData's body, then S_OK -- which makes this
+ * So UrlHashA should be exactly:  lstrlenA, then HashData's body, then S_OK, which makes this
  * change a COMPOSITION of two landed ones (225 for the length INCLUDING its fault swallow, 244 for
  * the hash) over a six-instruction envelope. That is a claim to TEST rather than assume, and it is
  * what sections 3 and 4 below are for: if UrlHashA's digest is not bit-identical to HashData's on
  * the same bytes, the composition is wrong and the change does not exist.
  *
  * The four things only a probe can settle:
- *   1. cbHash = 0, and cbHash larger than any digest anyone would ask for -- the disassembly does
+ *   1. cbHash = 0, and cbHash larger than any digest anyone would ask for; the disassembly does
  *      not validate cbHash at all, so whatever the worker does with it IS the contract.
  *   2. a faulting url. lstrlenA is SEH-wrapped; the survey recorded that an unterminated url at a
  *      PAGE_NOACCESS boundary returns S_OK with the identity seed. Asked directly here.
  *   3. OVERLAP of pszUrl and pbHash. Change 244 measured that the shipped hash loop re-reads the
  *      source byte for every digest lane, so a digest write landing on the source changes what the
- *      remaining lanes consume -- wrong on all 1641 overlapping placements of a grouped
+ *      remaining lanes consume, wrong on all 1641 overlapping placements of a grouped
  *      implementation. UrlHashA hands the caller's own pointers straight through, so that hazard
  *      arrives here too.
  *   4. That UrlHashW really is UrlHashA. Same digest for the same ASCII text, and the same answer
@@ -236,7 +236,7 @@ int main(void)
         CHECK(bad == 0, "%d overlapping placements were not reproducible", bad);
     }
 
-    /* ============ 6. The faulting url -- does lstrlenA's swallow show through? ============ */
+    /* ============ 6. The faulting url, does lstrlenA's swallow show through? ============ */
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         {

@@ -4,18 +4,18 @@
 // What is compared is the returned pointer as a byte offset. Change 282 found a mutant that returned a
 // pointer one byte into the middle of a wchar_t and survived both gates, because `p - base` on a
 // wchar_t* divides the odd byte away. Change 285 then found the same edit HARMLESS, because its export
-// returns a count that divides it away legitimately -- this one returns a pointer, so the byte-offset
+// returns a count that divides it away legitimately; this one returns a pointer, so the byte-offset
 // comparison matters again.
 //
 // The contract this harness respects, from changes/286-strchrniw/probes/contract.c:
 //
-//   * the prototype is (start, match, count) -- settled by calling the same address through both
+//   * the prototype is (start, match, count), settled by calling the same address through both
 //     candidate prototypes, because discovery/charclass_strcmp_2026.c had timed it as a range form and
 //     produced a number for a different question;
 //   * the count is the number of characters EXAMINED, indices 0 .. cchMax-1;
 //   * the relation is change 281's, including the intransitive triple and the ignorable set;
 //   * The terminator stops the scan and is never a match, which is where it differs from changes 283
-//     and 284 -- so a NUL-matching character must give NULL over a string with no other match, however
+//     and 284, so a NUL-matching character must give NULL over a string with no other match, however
 //     far the count reaches;
 //   * a NULL start or a count of zero gives NULL;
 //   * and on an UNTERMINATED string the export faults even when the count covers the buffer, so every
@@ -24,15 +24,15 @@
 // The forced sub-cases, each with an assertion that fails if the draw stops producing it. Two of them
 // exist because a mutant walked through an earlier change's harness:
 //
-//   * cur_short   -- a count that stops BEFORE the match, so the count alone decides the answer;
-//   * cur_exact   -- a count that reaches the match by exactly one character;
-//   * cur_past    -- a count reaching far past the terminator, so the terminator must stop the scan;
-//   * cur_nulchar -- a sought character that MATCHES a NUL, which must still not match the terminator;
-//   * cur_wide    -- a character with more than four partners, the call-free scalar loops;
-//   * cur_sent    -- half of those use a sentinel set that does NOT accept a NUL, because only one of
+//   * cur_short, a count that stops BEFORE the match, so the count alone decides the answer;
+//   * cur_exact, a count that reaches the match by exactly one character;
+//   * cur_past; a count reaching far past the terminator, so the terminator must stop the scan;
+//   * cur_nulchar; a sought character that MATCHES a NUL, which must still not match the terminator;
+//   * cur_wide, a character with more than four partners, the call-free scalar loops;
+//   * cur_sent, half of those use a sentinel set that does NOT accept a NUL, because only one of
 //                    the eleven sentinel sets does and using just that one leaves the wide loop's own
 //                    terminator test unnecessary (change 285 was caught by exactly that);
-//   * cur_guard   -- the terminator as the last readable code unit before an unmapped page.
+//   * cur_guard, the terminator as the last readable code unit before an unmapped page.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng state
 // across its passes and reported 14285 differences with its patch counter at ZERO.
@@ -118,7 +118,7 @@ static void build_case(long i)
 
     n = 2 + rnd() % (SBUF - 2);
     start = 32 + rnd() % 32;
-    /* U+0002 matches only itself, so it never accidentally matches the sought character -- four
+    /* U+0002 matches only itself, so it never accidentally matches the sought character, four
        corpora in this family were once vacuous because their filler did. */
     for (k = 0; k < n; ++k) buf[start + k] = 0x0002;
     cur_embnul = 0;

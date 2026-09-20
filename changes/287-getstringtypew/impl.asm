@@ -2,11 +2,11 @@
 ;   BOOL wia_getstringtypew(DWORD kind, PCWSTR src, int cch, WORD* out)
 ;                                                       [Win64: ecx, rdx, r8d, r9 -> eax]
 ;
-; kernelbase!GetStringTypeW -- per-code-unit character classification.
+; kernelbase!GetStringTypeW, per-code-unit character classification.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER. discovery/uncovered_2026b.c measured the shipped export at 421.05 ns for 511 code
-; units, 0.412 ns per byte -- the most expensive uncovered export in that sweep that is not already
+; units, 0.412 ns per byte; the most expensive uncovered export in that sweep that is not already
 ; known to be a collation wall. (lstrcmpiW is more expensive still and is exactly such a wall:
 ; lstrcmp_is_linguistic.c killed it, on the evidence that lstrcmpA and lstrcmpiA time identically.)
 ;
@@ -14,12 +14,12 @@
 ; 2. The one question that decided whether this could be written, and it is the same question as 281's.
 ;
 ; A classification that depended on a character's NEIGHBOURS, or on the thread LOCALE, cannot be a
-; table, and no amount of AVX2 reproduces it -- which is how changes 274 and 276 died on collation.
+; table, and no amount of AVX2 reproduces it, which is how changes 274 and 276 died on collation.
 ; probes/contract.c asked both, in the shape change 281 used for its match relation:
 ;
 ;   * CONTEXT-FREEDOM: 20000 random strings up to 2048 code units, every word compared against the
 ;     class the same character gets alone. 0 disagreements, for all three info types.
-;   * LOCALE INVARIANCE: the whole CT_CTYPE1 table rebuilt under seven thread locales -- en-US, de-DE,
+;   * LOCALE INVARIANCE: the whole CT_CTYPE1 table rebuilt under seven thread locales, en-US, de-DE,
 ;     ru-RU, ja-JP, ko-KR, pt-BR, ar-SA. 0 entries different.
 ;   * TOTALITY: all 65535 non-zero code units classified, none refused.
 ;
@@ -28,7 +28,7 @@
 ; --------------------------------------------------------------------------------------------------
 ; 3. Why the table is two-level, which was also measured.
 ;
-; A flat table is 65536 WORDs -- 128 KB per info type, 384 KB for three. That does not fit L2, and a
+; A flat table is 65536 WORDs, 128 KB per info type, 384 KB for three. That does not fit L2, and a
 ; table that thrashes L2 is a slow implementation of a fast idea. probes/tableshape.c measured the
 ; redundancy instead of guessing at it:
 ;
@@ -44,7 +44,7 @@
 ; --------------------------------------------------------------------------------------------------
 ; 4. THE ALGORITHM.
 ;
-;   (a) map the info type to 0, 1 or 2 and refuse anything else -- the export refuses CT_CTYPE1|CT_CTYPE2,
+;   (a) map the info type to 0, 1 or 2 and refuse anything else, the export refuses CT_CTYPE1|CT_CTYPE2,
 ;       0 and 8, so this is a contract requirement and not a convenience;
 ;   (b) cch < 0 means NUL-terminated and includes the terminator: a three-character string gets four
 ;       words. The length is found 16 code units at a time;
@@ -52,7 +52,7 @@
 ;       one store. The two-level layout described above is 4x smaller and was tried first: measured, it
 ;       came out at 2.25x the export, because per unit it cost a compare, a branch and two dependent
 ;       loads. The 4x memory saving was real and the speed was not, so the tables are kept two-level for
-;       the MODEL -- which makes the three-way gate compare two genuinely different routes -- and flat
+;       the MODEL (which makes the three-way gate compare two genuinely different routes) and flat
 ;       for this code.
 ;
 ; The iterations are independent, so the loop is throughput-bound rather than latency-bound and the
@@ -62,8 +62,8 @@
 ; load ports is a 0.67-cycle floor and this loop runs at about 0.9, so it is close to its limit and the
 ; limit is the load count. The obvious fix is to read the source with ONE 16-byte vector load per eight
 ; units and pull the indices out with VPEXTRW, which touches no load port: one load per unit instead of
-; two, a 0.38-cycle floor on paper. Measured, it was SLOWER -- 130.77 ns against 102.15 for 511 ASCII
-; units, 3.08x against 3.81x overall -- because the vector-to-GPR transfer costs more here than the
+; two, a 0.38-cycle floor on paper. Measured, it was SLOWER, 130.77 ns against 102.15 for 511 ASCII
+; units, 3.08x against 3.81x overall, because the vector-to-GPR transfer costs more here than the
 ; scalar load it removes. The scalar loop stands, and the vectorised one is not in the file.
 ;
 ; ISA: AVX2 for the length scan only. The classification is scalar, and that is a measurement rather
@@ -78,7 +78,7 @@ EXTERN wia_gst_full:WORD
                 .code
 
 ; ---------------------------------------------------------------------------------------------
-; gstlen -- the number of code units before the terminator of the string at rcx, in rax.
+; gstlen, the number of code units before the terminator of the string at rcx, in rax.
 ; A 32-byte aligned load never crosses a page boundary, so the first load aligns DOWN and masks off
 ; the bytes before the string; every later load advances a whole block and stops at the first NUL.
 ; Clobbers rax, rcx, rdx, r8, ymm0, ymm5.
@@ -163,7 +163,7 @@ t_have:
         ; ---- the one table base for this info type.
         ;
         ; a flat 65536-ENTRY table, not the two-level one, and the bench is why. The two-level
-        ; directory-and-page layout is 4x smaller -- 32000 bytes against 131072 -- and this change was
+        ; directory-and-page layout is 4x smaller (32000 bytes against 131072) and this change was
         ; built on it first for that reason. Measured, it came out at 180 ns for 511 code units, only
         ; 2.25x the shipped export, because every unit cost a compare, a branch and TWO dependent
         ; loads. The memory saving was real and the speed was not.
@@ -178,7 +178,7 @@ t_have:
         add       r11, rax
 
         ; ---- (b) the count. cch < 0 means NUL-terminated and includes the terminator, so the length
-        ; is measured and then one more word is written -- measured: a three-character string with
+        ; is measured and then one more word is written, measured: a three-character string with
         ; cch = -1 produces four words, the fourth being the class of U+0000.
         mov       r12d, r8d
         test      r12d, r12d

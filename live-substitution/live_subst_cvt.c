@@ -2,9 +2,9 @@
  *
  * Live substitution for the three conversions driven by the desktop/startup fan-in surface:
  *
- *      289  kernelbase!WideCharToMultiByte      (CP_UTF8)   -- 310 desktop modules bind it
- *      290  kernelbase!MultiByteToWideChar      (CP_UTF8)   -- 211
- *      291  kernel32!ExpandEnvironmentStringsW              -- 131
+ *      289  kernelbase!WideCharToMultiByte      (CP_UTF8), 310 desktop modules bind it
+ *      290  kernelbase!MultiByteToWideChar      (CP_UTF8), 211
+ *      291  kernel32!ExpandEnvironmentStringsW, 131
  *
  * The mechanism is the repository's usual one: resolve the real export, make its page writable,
  * overwrite the prologue with a 14-byte `jmp qword ptr [rip+0]; <abs64>` into our assembly through
@@ -16,7 +16,7 @@
  * Why 289 And 290 Are driven with fast-path input only, and why that is a finding rather than a
  * CONVENIENCE.
  *
- * Both of those changes implement CP_UTF8 and tail-call the real export for everything else -- a
+ * Both of those changes implement CP_UTF8 and tail-call the real export for everything else, a
  * different code page, a flag they do not handle, an lpDefaultChar. That is the right design for a
  * linked-in replacement and it is what makes them tractable at all.
  *
@@ -30,15 +30,15 @@
  *
  * So the corpus here is deliberately confined to inputs the fast path OWNS, and that confinement is
  * PROVED rather than asserted: 290's fallback is pointed at a trap stub that records being entered,
- * and the run fails if it ever is. For 289 the same guarantee comes from the argument shapes -- the
+ * and the run fails if it ever is. For 289 the same guarantee comes from the argument shapes, the
  * corpus passes only CP_UTF8 with dwFlags == 0, lpDefaultChar == NULL and lpUsedDefaultChar == NULL,
  * which is exactly the boundary its header states.
  *
  * The honest conclusion, which belongs in RESULTS.md and not in a footnote: a dispatch boundary that
  * delegates by calling the export it replaces is correct when LINKED IN and is not directly
- * hot-patchable over that same export. Making it so needs a real trampoline -- the original prologue
+ * hot-patchable over that same export. Making it so needs a real trampoline, the original prologue
  * relocated and re-emitted, which requires a length-disassembler to avoid splitting an instruction
- * -- and that is deliberately not attempted here. 291 has no such issue: it resolves
+ *, and that is deliberately not attempted here. 291 has no such issue: it resolves
  * ntdll!RtlQueryEnvironmentVariable, never ExpandEnvironmentStringsW, so it is driven with its FULL
  * corpus including the cases that expand nothing, expand several variables, and overflow the
  * destination.
@@ -127,7 +127,7 @@ static unsigned long seed = 0xBADC0DEu;
 static unsigned rnd(void) { seed = seed * 1103515245u + 12345u; return seed >> 8; }
 
 /* A corpus of UTF-16 subjects that stays inside the CP_UTF8 fast path: ASCII, 2-byte, 3-byte and
- * surrogate pairs, mixed, at several lengths. No lone surrogates -- those are handled, but they are
+ * surrogate pairs, mixed, at several lengths. No lone surrogates; those are handled, but they are
  * also the case WC_ERR_INVALID_CHARS changes, and keeping them out keeps the corpus unambiguous. */
 static void make_w(wchar_t* w, int n, int cls) {
     int i = 0;
@@ -226,7 +226,7 @@ int main(void) {
                 for (int li = 0; li < NLEN; ++li) {
                     int n = LENS[li], enc, dec, ref;
                     make_w(w, n, cls);
-                    /* through the REAL function pointer -- this is the call that proves it */
+                    /* through the REAL function pointer; this is the call that proves it */
                     enc = sys_wc2mb(CP_UTF8, 0, w, n, a, sizeof a, NULL, NULL);
                     ref = wia_wc2mb(CP_UTF8, 0, w, n, a2, sizeof a2, NULL, NULL);
                     if (enc != ref || (enc > 0 && memcmp(a, a2, (size_t)enc))) ++bad;
@@ -241,7 +241,7 @@ int main(void) {
             OK(bad == 0, "converter results under live patch");
             /* ONE patched-export call per round. The second encode in the loop goes to
              * wia_wc2mb directly as the comparand, so it does not pass through the counting
-             * wrapper and must not be counted -- an earlier version of this assertion
+             * wrapper and must not be counted, an earlier version of this assertion
              * expected rounds*2 and failed a run in which nothing was actually wrong. */
             OK(c_wc2mb - calls_before_wc == rounds, "our encoder ran for every call");
             OK(c_mbtwc - calls_before_mb == rounds, "our decoder ran for every call");
@@ -262,7 +262,7 @@ int main(void) {
         }
     }
 
-    /* ============ 3. ExpandEnvironmentStringsW -- FULL corpus, it does not self-delegate ====== */
+    /* ============ 3. ExpandEnvironmentStringsW, FULL corpus, it does not self-delegate ====== */
     {
         patch_t p3;
         static const wchar_t* SUBJ[] = {

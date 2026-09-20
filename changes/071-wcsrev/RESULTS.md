@@ -76,24 +76,24 @@ loads are issued before either store.
 
 The same argument one size down replaced the old scalar tail: 8..15 bytes are now one overlapping
 `bswap`/`vpshuflw` pair and 4..7 bytes one overlapping 4-byte pair, leaving at most a single scalar
-swap. That matters beyond the instruction count -- a caller that reverses the same buffer repeatedly
+swap. That matters beyond the instruction count, a caller that reverses the same buffer repeatedly
 leaves those narrow stores in flight when the next call's wide load arrives, and **a narrow store
 feeding a wide load cannot forward**.
 
 The page-safe length scan was also rebuilt on 32-byte *aligned* loads, which removes the old explicit
 "am I within 16 bytes of a page end?" test and its scalar fallback lane: an aligned 32-byte load can
 never straddle a page, so there is nothing to check. The unrolled scalar probe over the first 16
-characters is kept unchanged -- it is what keeps short strings fast, and a vector length scan cannot
+characters is kept unchanged; it is what keeps short strings fast, and a vector length scan cannot
 amortise its setup over 8 bytes.
 
 One thing worth recording: re-running the **original** implementation today, its
-8-character class measured **0.77x** -- a regression that was not present when the change
+8-character class measured **0.77x**; a regression that was not present when the change
 first landed at 4.98x. The revision removes it (1.30x) along with everything else, but the
 original number should be read as not reproducible on this machine as it stands today.
 
 ### Correctness — re-run with a strengthened harness
-`correctness.exe`: **PASS**, comparing against both the live export and the oracle over the returned pointer and **every byte** of a canary-filled buffer -- so a single byte written past
-the terminator fails -- over **alignments x lengths 0..300 x 4 value patterns**, including
+`correctness.exe`: **PASS**, comparing against both the live export and the oracle over the returned pointer and **every byte** of a canary-filled buffer, so a single byte written past
+the terminator fails, over **alignments x lengths 0..300 x 4 value patterns**, including
 all-`0xFF`/`0xFFFF` and patterns designed to catch a granularity bug, plus a **NOACCESS
 page-guard sweep at every length**. The lengths around each multiple of 32 and 64 are exactly
 where the overlapping final pair and the odd middle live, and every one of them is covered.

@@ -13,7 +13,7 @@
  *      MAP_COMPOSITE         12197         4             2082             468
  *      MAP_EXPAND_LIGATURES    710         3                0               0
  *
- * MAP_FOLDDIGITS is the only strictly 1:1 flag -- nothing grows, nothing shrinks, nothing is refused.
+ * MAP_FOLDDIGITS is the only strictly 1:1 flag; nothing grows, nothing shrinks, nothing is refused.
  * Every other flag turns one input unit into several, up to EIGHTEEN for one MAP_FOLDCZONE input, and a
  * mapping that changes the length is not a per-character table at any width. Those flags are separate
  * problems and are not in this change; the repository already carries four separate changes for
@@ -21,13 +21,13 @@
  *
  * For MAP_FOLDDIGITS the other two questions came back the way they had to:
  *
- *   * CONTEXT-FREEDOM -- 20000 random strings up to 2048 code units, 0 words differing from the result
+ *   * CONTEXT-FREEDOM, 20000 random strings up to 2048 code units, 0 words differing from the result
  *     the same character gets alone, and no length ever changed;
- *   * LOCALE INVARIANCE -- the whole table rebuilt under en-US, de-DE, ru-RU, ja-JP, ko-KR, ar-SA and
+ *   * LOCALE INVARIANCE, the whole table rebuilt under en-US, de-DE, ru-RU, ja-JP, ko-KR, ar-SA and
  *     th-TH: 0 entries different.
  *
- * 462 of 65535 code units map to something else -- Arabic-Indic U+0660..U+0669, Extended Arabic-Indic
- * U+06F0..U+06F9, the superscripts U+00B2/U+00B3/U+00B9, NKo U+07C0.. and so on -- and the remaining
+ * 462 of 65535 code units map to something else, Arabic-Indic U+0660..U+0669, Extended Arabic-Indic
+ * U+06F0..U+06F9, the superscripts U+00B2/U+00B3/U+00B9, NKo U+07C0.. and so on, and the remaining
  * 65073 map to themselves. That is why the table is flat rather than sparse: a 128 KB array of mostly
  * identity entries costs one load per unit with no branch, and change 287 measured what the clever
  * alternative costs (a two-level table there came out at 2.25x against 3.79x flat).

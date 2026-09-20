@@ -2,7 +2,7 @@
 // Oracle for shlwapi!PathRemoveBlanksA. Not fast; just obviously right.
 //
 // The contract, measured in probes/blanks.c against the live export:
-//   * a BLANK is 0x20 and nothing else -- every byte value was tried at both ends and exactly one
+//   * a BLANK is 0x20 and nothing else; every byte value was tried at both ends and exactly one
 //     qualifies. a tab is not a blank: "\ta\t" comes back unchanged;
 //   * both ends are stripped, blanks in the middle survive;
 //   * a string made entirely of blanks becomes empty; an EMPTY string is left completely untouched,

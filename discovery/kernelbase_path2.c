@@ -1,28 +1,28 @@
 /* discovery/kernelbase_path2.c
  *
  * The kernelbase path and string exports this project has not covered, measured rather than
- * guessed at. The candidate list was produced mechanically -- enumerate kernelbase's 2037 exports,
+ * guessed at. The candidate list was produced mechanically, enumerate kernelbase's 2037 exports,
  * subtract image/tree's filenames, drop everything whose name says registry, package, process,
- * token, window, device or service -- and this measures the survivors that are plausibly byte-wise
+ * token, window, device or service, and this measures the survivors that are plausibly byte-wise
  * with a pinnable contract.
  *
  * Why this family, now. Change 251 derived the PathCchSkipRoot root parser from the disassembly and
  * refuted it against the live export over 210 720 cases with zero differences. That parser is
  * landed and exported as wia_pathcchskiproot_len, so several of the functions below are one
- * comparison away from being a composition rather than a derivation -- PathCchIsRoot in particular
+ * comparison away from being a composition rather than a derivation, PathCchIsRoot in particular
  * is "does the root consume the whole string", and PathCchStripToRoot is "truncate there".
  *
  * What is deliberately not here:
  *   * FindNLSString, FindNLSStringEx, LCMapStringEx, NormalizeString, FoldStringW, IsNLSDefinedString
- *     -- COLLATION and normalisation, the category this project has scoped out four separate times.
- *   * MultiByteToWideChar / WideCharToMultiByte -- the contract is the process code page, which is
+ *, COLLATION and normalisation, the category this project has scoped out four separate times.
+ *   * MultiByteToWideChar / WideCharToMultiByte; the contract is the process code page, which is
  *     machine state rather than a specification.
- *   * ExpandEnvironmentStrings, FormatMessage -- they read the environment and message tables.
+ *   * ExpandEnvironmentStrings, FormatMessage, they read the environment and message tables.
  *
  * Method, and the mistake this file is written to avoid: Every row prints what it actually
  * RETURNED. A survey row whose subject does not do the work its label claims is this project's most
  * expensive recurring mistake, and the two surveys written this week shipped SIX of them between
- * them -- a comparison handed byte counts where it wanted characters, a bitmap copy called with
+ * them, a comparison handed byte counts where it wanted characters, a bitmap copy called with
  * three arguments where it takes four, two comparisons whose comparand had a needle planted in it,
  * and a path splitter handed a 4000-character component that its own _MAX_FNAME limit rejected
  * outright. Not one was visible in the timing. All six were obvious in the returned value.

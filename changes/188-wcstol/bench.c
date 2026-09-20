@@ -28,7 +28,7 @@ int main(void){
 
     { const wchar_t* d=L"2147483647"; int k=0; for(;d[k];k++) fw[k]=(wchar_t)(0xFF10+(d[k]-L'0')); fw[k]=0; }
     { const wchar_t* d=L"2147483647"; int k=0; for(;d[k];k++) arab[k]=(wchar_t)(0x0660+(d[k]-L'0')); arab[k]=0; }
-    /* an Arabic-Indic zero introducing a hex prefix -- the rule a naive port gets wrong */
+    /* an Arabic-Indic zero introducing a hex prefix, the rule a naive port gets wrong */
     { arabhex[0]=0x0660; arabhex[1]=L'x'; arabhex[2]=L'1'; arabhex[3]=L'a'; arabhex[4]=L'b';
       arabhex[5]=L'c'; arabhex[6]=L'd'; arabhex[7]=L'e'; arabhex[8]=L'f'; arabhex[9]=L'0'; arabhex[10]=0; }
 

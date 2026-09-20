@@ -1,7 +1,7 @@
 // changes/183-wcsset-s/correctness.c
 // Gate 1: wia_wcsset_s must be indistinguishable from ucrtbase!_wcsset_s.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// Return, whole buffer AND the invalid-parameter handler hit count are all compared -- the last
+// Return, whole buffer AND the invalid-parameter handler hit count are all compared, the last
 // one matters here because bound 0 writes nothing, so the handler is the only observable effect.
 //
 // Built /MD on purpose: with the default static CRT this exe would carry its own handler state

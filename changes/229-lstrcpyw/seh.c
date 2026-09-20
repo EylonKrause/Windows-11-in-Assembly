@@ -7,8 +7,8 @@
 //     an unterminated source at a NOACCESS page : 80 of 80 distances RETURNED NULL, 0 faulted
 //     a destination too small                   : 80 of 80 rooms RETURNED NULL, 0 faulted
 //
-// So the copy stays in assembly and this supplies the NULL checks -- a NULL source returns NULL and
-// Leaves the destination alone, which is why the check must precede the core -- and a __try/__except
+// So the copy stays in assembly and this supplies the NULL checks; a NULL source returns NULL and
+// Leaves the destination alone, which is why the check must precede the core, and a __try/__except
 // that converts an access violation into NULL, leaving whatever the core had already copied. That
 // partial matches the shipped one because the core page-clamps both pointers and stops on the same
 // character.

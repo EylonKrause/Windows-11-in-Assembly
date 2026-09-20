@@ -25,7 +25,7 @@
 ;     512 -> 0.412 ns/char   1024 -> 0.409   2048 -> 0.390   4096 -> 0.408
 ;
 ; 0.41 ns per character is about 1.7 cycles: a scalar `while (*p++)`. The allocation is NOT the
-; expensive part here -- it is 16-25 ns at every size -- and the part that IS expensive is a string
+; expensive part here (it is 16-25 ns at every size) and the part that IS expensive is a string
 ; scan, which is this repository's home ground (changes 001 and 003).
 ;
 ; So this change replaces only the measurement and hands the allocation straight back to the real
@@ -40,7 +40,7 @@
 ;                           pointer, which the probe does.)
 ;   otherwise            -> byte-identical to SysAllocStringLen(psz, wcslen(psz)): same prefix,
 ;                           same bytes, same terminator. Verified on four subjects including the
-;                           empty string -- 0 of 4 differ.
+;                           empty string, 0 of 4 differ.
 ;   embedded NUL         -> the measurement stops at the first one, as a strlen must.
 ;   the length prefix at [-4] is a BYTE count (5 characters gives 10), which is what makes
 ;   SysAllocStringLen's second argument a CHARACTER count the caller must not confuse with it.
@@ -48,7 +48,7 @@
 ; ---- Method, and the two things the first cut got wrong ---------------------------------------
 ; The scan is one aligned pass for the terminator; the allocation is then handed to the import.
 ; Page-safe by construction: the first load is aligned DOWN and the bytes before the string are
-; shifted out of the compare mask, and every later load is aligned too -- an aligned 16- or 32-byte
+; shifted out of the compare mask, and every later load is aligned too, an aligned 16- or 32-byte
 ; load cannot cross a page boundary. No load ever touches a page the string does not occupy, which
 ; is what the correctness gate's NOACCESS sweep exists to prove.
 ;
@@ -67,7 +67,7 @@
 ;
 ;   (2) It used ymm for a string that fits in xmm, and therefore owed a vzeroupper on every call,
 ;       including the empty one. VEX-128 never dirties the upper state, so it owes nothing. The
-;       first block is now xmm -- sixteen bytes, eight characters -- which terminates the great
+;       first block is now xmm (sixteen bytes, eight characters) which terminates the great
 ;       majority of real BSTRs, and that path reaches the tail jump without a single ymm
 ;       instruction. Only a string that survives its first sixteen bytes pays for the wide loop.
 ;
@@ -78,7 +78,7 @@
 ; the margin is 1.3x and climbing.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shrx). shrx is what keeps the shift count out of cl and
-; therefore keeps rcx -- the source pointer, and the first argument of the tail call -- untouched.
+; therefore keeps rcx (the source pointer, and the first argument of the tail call) untouched.
 ; Validated on Tiger Lake-H (bench #3).
 
 EXTERN __imp_SysAllocStringLen:QWORD
@@ -92,7 +92,7 @@ wia_sysallocstring PROC
         ; The vector path resolves its branch only after vpxor -> vmovdqa -> vpcmpeqw ->
         ; vpmovmskb, about ten cycles of dependent latency, and for an EMPTY string all of that
         ; produces a zero. A single compare answers it in one load. With the xmm path alone this
-        ; row measured 0.95x -- the only class that still lost -- and the whole deficit was that
+        ; row measured 0.95x (the only class that still lost) and the whole deficit was that
         ; chain. The compare is not a tax on the other rows: it touches the same cache line the
         ; aligned load needs, so it is already in flight, and it is perfectly predicted.
         cmp       word ptr [rcx], 0

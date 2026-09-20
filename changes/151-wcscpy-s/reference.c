@@ -1,5 +1,5 @@
 // changes/151-wcscpy-s/reference.c
-// Oracle for ucrtbase!wcscpy_s -- the same UCRT algorithm as strcpy_s with `size` counted in wchar_t.
+// Oracle for ucrtbase!wcscpy_s, the same UCRT algorithm as strcpy_s with `size` counted in wchar_t.
 #include <errno.h>
 #include <stddef.h>
 #include <wchar.h>

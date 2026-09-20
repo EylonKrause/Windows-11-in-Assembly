@@ -79,7 +79,7 @@ static void build_fold(void){
 static int model(const char* a, const char* b, char* out)
 {
     int n;
-    /* NULL leaves the buffer COMPLETELY UNTOUCHED -- not even a terminator. Only a poison
+    /* NULL leaves the buffer COMPLETELY UNTOUCHED, not even a terminator. Only a poison
        fill shows that, and it is the opposite of the no-common-prefix case, which DOES
        write one. */
     if (!a || !b) return 0;
@@ -102,7 +102,7 @@ static int model(const char* a, const char* b, char* out)
         /* The bound this probe originally missed. See the header. */
         out[0] = 0;
     } else if (out) {
-        /* a bounded copy of n characters that stops at the terminator -- which is why the fixup
+        /* a bounded copy of n characters that stops at the terminator, which is why the fixup
            can report 3 while writing only 2: "aa" has nothing to copy for the third. When the
            first path does have a third character, as "aa\\" does, all three are written. */
         int la = 0; while (a[la]) ++la;

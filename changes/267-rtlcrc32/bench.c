@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlCrc32.
  *
- * The work is proportional to the length and there is no early exit -- every byte enters the crc --
+ * The work is proportional to the length and there is no early exit, every byte enters the crc --
  * so the subject of every row is simply its size. What the rows are chosen AROUND is the two block
  * boundaries: 192 bytes, where the short three-way split begins, and 3072, where the long one does.
  * A row set that sampled only round numbers would miss the sizes where a split has just become

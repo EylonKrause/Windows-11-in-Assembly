@@ -4,17 +4,17 @@
 ;
 ; user32!CharUpperBuffW and user32!CharLowerBuffW. discovery/rtl_integer_char.c measured them at
 ; 0.7782 and 1.1598 nanoseconds PER CHARACTER, where change 015's RtlUpcaseUnicodeString runs at
-; about 0.02 -- roughly forty and fifty-eight times the headroom.
+; about 0.02, roughly forty and fifty-eight times the headroom.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; Why this one and not another wrapper. Changes 274 and 276 were both parked because the rows they
-; could not win turned out to be an operating-system call this project does not own -- a 13.25 ns
+; could not win turned out to be an operating-system call this project does not own, a 13.25 ns
 ; private allocator and a 33 ns collation, with about a nanosecond of our code beside them. This
 ; export has neither. probes/mapping.c established that it is a pure per-character table:
 ;
 ;   * it agrees with ntdll!RtlUpcaseUnicodeChar on all 65536 code units (and the lower form with
 ;     RtlDowncaseUnicodeChar on all 65536);
-;   * it is NOT locale-aware -- it agrees with LCMapStringW under the user, invariant, German AND
+;   * it is NOT locale-aware, it agrees with LCMapStringW under the user, invariant, German AND
 ;     TURKISH locales, and Turkish is the one that would differ if linguistic casing were involved;
 ;   * it has no context: every code unit maps the same alone as inside a run, 0 of 65535.
 ;
@@ -22,7 +22,7 @@
 ;
 ; --------------------------------------------------------------------------------------------------
 ; The shape is change 015's, in place. a 16-character block with no code unit at or above 0x80 is
-; handled entirely in registers by a range subtract -- there is no table access at all for ASCII,
+; handled entirely in registers by a range subtract; there is no table access at all for ASCII,
 ; which is what the forty-times gap is made of. Any block with a high code unit falls back to the
 ; table, one character at a time, for that block only.
 ;
@@ -32,7 +32,7 @@
 ;
 ; The contract at the edges, measured in probes/mapping.c:
 ;
-;     count 0            returns 0 and does not touch the buffer -- and a NULL buffer with a
+;     count 0            returns 0 and does not touch the buffer, and a NULL buffer with a
 ;                        NON-ZERO count FAULTS, which is an access violation and not a refusal
 ;     count 3 of 8       maps exactly three
 ;     an embedded NUL    is mapped past: the count is what matters, not a terminator
@@ -60,7 +60,7 @@ C005A   DW      16 dup(005Ah)                   ; 'Z'
 
 .code
 
-; CASEMAP -- the whole function body, parameterised by direction.
+; CASEMAP, the whole function body, parameterised by direction.
 ;
 ;   tab   the 65536-entry table for this direction
 ;   lo    the constant one below the first letter of the source range

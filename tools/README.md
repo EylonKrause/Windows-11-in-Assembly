@@ -188,7 +188,7 @@ measurement.
 
 #### Splitting the sweep
 
-A full sweep is two phases -- 288 change directories, then the live-substitution harnesses -- and on
+A full sweep is two phases (288 change directories, then the live-substitution harnesses) and on
 a laptop the first takes well over an hour. They are worth running separately, because a benchmark
 measured while something else is compiling is not a benchmark.
 

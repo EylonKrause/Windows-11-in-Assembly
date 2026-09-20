@@ -13,7 +13,7 @@
  *
  * Restoring the buffer inside the op is not the fix, and change 142 is the reason this is spelled
  * out: its bench undid an in-place edit with a memcpy of the whole path, which at 16 characters
- * cost as much as the function -- the restore was replacing the measurement -- and the row read
+ * cost as much as the function (the restore was replacing the measurement) and the row read
  * 0.85x for code that was actually 2.13x. Any restore here lands on both sides equally, which is
  * worse than it sounds: it is a constant added to both, and change 261 measured exactly what a
  * shared constant does to a ratio (it drags it to 1.00x and lets the timer quantisation pick the
@@ -22,12 +22,12 @@
  * So every row is built to be SELF-RESTORING, in one of two ways, and neither costs a single
  * instruction of restore:
  *
- *   Not found -- the call scans the whole bitmap and, by contract, writes nothing. It is perfectly
+ *   Not found; the call scans the whole bitmap and, by contract, writes nothing. It is perfectly
  *       repeatable. This is also the survey's own subject: discovery/ntdll_bitmap2.c measured
  *       1237.00 ns and 410.05 ns on exactly this shape, so the headline rows and the rows that
  *       justified the change are the same rows.
  *
- *   a pair that is its own inverse -- over an all-ones bitmap, RtlFindSetBitsAndClear(N, 0) clears
+ *   a pair that is its own inverse, over an all-ones bitmap, RtlFindSetBitsAndClear(N, 0) clears
  *       bits 0..N-1, and RtlFindClearBitsAndSet(N, 0) then finds exactly those N clear bits and
  *       sets them again. The bitmap is identical afterwards, both halves do a real search AND a
  *       real mutation, and the op is exactly repeatable. This is how the MUTATION gets measured at

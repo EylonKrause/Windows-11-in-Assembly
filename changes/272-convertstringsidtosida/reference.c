@@ -11,7 +11,7 @@
  * the 9025 printable ASCII pairs against the alias table, the byte sequences that may not translate
  * at all, and the SDDL terminators that make a FAILING call clear the output pointer.
  *
- * So this file does exactly that, using change 269's wide model underneath -- deliberately, because
+ * So this file does exactly that, using change 269's wide model underneath, deliberately, because
  * a model that called the live wide EXPORT would make the gate compare advapi32 against advapi32
  * and agree with itself. It widens with the real MultiByteToWideChar, because that IS the contract
  * here; the assembly's ASCII fast path is an optimisation over it that probes/asciilen.c licensed by

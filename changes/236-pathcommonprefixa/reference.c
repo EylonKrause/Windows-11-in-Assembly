@@ -35,7 +35,7 @@ int ref_pathcommonprefixa(const char* a, const char* b, char* out)
     int k, n, j, i, la, wn;
     if (!fold_built) build_fold();
 
-    /* NULL writes nothing at all -- not even a terminator. The no-common-prefix case does write
+    /* NULL writes nothing at all, not even a terminator. The no-common-prefix case does write
        one, so the two are distinguishable only with a poison fill. */
     if (!a || !b) return 0;
 
@@ -45,7 +45,7 @@ int ref_pathcommonprefixa(const char* a, const char* b, char* out)
     if (!a[k] && !b[k]) {
         n = k;                                          /* the same path: no cut */
     } else if ((!a[k] && b[k] == '\\') || (!b[k] && a[k] == '\\')) {
-        /* one path ends exactly where the other begins a new component -- uncut, EXCEPT when that
+        /* one path ends exactly where the other begins a new component, uncut, EXCEPT when that
            whole component is a lone separator */
         n = (k == 1 && a[0] == '\\') ? 0 : k;
     } else {

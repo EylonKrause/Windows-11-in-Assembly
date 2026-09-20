@@ -2,16 +2,16 @@
  *
  * The scalar model for ntdll!RtlIntegerToUnicodeString, written to be obviously right rather than
  * fast: a division per digit into a scratch, then reversed out. It exists so that the assembly is
- * compared against something OTHER than the export it is imitating -- and, here, so that the
+ * compared against something OTHER than the export it is imitating, and, here, so that the
  * length-first trick is compared against a converter that does not use it.
  *
  * THE RULES, all measured in probes/contract.c:
  *
  *   * bases 0, 2, 8, 10 and 16 only, and 0 means 10; every other value 1..0xFFFFFFFF is
- *     STATUS_INVALID_PARAMETER -- the probe asked 0..20 one at a time rather than trusting the
+ *     STATUS_INVALID_PARAMETER, the probe asked 0..20 one at a time rather than trusting the
  *     documented set, and then 36, 256 and 0xFFFFFFFF;
  *   * no prefix, uppercase hexadecimal digits, and zero is "0" in every base;
- *   * MaximumLength must be at least Length + 2 -- NOT Length + 1, which is what change 067 found
+ *   * MaximumLength must be at least Length + 2, NOT Length + 1, which is what change 067 found
  *     for RtlConvertSidToUnicodeString in the same DLL;
  *   * a terminator is always written and Length excludes it;
  *   * on ANY failure the destination is completely untouched, Length included;

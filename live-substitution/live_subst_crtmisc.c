@@ -6,14 +6,14 @@
 //   147 strtok_s   148 wcstok_s   149 wcsrchr
 //
 // Why these seven together. They are what is left of ucrtbase after the earlier harnesses, and
-// five of the seven WRITE to memory the caller owns -- four of them in place. That is the whole
+// five of the seven WRITE to memory the caller owns, four of them in place. That is the whole
 // reason this directory exists, so every one of them is compared over its entire buffer rather
 // than by its return value.
 //
 // The two tokenizers are the interesting ones, because they are the only stateful functions this
 // directory has gated. A single call proves almost nothing about them: the contract is a sequence.
-// So each case runs a FULL tokenization -- the first call with the string, then repeated calls with
-// NULL until the function says there is nothing left -- and records every token offset, the token
+// So each case runs a FULL tokenization, the first call with the string, then repeated calls with
+// NULL until the function says there is nothing left, and records every token offset, the token
 // count, and the final state of the buffer. Three ways to be wrong are then all visible:
 //   * the right tokens in the wrong places,
 //   * the right tokens with the wrong NULs written into the buffer (the contract is specific:
@@ -25,7 +25,7 @@
 // strict forward, pair-by-pair copy and therefore re-reads bytes it has already written:
 // src="abcdefgh", dest=src+2, n=6 gives "abbaabba". The corpus places source and destination in ONE
 // buffer at controlled offsets so that the fully-overlapping, forward-overlapping, backward-
-// overlapping and disjoint cases all occur, with odd n as well as even -- an odd n leaves the final
+// overlapping and disjoint cases all occur, with odd n as well as even; an odd n leaves the final
 // destination byte untouched, which only a whole-buffer comparison can check.
 //
 // Two functions that disagree about the same question, deliberately driven side by side:
@@ -35,13 +35,13 @@
 // NUL often rather than occasionally.
 //
 // The case folders are ascii-only in the C locale, which is what both changes verified and what
-// they implement. The corpus therefore carries bytes from the whole 0..255 range -- including the
-// accented Latin-1 range where a locale-aware folder WOULD act -- so that "folds only a-z" is
+// they implement. The corpus therefore carries bytes from the whole 0..255 range, including the
+// accented Latin-1 range where a locale-aware folder WOULD act, so that "folds only a-z" is
 // tested rather than assumed, and it never calls setlocale.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copy of ucrtbase -- never a live system process, never the file on disk.
+//       copy of ucrtbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these seven is used by the loader or the heap, and the
 //       process is single-threaded with no other work in flight.
@@ -186,7 +186,7 @@ static void build_corpus(void){
         r->noff=o; r->nlen=n;
 
         /* The narrow alphabet spans the whole byte range, so "_strupr folds only a-z in the C
-         * locale" is tested rather than assumed -- a locale-aware folder would act on the Latin-1
+         * locale" is tested rather than assumed; a locale-aware folder would act on the Latin-1
          * accented range, which is in here. 0 is excluded: it would terminate the string. */
         for(k=0;k<n;++k){
             unsigned v;
@@ -225,7 +225,7 @@ static void build_corpus(void){
           for(k=0;k<=m;++k) r->wdelim[k]=(wchar_t)(unsigned char)r->ndelim[k]; }
 
         /* wcsrchr: one case in six asks for the NUL, whose answer is a pointer to the terminator
-         * here and NULL in shlwapi's StrRChrW -- the corner change 134 was wrong in. */
+         * here and NULL in shlwapi's StrRChrW; the corner change 134 was wrong in. */
         if((i%6)==0)            r->wmatch=0;
         else if(w>0 && (rnd()%3)) r->wmatch=r->wbuf[o+rnd()%(unsigned)w];
         else                    r->wmatch=(wchar_t)(0x3000+rnd()%256);

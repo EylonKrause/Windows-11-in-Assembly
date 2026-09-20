@@ -64,14 +64,14 @@ CHANGES = os.path.join(ROOT, "changes")
 LIVE = os.path.join(ROOT, "live-substitution")
 
 # The title line of a change's RESULTS.md carries its verdict, e.g.
-#   # 058 -- `RtlStringFromGUIDEx` (GUID -> string) -- **LANDS**
+#   # 058 (`RtlStringFromGUIDEx` (GUID -> string)) **LANDS**
 # Variants record theirs in RESULTS-<tag>.md; the parent's verdict is the one that matters for
 # coverage, because a variant shares the parent's export.
 VERDICT_RE = re.compile(r"\*\*(LANDS|LANDED|PARKED|WITHDRAWN)\b", re.I)
 # The export is the first backticked token on the title line, which is written either bare
 # (`CryptBinaryToStringA`) or module-qualified (`shlwapi!StrChrW`, `ucrtbase!strcpy_s`). Take
 # whatever follows the last '!'. An earlier version of this pattern required the identifier to be
-# followed immediately by a closing backtick, so every module-qualified title -- most of them --
+# followed immediately by a closing backtick, so every module-qualified title, most of them --
 # came back unclassified, and the grouping below was useless for exactly the changes it was meant
 # to help pick up.
 EXPORT_RE = re.compile(r"`(?:[A-Za-z0-9_]+!)?([A-Za-z_][A-Za-z0-9_]*)")
@@ -124,7 +124,7 @@ def covered_set(names):
     if not os.path.isdir(LIVE):
         return covered
     for fn in sorted(os.listdir(LIVE)):
-        # `build*.bat`, not `build_*.bat`. The FIRST harness in this directory -- the one that
+        # `build*.bat`, not `build_*.bat`. The FIRST harness in this directory, the one that
         # proved the mechanism, covering 001/002/003/004/007/008/015/035/038/042/043/046/052/053 --
         # is plain `build.bat`, and it predates the `build_<topic>_live.bat` convention everything
         # since has followed. Filtering on the underscore silently dropped all fourteen and
@@ -135,7 +135,7 @@ def covered_set(names):
         # A build script links objects; it does not call them. So the harness SOURCE that this
         # script builds is read too, and a change counts as covered only if one of the `wia_`
         # symbols its impl.asm exports actually appears there. Without this a change could be
-        # assembled into a harness, linked, and never called -- and would be reported as proven.
+        # assembled into a harness, linked, and never called, and would be reported as proven.
         # That is the one failure mode that would make a 100% figure a lie, and it is the failure
         # mode this file's own header admitted to before the check existed.
         # The build script names its harness source; read it from there rather than guessing it
@@ -149,7 +149,7 @@ def covered_set(names):
         built = [n for n in names if n in text]
 
         # a call can be transitive. Change 034's symbol `wia_u82u` appears nowhere in
-        # live_subst_u8str.c -- but change 268, which that harness does call, calls it five times,
+        # live_subst_u8str.c, but change 268, which that harness does call, calls it five times,
         # and the build script links 034 for exactly that reason. So the text a symbol may appear
         # in is the harness source PLUS the sources of every change the same harness builds.
         # Without this the tool reports a change as unproven because it is reached one level down,

@@ -1,8 +1,8 @@
 // live-substitution/live_subst_fmt_s.c
-// LIVE-RUN PROOF for changes 194-197 -- the bounded 64-bit integer formatter family:
+// LIVE-RUN PROOF for changes 194-197, the bounded 64-bit integer formatter family:
 //   _i64toa_s, _ui64toa_s, _i64tow_s, _ui64tow_s.
 //
-// What has to be proved live here is not the happy path -- it is the ERANGE path. ucrtbase leaves
+// What has to be proved live here is not the happy path; it is the ERANGE path. ucrtbase leaves
 // PARTIAL, REVERSED digits in the caller's buffer when it runs out of room, and that behaviour was
 // read out of the shipped disassembly rather than fitted from probing. So every case below compares
 // the return value, errno, the handler hit count AND the whole buffer, and the size distribution is

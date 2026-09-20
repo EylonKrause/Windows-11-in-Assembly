@@ -15,7 +15,7 @@
  * Getting this wrong corrupts a heap, which is why it is asked before any assembly is written and
  * not after. The questions:
  *
- *   * which heap does the block come from -- is it the process heap?
+ *   * which heap does the block come from, is it the process heap?
  *   * how big is the block, exactly, against the size of the converted text?
  *   * what are Length and MaximumLength set to?
  *   * does the paired RtlFreeUTF8String accept a block allocated the same way by hand?

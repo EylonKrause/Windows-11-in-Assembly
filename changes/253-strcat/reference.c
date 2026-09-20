@@ -6,7 +6,7 @@
  * reads the source in 32-byte aligned blocks, and lands the last few bytes with an overlapping pair
  * of stores chosen from a five-way ladder. This walks one character at a time and stores one
  * character at a time, which is the only formulation in which "exactly strlen(src)+1 units are
- * written" is true BY CONSTRUCTION rather than by argument -- and that is precisely the property the
+ * written" is true BY CONSTRUCTION rather than by argument, and that is precisely the property the
  * implementation has to be checked against, because it is the one a return value cannot reveal.
  */
 #define WIN32_LEAN_AND_MEAN

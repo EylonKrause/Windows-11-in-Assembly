@@ -6,7 +6,7 @@
 // turned out to be missing, and the shape of that blindness is more useful than the bug itself:
 //
 //   * every case ran with MaximumLength fixed and generous, so the size rule never bound and the
-//     OVERFLOW path was never compared against ntdll at all -- the single overflow assertion it
+//     OVERFLOW path was never compared against ntdll at all, the single overflow assertion it
 //     had checked only that OUR function returned 0x80000005, with no live call and no buffer
 //     comparison;
 //   * the comparison stopped at Length, so the terminator the export writes at [Length] was

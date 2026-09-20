@@ -6,7 +6,7 @@
  * 1. Is ASCII invariant across the ANSI code pages?
  *
  * probes/codepage.c established that ConvertStringSidToSidA(s) is exactly
- * ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...)) -- zero disagreements over every
+ * ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...)), zero disagreements over every
  * byte 0x01..0xFF in each of six field positions, every one of the 9025 printable ASCII pairs, and
  * the byte sequences that may not translate at all.
  *
@@ -14,21 +14,21 @@
  * the shipped ANSI export costs 343.95 ns against 269.14 ns for the wide one, and MultiByteToWideChar
  * is not cheap.
  *
- * But a SID string is ASCII. If -- and only if -- every byte below 0x80 widens to the same code
+ * But a SID string is ASCII. If (and only if) every byte below 0x80 widens to the same code
  * point under every code page that can be an ACP, then the common case needs no code page at all:
  * it is a byte-to-word zero extension, which is one VPMOVZXBW per sixteen bytes. The fallback for
  * any input containing a byte at or above 0x80 is MultiByteToWideChar, called rather than imitated.
  *
  * "ASCII Is invariant" is exactly the kind of claim this project has been wrong about. It is
  * therefore MEASURED, over every byte 0x00..0x7F, against every code page Windows can use as an ACP
- * -- the single-byte ones, the four DBCS ones, and UTF-8, which modern Windows can set as the ACP.
+ *; the single-byte ones, the four DBCS ones, and UTF-8, which modern Windows can set as the ACP.
  * One counterexample and the fast path does not exist.
  *
  * ------------------------------------------------------------------------------------------------
  * 2. How long a string does it accept, and where does the widened copy live?
  *
  * The wide export takes up to 254 sub-authorities, so a legal SID string can be about 2800
- * characters -- and an ILLEGAL one can be any length at all, because the caller chooses it. A
+ * characters, and an ILLEGAL one can be any length at all, because the caller chooses it. A
  * reimplementation that widened into a fixed stack buffer would either have to refuse strings the
  * shipped export accepts or overflow. So: what is the longest string the ANSI form accepts, is it
  * the same as the wide form's, and does a megabyte-long input refuse or crash?

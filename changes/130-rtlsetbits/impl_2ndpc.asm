@@ -1,11 +1,11 @@
 ; changes/130-rtlsetbits/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` is UNTOUCHED and remains the 5950X (Zen 3)
 ; implementation of record. This is an ADDITIONAL variant tuned for the second
 ; PC. Same exported symbol (`wia_setbits`), so this change's existing
-; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
+; correctness.c and bench.c validate it unmodified, build with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
@@ -23,7 +23,7 @@
 ;
 ; Stable across three repeat runs: 4096 gives 0.91x / 0.88x / 0.88x.
 ;
-; Cause -- a ZEN-3-SPECIFIC tuning decision that inverts on zen 4
+; Cause, a ZEN-3-SPECIFIC tuning decision that inverts on zen 4
 ; The original dispatches the bulk fill by size and deliberately chooses SSE2
 ; over AVX2 for the middle range. Its own comment says why:
 ;
@@ -34,14 +34,14 @@
 ; That is correct ON ZEN 3, where a 256-bit store is split into two 128-bit
 ; halves, so 2x16B and 1x32B per cycle are the same bandwidth and the 128-bit
 ; form avoids the vzeroupper. ZEN 4 widened the datapath: 256-bit stores are
-; native, so the 32-byte form is no longer merely equal -- it is the wider one,
+; native, so the 32-byte form is no longer merely equal; it is the wider one,
 ; and the Zen 3 reasoning inverts.
 ;
 ; 4096 bits is 128 ULONGs = 512 bytes, which lands in exactly that SSE2 window
 ; (>= 8 and < 256 ULONGs), so the failing class is filled 16 bytes at a time on
 ; a core that would do 32.
 ;
-; The fix -- re-tune the two dispatch boundaries for this core
+; The fix, re-tune the two dispatch boundaries for this core
 ; Only the two dispatch thresholds change; every fill loop is byte-for-byte the
 ; original.
 ;
@@ -51,23 +51,23 @@
 ;     AVX2 32-byte stores from        256 ULONGs (1K)     32 ULONGs (128B)
 ;
 ; The AVX2 loop consumes 32 ULONGs per iteration and is entered only when
-; r11 >= 32, so lowering its threshold to exactly 32 is safe -- and 128 ULONGs
+; r11 >= 32, so lowering its threshold to exactly 32 is safe, and 128 ULONGs
 ; divides evenly by 32, so the failing class leaves no scalar tail at all.
 ; The loop-internal comparisons (cmp r11,64 / 32 / 4 inside the unrolled bodies)
 ; are NOT touched; only the two dispatch tests are.
 ;
 ; Contract preserved exactly
-;   * There is NO bounds check whatsoever -- ntdll writes past SizeOfBitMap if
+;   * There is NO bounds check whatsoever, ntdll writes past SizeOfBitMap if
 ;     asked (start=250,num=20 on a 256-bit map sets bits 250..269), so
 ;     SizeOfBitMap is never read. Unchanged here.
 ;   * NumberToSet == 0 is a no-op.
 ;   * Edges are masked at ULONG granularity, matching the buffer's declared
-;     element type, so no byte outside the ULONG array is ever touched -- a
+;     element type, so no byte outside the ULONG array is ever touched, a
 ;     64-bit read-modify-write could fault on a buffer ending exactly at a page
 ;     boundary. Unchanged here: only the interior bulk fill was re-tuned.
 ;
 ; SAFETY
-;   * AVX2 only -- NO AVX-512, NO GFNI. Correct on the 5950X too, just tuned for
+;   * AVX2 only, NO AVX-512, NO GFNI. Correct on the 5950X too, just tuned for
 ;     the wrong core there.
 ;   * Writes exactly the same bytes as the original; only the instruction width
 ;     used to write the interior differs.
@@ -112,7 +112,7 @@ sb_full1:
 sb_aligned:
         mov       r11, r10
         shr       r11, 5                          ; whole ULONGs to fill
-        ; Bulk fill, three regimes -- each measured (see RESULTS.md): a plain store loop for tiny
+        ; Bulk fill, three regimes, each measured (see RESULTS.md): a plain store loop for tiny
         ; runs, an UNROLLED 128-byte AVX2 loop for the middle (rep stos has too much startup there:
         ; 512 bytes cost 37 ns via rep vs 6 ns unrolled), and rep stosd only once it is large enough
         ; for fast-short-rep to win on streaming bandwidth.
@@ -198,7 +198,7 @@ sb_v128:
         jmp       sb_l4
 sb_rep:
         ; 2ND PC note: rep STOSQ was tried here (same bytes, half the iterations)
-        ; and measured WORSE on this core -- 0.86x at the 40000 class against
+        ; and measured WORSE on this core, 0.86x at the 40000 class against
         ; 0.97x for STOSD. Kept as STOSD.
         push      rdi
         mov       rdi, r9

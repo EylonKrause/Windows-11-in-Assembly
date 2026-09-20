@@ -1,10 +1,10 @@
-/* ermsprobe.c -- is change 260's unshifted bulk copy losing to ERMS on Tiger Lake?
+/* ermsprobe.c: is change 260's unshifted bulk copy losing to ERMS on Tiger Lake?
  *
  * On bench #3 change 260's byte-aligned 64 Kbit copy measures 338.58 ns against ntdll's 209.42
- * (0.62x), and the aligned and word-aligned rows lose too -- while every SHIFTED row wins 9x-13x.
+ * (0.62x), and the aligned and word-aligned rows lose too, while every SHIFTED row wins 9x-13x.
  * Every loss is a row where the shipped code reaches RtlCopyMemory and ours runs a 4x32-byte YMM
  * loop. Change 296 measured the `rep movsb` crossover on this exact part at ~2560-3072 bytes, and
- * 64 Kbit is 8192 bytes -- well past it.
+ * 64 Kbit is 8192 bytes, well past it.
  *
  * This times the two loops directly, at the destination offsets the bench uses, so the fix is
  * chosen on a measurement rather than on the reasoning above.

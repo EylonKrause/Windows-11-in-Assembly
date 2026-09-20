@@ -280,7 +280,7 @@ fail_moredata:
         jmp       epilogue
 fail:
         ; cb == 0 Sets the last error, and this path was leaving the caller's value alone.
-        ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87) -- in every format,
+        ; crypt32 returns FALSE here and sets ERROR_INVALID_PARAMETER (87), in every format,
         ; both widths, querying or converting, with *pcch untouched. probes/lasterr.c measured
         ; it across all six flag combinations and the answer never varies; the same probe also
         ; confirms that a SUCCESSFUL call leaves the caller's error untouched, which is why the

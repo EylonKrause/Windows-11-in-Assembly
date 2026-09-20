@@ -14,7 +14,7 @@ NTSTATUS ref_guidfmt(const GUIDX* g, U* s){
     // The export terminates TWICE: after the 38 characters, and again at the last whole WCHAR the
     // caller's capacity allows. Measured over 16 capacities, odd and even (probes/tail.c):
     // 78->38 79->38 80->39 81->39 82->40 83->40 90->44 100->49 120->59 160->79 200->99 398->198,
-    // i.e. MaximumLength/2 - 1 with integer division -- at 78 and 79 it coincides with the first
+    // i.e. MaximumLength/2 - 1 with integer division, at 78 and 79 it coincides with the first
     // terminator, which is why a narrow probe reads as "no rule". MaximumLength >= 78 is already
     // guaranteed above, so the index is never negative.
     s->Buffer[s->MaximumLength/2 - 1] = 0;

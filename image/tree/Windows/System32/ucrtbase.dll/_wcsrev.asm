@@ -177,7 +177,7 @@ blk8:
         ; ---- tier 3: 8..15 bytes -> one OVERLAPPING vpshuflw pair --------------------------------
         ; The same overlap argument again, one size down: two 4-wchar halves cover any remainder up
         ; to 16 bytes, and where they overlap they write the same words. This replaces up to three
-        ; scalar word-pair swaps -- which matters beyond the instruction count, because a caller
+        ; scalar word-pair swaps, which matters beyond the instruction count, because a caller
         ; that reverses the same buffer repeatedly leaves those narrow stores in flight when the
         ; next call's wide load arrives, and a narrow store feeding a wide load cannot forward.
 rem8:

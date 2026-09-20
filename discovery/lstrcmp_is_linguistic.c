@@ -13,8 +13,8 @@
    normalise every character anyway -- i.e. a LINGUISTIC comparison through the collation tables. If
    that is what this is, no amount of AVX2 reproduces it and the target is dead, exactly as:
 
-     * StrCmpNW  -- orders linguistically; its sign disagreed with wcsncmp on 52 130 of 200 000 pairs;
-     * StrChrIW  -- its case fold has 3236-member equivalence classes, because ignorable code points
+     * StrCmpNW, orders linguistically; its sign disagreed with wcsncmp on 52 130 of 200 000 pairs;
+     * StrChrIW; its case fold has 3236-member equivalence classes, because ignorable code points
                     collate as nothing.
 
    THREE TESTS, each of which independently kills the target:

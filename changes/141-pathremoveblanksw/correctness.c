@@ -1,6 +1,6 @@
 // changes/141-pathremoveblanksw/correctness.c
 // Bit-exact fuzz of wia_pathremoveblanksw vs live shlwapi!PathRemoveBlanksW + oracle. In-place, so the
-// whole buffer is compared -- which is what pins the move-then-terminate ordering (the reverse of
+// whole buffer is compared, which is what pins the move-then-terminate ordering (the reverse of
 // StrTrimW) and would catch a merely "looks right" implementation.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -45,7 +45,7 @@ int main(void){
         for(int i=0;i<len;i++) buf[i]=(i%3==0)?L' ':L'a';
         chk(buf,len,"interior-spaces");
     }
-    // across the MAX_PATH boundary -- this one has NO guard, unlike change 140
+    // across the MAX_PATH boundary; this one has NO guard, unlike change 140
     for(int len=250; len<=300 && fails<15; len++){
         for(int i=0;i<len;i++) buf[i]=L'a'; buf[0]=L' '; buf[len-1]=L' ';
         chk(buf,len,"maxpath-region");

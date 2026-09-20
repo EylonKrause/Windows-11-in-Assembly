@@ -5,14 +5,14 @@
  * Two mutants of change 285 survived both gates, and whether each is harmless or a real defect depends
  * on something about change 281's generated tables that had never been written down:
  *
- *   1. A POOL SLOT holds n members for a code unit with n partners, in a sixteen-byte slot -- room for
+ *   1. A POOL SLOT holds n members for a code unit with n partners, in a sixteen-byte slot, room for
  *      eight. a mutant that walks one member too far reads entry [n]. If that entry is zero the extra
  *      comparison can never fire, because the scalar loop tests for the terminator before it compares,
  *      so a zero string character never reaches the compare. If it is a STALE value from another set,
  *      the mutant is a false-match bug and the gates simply failed to catch it.
  *
  *   2. THE 255 SENTINEL means a code unit's set is stored as a bitmap. A mutant that removes the
- *      terminator test from the scalar bitmap loop survived -- which is only harmless if bit 0 is SET
+ *      terminator test from the scalar bitmap loop survived, which is only harmless if bit 0 is SET
  *      in that bitmap, so that the terminator stops the loop anyway. The ignorables include 0x0000
  *      (change 282's foldnul.c lists it first), so for THAT bitmap it is harmless. But there is more
  *      than one bitmap set: U+D7A2 also carries the sentinel and accepts only 238 code units. If bit 0

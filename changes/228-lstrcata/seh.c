@@ -17,7 +17,7 @@
 //     buffer holding "keepme" still held it), a NULL destination returns NULL, and both NULL
 //     returns NULL. Returning before the core runs is what preserves the destination.
 //   * a __try/__except that converts an access violation into NULL, leaving whatever the core had
-//     already written in place -- which is exactly the partial the shipped function leaves, because
+//     already written in place, which is exactly the partial the shipped function leaves, because
 //     the core page-clamps both pointers and therefore stops on the same byte.
 //
 // This costs nothing on the fast path. x64 structured exception handling is table-driven: the

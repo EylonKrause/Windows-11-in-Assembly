@@ -2,7 +2,7 @@
 // Oracle for shlwapi!StrCSpnA. Not fast; just obviously right.
 //
 // The contract, measured in probes/span.c against the live export:
-//   * byte-wise on this code page, in both the subject and the set -- 0 of 254 byte values act as a
+//   * byte-wise on this code page, in both the subject and the set, 0 of 254 byte values act as a
 //     DBCS lead byte in the subject, and 0 of 252 cannot be a set member (ACP is 1252);
 //   * returns the number of leading characters of pszStr that are NOT in pszSet, i.e. strlen when
 //     none of them is;

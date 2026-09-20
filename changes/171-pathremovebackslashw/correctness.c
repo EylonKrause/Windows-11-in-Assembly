@@ -67,7 +67,7 @@ int main(void){
         }
     }
 
-    // every first character with "X:\" -- pins the 114-character drive-letter set exactly
+    // every first character with "X:\", pins the 114-character drive-letter set exactly
     for(int c=1;c<65536;c++){
         s[0]=(wchar_t)c; s[1]=L':'; s[2]=L'\\'; s[3]=0;
         CHECK(one(s), "drive-letter sweep");

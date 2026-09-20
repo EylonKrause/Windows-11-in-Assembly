@@ -2,33 +2,33 @@
 ; BOOL wia_pathisfilespeca(PCSTR psz)   [Win64: rcx -> eax]
 ;
 ; Reimplements shlwapi!PathIsFileSpecA: is this a bare file name, with no path separator in it?
-; 4.38 ns against 1.57 ns for the wide form on the same character count -- 2.79x the wide cost for
+; 4.38 ns against 1.57 ns for the wide form on the same character count, 2.79x the wide cost for
 ; HALF the bytes. The last of the twelve narrow siblings in discovery/shlwapi_narrow2.c, and the
 ; smallest in absolute terms: it writes nothing, returns a BOOL, and the whole job is one scan.
 ;
 ; THE CONTRACT, measured in probes/pifsa.c:
 ;
 ;   * Exactly two byte values are separators: 0x5C and 0x3A. Confirmed at the first, middle and last
-;     positions -- 2 of 255 at each -- so neither is position-dependent. a forward slash is not one:
+;     positions (2 of 255 at each) so neither is position-dependent. a forward slash is not one:
 ;     "a/b" and "/" are both TRUE.
 ;   * The empty string is TRUE. That is the one case a natural model gets wrong, and it was the only
 ;     mismatch in 488281 enumerated strings when this probe first ran with "non-empty" in its rule.
-;     It is not a special case in the code either -- a string with no characters trivially contains
+;     It is not a special case in the code either, a string with no characters trivially contains
 ;     no separator, so the scan falls straight through to TRUE.
 ;   * NULL returns 0.
 ;   * 0 mismatches over all 488281 strings of {a, backslash, :, /, 0x80} to length 8.
 ;
-; Method: one forward pass looking for any of three bytes -- the terminator, 0x5C, 0x3A -- as three
+; Method: one forward pass looking for any of three bytes (the terminator, 0x5C, 0x3A) as three
 ; vpcmpeqb and two vpor per 32-byte block, so a single extraction answers all of them. If the first
 ; one found is the terminator the answer is TRUE; otherwise it is FALSE. There is no second pass and
 ; no length: the function never needs to know how long the string is.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the bytes already scanned came
+; stays inside the cursor's own page, necessarily mapped, since the bytes already scanned came
 ; from it. Within 32 bytes of a page end it steps one byte and retries. probes/pifsa.c confirms the
 ; shipped export does not overread either, in both shapes: 398 of 398 guard-page cases were clean.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

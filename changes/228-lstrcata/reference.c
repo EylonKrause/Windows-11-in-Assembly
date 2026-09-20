@@ -10,7 +10,7 @@
 //   * the result is terminated, not padded.
 //   * it returns the DESTINATION on success.
 //   * An empty source still stores the terminator. Appending "" leaves the buffer byte-for-byte
-//     identical, which looks like "writes nothing" -- but writing a 0 over a 0 is indistinguishable
+//     identical, which looks like "writes nothing", but writing a 0 over a 0 is indistinguishable
 //     from not writing. A PAGE_READONLY destination settles it: lstrcatA(readonly, "") returns
 //     NULL, so the store happens. No early exit.
 //   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL.

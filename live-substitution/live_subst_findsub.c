@@ -7,7 +7,7 @@
 //
 // Who actually calls this, stated because it bounds what a live proof here can mean. a scan of
 // System32 for importers of the name finds ntoskrnl.exe, afd.sys, dxgkrnl.sys, dam.sys, CAD.sys and
-// VerifierExt.sys -- all KERNEL mode, none of them reachable from a user-mode patch -- plus exactly
+// VerifierExt.sys (all KERNEL mode, none of them reachable from a user-mode patch) plus exactly
 // two user-mode DLLs: wldp.dll and ci.dll. Neither yields a second export the way change 249's
 // UrlHashW or change 250's ExW did: wldp's two call sites are at RVA 0001AE8E and 0001AF10, inside
 // an internal helper 0x15DE past the nearest preceding export, reachable only by driving a lockdown
@@ -15,20 +15,20 @@
 // its .text, so it reaches it (if at all) through a pointer. So this harness proves the export
 // itself, and claims nothing more.
 //
-// What is compared: the offset of the hit, or -1 -- not the raw pointer -- for every case in both
+// What is compared: the offset of the hit, or -1 (not the raw pointer) for every case in both
 // modes, so an answer cannot be right by accident of where the buffer happens to sit.
 //
 // The table trap, which this file calls out deliberately. wia_casemate_init() is called before
 // anything else. Leaving it out does not fail loudly: the case-partner table would be all zeros,
 // every partner would be U+0000, and the search would still return a perfectly well-formed answer
-// -- just one that never matches across case. Change 065 cost an entire session to exactly this
+//, just one that never matches across case. Change 065 cost an entire session to exactly this
 // shape of silent failure (its two-digit table went unbuilt, and every IP address came out
 // truncated with a correct status and a correct length), so the call is made first and said out
 // loud here.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this routine is used by neither the loader nor
 //       the heap.
@@ -206,7 +206,7 @@ int main(void)
 
     if (!live) { printf("RtlFindUnicodeSubstring not found\n"); return 1; }
 
-    /* The table first -- see the header. An unbuilt table fails silently, not loudly. */
+    /* The table first, see the header. An unbuilt table fails silently, not loudly. */
     maxclass = wia_casemate_init();
     printf("== LIVE SUBSTITUTION: ntdll!RtlFindUnicodeSubstring (change 252) ==\n");
     printf("  case-partner table built; largest case-equivalence class = %d (must be 2)\n", maxclass);

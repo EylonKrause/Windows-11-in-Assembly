@@ -3,7 +3,7 @@
  * Is RtlInitUTF8String just RtlInitString under another name?
  *
  * discovery/rtl_cmpstrings_probe.c already established that it is a DIFFERENT ADDRESS from
- * RtlInitString -- unlike RtlInitAnsiString, which shares one -- so it is at least distinct code.
+ * RtlInitString (unlike RtlInitAnsiString, which shares one) so it is at least distinct code.
  * What it is not yet known to be is distinct BEHAVIOUR, and that is the whole question: change 095
  * already ships a page-safe AVX2 strlen plus struct fill for RtlInitString, and if this export
  * follows the same rules then this change is that one with a different name on it.
@@ -20,7 +20,7 @@
  * a UTF-8 function could have:
  *
  *   * does it return void, or a status?
- *   * Length in BYTES or in characters -- asked with multi-byte sequences, where they differ
+ *   * Length in BYTES or in characters, asked with multi-byte sequences, where they differ
  *   * the 0xFFFF clamp, and what happens at and just past it
  *   * MaximumLength = Length + 1?
  *   * NULL source

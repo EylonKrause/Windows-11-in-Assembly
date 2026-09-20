@@ -1,6 +1,6 @@
 /* changes/260-rtlcopybitmap/probes/contract.c
  *
- * ntdll!RtlCopyBitMap (RVA 0x13E310) and ntdll!RtlExtractBitMap (RVA 0x1116A0) -- a bit-granular
+ * ntdll!RtlCopyBitMap (RVA 0x13E310) and ntdll!RtlExtractBitMap (RVA 0x1116A0), a bit-granular
  * copy between two bitmaps, and its mirror.
  *
  * WHY. discovery/ntdll_bitmap2.c found the largest single anomaly in the whole bitmap family, and
@@ -30,8 +30,8 @@
  * cleared the rest of the word" look identical if only the copied range is examined.
  *
  *   1. Which way does TargetBit apply? Copy reads the source from bit 0 and writes at TargetBit;
- *      Extract reads from TargetBit and writes at bit 0 -- or so the disassembly reads.
- *   2. How many bits? RtlCopyBitMap's fourth argument appears to be ignored -- the count reads as
+ *      Extract reads from TargetBit and writes at bit 0, or so the disassembly reads.
+ *   2. How many bits? RtlCopyBitMap's fourth argument appears to be ignored; the count reads as
  *      min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit), and r9d is overwritten at
  *      0x13E34A before it is ever used. That is a documented three-argument function being called
  *      with four by half the world, so it is worth proving rather than asserting.

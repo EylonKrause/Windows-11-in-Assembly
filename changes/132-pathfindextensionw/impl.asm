@@ -14,12 +14,12 @@
 ;
 ; ---- The space was missing, and this change shipped wrong -------------------------------------------
 ; The original rule here had only the backslash, and was "validated bit-exact over 600k fuzz". It was
-; not. That fuzz alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'} -- NO SPACE -- so the corpus
+; not. That fuzz alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'} (NO SPACE) so the corpus
 ; could not produce the failing shape, and the oracle, the implementation and the test were all wrong
 ; together. A test that shares its blind spot with the thing it tests proves nothing.
 ;
 ; It was caught while probing the NARROW sibling for change 217. That probe enumerated
-; {a, '.', backslash, '/', ':'} exhaustively and got 0 mismatches against this rule -- and then
+; {a, '.', backslash, '/', ':'} exhaustively and got 0 mismatches against this rule, and then
 ; widened the alphabet by two characters and got 118587. The smallest failing case is ". ".
 ;
 ; The amendment is one character, and it was verified rather than guessed: over 2015539 strings
@@ -31,13 +31,13 @@
 ;     live PathFindExtensionA vs THIS rule    :      0 mismatches
 ;
 ; It is 0x20 specifically and not whitespace in general: "a.b<TAB>" still yields the dot. Of 255 byte
-; values placed after a dot, exactly THREE stop it counting -- 0x20, 0x2E and 0x5C -- and the latter
+; values placed after a dot, exactly THREE stop it counting (0x20, 0x2E and 0x5C) and the latter
 ; two are already explained by the last-dot and backslash rules.
 ;
 ; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', the STOPPERS and NUL are
 ; extracted; the running candidate is updated by the rule "a stopper clears the candidate, a later
 ; dot sets it",
-; which per block reduces to comparing the highest dot bit against the highest backslash bit -- no
+; which per block reduces to comparing the highest dot bit against the highest backslash bit, no
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;

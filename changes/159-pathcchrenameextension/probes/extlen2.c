@@ -1,4 +1,4 @@
-/* probes/extlen2.c -- the extension-length limit: does it count the leading dot, and do 159 and
+/* probes/extlen2.c; the extension-length limit: does it count the leading dot, and do 159 and
  * 160 agree? And does this implementation already know about it?
  *
  * extlen.c established that the boundary is at an extension of 257 characters, in every run,
@@ -85,7 +85,7 @@ int main(void){
             HRESULT a; long b;
             int k;
             for(k=0;k<CAP;++k){ b1[k]=0x2A2A; b2[k]=0x2A2A; }
-            /* "aaa.txt" -- it already has an extension */
+            /* "aaa.txt"; it already has an extension */
             for(k=0;k<3;++k){ b1[k]=L'a'; b2[k]=L'a'; }
             b1[3]=b2[3]=L'.'; b1[4]=b2[4]=L't'; b1[5]=b2[5]=L'x';
             b1[6]=b2[6]=L't'; b1[7]=b2[7]=0;

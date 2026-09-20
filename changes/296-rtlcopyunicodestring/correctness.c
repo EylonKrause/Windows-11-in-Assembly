@@ -1,4 +1,4 @@
-/* changes/296-rtlcopyunicodestring/correctness.c -- the gate.
+/* changes/296-rtlcopyunicodestring/correctness.c: the gate.
  *
  * Compares wia_copyus against reference.c AND against the LIVE ntdll!RtlCopyUnicodeString
  * resolved with GetProcAddress. A single mismatch fails.
@@ -19,7 +19,7 @@
  * shipped code is a real memmove (it matches C memmove byte for byte at n = 512, dst = src + 8),
  * so overlap is IN contract and is swept here at every delta from -80 to +80.
  *
- * A separate pass puts the destination -- and then the source -- ending exactly at a page boundary
+ * A separate pass puts the destination (and then the source) ending exactly at a page boundary
  * with the following page PAGE_NOACCESS, for every length 0..200. A vector load one byte wider
  * than the caller's buffer faults there instead of passing silently.
  */

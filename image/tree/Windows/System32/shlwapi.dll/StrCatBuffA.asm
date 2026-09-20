@@ -8,7 +8,7 @@
 ; Reimplements shlwapi!StrCatBuffA. Re-measured idle, it is the largest absolute cost left among the
 ; unconverted narrow siblings: 90.14 ns to append into a 260-character buffer.
 ;
-; Note what the survey's usual diagnostic says here -- nothing. discovery/shlwapi_narrow2.c reports
+; Note what the survey's usual diagnostic says here, nothing. discovery/shlwapi_narrow2.c reports
 ; StrCatBuffA at 0.83x the WIDE cost, and for every other function in that survey a ratio below one
 ; meant "the narrow form is not especially penalised". Here it means the wide form is slow TOO (108
 ; ns), so the A/W ratio is uninformative and only the absolute number matters. Ninety nanoseconds
@@ -18,23 +18,23 @@
 ;
 ;   * cch is the TOTAL buffer size. The result is capped at cch-1 characters.
 ;   * The destination scan is bounded by cch. If no terminator is found within the first cch bytes,
-;     the function writes nothing at all and returns the destination -- it does not truncate, and it
+;     the function writes nothing at all and returns the destination; it does not truncate, and it
 ;     does not append. That single rule also explains the "destination longer than the bound" case:
 ;     its terminator lies outside the first cch bytes, so the bounded scan never finds it.
 ;   * It never writes at or beyond index cch. Swept over 31 x 31 x 41 length/bound combinations with
 ;     a poison fill: 0 violations.
-;   * It always stores the terminator once the scan succeeds -- even when nothing is appended. In RAM
+;   * It always stores the terminator once the scan succeeds, even when nothing is appended. In RAM
 ;     that store is invisible (a zero written over a zero), which is exactly why a 52111-case model
 ;     matched without it. A PAGE_READONLY destination separates them: with an 8-character string,
 ;     cch 9 and above FAULT (the store happened) and cch 8 and below return (the scan failed, so
 ;     nothing was written).
-;   * a NULL source returns the destination and stores nothing -- the same read-only test shows the
+;   * a NULL source returns the destination and stores nothing, the same read-only test shows the
 ;     NULL check comes BEFORE the store. A NULL destination returns NULL. cch <= 0 writes nothing.
 ;   * Byte-wise: 0 of 255 byte values disagree at each of four positions.
 ;
 ; No __try/__except wrapper, and that is measured, not assumed. Every read and write is bounded by
 ; cch, so the function is safe whenever the caller tells the truth about the buffer. When the caller
-; LIES -- cch larger than the real buffer -- probes/scb2.c found it FAULTS, 37 of 37 distances, with
+; LIES (cch larger than the real buffer) probes/scb2.c found it FAULTS, 37 of 37 distances, with
 ; nothing swallowed. That is the opposite of lstrcpy/lstrcat (changes 225/227/229), which return
 ; NULL, and it is why this change is plain assembly with no wrapper and no second call.
 ;
@@ -48,7 +48,7 @@
 ; so no chunk can fault halfway, and the fault lands on the first byte of the next page with
 ; everything before it already written.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_strcatbuffa PROC
@@ -61,8 +61,8 @@ wia_strcatbuffa PROC
         jle       ret_dst                        ; cch <= 0 -> nothing examined, nothing stored
         ; An empty destination needs no scan. cch is already known positive here, so index 0 is
         ; inside the bound and the terminator is right there. Appending into a buffer a caller has
-        ; just initialised is common, and this is the whole scan -- clamp, 32-byte load, compare,
-        ; extraction -- replaced by one load and a branch.
+        ; just initialised is common, and this is the whole scan, clamp, 32-byte load, compare,
+        ; extraction, replaced by one load and a branch.
         cmp       byte ptr [rcx], 0
         je        found_at_start
         vpxor     ymm1, ymm1, ymm1               ; the terminator

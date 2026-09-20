@@ -4,7 +4,7 @@
 ; Reimplements shlwapi!StrChrA: the first occurrence of wMatch, or NULL.
 ;
 ; ---- This one is a different shape from the rest of the narrow family, and the numbers say so ------
-; StrRChrA cost 16.41x its wide sibling, StrCSpnA 13.54x, StrPBrkA 10.03x -- all the signature of an
+; StrRChrA cost 16.41x its wide sibling, StrCSpnA 13.54x, StrPBrkA 10.03x, all the signature of an
 ; MBCS-aware walk with a function call per character. StrChrA costs 1580.19 ns against StrChrW's
 ; 1565.97 over the same character count: 1.01x the wide cost for HALF the bytes, i.e. only twice the
 ; cost per byte. That is a plain byte loop, not a CharNextA walk.
@@ -16,7 +16,7 @@
 ; ---- what the probe settled (probes/chr.c) ----------------------------------------------------------
 ;   * BYTE-WISE. Every byte value 0x01..0xFF placed where a lead byte would swallow the character
 ;     after it: 0 of 254 misbehave (GetACP() is 1252, which has none).
-;   * wMatch is a word but only its low byte is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
+;   * wMatch is a word but only its low byte is consulted, 0x015A, 0x5A5A and 0xFF5A all find 'Z',
 ;     and 0x5A00 (low byte NUL) finds nothing.
 ;   * Searching for the TERMINATOR returns NULL; so does an empty string, and so does a NULL pointer.
 ;   * The scan STOPS at the terminator: "abc\0Zxy" does not find the 'Z' beyond the embedded NUL.
@@ -25,7 +25,7 @@
 ;
 ; ---- method ----------------------------------------------------------------------------------------
 ; One forward pass, two masks per 32-byte block: the target and the terminator. The first set bit of
-; either decides the answer -- a target bit below the terminator's is a hit, anything else ends the
+; either decides the answer; a target bit below the terminator's is a hit, anything else ends the
 ; scan.
 ;
 ; The first block's mask has the bits BEFORE the string cleared rather than shifted out, so the block
@@ -43,7 +43,7 @@
 wia_strchra PROC
         ; wMatch arrives in DX, not r8w. StrChrA takes TWO arguments; change 213's StrRChrA takes
         ; three, and borrowing its register layout cost one full correctness run in which every
-        ; "present" case failed and every "absent" case passed -- the signature of reading the wrong
+        ; "present" case failed and every "absent" case passed, the signature of reading the wrong
         ; register for the needle.
         test      dl, dl
         jz        sc_null                    ; seeking the terminator -> NULL. Only the LOW byte of
@@ -67,7 +67,7 @@ wia_strchra PROC
         vpcmpeqb  ymm4, ymm0, ymm3
         vpmovmskb edx, ymm4                  ; the terminator
         ; Clear the bits BEFORE the string instead of shifting them out, so the block base can be the
-        ; signed value -(psz & 31) and every later block is simply +32 -- one uniform loop.
+        ; signed value -(psz & 31) and every later block is simply +32, one uniform loop.
         mov       r8d, -1
         shlx      r8d, r8d, ecx
         and       eax, r8d

@@ -6,7 +6,7 @@
 // turned out to be missing, and it is worth being precise about why, because the shape of the
 // mistake is more useful than the mistake:
 //
-//   * it ran every case with `MaximumLength` fixed at 300 -- always generous -- so the size rule
+//   * it ran every case with `MaximumLength` fixed at 300 (always generous) so the size rule
 //     never bound and the OVERFLOW path was never compared against ntdll at all (the one overflow
 //     assertion it had checked only that OUR function returned 0x80000005, with no live call and
 //     no buffer comparison);

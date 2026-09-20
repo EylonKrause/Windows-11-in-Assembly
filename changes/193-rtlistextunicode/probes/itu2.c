@@ -1,4 +1,4 @@
-/* RtlIsTextUnicode, round 2 -- sharpen the rules round 1 left open, and first decide whether the
+/* RtlIsTextUnicode, round 2, sharpen the rules round 1 left open, and first decide whether the
    routine is even worth converting.
 
    Round 1 (itu.c) established:

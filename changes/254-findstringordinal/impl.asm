@@ -3,7 +3,7 @@
 ;                           const wchar_t* val, int cchVal, BOOL bIgnoreCase)
 ;   [Win64: rcx, rdx, r8d, r9, [rsp+40], [rsp+48] -> eax]
 ;
-; kernelbase!FindStringOrdinal, RVA 0x0A1E90. The Win32 ordinal substring search -- the one API in
+; kernelbase!FindStringOrdinal, RVA 0x0A1E90. The Win32 ordinal substring search, the one API in
 ; this family that is NOT collation, which is why it is reachable when StrStrIW, StrChrIW and
 ; StrCmpLogicalW are not.
 ;
@@ -30,7 +30,7 @@
 ;
 ; So the `< 0xC0` short-circuit is an OPTIMISATION, not a different table, and change 252's
 ; case-partner table (casemate.c, derived from change 210's OS-built upcase table) transfers here
-; exactly -- including the property the vector filter depends on, that no case-equivalence class has
+; exactly, including the property the vector filter depends on, that no case-equivalence class has
 ; more than two members.
 ;
 ; That probe also corrected a factual error in change 252's own header, which had claimed U+017F
@@ -39,10 +39,10 @@
 ;
 ; ------------------------------------------------------------------------------------------------
 ; The refusal contract, measured (probes/errors.c). This is a Win32 API, so unlike change 252's
-; target it does not merely compute -- it validates, sets a last-error and returns -1, and every one
+; target it does not merely compute; it validates, sets a last-error and returns -1, and every one
 ; of those refusals is observable:
 ;
-;   SetLastError(0) ON ENTRY, before anything else -- success and an ordinary miss both leave 0.
+;   SetLastError(0) ON ENTRY, before anything else, success and an ordinary miss both leave 0.
 ;   bIgnoreCase > 1 (UNSIGNED)   -> -1, ERROR_INVALID_PARAMETER (87)
 ;   src or val NULL              -> -1, 87   (checked BEFORE the lengths: NULL with cch 0 still 87)
 ;   cchSrc or cchVal < -1        -> -1, 87
@@ -53,7 +53,7 @@
 ;   needle longer than haystack  -> -1, last error UNTOUCHED (an ordinary miss, not an error)
 ;
 ; `bIgnoreCase > 1` Is the one worth the probe. Every Win32 convention says a BOOL is "nonzero is
-; true", and this one rejects 2 AND rejects -1 -- so a caller passing the result of a bit test gets
+; true", and this one rejects 2 AND rejects -1, so a caller passing the result of a bit test gets
 ; ERROR_INVALID_PARAMETER. A reimplementation that wrote `test r8d, r8d / jnz insensitive` would be
 ; wrong on an input real code produces. It is an UNSIGNED compare against 1.
 ;
@@ -67,18 +67,18 @@
 ;
 ; And the strings are counted, not terminated, when a length is given: with cchSource = 5 over
 ; {a,b,0,c,d} a needle of {0,c} is FOUND, at index 2. A length of -1 means "measure it", and that is
-; the only case where a NUL matters -- change 001's wia_wcslen does the measuring.
+; the only case where a NUL matters, change 001's wia_wcslen does the measuring.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; How it searches. The same two-anchor block filter as change 252, and for the same reasons: compare
 ; sixteen positions against one needle character and, in the same iteration, sixteen positions
 ; further along against another; only where both agree can a match begin. The far anchor is CHOSEN
-; rather than fixed at m-1 -- the last position whose character differs from the first -- because a
+; rather than fixed at m-1 (the last position whose character differs from the first) because a
 ; needle shaped "a......a" hunted through a run of 'a' otherwise admits every position. Change 252's
 ; benchmark measured that row crossing the gate AT RANDOM from run to run before the anchor was
 ; chosen, and the fix costs one O(m) walk per call and nothing per block.
 ;
-; FIND_FROMEND runs the same filter BACKWARDS -- blocks from the end, and the HIGHEST set bit within
+; FIND_FROMEND runs the same filter BACKWARDS, blocks from the end, and the HIGHEST set bit within
 ; a block rather than the lowest, via BSR instead of TZCNT. It is not "search forwards and keep the
 ; last hit": that would scan the whole string even when the answer is in the final block.
 ;
@@ -94,10 +94,10 @@ PUBLIC wia_findstringordinal
 EXTERN wia_wcslen:PROC          ; change 001, for a cch of -1
 EXTERN wia_casemate:WORD        ; change 252's case-partner table (casemate.c)
 ; No extern SetLastError. The last error lives in the teb at gs:[0x68], and setting it is one store
-; -- which is exactly what the shipped code does: `mov ecx, 0x3ec / call 0x178A8` at 0x0A215E goes
+; which is exactly what the shipped code does: `mov ecx, 0x3ec / call 0x178A8` at 0x0A215E goes
 ; to RtlSetLastWin32Error, whose entire body is that store. Calling the exported SetLastError
 ; instead cost about a nanosecond on every call, which is invisible on a 4000-character search and
-; is most of the budget on FIND_STARTSWITH -- where the whole function is a validation, a compare
+; is most of the budget on FIND_STARTSWITH, where the whole function is a validation, a compare
 ; that fails on the first character, and this store. Measured: STARTSWITH 0.92x and ENDSWITH 0.84x
 ; with the call, and the regression disappears without it. correctness.c compares GetLastError()
 ; three ways on every one of its cases, so the store is verified rather than assumed.
@@ -117,13 +117,13 @@ ERR_FLAGS    EQU 1004
 
 ; ---------------------------------------------------------------------------------------------
 ; ---------------------------------------------------------------------------------------------
-; Candidate verifiers -- LEAF procedures with no prologue and no unwind data, deliberately: an
+; Candidate verifiers, LEAF procedures with no prologue and no unwind data, deliberately: an
 ; internal `call` inside a PROC FRAME would push eight bytes the parent's unwind info does not
 ; describe, and an exception taken there would unwind wrong. As leaves with no unwind data the
 ; unwinder pops the return address and resumes in the parent at the rsp its prologue codes describe.
 ;
 ; In:   ecx = candidate start index; rsi = haystack, rdi = needle, r13d = m.
-; Out:  ZF set on a match. Clobbers rax, r8, r9, r10, r11 -- deliberately NOT rdx, which carries the
+; Out:  ZF set on a match. Clobbers rax, r8, r9, r10, r11, deliberately NOT rdx, which carries the
 ;       live candidate mask across the call, and not rbp, which is the frame base.
 ; ---------------------------------------------------------------------------------------------
 fo_verify PROC
@@ -170,7 +170,7 @@ fo_c_no:
         ret
 fo_verify_ci ENDP
 
-; -- Pick the verifier once per candidate through one indirect branch rather than testing the mode
+; Pick the verifier once per candidate through one indirect branch rather than testing the mode
 ;    inside the character loop. A tail JUMP, so the chosen verifier returns straight to the search.
 fo_vsel PROC
         test      r12d, r12d
@@ -181,18 +181,18 @@ fo_vsel_ci:
 fo_vsel ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; fo_anchors -- choose the far anchor and broadcast both. Sets r15d (the far anchor's position),
+; fo_anchors, choose the far anchor and broadcast both. Sets r15d (the far anchor's position),
 ; ymm2..ymm4 and the mate-of-the-far-anchor spill at [rbp]. A leaf that calls nothing.
 ;
 ; The near anchor is needle[0]; the far one is the LAST position whose character differs from it,
-; falling back to m-1 when every character is the same -- a needle like that matches at the first
+; falling back to m-1 when every character is the same, a needle like that matches at the first
 ; position it is tested against, so the fallback costs nothing. Insensitively, "differs" means "is
 ; in a different case class": choosing 'a' against a near anchor of 'a' would add a second test that
 ; admits exactly the positions the first one already did.
 ;
 ; Change 252 measured what happens without this. With the far anchor fixed at m-1, a needle shaped
 ; "a......a" hunted through a run of 'a' admits every position, and that row crossed the 0.97x gate
-; AT RANDOM from run to run -- 0.91x to 1.17x on the same code. Choosing the anchor costs one O(m)
+; AT RANDOM from run to run, 0.91x to 1.17x on the same code. Choosing the anchor costs one O(m)
 ; walk per call and nothing per block.
 ; ---------------------------------------------------------------------------------------------
 fo_anchors PROC
@@ -243,7 +243,7 @@ fo_an_bc:
 fo_anchors ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; fo_mask -- the candidate mask for the sixteen positions starting at ebx, returned in edx.
+; fo_mask, the candidate mask for the sixteen positions starting at ebx, returned in edx.
 ; Clobbers rax, ymm0, ymm1, ymm5. A leaf that calls nothing.
 ;
 ; Case-sensitively: two compares and an AND. Insensitively: four compares, two ORs and an AND --
@@ -297,7 +297,7 @@ wia_findstringordinal PROC FRAME
         .endprolog
         ; THE FRAME. Eight pushes leave rsp at 8 mod 16, so the allocation must be 8 mod 16 too for
         ; a call to land aligned: 88, not 80.
-        ;   [rsp+ 0 .. 31]  shadow space -- SetLastError is a real Win32 function and WILL write it
+        ;   [rsp+ 0 .. 31]  shadow space, SetLastError is a real Win32 function and WILL write it
         ;   [rsp+32 .. 63]  the far anchor's case partner (rbp points here)
         ;   [rsp+64]        the resolved flag
         ;   [rsp+72]        bIgnoreCase, until it moves to r12d
@@ -416,20 +416,20 @@ fo_fs_cand:
 fo_fs_next:
         add       ebx, 16
         jmp       fo_fs_blk
-; -- The scalar tail, INLINED rather than calling the verifier per position. --
+; The scalar tail, INLINED rather than calling the verifier per position. --
 ; The first version called fo_vsel for each candidate, which is right for the block loop (a handful
 ; of candidates in a whole block) and badly wrong here (one indirect call for every position). On a
 ; sixteen-character search that is thirteen calls against the shipped code's single tight loop, and
 ; it measured 0.44x. The mode is tested ONCE, at the top.
-; -- One block, one anchor: the short-haystack path. --
-; When fewer than sixteen START positions remain, the two-anchor loop cannot run -- the far anchor's
+; One block, one anchor: the short-haystack path. --
+; When fewer than sixteen START positions remain, the two-anchor loop cannot run, the far anchor's
 ; read would pass the end. But the NEAR anchor's read often still fits, and when it does, one vector
 ; compare replaces the entire scalar walk: a sixteen-character haystack has thirteen start positions
 ; and filtering all thirteen at once costs about as much as walking three of them. The mask is
 ; trimmed with BZHI to the positions that are actually legal, so a candidate past the limit is never
 ; even considered.
 ;
-; The guard is `i + 16 <= n`, which is what makes the 32-byte read in bounds -- NOT i <= limit, which
+; The guard is `i + 16 <= n`, which is what makes the 32-byte read in bounds, NOT i <= limit, which
 ; is a weaker condition and would read past the buffer for a long needle.
 fo_fs_tail:
         mov       eax, r14d
@@ -536,7 +536,7 @@ fo_fs_tc_no:
         jmp       fo_fs_tcp
 
         ; ============================= FIND_FROMEND =============================
-        ; The same filter run BACKWARDS -- blocks from the end, and the HIGHEST candidate within a
+        ; The same filter run BACKWARDS, blocks from the end, and the HIGHEST candidate within a
         ; block via bsr rather than the lowest via tzcnt. Not "search forwards and keep the last
         ; hit": that would scan the whole string even when the answer is in the final block.
 fo_fromend:

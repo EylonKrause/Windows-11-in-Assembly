@@ -7,16 +7,16 @@
 ;
 ; The copy core for kernelbase!lstrcpynW, which measures 3.37 GB/s on a 4000-character copy. There is
 ; no semantic excuse for that: unlike the two shlwapi routines this project's survey ruled out, there
-; is no case folding and no collation here -- just a bounded copy that stops at a NUL.
+; is no case folding and no collation here, just a bounded copy that stops at a NUL.
 ;
 ; CONTRACT (probes/lcp.c, measured against the live export):
 ;   * copies at most n-1 characters, stopping early at the source's NUL, then writes ONE terminator.
-;     The destination is NOT padded -- "ab" into n=10 leaves cells 2..9 untouched, which rules out a
+;     The destination is NOT padded, "ab" into n=10 leaves cells 2..9 untouched, which rules out a
 ;     strncpy-shaped implementation;
 ;   * n == 0 writes nothing at all, not even a terminator, and still returns the destination;
 ;   * n is used UNSIGNED: -1 and -1000 both copy the whole string, they do not mean "empty";
 ;   * a NULL source or destination returns NULL (handled in seh.c, which owns the argument checks);
-;   * and the one that shapes this whole loop -- it swallows a faulting source. An unterminated
+;   * and the one that shapes this whole loop, it swallows a faulting source. An unterminated
 ;     string running into an unmapped page returns NULL, with the characters that WERE readable
 ;     already sitting in the destination.
 ;
@@ -27,8 +27,8 @@
 ; boundary the copy finishes one character at a time, so the fault lands on exactly the character the
 ; shipped code reaches.
 ;
-; The exception itself is caught in seh.c. On x64 __try/__except is table-driven -- it costs nothing
-; unless an exception actually fires -- so the fast path below is untouched by it.
+; The exception itself is caught in seh.c. On x64 __try/__except is table-driven; it costs nothing
+; unless an exception actually fires, so the fast path below is untouched by it.
 ;
 ; Only xmm0-xmm5 are touched. xmm6-xmm15 are callee-saved under Win64; see tools/abi-check.
 ;
@@ -49,7 +49,7 @@ wia_lstrcpynw_core PROC
         xor       r10d, r10d                   ; index, in characters
 
 wide:
-        ; No bound test here on purpose: the tail -- INCLUDING the one-past read described below --
+        ; No bound test here on purpose: the tail, INCLUDING the one-past read described below --
         ; belongs to the scalar loop. When no characters remain permitted, `permitted` computes to 0
         ; and the chunk test below falls through to it.
         lea       r11, [rdx + r10*2]
@@ -81,7 +81,7 @@ scalar:
 s_loop:
         ; The source is read before the bound is tested, and that order is part of the contract, not
         ; a detail. The shipped loop evaluates src[i] first, so with an n-1 exactly equal to the
-        ; source length it still reads src[n-1] -- one PAST the last character it copies -- and an
+        ; source length it still reads src[n-1] (one PAST the last character it copies) and an
         ; unterminated string ending at a page boundary faults THERE. probes/pg.c caught this: for
         ; every n == srclen+1 the live export returned NULL with no terminator written, while a
         ; bound-first loop terminated cleanly and returned the destination.

@@ -4,11 +4,11 @@
  *
  *     BOOLEAN RtlIsZeroMemory(const VOID* Buffer, SIZE_T Length)
  *
- * discovery/ntdll_bitmap3.c measured it at 1618 ns for 64 KB -- 0.025 ns/byte, about 40 GB/s, where
+ * discovery/ntdll_bitmap3.c measured it at 1618 ns for 64 KB, 0.025 ns/byte, about 40 GB/s, where
  * a VPTEST scan of the same shape measured 125 GB/s in change 259. That is the whole reason it is a
  * target, and it says nothing about the rules, which is what this file is for.
  *
- * a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
+ * a predicate has only two answers, which makes a careless corpus very easy to pass, the lesson
  * change 259 wrote down for RtlAreBitsSet. An implementation that always said NO would agree with
  * the live export on nearly every random buffer, so the questions below are the ones where the two
  * answers are NOT obvious:
@@ -17,7 +17,7 @@
  *   * Is a NULL buffer read at all when the length is zero?
  *   * Does it stop at the first non-zero byte, or read everything regardless? (Timing answers this,
  *     and it decides whether an early exit is worth writing.)
- *   * Does it read PAST the length -- rounding up to a vector, say? That would make it unsafe to
+ *   * Does it read PAST the length, rounding up to a vector, say? That would make it unsafe to
  *     call at the end of a page, and it decides whether OUR version may do the same. It cannot be
  *     asked directly, so it is asked with a guard page.
  *   * Is the answer affected by WHERE the non-zero byte is, or by alignment?

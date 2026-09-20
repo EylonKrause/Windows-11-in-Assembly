@@ -1,5 +1,5 @@
 @echo off
-REM changes/284-strstriw/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/284-strstriw/build.bat: assemble, gate on correctness, benchmark.
 REM
 REM The match relation, its generated tables and the init that checks them against the live export
 REM all come from change 281 unchanged. This change is the FORWARD, first-match search over the same

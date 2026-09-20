@@ -3,14 +3,14 @@
  * THIS FILE EXISTS BECAUSE IT CAUGHT MY OWN HARNESS, NOT THE CHANGE.
  *
  * abdup.c first reported that change 052 did not agree with live ntdll!RtlIntegerToUnicodeString
- * while change 278 -- the same export -- agreed exactly. That is a serious claim about a landed
+ * while change 278 (the same export) agreed exactly. That is a serious claim about a landed
  * change, so before it could be written down it had to be narrowed from a hash to actual cases.
  * This is what it printed:
  *
  *     live  st=00000000 Length=18   0034 0034 0031 0031 0033 0037 0037 0036 0035 0000
  *     052   st=00000000 Length=18   0034 0000 0000 0000 0000 0000 0000 0000 0000 0000
  *
- * The RIGHT length, and an ALL-ZERO buffer. That is not how a formatter fails -- it is how an
+ * The RIGHT length, and an ALL-ZERO buffer. That is not how a formatter fails; it is how an
  * UNINITIALISED TABLE fails. Change 052 keeps its two-digit table in a C file as a bare array plus
  * a wia_dec2_init() that fills it, and its own correctness.c calls that on the first line of main.
  * The audit harness did not. With the initialiser called, 052 matches live and 278 exactly.

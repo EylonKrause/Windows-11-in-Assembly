@@ -2,7 +2,7 @@
 // Oracle for shlwapi!StrTrimA. Not fast; just obviously right.
 //
 // The contract, measured in probes/trim.c against the live export:
-//   * byte-wise on this code page -- 0 of 254 byte values act as a DBCS lead byte after a trimmed
+//   * byte-wise on this code page, 0 of 254 byte values act as a DBCS lead byte after a trimmed
 //     prefix, and 0 of 255 fail when used AS the trim character (ACP is 1252);
 //   * both ends are trimmed; trim characters in the MIDDLE are left alone;
 //   * the return is TRUE exactly when something was stripped;

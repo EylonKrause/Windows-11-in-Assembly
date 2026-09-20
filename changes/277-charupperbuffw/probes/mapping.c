@@ -3,7 +3,7 @@
  * Is user32's case mapping the same one this project already owns?
  *
  * discovery/rtl_integer_char.c measured CharUpperBuffW at 0.78 ns per character and CharLowerBuffW
- * at 1.16, where change 015's RtlUpcaseUnicodeString runs at about 0.02 -- roughly forty times the
+ * at 1.16, where change 015's RtlUpcaseUnicodeString runs at about 0.02, roughly forty times the
  * headroom, on a per-character mapping with no allocator and no collation in the way. That is the
  * shape changes 274 and 276 did NOT have, and it is why this one was picked.
  *
@@ -22,7 +22,7 @@
  *
  *   1. Does CharUpperBuffW agree with RtlUpcaseUnicodeChar on all 65536 code units? And
  *      CharLowerBuffW with RtlDowncaseUnicodeChar?
- *   2. Does it agree with LCMapStringW under the user locale -- and under Turkish, where a
+ *   2. Does it agree with LCMapStringW under the user locale, and under Turkish, where a
  *      locale-aware mapping must differ?
  *   3. Is it really per-character, or does it look at neighbours? A mapping that handles surrogate
  *      PAIRS, or the Greek final sigma, would have to.

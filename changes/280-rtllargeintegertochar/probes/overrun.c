@@ -15,8 +15,8 @@
  * implementation that faults instead would differ from it in a way a caller could see.
  *
  * So: sweep the overrun distance from one byte to far past, printing for each whether the call
- * Returned a status or raised, and compare the shipped export against both implementations -- the
- * landed change 100 and this change's -- on identical setups.
+ * Returned a status or raised, and compare the shipped export against both implementations, the
+ * landed change 100 and this change's, on identical setups.
  *
  * This regime is OUTSIDE the domain any gate here tests, because a field width longer than the
  * buffer is a caller bug and the corpus must not contain one. The point of this probe is to know

@@ -3,11 +3,11 @@
  * This change has two independently-checkable halves, and they are checked separately so a failure
  * says which one is wrong:
  *
- *   Part a -- the root parser, three-way: our assembly, a C transcription of the same disassembly,
+ *   Part a, the root parser, three-way: our assembly, a C transcription of the same disassembly,
  *             and the live kernelbase!PathCchSkipRoot. Plus our wia_pathskiprootw against the live
  *             shlwapi!PathSkipRootW, which is the same thing with the "a bare C: is not a root"
  *             rule on top.
- *   PART B -- PathIsSameRootW itself, three-way: ours, an oracle that uses the LIVE root skip and
+ *   PART B, PathIsSameRootW itself, three-way: ours, an oracle that uses the LIVE root skip and
  *             the LIVE PathCommonPrefixW (so it isolates the three lines of arithmetic), and the
  *             live shlwapi!PathIsSameRootW.
  *

@@ -6,11 +6,11 @@
 ; errno_t wia_strnset_s(char* str, size_t numberOfElements, int c, size_t count)
 ;   [Win64: rcx, rdx, r8d, r9 -> eax]
 ;
-; Reimplements ucrtbase!_strnset_s -- the bounded sibling of change 078 (_strnset). ucrtbase's is
+; Reimplements ucrtbase!_strnset_s; the bounded sibling of change 078 (_strnset). ucrtbase's is
 ; scalar: 84.2 ns over a 254-byte string.
 ;
 ; Contract (derived in probes/sns.c, fuzz-confirmed bit-exact against the live export over
-; 1,000,000 cases -- confirmed on the FIRST candidate, unlike change 182):
+; 1,000,000 cases, confirmed on the FIRST candidate, unlike change 182):
 ;
 ;   * numberOfElements == 0 -> EINVAL (22) and nothing is written at all.
 ;   * No terminator strictly inside numberOfElements -> fill min(count, numberOfElements-1)
@@ -20,7 +20,7 @@
 ;         "abcdef" n=3 cnt=10 -> 0 x c d e f      (min(10,2) = 2 filled, then emptied)
 ;   * Otherwise -> fill min(count, length) cells, leave the rest of the string and the
 ;     terminator alone, return 0.
-;   * _TRUNCATE ((size_t)-1) is NOT special-cased -- it behaves as a very large count, so it
+;   * _TRUNCATE ((size_t)-1) is NOT special-cased, it behaves as a very large count, so it
 ;     simply saturates to the other limit. Checked explicitly in probes/sns.c section 4.
 ;   * All 256 fill byte values behave identically, including 0.
 ;
@@ -37,7 +37,7 @@
 ; declared buffer remain, and is additionally guarded against crossing into the next page. The
 ; fill writes at most numberOfElements-1 bytes, so it stays inside the declared buffer.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

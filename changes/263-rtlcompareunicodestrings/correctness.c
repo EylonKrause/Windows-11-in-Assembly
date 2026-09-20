@@ -3,7 +3,7 @@
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlCompareUnicodeStrings.
  *
  * The exact value is compared, not the sign. probes/contract.c showed the export returns the
- * DIFFERENCE of the two characters -- -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
+ * DIFFERENCE of the two characters, -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
  * and an implementation returning -1/0/1 would satisfy every caller that writes `< 0` and every
  * test that only checked the sign. So every case below compares the LONG itself.
  *
@@ -11,7 +11,7 @@
  *      every interesting region of the table, both flags.
  *   2. EXHAUSTIVE over the ASCII quarter: all 128 x 128 ordered pairs, both flags. This is the
  *      range the in-vector fold claims to reproduce, so it is enumerated rather than sampled.
- *   3. Every length and every difference position around the block boundary -- 0..40 characters,
+ *   3. Every length and every difference position around the block boundary, 0..40 characters,
  *      with the difference planted at each position and past the end, which is where a vector tail
  *      or a block boundary goes wrong.
  *   4. UNEQUAL LENGTHS with a common prefix: the answer is len1 - len2 and not a sign, at lengths

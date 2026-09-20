@@ -5,7 +5,7 @@
 // The split-character sweep is the one this file exists for. lstrcpyW has no bound, so it runs off
 // the end of a destination too small for the source, and the export returns NULL rather than
 // faulting with the destination filled to its last writable character. If that destination has an
-// ODD number of writable bytes the last character cannot be stored whole -- and probes/cpyw.c
+// ODD number of writable bytes the last character cannot be stored whole, and probes/cpyw.c
 // measured that the export writes whole characters only, never half of one.
 //
 // An implementation whose page clamp is in bytes rather than characters passes every ordinary test,

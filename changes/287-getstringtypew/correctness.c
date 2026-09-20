@@ -12,7 +12,7 @@
  *
  *   * every alignment of both the source and the destination, because the length scan masks the bytes
  *     below the source pointer and a store loop can be misaligned independently;
- *   * every code unit, not a sample -- the table has 65536 entries and there is no reason to guess;
+ *   * every code unit, not a sample; the table has 65536 entries and there is no reason to guess;
  *   * the count boundary in both directions;
  *   * a guard page, with the string ending exactly at the last readable code unit;
  *   * and the degenerate arguments, which for this export include four distinct refusals.
@@ -244,7 +244,7 @@ int main(void)
                cases - before);
     }
 
-    /* 7. Latin-1 only, non-Latin-1 only, and mixed -- the two paths in the loop */
+    /* 7. Latin-1 only, non-Latin-1 only, and mixed, the two paths in the loop */
     {
         long before = cases;
         static wchar_t s[600];

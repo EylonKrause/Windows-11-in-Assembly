@@ -3,7 +3,7 @@
 ;
 ; Reimplements ucrtbase!_itoa: signed variant of 054 _ultoa. For Radix 10 a negative
 ; Value is written as '-' followed by the magnitude; for any other radix the 32-bit Value
-; is formatted as UNSIGNED (bit pattern) -- e.g. _itoa(-1,,16) -> "ffffffff" (verified).
+; is formatted as UNSIGNED (bit pattern), e.g. _itoa(-1,,16) -> "ffffffff" (verified).
 ; Radix 2..36, lowercase digits > 9, NUL-terminated, returns Str. ISA: baseline x64.
 
 EXTERN wia_dec2b:BYTE

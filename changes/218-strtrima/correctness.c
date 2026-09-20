@@ -4,7 +4,7 @@
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
 // Every case compares the whole buffer, not the resulting string. This function writes only what it
-// must -- probes/trim.c poisoned the bytes past the terminator and read them back, and found that
+// must, probes/trim.c poisoned the bytes past the terminator and read them back, and found that
 // "abc" trimmed of 'x' leaves the buffer completely untouched, while "abcxx" gets exactly ONE byte
 // written and the old 'x' and old terminator are still sitting there afterwards. An implementation
 // that always re-terminated, or that cleared the vacated tail, would produce the same STRING and the

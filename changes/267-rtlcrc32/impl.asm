@@ -2,14 +2,14 @@
 ;   ULONG wia_crc32(const void* Buffer, SIZE_T Length, ULONG InitialCrc)
 ;     [Win64: rcx, rdx, r8d -> eax]
 ;
-; ntdll!RtlCrc32. discovery/ntdll_bitmap3.c measured it at 4627.90 ns for 64 KB -- 0.071 ns/byte,
+; ntdll!RtlCrc32. discovery/ntdll_bitmap3.c measured it at 4627.90 ns for 64 KB, 0.071 ns/byte,
 ; the worst per-byte cost found anywhere in ntdll during that sweep.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; Which crc it is, derived rather than guessed (probes/identify.c).
 ;
-; The check value of "123456789" is E3069283, which is CRC-32C's -- Castagnoli, reflected
-; polynomial 0x82F63B78 -- and NOT zlib's CBF43926. But an EMPTY buffer returns the third argument
+; The check value of "123456789" is E3069283, which is CRC-32C's, Castagnoli, reflected
+; polynomial 0x82F63B78, and NOT zlib's CBF43926. But an EMPTY buffer returns the third argument
 ; completely unchanged, which an init and xorout of 0xFFFFFFFF cannot do. Both are true at once if
 ; the accumulator is complemented on the way IN and again on the way OUT:
 ;
@@ -17,7 +17,7 @@
 ;
 ; confirmed over 5000 random buffers and initial values against a from-scratch bitwise CRC, with
 ; ZERO disagreements. It is the same shape change 076 found for RtlCrc64, whose accumulator is
-; likewise ~Init in and ~crc out -- so the family is consistent, which is worth knowing but was
+; likewise ~Init in and ~crc out, so the family is consistent, which is worth knowing but was
 ; still measured here rather than assumed. The third argument is a genuine running CRC: splitting a
 ; buffer and chaining the calls gives the same answer as one call, over 200 random splits.
 ;
@@ -25,7 +25,7 @@
 ; Why it is slow, and what the fix is.
 ;
 ; 0x82F63B78 is the polynomial the SSE4.2 CRC32 instruction implements IN HARDWARE, so the shipped
-; export is not using a table -- it is using the instruction, serially. CRC32 has 3-cycle latency
+; export is not using a table; it is using the instruction, serially. CRC32 has 3-cycle latency
 ; and 1-per-cycle throughput, so a serial chain of `crc32 rax, [mem]` runs at eight bytes per three
 ; cycles. At this machine's clock that is about 13 GB/s, and the survey measured 14.2. The
 ; instruction is not the bottleneck; the DEPENDENCY CHAIN through it is.
@@ -37,7 +37,7 @@
 ;       CRC(A||B||C) = shift_L( shift_L(crcA) ^ crcB ) ^ crcC
 ;
 ; where shift_L advances a CRC past L zero bytes. That is a fixed linear map, tabulated once per L
-; in shifttab.c as four 256-entry tables -- four loads and three XORs, twice per 3L bytes. The
+; in shifttab.c as four 256-entry tables, four loads and three XORs, twice per 3L bytes. The
 ; tables are built from the polynomial at run time and then checked against the definition they are
 ; supposed to satisfy, because they are the one piece of this change that cannot be seen to be
 ; right by reading it.
@@ -67,7 +67,7 @@ SHORTBLK EQU 64
 
 .code
 
-; SHIFT -- advance the CRC in eax past one block, through the table whose base is in r8.
+; SHIFT, advance the CRC in eax past one block, through the table whose base is in r8.
 ; Clobbers r9, rsi, r12.
 SHIFT   MACRO
         mov       r9d, eax
@@ -84,7 +84,7 @@ SHIFT   MACRO
         mov       eax, r12d
 ENDM
 
-; THREE -- three independent CRC32 chains over three blocks of `blk` bytes starting at rcx, with
+; THREE, three independent CRC32 chains over three blocks of `blk` bytes starting at rcx, with
 ; crc0 continuing in rax and crc1/crc2 starting from zero, then recombined through the table in r8.
 THREE   MACRO blk
         LOCAL loop3

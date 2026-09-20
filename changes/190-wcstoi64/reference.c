@@ -2,13 +2,13 @@
 // The correctness oracle: the obvious scalar _wcstoi64. Not fast; just correct.
 //
 // _wcstoi64 and wcstoll share one code address, so this oracle covers both names.
-// Contract derived in probes/wcstoi64.c and fuzz-confirmed against the live export -- value,
-// *endptr AND errno -- over 1,500,000 cases, 0 mismatches. It is change 188's wide/base crossing
+// Contract derived in probes/wcstoi64.c and fuzz-confirmed against the live export, value,
+// *endptr AND errno, over 1,500,000 cases, 0 mismatches. It is change 188's wide/base crossing
 // with change 112's 64-bit signed tail, re-measured rather than inherited:
 //   * the overflow limit is SIGN-DEPENDENT (2^63-1 positive, 2^63 negative), so
 //     "-9223372036854775808" is EXACT while "9223372036854775808" is ERANGE;
 //   * overflow saturates to _I64_MAX / _I64_MIN, with *endptr still past ALL digits;
-//   * the "0x" prefix zero may be ANY block's zero -- the ASCII-only variant was refuted on
+//   * the "0x" prefix zero may be ANY block's zero; the ASCII-only variant was refuted on
 //     1525 of 1,500,000.
 #include <stddef.h>
 #include <errno.h>

@@ -3,12 +3,12 @@
 //
 // A SYSTEMTIME is always 16 bytes, so there is no size axis here. The classes are instead the
 // distinct PATHS through the function, which is what actually varies its cost:
-//   * a plain date in a 31-day month  -- the fall-through path;
-//   * the Unix epoch and the two ends of the legal domain -- the extremes of the date arithmetic;
-//   * February in a leap year and February in a non-leap year -- the only path that runs the
+//   * a plain date in a 31-day month, the fall-through path;
+//   * the Unix epoch and the two ends of the legal domain, the extremes of the date arithmetic;
+//   * February in a leap year and February in a non-leap year, the only path that runs the
 //     leap-year test, and the one change 127 measured as its slowest;
-//   * a date one day past the end of its month -- the day-vs-month-length rejection;
-//   * an out-of-range field -- the rejection path, which also has to set the last error.
+//   * a date one day past the end of its month, the day-vs-month-length rejection;
+//   * an out-of-range field; the rejection path, which also has to set the last error.
 // A regression on ANY of them fails the gate.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -23,8 +23,8 @@
  *      with     M = 12379400392853802749 = ceil(2^90 / 10^8)
  *
  * Both sides are monotone non-decreasing in n. The right-hand side steps up by one exactly at each
- * multiple of d = 10^8 and nowhere else. So if the two agree at every step -- that is, if
- * f(k*d) == k and f(k*d - 1) == k-1 for every k -- then they agree everywhere in between, because
+ * multiple of d = 10^8 and nowhere else. So if the two agree at every step; that is, if
+ * f(k*d) == k and f(k*d - 1) == k-1 for every k, then they agree everywhere in between, because
  * f is squeezed between two equal values. There are only 2^64 / 10^8 = 184467440737 such k, and
  * this probe checks every one of them. That is a complete proof of the identity over the whole
  * 64-bit domain, not a sample of it.

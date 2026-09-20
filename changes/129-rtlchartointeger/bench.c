@@ -2,11 +2,11 @@
 //
 // Why this bench was rewritten.
 //
-// The first version had FOUR rows -- "1234567890", "0xDEADBEEF", "42" and "  -2147483648" -- and it
+// The first version had FOUR rows ("1234567890", "0xDEADBEEF", "42" and "  -2147483648") and it
 // parked the change on one of them ("42" at 0.81x on Zen3). Four rows is not enough to decide either
 // way, and the same lesson that keeps appearing on the CORRECTNESS side applies just as much to gate 2:
 // a corpus that cannot express a case cannot tell you anything about it. A four-row bench can hide a
-// regression in every input class it does not contain, and this export has a lot of them -- five bases,
+// regression in every input class it does not contain, and this export has a lot of them, five bases,
 // three lowercase-only prefixes, a signed-char whitespace skip that also eats 0x80-0xFF, a sign, a
 // silent mod-2^32 wrap, a no-digits-is-still-success case, and an invalid-base refusal that must not
 // touch the caller's value.

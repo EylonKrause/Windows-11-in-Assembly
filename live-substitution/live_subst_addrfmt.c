@@ -12,7 +12,7 @@
 // harness, not a bigger one.
 //
 // What these return is a pointer, and that is the easiest thing to get subtly wrong. The a/w forms
-// return a pointer to the TERMINATOR they wrote, not to the start of the buffer -- so a caller
+// return a pointer to the TERMINATOR they wrote, not to the start of the buffer, so a caller
 // appending to the same buffer depends on it. Comparing only the rendered text would pass an
 // implementation that returned the wrong pointer, so every case compares the returned pointer as an
 // OFFSET from the buffer, the full 64-byte destination against a poison fill, and (for the Ex form)
@@ -24,7 +24,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these five is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.

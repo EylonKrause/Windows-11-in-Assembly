@@ -3,18 +3,18 @@
  * What does an empty needle do?  The two exports disagree.
  *
  * probes/contract.c asked this and got "NULL", over the haystack "abcXYZabc". That answer was right
- * about that haystack and wrong about the rule -- the SAME defect class this family keeps producing,
+ * about that haystack and wrong about the rule, the SAME defect class this family keeps producing,
  * a corpus that could not express the case. "abcXYZabc" contains no code unit that matches a NUL, and
  * the empty needle's first code unit IS the terminator, so a search for it finds nothing and returns
  * NULL for a reason that has nothing to do with the needle being empty.
  *
  * The live-substitution gate found it: 96 of 30000 cases differed, every one with an empty needle,
- * and every one a case where the generated haystack happened to contain a soft hyphen -- one of the
+ * and every one a case where the generated haystack happened to contain a soft hyphen, one of the
  * 3320 code units that match a NUL (change 282's foldnul.c). There live returned the position of
  * that character while our code returned NULL.
  *
  * So the question is asked properly here: over a haystack that DOES contain a NUL-matching code unit,
- * at a known position, and asked of both exports -- because change 283 measured StrRStrIW refusing an
+ * at a known position, and asked of both exports, because change 283 measured StrRStrIW refusing an
  * empty needle outright, and if the two really differ then inheriting either answer is a mistake.
  */
 #define WIN32_LEAN_AND_MEAN

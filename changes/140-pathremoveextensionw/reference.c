@@ -1,5 +1,5 @@
 // changes/140-pathremoveextensionw/reference.c
-// Oracle for shlwapi!PathRemoveExtensionW: truncate at the extension position -- exactly the pointer
+// Oracle for shlwapi!PathRemoveExtensionW: truncate at the extension position, exactly the pointer
 // CORRECTED 2026-09-15: a SPACE stops the backward scan exactly as a backslash does. This
 // oracle inherited change 132's incomplete rule and was wrong on 57746 of 349525 strings
 // over {a, '.', backslash, space}; see discovery/extension_space_audit.c and 132's impl.asm.
@@ -7,7 +7,7 @@
 // stopping the search.
 //
 // One extra rule this has and PathFindExtensionW does NOT: a MAX_PATH guard. Measured against the live
-// export -- a 259-character string is truncated, a 260-character one is left completely untouched no
+// export; a 259-character string is truncated, a 260-character one is left completely untouched no
 // matter where the dot is.
 #include <wchar.h>
 void ref_pathremoveextw(wchar_t* p){

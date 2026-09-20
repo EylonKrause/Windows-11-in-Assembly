@@ -1,6 +1,6 @@
 // changes/154-strncpy-s/reference.c
 // Oracle for ucrtbase!strncpy_s, transcribed from the UCRT algorithm and confirmed against the live
-// export -- return code, handler invocation, and the exact bytes left in dst, including both
+// export, return code, handler invocation, and the exact bytes left in dst, including both
 // truncation paths (ERANGE empties the string; _TRUNCATE terminates the last byte instead).
 #include <errno.h>
 #include <stddef.h>

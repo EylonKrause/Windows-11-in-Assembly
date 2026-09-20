@@ -2,14 +2,14 @@
  *
  * THE ORACLE for MultiByteToWideChar(CP_UTF8, ...).  Deliberately naive, obviously correct,
  * one byte at a time.  Everything in it was PROVED against the live export before a line of
- * assembly existed -- see RESULTS.md for the probes and their counts.  It models only
+ * assembly existed, see RESULTS.md for the probes and their counts.  It models only
  * CodePage == CP_UTF8, because that is the only code page the assembly takes over; every other
  * code page is tail-called straight into the shipped export and the reference is not consulted.
  *
  * The four things this file encodes, in the order the shipped code does them:
  *
  *   1. PARAMETER VALIDATION, and it is not the documented one.  cbMultiByte == 0, cchWideChar < 0,
- *      lpMultiByteStr == NULL, and -- only when cchWideChar != 0 -- lpWideCharStr == NULL or
+ *      lpMultiByteStr == NULL, and (only when cchWideChar != 0) lpWideCharStr == NULL or
  *      lpWideCharStr == lpMultiByteStr, each give ERROR_INVALID_PARAMETER.  The alias test is
  *      Exact pointer equality: a destination that merely overlaps the source is accepted.
  *
@@ -126,7 +126,7 @@ int ref_mbtwc(UINT CodePage, DWORD dwFlags, const char* lpMultiByteStr, int cbMu
             else                    cp = ((L & 0x07u) << 18) | ((s[i+1] & 0x3Fu) << 12) |
                                          ((s[i+2] & 0x3Fu) << 6) | (s[i+3] & 0x3Fu);
             if (cp > 0xFFFF) {
-                /* the overflow rule is PER UNIT -- a pair is split if only one slot remains */
+                /* the overflow rule is PER UNIT; a pair is split if only one slot remains */
                 unsigned h = 0xD800u + ((cp - 0x10000u) >> 10);
                 unsigned l = 0xDC00u + ((cp - 0x10000u) & 0x3FFu);
                 if (cap != 0 && o >= cap) { overflow = 1; break; }

@@ -2,32 +2,32 @@
 ; size_t wia_wcsspn(const wchar_t* s, const wchar_t* set)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements ucrtbase!wcsspn: length of the initial run of characters that all appear in `set`.
-; The live one is the naive O(n*m) scalar loop -- 403 ns for a 254-character string against a
+; The live one is the naive O(n*m) scalar loop, 403 ns for a 254-character string against a
 ; 3-character set, about 7 cycles per character. Its NARROW sibling `strspn` does the same character
 ; count in 178 ns because it can afford a 256-bit bitmap of the set; a wide character has 65536
 ; possible values, so that trick does not transfer and the wide half was left scalar. Same split as
 ; changes 148/149.
 ;
 ; Contract: a probe confirmed this export and shlwapi!StrSpnW (change 135) agree on every edge case
-; that could distinguish them -- empty set, empty string, both empty, no match, and a set member with
+; that could distinguish them, empty set, empty string, both empty, no match, and a set member with
 ; a zero low byte. Only the return type differs (size_t vs int), and both exits already leave a
 ; zero-extended value in rax.
 ;
 ; Sixteen characters at a time: for each 32-byte block every set character is compared and the
 ; results OR-ed into an "in set" mask; the first character NOT in the set ends the span. The
-; terminator needs no special case -- a set is itself NUL-terminated, so it can never contain NUL;
+; terminator needs no special case; a set is itself NUL-terminated, so it can never contain NUL;
 ; the NUL therefore fails every compare and stops the span naturally. (That is the one asymmetry
 ; with the complement span in change 157, which has to compare the terminator explicitly.)
 ;
 ; ---- why the set is hoisted into registers ------------------------------------------------------
 ; Change 135 re-walked the set inside every 32-byte block, broadcasting each member afresh: about
 ; seven instructions per member per block. Besides the raw cost, a branchy loop that small aliases in
-; the branch predictor, and its measured cost moves with where the code happens to land -- see
+; the branch predictor, and its measured cost moves with where the code happens to land, see
 ; [157](../157-wcscspn/) for the 96-vs-125 ns demonstration.
 ;
 ; So the first three set members are broadcast ONCE, before the block loop, into ymm2/ymm4/ymm5, and
 ; the block loop is straight-line. When the set is shorter the spare registers get a DUPLICATE of
-; member 0 -- comparing against the same character twice is harmless because the results are OR-ed,
+; member 0, comparing against the same character twice is harmless because the results are OR-ed,
 ; and `a OR a == a`. An empty set is answered up front (nothing is in it, so the span is 0), which is
 ; also what keeps the duplicate trick well defined: member 0 always exists past that point. Sets
 ; longer than three walk the remainder from memory, a tail that costs two uops per block when empty.

@@ -1,6 +1,6 @@
 // changes/156-strncat-s/reference.c
 // Oracle for ucrtbase!strncat_s, transcribed from the UCRT algorithm and confirmed against the live
-// export -- return code, handler invocation, and the exact bytes left in dst, including the three
+// export, return code, handler invocation, and the exact bytes left in dst, including the three
 // partial-write paths (an unterminated dst writes only dst[0]; ERANGE appends then empties the
 // string; _TRUNCATE appends then terminates the last byte of the buffer instead).
 #include <errno.h>

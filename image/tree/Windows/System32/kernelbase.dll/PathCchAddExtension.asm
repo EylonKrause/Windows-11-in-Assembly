@@ -7,7 +7,7 @@
 ;   [Win64: rcx, rdx, r8 -> eax]
 ;
 ; Reimplements kernelbase!PathCchAddExtension: append an extension, but only if the path does not
-; already have one -- 67 ns for a ~90-character path. It shares change 159's validation machinery and
+; already have one, 67 ns for a ~90-character path. It shares change 159's validation machinery and
 ; differs from it in three ways that matter.
 ;
 ; Contract (probed exhaustively against the live export). FOUR distinct return codes, in this order:
@@ -16,7 +16,7 @@
 ;      dot, or the extension BODY (what follows the one permitted leading dot) is longer than 255
 ;      characters                              -> E_INVALIDARG (0x80070057);
 ;   2. the path ALREADY has an extension       -> S_FALSE (0x00000001), nothing written. This is
-;      checked AFTER all of the above -- an invalid extension or a bad cch still wins -- but BEFORE
+;      checked AFTER all of the above (an invalid extension or a bad cch still wins) but BEFORE
 ;      the buffer-size and MAX_PATH checks, so a path that already has an extension returns S_FALSE
 ;      even when the buffer could not have held the result;
 ;   3. the result does not fit          -> a TRUNCATING WRITE (below) and either
@@ -33,7 +33,7 @@
 ;     path[limit]     = 0
 ; So a 6-character path plus ".obj" with cch = 9 comes back as
 ;     43 3A 5C 61 5C 66 | 0000 006F 0000
-; -- the dot replaced by a NUL, then one body character, then the terminator. A probe that only
+; the dot replaced by a NUL, then one body character, then the terminator. A probe that only
 ; prints the string sees the original path and concludes nothing was written, which is exactly the
 ; mistake this implementation first made; the byte-level comparison in correctness.c caught it.
 ;
@@ -55,8 +55,8 @@
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
-; session; and a second, STRUCTURAL sweep -- every landed oracle that computes an extension position,
-; whether or not it cites 132 -- found this change carrying it too.
+; session; and a second, STRUCTURAL sweep, every landed oracle that computes an extension position,
+; whether or not it cites 132, found this change carrying it too.
 ;
 ; discovery/extension_space_audit2.c measured the live export against both rules over every string in
 ; {a, '.', backslash, '[', ']', space} of length 0..7:
@@ -201,8 +201,8 @@ pa_eblock:
         add       rcx, r11
         shr       rcx, 1
         mov       r14, rcx                          ; extension body length, in characters
-        ; The extension has a length limit of its own: the body -- what is left after the one
-        ; permitted leading dot -- may be at most 255 characters; 256 or more is E_INVALIDARG, and
+        ; The extension has a length limit of its own: the body, what is left after the one
+        ; permitted leading dot, may be at most 255 characters; 256 or more is E_INVALIDARG, and
         ; it beats every size failure. Measured in the sibling change's probes, which drive this
         ; export too: changes/159-pathcchrenameextension/probes/extlen2.c section (4) shows a
         ; 257-character extension giving 80070057 here where this code answered 800700CE.

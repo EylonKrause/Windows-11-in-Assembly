@@ -1,18 +1,18 @@
 ; changes/193-rtlistextunicode/impl.asm
 ; BOOLEAN wia_istextunicode(const void* buf, int len, int* lpi)   [rcx, edx, r8 -> al]
 ;
-; Reimplements ntdll!RtlIsTextUnicode -- the slowest routine found anywhere in this project's
+; Reimplements ntdll!RtlIsTextUnicode, the slowest routine found anywhere in this project's
 ; headroom survey: 719 ns for a 508-byte buffer, about 2.9 ns PER 16-BIT UNIT, where everything
 ; else here that scans memory runs at 20-80 GB/s.
 ;
-; Why it is worth converting at all -- and this had to be measured before any work started:
+; Why it is worth converting at all, and this had to be measured before any work started:
 ;   the shipped cost SATURATES. 16 B -> 56 ns, 256 B -> 368 ns, 508 B -> 719 ns, and then FLAT at
 ;   ~735 ns from 1 KB all the way to 128 KB. The disassembly says why: "mov r14d,100h ; cmova
 ;   edx,r14d" clamps the unit count to 256, so ntdll never inspects more than 512 bytes. That
 ;   means a vectorised version wins on every size at or above the cap, not just on small buffers.
 ;
-; The contract is in reference.c. It could not be derived black-box -- three probe rounds failed to
-; explain ASCII16 and STATISTICS -- so it was read out of the shipped code (dumpbin /disasm,
+; The contract is in reference.c. It could not be derived black-box, three probe rounds failed to
+; explain ASCII16 and STATISTICS, so it was read out of the shipped code (dumpbin /disasm,
 ; RVA 0x000D3A10) and then fuzz-confirmed: 3 000 000 cases, 0 mismatches, plus every buffer of
 ; length 2..6 over the alphabet {00,09,0A,0D,1A,20,30,61,FE,FF} exhaustively.
 ;
@@ -26,14 +26,14 @@
 ; The CR/LF counter is the same shape one byte over: it pairs b[2i] with b[2i-1], so a second
 ; unaligned load at cursor-1 turns it into two vpcmpeqb pairs and a popcnt.
 ; The thirteen "is this exact unit present" tests become 13 vpcmpeqw accumulated into three ymm
-; OR-registers, which is why presence -- not counts -- is all that is needed: every one of
+; OR-registers, which is why presence (not counts) is all that is needed: every one of
 ; CONTROLS / REVERSE_CONTROLS / ILLEGAL_CHARS is a non-zero test over its group.
 ;
 ; Everything lives in ymm0-ymm5, the volatile half of the register file, so the function needs
 ; no ymm spill and no stack frame at all. That is not cosmetic: the first cut spilled ymm6-ymm9
 ; into a 168-byte frame and measured 0.82x on a 16-byte buffer from the fixed cost alone.
 ;
-; ISA: AVX2 + POPCNT. No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + POPCNT. No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16
@@ -68,7 +68,7 @@ wia_istextunicode PROC
         ; No stack frame and no ymm6-ymm9 spill: this function makes no ABI call, so it has no
         ; alignment obligation, and everything below lives in ymm0-ymm5, the volatile half. The
         ; first cut saved four ymm registers into a 168-byte frame and measured 0.82x on a 16-byte
-        ; buffer -- a regression that parks the change -- purely from that fixed cost.
+        ; buffer (a regression that parks the change) purely from that fixed cost.
 
         mov       rsi, rcx                     ; buf
         mov       edi, edx                     ; len
@@ -411,7 +411,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; presence_scalar -- internal. IN: r8d = the unit. Sets r14d / r15d / ebx if the unit belongs to
+; presence_scalar, internal. IN: r8d = the unit. Sets r14d / r15d / ebx if the unit belongs to
 ; the controls / REVERSE_CONTROLS / illegal group. Clobbers r8d and eax only.
 ; It must NOT touch r9: the caller holds the unit count there and computes the end pointer from it
 ; immediately after the first call. Using r9 as the scratch here sent the end pointer to

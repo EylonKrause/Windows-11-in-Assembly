@@ -1,15 +1,15 @@
-/* convterm.c -- do the ntdll ANSI/OEM converters NUL-TERMINATE, and does that change the size rule?
+/* convterm.c: do the ntdll ANSI/OEM converters NUL-TERMINATE, and does that change the size rule?
  *
  * The live harness found 018/019/020/024/025 diverging while 017 (Unicode -> Unicode) and 165 did
  * not. Two symptoms, both pointing the same way:
  *   * with MaximumLength exactly the converted length, the export answers STATUS_BUFFER_OVERFLOW
- *     (0x80000005) where these implementations answer STATUS_SUCCESS -- so the export wants one
+ *     (0x80000005) where these implementations answer STATUS_SUCCESS, so the export wants one
  *     more element than the conversion itself needs;
  *   * with a generous MaximumLength both answer STATUS_SUCCESS and the BUFFERS still differ.
  *
  * Together those say "it writes a terminator". This measures it exactly: for each export, walk
  * MaximumLength across the interesting range and print the status, the resulting Length, and every
- * byte position that stopped being poison -- so "wrote a terminator" is separated from "wrote one
+ * byte position that stopped being poison, so "wrote a terminator" is separated from "wrote one
  * element too many", and the OVERFLOW path's partial write is recorded rather than guessed.
  */
 #include <stdio.h>

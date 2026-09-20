@@ -4,7 +4,7 @@
  *
  * `ConvertStringSidToSid` accepts two-character SDDL abbreviations as well as `S-R-I-S…` strings.
  * probes/limits.c enumerated every two-letter combination against the live export and found 66 of
- * them -- and a third of those are NOT CONSTANTS:
+ * them, and a third of those are NOT CONSTANTS:
  *
  *     BA -> S-1-5-32-544                                      a well-known SID
  *     SY -> S-1-5-18                                          a well-known SID
@@ -21,7 +21,7 @@
  * digit in it this table will have it without anyone noticing it needed to.
  *
  * A two-character string that is not an alias must fail exactly as any other malformed SID does --
- * `ERROR_INVALID_SID` -- and the index below distinguishes "no alias" from "alias number zero" by
+ * `ERROR_INVALID_SID`, and the index below distinguishes "no alias" from "alias number zero" by
  * storing a one-based index.
  */
 #define WIN32_LEAN_AND_MEAN

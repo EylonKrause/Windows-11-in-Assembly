@@ -4,8 +4,8 @@
  *
  * The answer is the subject. a range check that says no stops at the first bit that disagrees; one
  * that says YES has examined every bit in the range. They are different amounts of work wearing one
- * name, and the first bitmap survey measured this pair at 1.60 ns and 2.20 ns -- both answering NO,
- * inside the first word -- and filed it as "not a target". So every row below says which answer it
+ * name, and the first bitmap survey measured this pair at 1.60 ns and 2.20 ns, both answering NO,
+ * inside the first word, and filed it as "not a target". So every row below says which answer it
  * Got, and the no rows say where the disagreement is, because a no that is one word in and a no that
  * is eight kilobytes in are also different functions:
  *

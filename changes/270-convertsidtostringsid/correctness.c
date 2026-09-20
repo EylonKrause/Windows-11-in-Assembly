@@ -6,10 +6,10 @@
  * the string:
  *
  *   1. the BOOL;
- *   2. GetLastError() -- which is the entire substance of two of the three failure exits, and which
+ *   2. GetLastError(), which is the entire substance of two of the three failure exits, and which
  *      on SUCCESS becomes ZERO whatever it was before (probes/validate.c);
  *   3. What happened to the output pointer. a poison value is stored before every call, so "left
- *      alone" is observed rather than assumed. This export never clears it -- but its sibling
+ *      alone" is observed rather than assumed. This export never clears it, but its sibling
  *      ConvertStringSidToSidW (change 269) DOES, for three characters out of 65535, so the two were
  *      measured separately rather than assumed to match;
  *   4. LocalSize of the returned block, which must be exactly (characters + 1) * 2 with LocalFlags
@@ -19,13 +19,13 @@
  *
  * And the count is swept 0..255, not 0..15. That is change 067's lesson, learned the expensive way:
  * its corpus drew the count as `(seed>>8)%16` and therefore never expressed a count above 15, which
- * is a refusal the implementation did not have -- and ConvertStringSidToSidW will build a SID with
+ * is a refusal the implementation did not have, and ConvertStringSidToSidW will build a SID with
  * 254 sub-authorities in one call.
  *
  * The guard-page sweep is against the live export only, and it has to be: a scalar model cannot
  * fault on demand. A SID that is not fully readable is a REFUSAL when its sub-authority array runs
  * off the end and a FAULT when only its six identifier-authority bytes do (probes/truncated.c), and
- * an implementation that refused everywhere -- or faulted everywhere -- would pass every other
+ * an implementation that refused everywhere (or faulted everywhere) would pass every other
  * check here.
  */
 #define WIN32_LEAN_AND_MEAN

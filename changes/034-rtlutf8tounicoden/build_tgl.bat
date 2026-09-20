@@ -8,7 +8,7 @@ REM  same oracle and the same live-export comparison.
 REM
 Rem  the bench is bench_tgl.c, not bench.c, and that is deliberate. The parent
 REM  table is five homogeneous classes plus ASCII-alternating-with-2-byte,
-REM  which is the one mixture the AVX2 file already has a kernel for -- so it
+REM  which is the one mixture the AVX2 file already has a kernel for, so it
 REM  cannot see the mixed-width classes this variant exists to fix, nor the
 REM  malformed ones. bench_tgl.c adds e0ed, a+3, a+4, 2+3, 1234, bad32 and
 REM  rand, and runs every row at the worst alignment. bench.c is UNEDITED and

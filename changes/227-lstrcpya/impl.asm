@@ -10,7 +10,7 @@
 ;
 ;   * with the destination overrunning into a guard page, 80 of 80 rooms were filled exactly to the
 ;     last writable byte. A 16- or 32-byte chunked copy cannot land on an arbitrary boundary.
-;   * with overlapping arguments, cpy(b+2, b) on "abcdefghij" smears to "ababababab..." -- a period
+;   * with overlapping arguments, cpy(b+2, b) on "abcdefghij" smears to "ababababab...", a period
 ;     of TWO. A 16-byte chunked copy would smear with a period of sixteen.
 ;
 ; The fault paths are part of the contract, and they are what shapes this implementation. Measured
@@ -18,8 +18,8 @@
 ;
 ;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL;
 ;   * an unterminated source running into a PAGE_NOACCESS page RETURNS NULL rather than faulting,
-;     80 of 80 distances -- and the destination holds exactly the bytes that were readable;
-;   * a destination too small, ending at a guard page, ALSO returns NULL rather than faulting -- and
+;     80 of 80 distances, and the destination holds exactly the bytes that were readable;
+;   * a destination too small, ending at a guard page, ALSO returns NULL rather than faulting, and
 ;     is filled exactly to its last writable byte. lstrcpyA has no bound, so it always runs off the
 ;     end of a short destination; this is not an exotic case;
 ;   * the destination is terminated, not padded: the bytes after the terminator are left alone.
@@ -29,25 +29,25 @@
 ;   n = min(bytes left in the SOURCE's page, bytes left in the DESTINATION's page)
 ;
 ; and a wide chunk is issued only when n allows it. Every byte of a chunk is then provably readable
-; and writable, so a chunk can never fault halfway -- which means that when the fault does come, it
+; and writable, so a chunk can never fault halfway, which means that when the fault does come, it
 ; comes on the FIRST byte of the next page with everything before it already written, exactly where
 ; the shipped byte loop would stop. Clamping only the source would pass every ordinary test and then
 ; write a whole chunk into a destination the shipped function fills only partway.
 ;
 ; And the clamp is hoisted out of the loop. It only changes when one of the pointers crosses a page
-; boundary -- once per 4096 bytes -- so recomputing it per chunk charged six instructions per 64
+; boundary (once per 4096 bytes) so recomputing it per chunk charged six instructions per 64
 ; bytes to re-answer a question whose answer had not changed. Carrying the remaining count and
 ; decrementing it costs one `sub` instead.
 ;
-; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured, not
-; assumed -- and probes/cpya.c sweeps all 255 non-NUL byte values at three positions and 64 start
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252, measured, not
+; assumed, and probes/cpya.c sweeps all 255 non-NUL byte values at three positions and 64 start
 ; alignments x lengths 0..300 against a plain byte copy, with 0 disagreements.
 ;
 ; NOT A MEMMOVE. Overlapping arguments smear and never terminate in the shipped function, because
 ; the NUL it is walking toward is overwritten before it is ever read. That is unbounded, so there is
 ; nothing there to be bit-exact with, and this implementation makes no attempt to reproduce it.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_lstrcpya_core PROC
@@ -69,7 +69,7 @@ cp_loop:
 
         ; ---- 64 bytes at a time, for as long as the clamp lasts ----
         ; The clamp is computed at cp_loop and carried in r9d; this loop only decrements it.
-        ; Measured against recomputing it per chunk -- 4000 bytes 54.33 -> 45.19 ns, 73.6 -> 88.5
+        ; Measured against recomputing it per chunk, 4000 bytes 54.33 -> 45.19 ns, 73.6 -> 88.5
         ; GB/s, geomean 9.97x -> 11.63x, every size class improved.
 cp_64:
         cmp       r9d, 64

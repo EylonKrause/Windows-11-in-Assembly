@@ -9,20 +9,20 @@
 ; a scalar scan (174 ns for a 254-char path).
 ;
 ; This is exactly change 132 (PathFindExtensionW) plus a single store: the extension position is found
-; with the same validated scan, and a NUL is written there -- when there is no extension that position
+; with the same validated scan, and a NUL is written there, when there is no extension that position
 ; is already the terminator, so the store is harmless and no branch is needed. Confirmed against the
 ; live export, including 132's quirks: "a.b/c" -> "a" (a slash does not protect the dot) while
 ; "a.b\c" is left unchanged.
 ;
 ; Contract of the position (reverse-engineered and validated bit-exact vs the live export over 600k fuzz):
 ;   the extension is the LAST '.' that occurs after the last **backslash**. Only '\' terminates the
-;   search -- '/' and ':' do NOT, even though PathFindFileNameW treats both as separators. So
+;   search, '/' and ':' do NOT, even though PathFindFileNameW treats both as separators. So
 ;   "a.b/c" -> the '.' at index 1, while "a.b\c" -> the terminator. A leading dot counts (".hidden"
 ;   -> index 0) and a trailing dot counts ("a.b." -> the final '.').
 ;
 ; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', '\' and NUL are extracted; the
 ; running candidate is updated by the rule "a backslash clears the candidate, a later dot sets it",
-; which per block reduces to comparing the highest dot bit against the highest backslash bit -- no
+; which per block reduces to comparing the highest dot bit against the highest backslash bit, no
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;

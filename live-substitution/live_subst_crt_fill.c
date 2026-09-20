@@ -1,11 +1,11 @@
 // live-substitution/live_subst_crt_fill.c
-// Live-run proof for the bounded fill family -- changes 182 (_strset_s), 183 (_wcsset_s),
+// Live-run proof for the bounded fill family, changes 182 (_strset_s), 183 (_wcsset_s),
 // 184 (_strnset_s) and 185 (_wcsnset_s).
 //
 // Same `_s` requirement as live_subst_crt_s.c: install the invalid-parameter handler through
 // ucrtbase's OWN setter and build /MD, so the live exports and our assembly (which calls
 // ucrtbase's _invalid_parameter_noinfo) consult the SAME handler state. Without that the live
-// export __fastfails the process on the EINVAL path -- exit code 9, no output.
+// export __fastfails the process on the EINVAL path, exit code 9, no output.
 //
 // What makes THIS family harder to prove live than 178-181: its error path is not silent. It
 // performs a PARTIAL FILL of numberOfElements-1 cells and only then empties the string, so a
@@ -16,7 +16,7 @@
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ucrtbase -- never a live system process, never the file on disk.
+//       copy-on-write copy of ucrtbase, never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
 //   (1) Validate first against the live export over a fuzz corpus before any patch.
 //   (2) Patch only when idle: single-threaded, and none of these four is used by the
@@ -98,7 +98,7 @@ static void reseed(unsigned s){ seed = s; }
 static char    as[400], aa[600], ab[600];
 static wchar_t ws[400], wa[600], wb[600];
 
-/* Each pass() below runs the SAME corpus twice -- once before the patch (validation) and once
+/* Each pass() below runs the SAME corpus twice, once before the patch (validation) and once
    with the patch live -- and returns the number of disagreements. `use_sys` selects whether the
    second call goes through the export (which, once patched, is our code). */
 static int pass_ss(int (__cdecl *sys)(char*,size_t,int)){

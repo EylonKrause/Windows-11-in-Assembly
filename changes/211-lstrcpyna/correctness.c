@@ -6,17 +6,17 @@
 // Three things drive the shape of this test.
 //
 // 1. The destination is terminated, not padded. Every case therefore compares the whole destination
-//    buffer against a poison fill, not just the copied prefix -- a strncpy-shaped implementation
+//    buffer against a poison fill, not just the copied prefix, a strncpy-shaped implementation
 //    would zero-fill the tail and pass a prefix-only check.
 // 2. a faulting source is part of the contract: it returns NULL with the readable prefix already
-//    copied. The page-guard section below builds exactly that -- an unterminated string ending at a
-//    PAGE_NOACCESS boundary -- and compares our result against the LIVE export byte for byte,
+//    copied. The page-guard section below builds exactly that, an unterminated string ending at a
+//    PAGE_NOACCESS boundary, and compares our result against the LIVE export byte for byte,
 //    including how much of the destination each one filled in before giving up. That is what the
 //    page-safe copy in impl.asm exists to get right; a 32-byte load straddling the boundary would
 //    fault before storing and leave less behind.
 // 3. a narrow character is one byte, so the source can sit at any offset in a page and a 32-byte
 //    chunk covers 32 characters rather than 16. Both change where the page-safe path engages, so the
-//    page-guard section walks every source length 1..96 -- three full chunk widths -- rather than
+//    page-guard section walks every source length 1..96 (three full chunk widths) rather than
 //    relying on the two-byte alignment the wide form always had.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -70,8 +70,8 @@ int main(void){
     }
 
     // ---- every source length 0..160 x every n 0..168, which covers the exact fit, one short,
-    // ---- n == 0 (writes nothing), n == 1 (terminator only), every truncation point, and -- because
-    // ---- a chunk is 32 NARROW characters -- five full chunk widths rather than the wide form's two.
+    // ---- n == 0 (writes nothing), n == 1 (terminator only), every truncation point, and, because
+    // ---- a chunk is 32 NARROW characters, five full chunk widths rather than the wide form's two.
     {
         static char src[192];
         for (int sl = 0; sl <= 160; ++sl) {

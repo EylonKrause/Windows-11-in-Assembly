@@ -50,14 +50,14 @@ wia_strtoi64 PROC
         mov       r15d, r8d
         ; ---- An invalid base is a reported error, not a failed parse ----
         ;
-        ; The valid set is 0 and 2..36. ucrtbase answers anything else -- 1, 37, a negative, 100 --
+        ; The valid set is 0 and 2..36. ucrtbase answers anything else, 1, 37, a negative, 100 --
         ; with value 0, *endptr = nptr, errno = EINVAL (22) AND one invalid-parameter report, for
         ; every input, which probes/badbase.c measured across all four entries and both widths of
         ; result. This implementation simply failed to parse: it returned 0 with the right endptr
         ; on most inputs and left errno alone, and on "0x0" with base 1 it even advanced endptr by
         ; one. Nothing in the header claimed the invalid-base case; nothing handled it either.
         ;
-        ; Found by live substitution on 567 of 30000 cases -- every one of them base 1, with the
+        ; Found by live substitution on 567 of 30000 cases, every one of them base 1, with the
         ; value and the endptr agreeing and only errno and the handler count differing. The handler
         ; is only observable because that harness installs one: without it an invalid base
         ; Terminates the process, which is how the first run of that harness died.

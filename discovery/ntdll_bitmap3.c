@@ -1,6 +1,6 @@
 /* discovery/ntdll_bitmap3.c
  *
- * The bitmap mutators, and three other scans -- a third sweep of ntdll.
+ * The bitmap mutators, and three other scans, a third sweep of ntdll.
  *
  * Enumerating ntdll's exports against this project's manifest leaves 154 uncovered names that are
  * plausibly byte-wise. This measures the ones the two earlier bitmap sweeps never touched, because
@@ -13,7 +13,7 @@
  *      RtlCrc32 / RtlComputeCrc32         a checksum, where change 076 already did the 64-bit one
  *
  * Why the range mutators are interesting here specifically: change 262 already built and gated a
- * bit-range set/clear -- masked word at each end, whole words between, 32 bytes at a time -- as the
+ * bit-range set/clear (masked word at each end, whole words between, 32 bytes at a time) as the
  * mutation half of RtlFindSetBitsAndClear. If ntdll's standalone RtlSetBits is a loop, that code is
  * already written and already proved against a live export.
  *
@@ -23,7 +23,7 @@
  *     label claims is this project's most expensive recurring mistake.
  *   * a mutator cannot be timed by calling it repeatedly on the same subject unless the call is
  *     idempotent. Setting the same range twice writes the same bytes, so these particular mutators
- *     ARE idempotent and the loop is honest -- which is stated here rather than assumed, because
+ *     ARE idempotent and the loop is honest, which is stated here rather than assumed, because
  *     change 262's benchmark had to be built entirely around the cases where it is false.
  */
 #define WIN32_LEAN_AND_MEAN

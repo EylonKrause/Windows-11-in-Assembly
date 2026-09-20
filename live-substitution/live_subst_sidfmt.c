@@ -4,15 +4,15 @@
 // What is compared is the whole destination, not the string. This export writes into the caller's
 // buffer and its interesting behaviour is at the EDGES of that buffer:
 //
-//   * at MaximumLength == Length+1 it succeeds and writes NO TERMINATOR -- the two bytes past the
+//   * at MaximumLength == Length+1 it succeeds and writes NO TERMINATOR, the two bytes past the
 //     string keep the caller's fill (probes/oddroom.c). At Length+2 a full wide NUL appears.
 //   * at anything below Length+1 it returns STATUS_BUFFER_OVERFLOW and leaves Out COMPLETELY
-//     untouched -- not Length, not one byte of the buffer.
+//     untouched, not Length, not one byte of the buffer.
 //
 // Neither of those is visible to a check that compares the status, or the string, or the buffer up
 // to Length. So every case here poison-fills the destination, records the NTSTATUS, Length,
 // MaximumLength AND a hash of all 1024 bytes, and the MaximumLength for each case is drawn from the
-// boundary rather than from "something ample" -- the gate this replaces used 600 for three million
+// boundary rather than from "something ample", the gate this replaces used 600 for three million
 // cases and stepped its one boundary sweep BY TWO, so it never once asked an odd value.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -20,13 +20,13 @@
 // the shipped export disagreeing with itself.
 //
 // The count is drawn over its whole byte range, 0..255, not 0..15. The old gate drew it as
-// (seed>>8)%16 and therefore never expressed a count above 15 -- which the live export refuses and
+// (seed>>8)%16 and therefore never expressed a count above 15, which the live export refuses and
 // the old implementation did not, formatting all 200 sub-authorities of a SID whose count byte said
 // 200 into a 400-byte stack temporary.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.

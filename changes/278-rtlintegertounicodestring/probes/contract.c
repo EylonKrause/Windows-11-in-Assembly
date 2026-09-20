@@ -3,7 +3,7 @@
  * What does RtlIntegerToUnicodeString actually do, and is it the same shape change 067 Fixed?
  *
  * discovery/rtl_integer_char.c measured it at 32.14 ns for ten decimal digits, 18.66 for eight
- * hexadecimal, 20.35 for eleven octal, 40.27 for thirty-two binary -- and 10.16 ns for a SINGLE
+ * hexadecimal, 20.35 for eleven octal, 40.27 for thirty-two binary, and 10.16 ns for a SINGLE
  * DIGIT. Change 067's rewritten formatter does a whole 32-bit number in 3.76 ns, and the
  * division-per-digit version it replaced took 12.77.
  *
@@ -19,10 +19,10 @@
  * THE QUESTIONS, in the order they decide the implementation:
  *
  *   1. WHICH BASES are accepted, and what does an unsupported one do? The documented set is 0, 2,
- *      8, 10, 16 -- and 0 is documented to mean 10. What about 3, 7, 36?
+ *      8, 10, 16, and 0 is documented to mean 10. What about 3, 7, 36?
  *   2. Is there a prefix? RtlUnicodeStringToInteger reads "0x"; does the formatter write one?
  *   3. What is the room rule? It writes into a UNICODE_STRING with a MaximumLength, and change 067
- *      found that the analogous rule was Length+1 and not Length+2 -- a whole byte away from what
+ *      found that the analogous rule was Length+1 and not Length+2, a whole byte away from what
  *      everyone writes down.
  *   4. Is Length set, is the buffer terminated, and what happens to the destination on failure?
  *   5. SIGNEDNESS. The argument is a ULONG. Is 0xFFFFFFFF "4294967295" or "-1"?

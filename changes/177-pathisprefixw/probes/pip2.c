@@ -6,7 +6,7 @@
  *
  *     PathIsPrefixW(pre, path)  ==  ( PathCommonPrefixW(path, pre, NULL) == wcslen(pre) )
  *
- * "fuzz-verified against both live exports (2M cases, 0 mismatches)" -- and blocked, because
+ * "fuzz-verified against both live exports (2M cases, 0 mismatches)", and blocked, because
  * PathCommonPrefixW was itself parked at 99.3 %. Change 167 has now landed bit-exact, so the
  * blockage is gone and this function is a one-line composition over it.
  *
@@ -16,7 +16,7 @@
  * is not something the right-hand side can evaluate.
  *
  * It also checks the direction of the arguments explicitly. The identity swaps them --
- * PathIsPrefixW(pre, path) consults PathCommonPrefixW(path, pre, ...) -- and getting that backwards
+ * PathIsPrefixW(pre, path) consults PathCommonPrefixW(path, pre, ...), and getting that backwards
  * would still pass on every symmetric case, which is most short random pairs.
  */
 #define WIN32_LEAN_AND_MEAN

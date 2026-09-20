@@ -1,5 +1,5 @@
 @echo off
-REM changes/187-wtoi64/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/187-wtoi64/build.bat: assemble, gate on correctness, then benchmark.
 REM 64-bit wide parser; second function unblocked by change 186 sweeps.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

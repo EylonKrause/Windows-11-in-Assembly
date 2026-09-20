@@ -8,7 +8,7 @@
 ; Why this target. discovery/shlwapi_url_str.c: hashing 4096 bytes into a 16-byte digest costs
 ; 26 102 ns, which is 6.37 ns per source byte, 0.157 GB/s. probes/cost.c then measured the whole
 ; cost surface and found it FLAT at 0.42 ns per (source byte x digest byte) for every digest of six
-; bytes or more -- so the shipped cost is exactly "one table lookup per pair, about 1.9 cycles
+; bytes or more, so the shipped cost is exactly "one table lookup per pair, about 1.9 cycles
 ; each", with no locale, no code page, no grammar and no allocation anywhere in it.
 ;
 ; THE ALGORITHM, measured in probes/hash.c against the live export and not inherited from anywhere:
@@ -24,10 +24,10 @@
 ; directions (last-byte-first matched 65536, first-byte-first matched only the 256 palindromes).
 ;
 ; What makes it fast. Digest byte j depends only on itself and the source byte, so the digest bytes
-; are INDEPENDENT CHAINS -- confirmed twice in the probe, once by h[j] == T[j ^ src[0]] over every
+; are INDEPENDENT CHAINS, confirmed twice in the probe, once by h[j] == T[j ^ src[0]] over every
 ; one-byte source and once by the first four bytes of a 32-byte digest equalling a 4-byte digest.
 ; The shipped loop nonetheless walks one lane at a time through memory: per lane it loads h[j],
-; RELOADS src[i], xors, loads the table and stores h[j] back -- five memory operations and about
+; RELOADS src[i], xors, loads the table and stores h[j] back, five memory operations and about
 ; eight uops for one byte of progress. This implementation holds the lanes IN REGISTERS and advances
 ; them together, so a lane costs one xor and one table load and the source byte is loaded once for
 ; the whole group.
@@ -35,7 +35,7 @@
 ; Two kernels, and the small one earns its keep. a group of twelve is the widest the register file
 ; allows: the loop needs the table base, the source pointer and the current source byte, which is
 ; three of the fifteen usable general registers. But a pass costs the same whether it advances two
-; lanes or twelve -- it is bound by its own dependency latency, not by the twelve table loads -- so
+; lanes or twelve (it is bound by its own dependency latency, not by the twelve table loads) so
 ; a naive "always twelve" implementation does twelve lanes of ARITHMETIC for a one-byte digest. That
 ; is not free in a throughput measurement, where independent calls overlap and the uop count is what
 ; binds: at cbHash = 1 the twelve-lane kernel measured 0.72x against the shipped loop, and a kernel
@@ -65,11 +65,11 @@
 ;
 ; The seed is not written on the fast paths. Every digest byte is stored at the end of its group, so
 ; seeding the buffer first would be a write that is immediately overwritten and is unobservable
-; while the buffers are disjoint -- which the overlap test has already established. The seed IS
+; while the buffers are disjoint, which the overlap test has already established. The seed IS
 ; written, on its own, when cbData == 0, because then it is the entire result.
 ;
 ; ISA: AVX2 (the seed write only) + the base integer set. The hot loops are scalar on purpose: a
-; 256-entry byte substitution has no vector form cheaper than a load -- the pshufb construction for
+; 256-entry byte substitution has no vector form cheaper than a load, the pshufb construction for
 ; a full 256-byte table costs sixteen shuffles and sixteen blends per sixteen lanes, which is worse
 ; than sixteen loads, and vpgatherdd is slower still on Zen 4.
 
@@ -140,7 +140,7 @@ write_seed ENDP
 
 ; =============================================================================================
 ; The entry is a leaf. It saves nothing, builds no frame and uses only its caller-provided home
-; space, so the cheap shapes -- and a one-byte digest is the cheapest shape there is -- pay no
+; space, so the cheap shapes (and a one-byte digest is the cheapest shape there is) pay no
 ; prologue at all. Only the twelve-lane path needs the non-volatile registers, and it is a separate
 ; framed procedure reached by a tail jump with the stack still exactly as it was on entry.
 ; =============================================================================================
@@ -275,8 +275,8 @@ hd_k1l:
 hd_overlap:
         mov       [rsp+8], r10                    ; cbHash (already zero-extended), needed fresh for
                                                   ;   every source byte. write_seed touches no stack
-                                                  ;   at all, so its own home space -- which overlaps
-                                                  ;   ours -- cannot clobber this slot.
+                                                  ;   at all, so its own home space, which overlaps
+                                                  ;   ours, cannot clobber this slot.
         call      write_seed                      ; r8 = pbHash, r9d = cbHash
         lea       r11, [c_tab]
         mov       r10d, edx                       ; i = cbData, counted down
@@ -310,7 +310,7 @@ wia_hashdata ENDP
 ; =============================================================================================
 ; five lanes or more: ceil(cbHash/12) passes of a twelve-lane kernel. Entered by a tail jump from
 ; wia_hashdata with the stack exactly as at its entry, so this procedure's own unwind data is what
-; applies -- which is what lets a fault on a bad caller pointer unwind correctly.
+; applies, which is what lets a fault on a bad caller pointer unwind correctly.
 ;   rcx = pbData, eax = cbData, r8 = pbHash, r10 = cbHash   (all already zero-extended)
 ; =============================================================================================
 hd_big PROC FRAME
@@ -355,7 +355,7 @@ hd_group:
         ; ---- a last group of four or fewer gets its own kernel. The twelve-lane kernel would be
         ;      correct here too, since surplus lanes are simply not stored, but it would spend
         ;      twenty-seven uops per source byte to produce at most four bytes of digest. cbHash = 16
-        ;      -- the shape this function is actually called in -- is exactly one full group plus
+        ;      (the shape this function is actually called in) is exactly one full group plus
         ;      four, so this is not a corner case, it is half of the common case. ----
         mov       rcx, [rsp+16]
         sub       rcx, [rsp+24]

@@ -7,7 +7,7 @@
 // whole point of this API, and n==0 because it is a documented no-op that still returns.
 //
 // A chunk carries 32 narrow characters against the wide form's 16, so the classes run to the same
-// CHARACTER counts as change 209's rather than the same byte counts -- that is the comparison a
+// CHARACTER counts as change 209's rather than the same byte counts; that is the comparison a
 // caller of this API actually makes.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

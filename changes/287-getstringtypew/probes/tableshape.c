@@ -3,7 +3,7 @@
  * How big does the table actually have to be?
  *
  * probes/contract.c established that all three GetStringTypeW info types are pure, context-free,
- * locale-invariant functions of the code unit. So the implementation is a lookup -- but a flat table is
+ * locale-invariant functions of the code unit. So the implementation is a lookup, but a flat table is
  * 65536 WORDs, 128 KB per info type and 384 KB for all three, which does not fit L2 and would thrash it
  * on non-ASCII text. That would be a slow implementation of a fast idea.
  *
@@ -14,8 +14,8 @@
  *      value table halves the size at the cost of a second dependent load.
  *   2. How many distinct 256-ENTRY pages there are, indexing by high byte. This is the classic two-level
  *      Unicode layout: a 256-entry directory of page numbers, then the deduplicated pages. If most
- *      pages are identical -- and for a classification table most of them are usually all-zero or all
- *      one value -- this collapses the table to a few kilobytes, which fits L1 and makes the non-ASCII
+ *      pages are identical, and for a classification table most of them are usually all-zero or all
+ *      one value; this collapses the table to a few kilobytes, which fits L1 and makes the non-ASCII
  *      case fast rather than merely correct.
  *   3. Whether the ASCII range is special. Real text is overwhelmingly below U+0100; if that range has
  *      few distinct values, a vector fast path can handle it without touching the big table at all.

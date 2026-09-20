@@ -1,9 +1,9 @@
-/* probes/tail.c -- where does RtlStringFromGUIDEx put its extra NUL, and does it move?
+/* probes/tail.c: where does RtlStringFromGUIDEx put its extra NUL, and does it move?
  *
  * The live harness found the shipped export writing a second terminator past the one after the
  * 38-character GUID string, on 13333 of 20000 cases, with the status and Length matching. The
  * question the IPv4/IPv6 pair taught to ask is whether that index is FIXED or follows something --
- * MaximumLength, say -- so this varies MaximumLength and prints every zero position.
+ * MaximumLength, say, so this varies MaximumLength and prints every zero position.
  *
  * It matters that the capacities below include ODD values and values well past the 38-character
  * string. An earlier, narrower version of this probe asked only about 78, 79, 80, 82, 90, 100,

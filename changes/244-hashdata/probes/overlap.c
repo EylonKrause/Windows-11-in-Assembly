@@ -3,7 +3,7 @@
  * The one case that fixes the loop order, and the reason a fast implementation needs a fallback.
  *
  * With disjoint buffers the digest bytes are independent chains, so an implementation may compute
- * them in ANY order and in any grouping -- which is exactly what makes this function worth
+ * them in ANY order and in any grouping, which is exactly what makes this function worth
  * rewriting: twelve chains can be held in registers and advanced together, while the shipped code
  * walks one lane at a time through memory.
  *
@@ -12,20 +12,20 @@
  * so a lane write that lands on pbData[i] changes what the remaining lanes of that same source byte
  * consume. The answer then depends on:
  *
- *     * the LANE ORDER    -- ascending or descending j,
- *     * the GROUPING      -- whether lanes are advanced one source byte at a time (shipped) or
+ *     * the LANE ORDER, ascending or descending j,
+ *     * the GROUPING, whether lanes are advanced one source byte at a time (shipped) or
  *                            twelve lanes at a time across the whole source (fast),
  *     * whether the seed is written to the caller's buffer before the source is read.
  *
  * So this probe measures which of those the export actually does, over deliberately overlapping
  * buffers at every relative offset. Whatever it says, the implementation must either reproduce it
- * or refuse to take its fast path on overlap -- and the only way to know which is required is to
+ * or refuse to take its fast path on overlap, and the only way to know which is required is to
  * measure it rather than assume the case cannot arise.
  *
  * Three models are compared:
  *     DESC  : seed into the caller's buffer, then for i descending, for j DESCENDING, re-reading src
  *     ASC   : the same but for j ASCENDING
- *     GROUP : the fast shape -- lanes held privately in groups of twelve, each group advanced over
+ *     GROUP : the fast shape, lanes held privately in groups of twelve, each group advanced over
  *             the whole source, the digest written back at the end
  */
 #define WIN32_LEAN_AND_MEAN

@@ -13,8 +13,8 @@
 ; In-register fold (A-Z via two signed vpcmpgtw, +0x20), constants from memory.
 ; ISA: AVX2. Validated on Zen3.
 
-; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
-; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64; their low 128 Bits are,
+; the upper halves are volatile, so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
 ; happens to keep its accumulators there. See tools/abi-check.

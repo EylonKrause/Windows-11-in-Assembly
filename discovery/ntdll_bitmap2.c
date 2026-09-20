@@ -1,13 +1,13 @@
 /* discovery/ntdll_bitmap2.c
  *
  * The rest of the ntdll bitmap family. discovery/ntdll_bitmap.c timed the searches and the counts,
- * and four changes came out of it -- 255 (RtlFindLongestRunClear), 256 (RtlFindSetBits and
+ * and four changes came out of it, 255 (RtlFindLongestRunClear), 256 (RtlFindSetBits and
  * RtlFindClearBits), 257 (the RtlNumberOfSetBits family) and 258 (RtlFindClearRuns). What it did
  * NOT time is everything else the family exports, and two of its rows asked a question that let the
  * subject answer immediately, which is not the same as timing the function.
  *
  * The two rows that were too easy. `RtlAreBitsClear 0..60000, sparse` measured 1.60 ns and
- * `RtlAreBitsSet 0..60000, dense` 2.20 ns -- and both returned 0, meaning NO. A range check that
+ * `RtlAreBitsSet 0..60000, dense` 2.20 ns, and both returned 0, meaning NO. A range check that
  * answers "no" stops at the first bit that disagrees, which on those subjects is within the first
  * word: those rows timed a two-word function. The expensive case is the one that says yes, because
  * saying yes means every bit in the range was examined. Both forms are measured here, and every row

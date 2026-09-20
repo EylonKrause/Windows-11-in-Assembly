@@ -9,13 +9,13 @@
  *   * it accepted SIXTEEN sub-authorities, and a SID is documented to hold fifteen. Where does it
  *     actually stop, and what does the byte in the structure say?
  *   * it accepted revision 0 and revision 2, and `ConvertSidToStringSidW` then refused to format
- *     the result -- so the revision is STORED rather than validated. What is the legal range?
+ *     the result, so the revision is STORED rather than validated. What is the legal range?
  *   * a sub-authority SATURATES on overflow (4294967296 becomes 4294967295) while the identifier
  *     authority REFUSES. That asymmetry is exactly the kind of thing a reimplementation gets wrong
  *     by making the two consistent.
  *
  * Every line prints the raw bytes of the SID as well as its formatted form, because the formatted
- * form is produced by a DIFFERENT function that has its own opinions -- and grammar.c already
+ * form is produced by a DIFFERENT function that has its own opinions, and grammar.c already
  * caught it declining to print a SID the parser had happily produced.
  */
 #define WIN32_LEAN_AND_MEAN

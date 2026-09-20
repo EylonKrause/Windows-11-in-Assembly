@@ -14,7 +14,7 @@
  *
  * So: every high-fan-in candidate that is plausibly byte-wise gets timed here against a
  * representative input, before anybody writes a line of assembly. The output is ns per call and,
- * where the function is length-driven, ns per byte at a long row -- because a function that is flat
+ * where the function is length-driven, ns per byte at a long row, because a function that is flat
  * in its input is answering from its head and its ceiling is call overhead, not throughput.
  *
  * What is deliberately not here
@@ -27,7 +27,7 @@
  *                                       machinery, not an ordinal table.
  *   Nt.. and Zw.., Reg.., Create..      the body is a syscall; there is nothing to beat.
  *                                       (written without a glob star followed by a slash on
- *                                       purpose -- "Nt*" then "/Zw" closes this very comment,
+ *                                       purpose, "Nt*" then "/Zw" closes this very comment,
  *                                       and the error it produces points at <corecrt.h>.)
  *
  * BUILD
@@ -224,7 +224,7 @@ int main(void) {
         }
     }
 
-    /* ================= codepage conversion -- the highest fan-in convertible pair ============= */
+    /* ================= codepage conversion, the highest fan-in convertible pair ============= */
     {
         static wchar_t w[4096];
         static char a[8192];
@@ -236,7 +236,7 @@ int main(void) {
         /* ASCII-only on purpose for the first rows: that is the case our RtlUnicodeToUTF8N (2.8x)
          * and RtlMultiByteToUnicodeN (4.1x) fast paths exist for, and it is what the shell actually
          * passes. The non-ASCII rows are here because discovery/utf8_nonascii_rows.c found changes
-         * 016 and 034 benched on ASCII alone and running 0.21x-0.94x on everything else -- the same
+         * 016 and 034 benched on ASCII alone and running 0.21x-0.94x on everything else, the same
          * mistake is available here. */
         static wchar_t wnon[4096];
         for (int i = 0; i < 4095; ++i) wnon[i] = (wchar_t)(0x0410 + (i & 31));   /* Cyrillic */
@@ -254,7 +254,7 @@ int main(void) {
                    sink += MultiByteToWideChar(CP_ACP, 0, a, 8191, w, 4096));
         /* The measuring-mode call (cchWideChar = 0) is a separate function in practice and is what
          * a caller does first. changes 016 and 034 shipped without implementing it and faulted on a
-         * documented call -- see discovery/utf8n_null_destination.c. */
+         * documented call, see discovery/utf8n_null_destination.c. */
         TIME_BLOCK("WideCharToMultiByte CP_UTF8 (measure only)", 4095,
                    sink += WideCharToMultiByte(CP_UTF8, 0, w, 4095, NULL, 0, NULL, NULL));
     }

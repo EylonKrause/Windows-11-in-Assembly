@@ -1,6 +1,6 @@
 /* changes/167-pathcommonprefixw/probes/pcp6.c
  *
- * The rule, read out of the binary -- and tested against the live export over the same exhaustive
+ * The rule, read out of the binary, and tested against the live export over the same exhaustive
  * corpus that left the black-box derivation at 99.3 %.
  *
  * This change was parked because 784 of 116281 exhaustive pairs over {a, b, \, :} resisted every
@@ -110,7 +110,7 @@ static int model(const wchar_t* f1, const wchar_t* f2, wchar_t* out)
         ret = (n == 2) ? 3 : n;            /* 0x0CBDF5: the whole of the "quirk" */
     }
     if (out && ret < 260) {
-        /* StringCchCopyN(out, 260, f1, ret) -- stops at f1's own terminator, which is why a
+        /* StringCchCopyN(out, 260, f1, ret), stops at f1's own terminator, which is why a
            result of 3 can still write only 2 characters */
         int k = 0;
         while (k < ret && f1[k]) { out[k] = f1[k]; ++k; }

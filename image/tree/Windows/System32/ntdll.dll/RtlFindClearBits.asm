@@ -21,12 +21,12 @@
 ; Explanation was wrong. Both exports skip words with the same seven-instruction loop, differing by
 ; one `not` (RtlFindClearBits 0x0D0390, RtlFindSetBits 0x1113DF), and both continue skipping WHILE
 ; The sign bit is set. RtlFindSetBits inverts the word, so the two loops are driven by opposite top
-; bits of the same data -- and 0xA5A5A5A5 has bit 31 set, so every 64-bit word of the survey's
+; bits of the same data, and 0xA5A5A5A5 has bit 31 set, so every 64-bit word of the survey's
 ; subject has bit 63 set. Rotating the pattern by one bit to 0x5A5A5A5A SWAPS the two timings
 ; exactly (SetBits 1000.50 -> 211.00 ns, ClearBits 212.00 -> 923.00), on the same density and the
 ; same failing search. So neither export is badly written: both have a fast path of about one cycle
 ; per 64-bit word and a slow path of about five, and the top bit of every word decides which one
-; runs -- a data dependence no caller can see, on a search whose answer does not depend on it.
+; runs; a data dependence no caller can see, on a search whose answer does not depend on it.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c). The hint is the whole question, and
@@ -39,8 +39,8 @@
 ;     asking for eight: NOT FOUND. The bitmap is not circular, only the search order is.
 ;   * a hint at or past SizeOfBitMap is treated as zero, not as an error and not as "no results".
 ;   * NumberToFind = 0 Returns the hint rounded down to a multiple of eight, or 0 when the hint is
-;     at or past the size. probes/contract.c asked and got 0, twice -- from hints of 0 and 7, which
-;     both round to 0 -- so probes/zeron.c sweeps every hint 0..1200 on both exports.
+;     at or past the size. probes/contract.c asked and got 0, twice, from hints of 0 and 7, which
+;     both round to 0, so probes/zeron.c sweeps every hint 0..1200 on both exports.
 ;   * NumberToFind > SizeOfBitMap is NOT FOUND, and the slack past SizeOfBitMap never contributes:
 ;     a 512-bit buffer that is entirely set, declared as 40 bits, finds 40 and refuses 41.
 ;   * The value returned is the START of the first qualifying run; asking for 8 inside a run of 20
@@ -49,7 +49,7 @@
 ; ------------------------------------------------------------------------------------------------
 ; How it works. Both exports are the same search for a run of N ones, because wia_findclearbits
 ; inverts each word as it loads it. Out-of-range bits are then forced to ZERO in the transformed
-; word, where they terminate a run rather than extend it -- the mirror of change 255, which forced
+; word, where they terminate a run rather than extend it, the mirror of change 255, which forced
 ; them to one for the same reason.
 ;
 ; The first version of this change was parked at 0.563x, and the reason was not a detail: a generic
@@ -61,14 +61,14 @@
 ;
 ; So with B chosen as the largest power of two with N >= 2B-1, every qualifying run contains at
 ; least one aligned all-ones B-block, and 32 bytes are rejected by ONE compare and a mask extract.
-; On the survey's subject -- 0xA5A5A5A5, whose every byte is 10100101 -- no aligned pair, nibble,
+; On the survey's subject (0xA5A5A5A5, whose every byte is 10100101) no aligned pair, nibble,
 ; byte, word or qword is all ones, so the entire 8 KB is rejected by 256 vector steps instead of
 ; 1024 word iterations.
 ;
 ; And the carry problem dissolves, which is what made the first attempt look hard. Call the lowest
 ; all-ones aligned B-block of a run its WITNESS. A run cannot extend B or more bits below its own
-; witness -- the aligned block immediately below would then also be all ones, and would be the
-; witness instead -- so:
+; witness; the aligned block immediately below would then also be all ones, and would be the
+; witness instead, so:
 ;
 ;   * every qualifying run has a witness, and its start is within B-1 bits of it;
 ;   * witnesses appear in the same order as the runs they belong to, because runs are disjoint;
@@ -79,18 +79,18 @@
 ; is "find the next witness, rebuild the run around it, answer or step past it".
 ;
 ; The rebuild measures one run; it does not search. a witness belongs to exactly one run, and every
-; earlier run either had a witness of its own -- already examined -- or has none, and a run with no
+; earlier run either had a witness of its own (already examined) or has none, and a run with no
 ; witness is shorter than N. So the rebuild counts ones to the left of the witness (never more than
 ; B-1 <= 63 of them, so one load answers it) and ones to the right, and that is the whole
 ; measurement. It is done INLINE, because the rows that find their answer immediately cannot afford
 ; anything else: with the general scanner in that path they measured 0.67x-0.84x while every row
-; that had to scan was 2x-13x better. The general scanner is still there and still exact -- it runs
+; that had to scan was 2x-13x better. The general scanner is still there and still exact, it runs
 ; for N below three, where a sub-byte witness sits anywhere inside its byte and there is nothing to
 ; measure from; near either edge of the region, where the masks apply; and for the last stretch of
 ; the bitmap, which is too short for a whole 32-byte load.
 ;
 ; And two shapes get their own answer, because both are common and both are cheap:
-;   * the run starting exactly where the search does -- one load, before any of the above exists;
+;   * the run starting exactly where the search does, one load, before any of the above exists;
 ;   * a long run, counted 256 bits at a time by the same compare the filter uses. Asking for a
 ;     thousand set bits of an all-ones bitmap is a SUCCESS that still has to walk a thousand bits to
 ;     prove itself, and one word per step left that row at 0.37x.
@@ -133,14 +133,14 @@ wia_findclearbits PROC
 wia_findclearbits ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; fsb_core -- scan [ecx, size) for the first run of r13d ones, returning its start in eax or -1.
+; fsb_core, scan [ecx, size) for the first run of r13d ones, returning its start in eax or -1.
 ; a leaf with no prologue and no unwind data: an internal `call` inside a proc frame would push
 ; eight bytes the parent's unwind info does not describe.
 ;
 ; In:    ecx  = the first bit to consider
-;        r10d = the word index to stop AT (exclusive) -- the caller bounds the window
+;        r10d = the word index to stop AT (exclusive), the caller bounds the window
 ; Reads: rsi = buffer, r12d = SizeOfBitMap, r13d = N, r14 = the xor mask
-; Clobbers rax, rcx, rdx, r8, r9, r10, r11, rbx, rbp, rdi, r15 -- all either volatile or saved by
+; Clobbers rax, rcx, rdx, r8, r9, r10, r11, rbx, rbp, rdi, r15, all either volatile or saved by
 ; the body, which keeps nothing in them across the call.
 ; ---------------------------------------------------------------------------------------------
 fsb_core PROC
@@ -152,7 +152,7 @@ fsb_core PROC
         mov       r8d, edi
         shr       r8d, 6                      ; word index
         ; nw32 = the number of VALID 32-bit words; the loop covers ceil(nw32/2) 64-bit steps, the
-        ; last of which may be a 32-BIT read -- an RTL_BITMAP buffer is an array of ULONG, so a
+        ; last of which may be a 32-BIT read; an RTL_BITMAP buffer is an array of ULONG, so a
         ; 96-bit bitmap is twelve bytes and a 64-bit read of its second pair would touch four bytes
         ; the caller never allocated.
         lea       eax, [r12 + 31]
@@ -171,7 +171,7 @@ fsb_core PROC
 
 ; The masks and the read-width test are hoisted. Only the first word can need the low mask and only
 ; the LAST can need the high mask or a narrow read, but the first version tested for all three on
-; every word -- about fifteen instructions of bookkeeping per word before any bit was examined, on a
+; every word, about fifteen instructions of bookkeeping per word before any bit was examined, on a
 ; loop whose real work is ten. One compare against nsimple now sends the common case straight to a
 ; full unmasked 64-bit read.
 ALIGN 16
@@ -203,7 +203,7 @@ fsb_have:
         cmp       r8d, r10d
         jne       fsb_nolow
 fsb_lowmask:
-        ; clear the bits BELOW the first bit to consider -- only the first word can need this
+        ; clear the bits BELOW the first bit to consider, only the first word can need this
         mov       eax, r15d
         sub       eax, edi
         jle       fsb_nolow
@@ -231,7 +231,7 @@ fsb_nohigh:
         cmp       rdx, -1
         je        fsb_ones
 
-        ; A: the run ending at the word's LOW end -- carry + trailing ones. Checked first because
+        ; A: the run ending at the word's LOW end, carry + trailing ones. Checked first because
         ;    its start is the earliest, and the FIRST qualifying run is the answer.
         mov       rax, rdx
         not       rax
@@ -247,12 +247,12 @@ fsb_a_have:
         mov       eax, ebp
         ret
 
-        ; B: a run of N wholly inside the word. rbp is DEAD here -- if B succeeds the answer comes
-        ;    from TZCNT, and if it fails C overwrites rbp -- so it serves as the shift temporary.
+        ; B: a run of N wholly inside the word. rbp is DEAD here, if B succeeds the answer comes
+        ;    from TZCNT, and if it fails C overwrites rbp, so it serves as the shift temporary.
         ;
         ;    The step halves instead of counting. `x &= x >> k` leaves a bit wherever k+1 ones
         ;    began, so shifting by half of what is still wanted and halving again finds a run of N
-        ;    in ceil(log2 N) steps rather than N-1 of them -- six for a run of sixty-four where the
+        ;    in ceil(log2 N) steps rather than N-1 of them, six for a run of sixty-four where the
         ;    linear form takes sixty-three. ntdll does the same thing at 0x0D025F, and the parked
         ;    version of this file did not.
 fsb_b:
@@ -350,7 +350,7 @@ fsb_core ENDP
 ;
 ;   r9  = the byte cursor        rbx = the last byte offset a 32-byte load may start at
 ;   rsi = buffer                 r14 = the xor mask
-;   ymm2..ymm5 hold whatever constants the filter needs -- Win64 leaves only ymm0-ymm5 usable
+;   ymm2..ymm5 hold whatever constants the filter needs, Win64 leaves only ymm0-ymm5 usable
 ;
 ; VPCMPEQQ/D/W/B all set every byte of a matching lane, so VPMOVMSKB gives B/8 consecutive bits per
 ; matching block and tzcnt of it lands on the block's first byte whatever B is. That is why one
@@ -452,8 +452,8 @@ fsb_pass:
 fsb_pass_from:
         mov       dword ptr [rsp + 48], eax
 
-        ; The answer is often the first bit looked at, and everything below -- the scanner's setup,
-        ; the filter's constants, a call -- is too much machinery to answer that with. If the search
+        ; The answer is often the first bit looked at, and everything below, the scanner's setup,
+        ; the filter's constants, a call, is too much machinery to answer that with. If the search
         ; starts on a word boundary with a whole word ahead of it, one load says whether the run
         ; begins right there. Four rows that find their run immediately were 0.88x-0.96x without it.
         test      al, 63
@@ -475,8 +475,8 @@ fsb_pass_from:
 fsb_no_fw:
         mov       eax, dword ptr [rsp + 48]
 
-        ; N below three has no useful block size -- every run of one or two ones contains an
-        ; aligned single bit, which rejects nothing -- so it goes straight to the scalar scan.
+        ; N below three has no useful block size, every run of one or two ones contains an
+        ; aligned single bit, which rejects nothing, so it goes straight to the scalar scan.
         ; Nothing above is computed before this test: a search for one or two bits usually answers
         ; in its first word, and it should not pay for machinery it will never reach.
         cmp       r13d, 3
@@ -545,7 +545,7 @@ fsb_v64:
 ;      eax = the candidate mask, r9 = the chunk's byte offset
 ;
 ; a witness belongs to exactly one run, and that run is the only thing worth measuring: every run
-; before it either had a witness of its own -- already examined -- or has none, and a run with no
+; before it either had a witness of its own (already examined) or has none, and a run with no
 ; witness is shorter than N by the block argument. So the rebuild does not need to SEARCH the
 ; neighbourhood, it needs to MEASURE one run, which is a count of ones to the left and a count to
 ; the right. Doing that inline rather than through the general scanner is what the rows that find
@@ -562,7 +562,7 @@ fsb_vcand:
         cmp       r13d, 15
         jb        fsb_vcand_slow              ; a block SMALLER than a byte sits anywhere inside it,
                                               ; so the run need not cover the byte's first bit and
-                                              ; there is nothing here to measure from -- the general
+                                              ; there is nothing here to measure from, the general
                                               ; scanner searches the neighbourhood instead. The
                                               ; corpus caught this: three set bits at 37 with the
                                               ; witness PAIR at 38 was reported as 159.
@@ -657,7 +657,7 @@ fsb_vc_hit:
         mov       eax, r8d                    ; the run is long enough: it starts at s
         jmp       fsb_ret
 fsb_vc_miss:
-        ; the run is too short, so step past ALL of it -- and never by less than one byte, or a
+        ; the run is too short, so step past ALL of it, and never by less than one byte, or a
         ; witness inside the run just rejected would send the scan round again
         add       ecx, edx                    ; the first zero at or after the witness
         shr       ecx, 3
@@ -672,8 +672,8 @@ fsb_vcand_slow:
         mov       qword ptr [rsp + 40], r9    ; the cursor, across the call
         mov       qword ptr [rsp + 56], rcx   ; and the candidate
 
-        ; the rebuild window starts 64 bits below the witness -- far enough, because a run never
-        ; extends B-1 < 64 bits below its own lowest all-ones block -- and never below the pass's
+        ; the rebuild window starts 64 bits below the witness, far enough, because a run never
+        ; extends B-1 < 64 bits below its own lowest all-ones block, and never below the pass's
         ; first bit.
         lea       eax, [rcx*8]
         sub       eax, 64
@@ -836,7 +836,7 @@ fsb_zero_n:
         ;     0011122B  sbb r9d, r9d / and r9d, r8d     (hint < size) ? hint : 0
         ;     00111242  and r9d, 0xfffffff8             rounded down to a multiple of eight
         ;
-        ; probes/contract.c asked this and got 0, twice -- from hints of 0 and 7, which both round
+        ; probes/contract.c asked this and got 0, twice, from hints of 0 and 7, which both round
         ; to 0. The corpus caught it at 262960 cases and probes/zeron.c then swept every hint from
         ; 0 to 1200 on both exports to pin the rule rather than infer it from one instruction.
         xor       eax, eax

@@ -12,11 +12,11 @@
  * 0x08225F8F, 0xB26A432B ... and ours returning 0.
  *
  * Those look like values left behind by earlier calls, which would mean the export writes an
- * UNINITIALISED local when it has no digits to report -- and that the recorded contract is wrong.
+ * UNINITIALISED local when it has no digits to report, and that the recorded contract is wrong.
  *
  * And it would explain why the correctness gate could not see it. That gate compares three ULONGs after
  * three calls; if its own were zero-initialised, then "the export left the caller's word alone" and "the
- * export wrote 0" are the same observation. The sentinel was the value under test -- the vacuous-corpus
+ * export wrote 0" are the same observation. The sentinel was the value under test, the vacuous-corpus
  * defect this project keeps meeting, in its purest form: a filler indistinguishable from a result.
  *
  * So this probe asks the question three ways that cannot be confused:
@@ -26,8 +26,8 @@
  *      parse's value comes back, it wrote something stale;
  *   2. interleave: parse a known number, then parse a no-digit string into a FRESH destination, and see
  *      whether the second call reports the first call's number;
- *   3. sweep the no-digit strings -- "", "abc", "z", " ", "+", "-", "0x" with base 16 forced, a lone
- *      high byte -- against several bases, repeating each with two different sentinels, and report
+ *   3. sweep the no-digit strings, "", "abc", "z", " ", "+", "-", "0x" with base 16 forced, a lone
+ *      high byte, against several bases, repeating each with two different sentinels, and report
  *      whether the answer depends on the sentinel, on the previous call, or on nothing.
  *
  * build:  cl /nologo /O2 nodigits.c /Fe:nodigits.exe
@@ -120,7 +120,7 @@ int main(void)
                : "=> with no digits the export writes something; see the rows above for what");
     }
 
-    /* --- 4. and the one that matters for the contract: is a WRITTEN no-digit value repeatable? -- */
+    /* --- 4. and the one that matters for the contract: is a WRITTEN no-digit value repeatable?, */
     printf("\n-- 4. is whatever it writes REPRODUCIBLE? The same call, same sentinel, twenty times.\n");
     {
         ULONG first = 0;

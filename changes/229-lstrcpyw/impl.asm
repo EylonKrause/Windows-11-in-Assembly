@@ -11,7 +11,7 @@
 ;     memcpy    4001 bytes     12.56 ns  318.47 bytes/ns
 ;
 ; The wide form is not a byte loop, but 10 bytes/ns is a 16-byte SSE2 loop. It is also EXPENSIVE AT
-; SHORT LENGTHS -- 16.51 ns for 64 characters -- which is what separates this from change 228:
+; SHORT LENGTHS (16.51 ns for 64 characters) which is what separates this from change 228:
 ; lstrcatA had to be parked because its ~8 ns of fixed cost loses to a byte loop below 32 bytes,
 ; whereas the wide export charges more than that before it starts.
 ;
@@ -26,7 +26,7 @@
 ;     its last writable character;
 ;   * element-wise: all 65535 non-zero code unit values copied verbatim, surrogates included.
 ;
-; The split character -- the question the narrow form could not ask, and the one that shapes this
+; The split character; the question the narrow form could not ask, and the one that shapes this
 ; code. If a destination has an ODD number of writable bytes, the last character cannot be stored
 ; whole. probes/cpyw.c measured it at every odd width from 1 to 11 bytes:
 ;
@@ -36,7 +36,7 @@
 ;     ...
 ;
 ; Whole characters only. It never leaves half a character behind. So the page clamp is computed in
-; bytes and then rounded down to an even count -- `and r9d, -2` -- which is the one line that makes
+; bytes and then rounded down to an even count (`and r9d, -2`) which is the one line that makes
 ; an odd-aligned destination behave. Without it a byte-granular tail would write one byte into the
 ; last character and the buffer would differ from the shipped function's.
 ;
@@ -45,10 +45,10 @@
 ;   n = min(bytes left in the SOURCE's page, bytes left in the DESTINATION's page), rounded to even
 ;
 ; so a chunk can never fault halfway, and the fault therefore lands on the first character of the
-; next page with everything before it already written -- exactly where the shipped loop stops. The
+; next page with everything before it already written, exactly where the shipped loop stops. The
 ; clamp is hoisted out of the 64-byte loop because it only changes once per 4096 bytes.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_lstrcpyw_core PROC
@@ -68,7 +68,7 @@ cp_loop:
         cmp       r9d, r10d
         cmova     r9d, r10d                      ; the smaller of the two
         and       r9d, -2                        ; ROUND DOWN TO WHOLE CHARACTERS. Half a character
-                                                 ;   is never stored -- measured, see the header.
+                                                 ;   is never stored, measured, see the header.
 
         ; ---- 64 bytes = 32 characters at a time, for as long as the clamp lasts. The clamp is
         ;      computed above and only decremented here: it changes once per 4096 bytes.
@@ -159,7 +159,7 @@ cp_done:
         ; ---- within 32 bytes of a page end on one side or the other: one CHARACTER at a time,
         ;      exactly as the shipped function does, until the clamp lets a wide chunk back in.
         ;      r9d is 0..30 and even here. Zero means fewer than two bytes are in range on one
-        ;      side, so the store below is the one that faults -- which is the shipped behaviour,
+        ;      side, so the store below is the one that faults, which is the shipped behaviour,
         ;      and the pointers still advance, so this cannot spin.
 cp_words:
         movzx     r11d, word ptr [rdx]

@@ -6,7 +6,7 @@
 ;   NTSTATUS wia_appendasciiztostring(PSTRING dest, PCSZ src)   [Win64: rcx = dest, rdx = src -> eax]
 ;
 ; ntdll!RtlAppendAsciizToString. discovery/ntdll_rtl_uncovered2.c found it at 222.15 ns for 4000
-; bytes -- 0.056 ns/byte, four and a half times the per-byte cost of its own siblings measured in
+; bytes, 0.056 ns/byte, four and a half times the per-byte cost of its own siblings measured in
 ; the same run:
 ;
 ;       RtlAppendAsciizToString, 4000 bytes        222.15 ns   0.056 ns/byte
@@ -20,7 +20,7 @@
 ; THE CONTRACT, probed rather than inherited (probes/contract.c).
 ;
 ; Change 101 landed the WIDE analogue, RtlAppendUnicodeToString, and its contract is written out in
-; its header. NONE of it was assumed here -- and that was not caution for its own sake, because the
+; its header. NONE of it was assumed here, and that was not caution for its own sake, because the
 ; two forms DISAGREE on the rule a reimplementation is most likely to copy across:
 ;
 ;   * This form never writes a terminator. The wide one appends a NUL when MaximumLength leaves room
@@ -35,13 +35,13 @@
 ;     not a wrong answer, it is a memory-safety bug, and it is the reason the compare below is on
 ;     64-bit registers.
 ;   * src == NULL is STATUS_SUCCESS with nothing changed, and so is an empty source.
-;   * On failure -- STATUS_BUFFER_TOO_SMALL, 0xC0000023 -- nothing is touched: not the buffer, not
+;   * On failure (STATUS_BUFFER_TOO_SMALL, 0xC0000023) nothing is touched: not the buffer, not
 ;     Length, not MaximumLength. So the length has to be known BEFORE anything is written, which is
 ;     why the source is measured first and copied second. Reading it twice is required by the
 ;     contract, not an oversight.
 ;
 ; ------------------------------------------------------------------------------------------------
-; How it works. The page-safe AVX2 strlen this project has used since change 032 -- 64 bytes an
+; How it works. The page-safe AVX2 strlen this project has used since change 032, 64 bytes an
 ; iteration, and it never reads across a page boundary it has not already proved it may touch --
 ; then one AVX2 copy. ntdll calls out to strlen and then copies; this does neither.
 ;
@@ -167,7 +167,7 @@ cp_done:
 
 ; Fewer than 32 Bytes: a ladder of overlapping pairs, not a byte loop.
 ;
-; A 32-byte read is out of the question here -- the source may sit at the end of a page, and a
+; A 32-byte read is out of the question here, the source may sit at the end of a page, and a
 ; wide read of a five-byte string would be a fault rather than a slow path (the scan above may
 ; read a whole 32 bytes only because it aligns DOWN first). But a byte-at-a-time loop is far
 ; worse than it looks: the first draft used one and the SIXTEEN-BYTE row measured 0.63x, which
@@ -176,7 +176,7 @@ cp_done:
 ;
 ; Each rung reads the FIRST k bytes and the LAST k bytes and writes both. The two may overlap,
 ; which is harmless because both come from the same source, and every byte read is strictly
-; inside the string -- no rung ever touches a byte past the NUL.
+; inside the string, no rung ever touches a byte past the NUL.
 cp_small:                                        ; 1 <= rax <= 31
         cmp       rax, 16
         jb        cp_lt16
@@ -214,7 +214,7 @@ cp_one: movzx     edx, byte ptr [r8]
         jmp       ok_len
 
 ok_len:
-        ; Length becomes the sum computed before the copy -- rax was consumed by the copy itself,
+        ; Length becomes the sum computed before the copy, rax was consumed by the copy itself,
         ; and r10 already holds Length + strlen, which the check above proved is <= MaximumLength
         ; and therefore fits a USHORT.
         mov       word ptr [r11], r10w

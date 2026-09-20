@@ -17,7 +17,7 @@
 // unless an exception actually fires. The wrapper compiles to the argument tests and a tail call.
 //
 // The core is page-safe precisely so that when the fault does come, it comes at the same character
-// the shipped byte-at-a-time loop would reach -- see impl.asm.
+// the shipped byte-at-a-time loop would reach, see impl.asm.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 

@@ -11,7 +11,7 @@
 ; 109 ns to append a 254-char string.
 ;
 ; Contract (derived in probes/scb.c, fuzz-confirmed bit-exact against the live export over
-; 2,000,000 cases -- confirmed on the first attempt):
+; 2,000,000 cases, confirmed on the first attempt):
 ;       n    = wcslen(dst)                       (unbounded: the bound does NOT clamp this)
 ;       room = cchDestBuffSize - n
 ;       room > 0  -> copy min(room-1, wcslen(src)) chars at dst+n, then exactly ONE NUL
@@ -38,7 +38,7 @@
 ;   * The 32-byte destination store happens only while the budget is >= 16 characters, so it
 ;     can never write past cchDestBuffSize-1.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_strcatbuffw PROC

@@ -3,12 +3,12 @@
 //
 // The two exports are patched one at a time, each driven through its own name with its own counter.
 // They are separate code in ntdll and they scan in opposite directions, so a wrapper routing one
-// through the other would give the WRONG ANSWER rather than merely going unnoticed -- the forward
+// through the other would give the WRONG ANSWER rather than merely going unnoticed, the forward
 // form clips the run at FromIndex and the backward form clips it at the other end.
 //
 // Both the return value and the written start are compared, and the start is poisoned before every
 // call. "Nothing found" still writes that pointer, and the two forms write DIFFERENT values there
-// -- SizeOfBitMap forward, zero backward -- so an implementation that returned the right length and
+// (SizeOfBitMap forward, zero backward) so an implementation that returned the right length and
 // wrote the wrong start would pass a harness that only looked at the return value.
 //
 // The corpus must actually find runs, and the run counts are printed: a corpus of all-ones bitmaps
@@ -16,8 +16,8 @@
 // scan at all. Both directions are counted separately.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
-// shipped export disagreeing with itself -- and that is the discipline this avoids.
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
+// shipped export disagreeing with itself, and that is the discipline this avoids.
 //
 // The bitmap is always an even number of ULONGs, and that is a property of the shipped export
 // rather than a convenience. RtlFindLastBackwardRunClear tests its starting bit with
@@ -27,12 +27,12 @@
 // a SIXTY-FOUR-BIT read of the buffer base, so it reads eight bytes whatever the array holds. The
 // correctness gate found that with a guard page: at an odd ULONG count the last four of those bytes
 // are past the array, and ntdll faults. Here the buffer is a fixed even-sized static array, so the
-// read is always inside it -- but the bitmap is still DECLARED at sizes that are not multiples of
+// read is always inside it, but the bitmap is still DECLARED at sizes that are not multiples of
 // 32 bits, which is what exercises the slack handling.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports before any patch exists.
 //   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

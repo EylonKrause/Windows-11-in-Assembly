@@ -6,7 +6,7 @@
 //
 // lstrcpyA has NO bound. It always runs off the end of a destination too small for the source, and
 // probes/cpya.c measured what that does: it returns NULL rather than faulting, and the destination
-// is filled exactly to its last writable byte -- 80 of 80 rooms. The same is true on the source
+// is filled exactly to its last writable byte, 80 of 80 rooms. The same is true on the source
 // side: an unterminated source at a guard page returns NULL with exactly the readable prefix
 // transferred.
 //
@@ -34,7 +34,7 @@ static int fails = 0;
 static unsigned long sd = 0xC0FFEEu;
 static unsigned rnd(void){ sd = sd*1103515245u + 12345u; return sd>>8; }
 
-/* The two destinations live in DIFFERENT allocations on purpose -- each needs its own guard page --
+/* The two destinations live in DIFFERENT allocations on purpose; each needs its own guard page --
    so the two return values can never be pointer-equal on success. What has to match is the
    CLASSIFICATION: NULL on both, or each returning its OWN destination. Comparing the raw pointers
    instead is a test bug, and it was one here: it passed while both sides always failed (where both

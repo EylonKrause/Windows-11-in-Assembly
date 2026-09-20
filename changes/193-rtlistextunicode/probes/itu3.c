@@ -1,4 +1,4 @@
-/* RtlIsTextUnicode, round 3 -- pin the two predicates rounds 1-2 could not explain, and find the
+/* RtlIsTextUnicode, round 3, pin the two predicates rounds 1-2 could not explain, and find the
    prefix cap.
 
    Round 2 settled:
@@ -10,7 +10,7 @@
      * ILLEGAL_CHARS never fires for a single substituted unit at positions 0..3, yet the buffer
        FE FF 00 61 sets it -- so it is a property of the whole buffer, not a character class.
      * ODD_LENGTH == "size is odd"; NULL_BYTES == "a 0x00 byte is present".
-     * STATISTICS over 64 IDENTICAL units is set exactly when low(c) > 3*high(c) -- 10965 values in
+     * STATISTICS over 64 IDENTICAL units is set exactly when low(c) > 3*high(c), 10965 values in
        85 runs, boundary low = 3*high+1 -- but a SINGLE 'A' among 39 U+0500 units also sets it,
        which no sum-based reading of that boundary explains.
      * ASCII16 is set for 200 units of 'a' and for the two units 'a','b', but NOT for 200 units of
@@ -106,7 +106,7 @@ int main(void){
 
     printf("\n=== C. what is STATISTICS counting? ===\n");
     {
-        /* C1: two values mixed -- k units of X among 64, rest Y. Sweep X and Y over high bytes. */
+        /* C1: two values mixed, k units of X among 64, rest Y. Sweep X and Y over high bytes. */
         printf("    (c1) k units of U+0041 among 64, filler U+hh00, boundary k:\n");
         for(int hb=1; hb<=8; ++hb){
             unsigned fill = (unsigned)hb<<8;
@@ -134,7 +134,7 @@ int main(void){
         printf("    (c3) identical U+0503 (high 5, low 3 -> below the boundary), unit count 2..40:\n        ");
         for(int N=2;N<=40;N++){ for(int j=0;j<N;j++) wbuf[j]=0x0503; printf("%d",ask(wbuf,N*2,0x0002)); }
         printf("\n");
-        /* C4: split the difference -- half U+0500, half U+0041, vs other ratios */
+        /* C4: split the difference, half U+0500, half U+0041, vs other ratios */
         printf("    (c4) N units: n of U+00FF, 64-n of U+FF00:\n        ");
         for(int n=0;n<=64;n+=2){
             for(int j=0;j<64;j++) wbuf[j]=(wchar_t)((j<n)?0x00FF:0xFF00);

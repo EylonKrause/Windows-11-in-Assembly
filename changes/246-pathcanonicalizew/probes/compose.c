@@ -20,15 +20,15 @@
  *         0000F139  cmp  ecx, 0x70000             <- a FACILITY_WIN32 HRESULT?
  *         0000F145  movzx eax, ax                 <-   ... then its low word is the Win32 error
  *
- * So change 243 -- which modelled that body exactly, over 11 772 366 enumerated cases with 0
- * mismatches, and landed at 13.12x -- has already done the hard part, and this function is a
+ * So change 243, which modelled that body exactly, over 11 772 366 enumerated cases with 0
+ * mismatches, and landed at 13.12x, has already done the hard part, and this function is a
  * wrapper. But "should be" is not "is", and this project has a rule about that: change 242 was only
  * cheap because the composition was PROVED first, over 789 770 pairs, rather than assumed. The same
  * proof is what this probe does.
  *
  * FOUR OBSERVABLES, because a BOOL alone would hide most of a disagreement:
  *   * the BOOL;
- *   * the whole destination buffer against a poison fill -- the failure paths clear pszDst[0] and
+ *   * the whole destination buffer against a poison fill, the failure paths clear pszDst[0] and
  *     write nothing else, which a string comparison cannot tell from writing the same bytes back;
  *   * GetLastError(), which is the only place the HRESULT survives;
  *   * and the ORDER of the two NULL checks, which is observable because pszDst[0] is cleared between

@@ -6,7 +6,7 @@
 ; BOOL wia_filetime_to_systemtime(const FILETIME* lpFileTime, LPSYSTEMTIME lpSystemTime)
 ;                                  rcx                         rdx            -> eax
 ;
-; Reimplements kernel32!FileTimeToSystemTime -- a jmp thunk onto kernelbase!FileTimeToSystemTime,
+; Reimplements kernel32!FileTimeToSystemTime, a jmp thunk onto kernelbase!FileTimeToSystemTime,
 ; RVA 0xB3660, which does, in order:
 ;
 ;     load the stack cookie  ->  copy the 8-byte FILETIME onto its own stack  ->  zero a 16-byte
@@ -20,12 +20,12 @@
 ; permutation does not exist as work at all.
 ;
 ; ---------------------------------------------------------------------------------------------
-; Where the boundary is between "validate here" and "hand it to the engine" -- the whole design of
+; Where the boundary is between "validate here" and "hand it to the engine", the whole design of
 ; a Win32 wrapper over an NT routine, and the reason this file is not simply a call:
 ;
 ;     The engine's domain is Time >= 0. Change 126 (ntdll!RtlTimeToTimeFields, landed 1.73x)
-;     records that ntdll's own output for a NEGATIVE Time is internally-overflowed garbage -- -1 day
-;     comes back as year 29878 with a non-monotonic Weekday -- and deliberately does not reproduce
+;     records that ntdll's own output for a NEGATIVE Time is internally-overflowed garbage, -1 day
+;     comes back as year 29878 with a non-monotonic Weekday, and deliberately does not reproduce
 ;     it. The Win32 wrapper never lets that case reach the engine: it tests the sign first and
 ;     fails. The one input class 126 left undefined is exactly the class this layer rejects, so the
 ;     two fit together with no gap and no overlap.
@@ -48,11 +48,11 @@
 ; against 37-45 ns for the shipped export. Both passed the same exhaustive gate.
 ;
 ; Every constant divide is a multiply-high, and every magic number below was verified by
-; probes/magics.c over its operand's FULL natural range -- exhaustively where the range is
+; probes/magics.c over its operand's FULL natural range, exhaustively where the range is
 ; enumerable, and at every quotient boundary (u = q*d and q*d-1, which is a proof and not a sample
 ; because floor(u/d) only steps at multiples of d) where it is not. The first version of that probe
 ; verified each magic only over the operand set this algorithm happens to present and returned
-; (u*1461)>>34 for /11758980 -- exact here, wrong above u = 28 825 619. It was thrown away; see the
+; (u*1461)>>34 for /11758980, exact here, wrong above u = 28 825 619. It was thrown away; see the
 ; header of magics.c.
 ;
 ; SYSTEMTIME is a PERMUTATION of TIME_FIELDS, not the same layout:
@@ -61,15 +61,15 @@
 ;
 ; Page safety: the only read is one 8-byte load of the caller's 8-byte filetime, so it touches
 ; exactly the bytes the caller declared and cannot reach a page the structure does not occupy. The
-; only writes are eight 2-byte stores inside the caller's 16-byte SYSTEMTIME -- deliberately not one
-; 16-byte store -- so nothing is written past the logical end even when the structure ends at a page
+; only writes are eight 2-byte stores inside the caller's 16-byte SYSTEMTIME, deliberately not one
+; 16-byte store, so nothing is written past the logical end even when the structure ends at a page
 ; boundary, and nothing at all is written on the reject path. correctness.c proves both with a
 ; PAGE_NOACCESS page immediately after each.
 ;
 ; Registers: rax rcx rdx r8 r9 r10 r11 only. Not one non-volatile register is touched, so there is
 ; no prologue, no push and no pop on the fast path. Change 126 spilled rsi/rdi/r12/r13 for the same
 ; job; the four were recovered by emitting the calendar and the time-of-day blocks sequentially and
-; letting them share five scratch registers -- register renaming removes the write-after-read
+; letting them share five scratch registers, register renaming removes the write-after-read
 ; dependency between the blocks, so they still overlap in the out-of-order window, which the
 ; measurement confirms (the two chains are 30 and 22 cycles and the function costs ~37, not ~52).
 ;
@@ -117,14 +117,14 @@ wia_filetime_to_systemtime PROC
 
 ; ------------------------------------------------------------------------------------------------
 ; Calendar: civil from days, Neri-Schneider. The year is shifted to start in March so that the leap
-; day lands last and disappears from the arithmetic -- no month table, no leap-year test, no loop,
+; day lands last and disappears from the arithmetic, no month table, no leap-year test, no loop,
 ; and no branch. N is the day count re-based on 0000-03-01 (days + 719468 - 134774).
 ;
-;   N_1 = 4N+3        C   = N_1/146097   -- the century, 0..308
-;   N_2 = 4*N_C+3     Z   = P_2 >> 32    -- the year within the century, 0..99
-;   P_2 = 2939745*N_2 N_Y = low32(P_2)/11758980  -- the day within the March-year, 0..365
+;   N_1 = 4N+3        C   = N_1/146097, the century, 0..308
+;   N_2 = 4*N_C+3     Z   = P_2 >> 32, the year within the century, 0..99
+;   P_2 = 2939745*N_2 N_Y = low32(P_2)/11758980, the day within the March-year, 0..365
 ;   N_3 = 2141*N_Y+197913     M = N_3>>16 (3..14)     D = (N_3 & 0xFFFF)/2141
-;   J   = N_Y >= 306  -- January and February, which belong to the NEXT civil year
+;   J   = N_Y >= 306, January and February, which belong to the NEXT civil year
 ; ------------------------------------------------------------------------------------------------
         lea       rax, [r9 + 584694]              ; N                       (days dies here)
         lea       rax, [rax*4 + 3]                ; N_1
@@ -198,7 +198,7 @@ wia_filetime_to_systemtime PROC
 ; ------------------------------------------------------------------------------------------------
 ; Reject path. Cold, and reached only by a forward branch that is NOT taken on the common input, so
 ; the success path never pays for a taken branch. Nothing has been written to *lpSystemTime at this
-; point and nothing will be -- which is why a negative time with lpSystemTime = NULL returns 0/87
+; point and nothing will be, which is why a negative time with lpSystemTime = NULL returns 0/87
 ; instead of faulting, on the live export and here.
 ;
 ; The last error is set through SetLastError rather than by storing to TEB.LastErrorValue by hand.

@@ -1,13 +1,13 @@
 // changes/223-pathundecoratea/reference.c
-// Independent oracle for shlwapi!PathUndecorateA -- the narrow sibling of change 174.
+// Independent oracle for shlwapi!PathUndecorateA, the narrow sibling of change 174.
 //
 // The rule is change 174'S, with the correction 174 Needed. Four conjuncts, all re-derived against
 // the NARROW export in probes/undec.c and probes/bytes.c rather than inherited on the strength of
 // the names matching. The decoration "[n]" is removed only when ALL of these hold:
 //
-//   (a) it is in the LAST COMPONENT -- after the last backslash. "C:\dir[1]\file.txt" is untouched.
-//   (b) its ']' is the character immediately before THE EXTENSION -- the last '.' after the last
-//       backslash OR SPACE -- or immediately before the end of the string when there is no such
+//   (a) it is in the LAST COMPONENT, after the last backslash. "C:\dir[1]\file.txt" is untouched.
+//   (b) its ']' is the character immediately before THE EXTENSION, the last '.' after the last
+//       backslash OR SPACE, or immediately before the end of the string when there is no such
 //       dot. This is the conjunct that decides the awkward cases:
 //           "a[1].b[2]"    -> "a.b[2]"     (the group before the only dot)
 //           "a[1].b[2].c"  -> "a[1].b.c"   (the group before the LAST dot, not the first one)
@@ -18,8 +18,8 @@
 //       alone, "file[1].txt" and "x\a[1].txt" are not.
 //
 // The space in (b) Is the whole reason this change exists in this shape. Change 174 shipped without
-// it -- it derived its rule over an alphabet with no space in it, so neither its fuzz nor its
-// live-substitution driver could see the gap -- and probes/space2.c found it while enumerating this
+// it, it derived its rule over an alphabet with no space in it, so neither its fuzz nor its
+// live-substitution driver could see the gap, and probes/space2.c found it while enumerating this
 // narrow export. Over every string of {'[', ']', '.', '0', SPACE, 'z'} of length 0..7:
 //
 //     live PathUndecorateA vs 174's rule as it shipped : 2724 of 335923 mismatches
@@ -32,7 +32,7 @@
 // but it does NOT start a new component for (d). "a b[1].txt" -> "a b.txt": the '[' is not the
 // component's first character even though a space precedes the name.
 //
-// The removal closes the gap by moving the remainder down and -- like the shipped export -- leaves
+// The removal closes the gap by moving the remainder down and (like the shipped export) leaves
 // the stale tail past the new terminator untouched, which is why every test here compares the whole
 // buffer rather than the string.
 //

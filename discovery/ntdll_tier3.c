@@ -1,6 +1,6 @@
 /* discovery/ntdll_tier3.c
  *
- * TIER 3 -- the uncovered ntdll Rtl* functions that the live desktop and startup processes actually
+ * TIER 3, the uncovered ntdll Rtl* functions that the live desktop and startup processes actually
  * bind, ranked by fan-in and then timed.
  *
  * The fan-in numbers come from the two import sweeps in revalidation/*-imports-cache.json, so they
@@ -12,7 +12,7 @@
  *
  * Three of those are plausibly real work and the rest are probably finished code; the point of this
  * file is to stop guessing which is which. A function whose cost does not move with its input, and
- * whose absolute cost is already a handful of nanoseconds, is finished -- tier 2 ruled out
+ * whose absolute cost is already a handful of nanoseconds, is finished, tier 2 ruled out
  * GetSystemTimeAsFileTime at 1.80 ns despite 561 modules binding it.
  *
  * RtlSetBits and RtlClearBits are included for a different reason: change 130 covers RtlSetBits and

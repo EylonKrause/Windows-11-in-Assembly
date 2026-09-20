@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar wcstoul. Not fast; just correct.
 //
 // Contract derived in ../188-wcstol/probes/wcstol.c, which fuzzed wcstol AND wcstoul side by side
-// against their own live exports -- value, *endptr AND errno -- 1,500,000 cases each, 0
+// against their own live exports (value, *endptr AND errno) 1,500,000 cases each, 0
 // mismatches. Everything change 188 established applies here, with change 111's UNSIGNED tail:
 //   * a leading '-' is accepted and NEGATES MODULO 2^32, so "-1" returns 4294967295, no error;
 //   * the overflow limit is 2^32-1 REGARDLESS of the sign (in 188 the sign moves it);

@@ -1,11 +1,11 @@
 ; changes/097-rtlintegertochar/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` in this directory is UNTOUCHED and remains the 5950X
 ; (Zen 3) implementation of record. This file is an ADDITIONAL variant tuned for
 ; the second PC. Same exported symbol (`wia_itoc`), so the existing correctness.c
-; and bench.c validate it unmodified -- build it with build_2ndpc.bat.
+; and bench.c validate it unmodified, build it with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
@@ -23,7 +23,7 @@
 ; Cause (this is a dispatch-floor loss, not a Zen-4 correctness issue): to format
 ; a SINGLE decimal digit the Zen 3 path still pays the full general prologue --
 ; `push rbx/rsi/rdi`, a 64-byte stack frame, a build-into-temp-from-the-end pass,
-; and then a byte-at-a-time `copy_lp` loop -- in order to emit two bytes ("5", 0).
+; and then a byte-at-a-time `copy_lp` loop, in order to emit two bytes ("5", 0).
 ; That fixed overhead is ~7 ns of work to produce 2 bytes. ntdll's scalar routine
 ; has almost no prologue, so at one digit it simply wins. Zen 4 did not create
 ; this weakness; it exposed it, because this PC's newer ntdll (26100.9278) got
@@ -31,8 +31,8 @@
 ;
 ; THE FIX
 ; -------
-; A frameless fast path for the overwhelmingly common case -- base 10 (or base 0,
-; which means 10) with Value < 100 -- placed BEFORE the prologue. It touches no
+; A frameless fast path for the overwhelmingly common case, base 10 (or base 0,
+; which means 10) with Value < 100, placed BEFORE the prologue. It touches no
 ; callee-saved register, allocates no stack, uses no temp buffer and no copy loop:
 ; one or two stores and a return. Everything else falls through to the original
 ; body, byte-for-byte unchanged.
@@ -46,11 +46,11 @@
 ;   * success returns STATUS_SUCCESS (0).
 ;   * Length is compared UNSIGNED, exactly as the original does (`cmp eax,r10d` /
 ;     `ja overflow`). A negative Length therefore behaves as a huge capacity on
-;     both paths -- a quirk of the shipped routine that is deliberately mirrored
+;     both paths; a quirk of the shipped routine that is deliberately mirrored
 ;     rather than "fixed", since bit-exactness is the gate.
 ;
 ; SAFETY
-;   * No vector registers, no AVX-512, no GFNI -- this variant is plain scalar
+;   * No vector registers, no AVX-512, no GFNI; this variant is plain scalar
 ;     x86-64 and runs correctly on the 5950X too (it is simply unnecessary there).
 ;   * Writes at most 3 bytes, all within the caller's buffer and only after the
 ;     same capacity check the original performs. No read of any input buffer.
@@ -111,7 +111,7 @@ fast_overflow:
         ret
 
         ;----------------------------------------------------------------------
-        ; ORIGINAL BODY -- byte-for-byte identical to impl.asm from here down.
+        ; ORIGINAL BODY, byte-for-byte identical to impl.asm from here down.
         ;----------------------------------------------------------------------
 slow_path:
         push      rbx

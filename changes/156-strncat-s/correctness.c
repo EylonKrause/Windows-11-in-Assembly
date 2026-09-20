@@ -1,7 +1,7 @@
 // changes/156-strncat-s/correctness.c
 // Bit-exact fuzz of wia_strncat_s vs live ucrtbase!strncat_s + oracle. Each trial compares the errno
 // return, the number of invalid-parameter-handler invocations, and every byte of a canary-filled
-// destination -- which is what separates the three partial-write paths (unterminated dst writes only
+// destination, which is what separates the three partial-write paths (unterminated dst writes only
 // dst[0]; ERANGE appends then empties; _TRUNCATE appends then terminates the buffer end).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

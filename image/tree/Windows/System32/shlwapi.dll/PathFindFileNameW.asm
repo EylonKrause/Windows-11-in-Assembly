@@ -13,11 +13,11 @@
 ; the function after four hypotheses failed. It was not guessed this time, it was DERIVED:
 ;
 ;   1. every string over {a, backslash, slash, colon} up to length 8 was enumerated and the live
-;      offset recorded -- 87381 observations;
+;      offset recorded, 87381 observations;
 ;   2. the scan was modelled as "position i sets the answer to i+1, or it does not", and constraints
 ;      were collected: for an observed answer A, position A-1 must set and every position at or after
 ;      A must not. Feeding those into a 3-character window (prev, cur, next) produced exactly FOUR
-;      conflicting windows, all of them with cur = ':' -- e.g. the ':' in ":a" sets, the same window
+;      conflicting windows, all of them with cur = ':', e.g. the ':' in ":a" sets, the same window
 ;      in ":a:" must not. So the colon depends on RIGHT context, which is why every local rule
 ;      failed;
 ;   3. the conflicts pinned the shape, and the resulting rule was then verified exhaustively.
@@ -26,7 +26,7 @@
 ;   * '\' and '/' are always separators. One sets the answer to i+1 when the next character is
 ;     neither NUL nor '\' nor '/'  (a following ':' is fine).
 ;   * ':' sets the answer to i+1 under the same next-character test, but only when it is the sole
-;     colon in its RUN -- the stretch between two backslash/slash characters. So ":a" gives 1 and
+;     colon in its RUN; the stretch between two backslash/slash characters. So ":a" gives 1 and
 ;     "a:a" gives 2, while ":a:" and "a::a" both give 0, and ":\:a" gives 3 because the backslash
 ;     starts a fresh run in which that colon is alone.
 ;   * the answer is the last position that set, or the start of the string.
@@ -37,7 +37,7 @@
 ;
 ; ---- method --------------------------------------------------------------------------------------
 ; One forward pass. Per 32-byte block the masks for '\', '/', ':' and NUL are OR-ed into a single
-; "interesting positions" mask; a block with none -- the common case inside a long component -- is
+; "interesting positions" mask; a block with none (the common case inside a long component) is
 ; skipped whole, and only the set bits are visited. Run state is two registers: the position of the
 ; run's first colon, and whether a second one has appeared.
 ;
@@ -47,7 +47,7 @@
 ;
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
-; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are --
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64; their low 128 bits are --
 ; so parking the ':' constant in ymm6, as an earlier cut did, silently destroyed any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters.
 ; See tools/abi-check. ':' is the rarest of the four separators and is only compared against, so it

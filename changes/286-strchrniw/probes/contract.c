@@ -6,13 +6,13 @@
  *
  *     PWSTR StrChrNIW(PCWSTR lpStart, WCHAR wMatch, UINT cchMax)
  *
- * -- a character and a COUNT. But discovery/charclass_strcmp_2026.c timed it as
+ *, a character and a COUNT. But discovery/charclass_strcmp_2026.c timed it as
  *
  *     nn(A, A + 511, L'#')        labelled "range form"
  *
  * reusing the three-argument typedef from StrRChrIW: a start, an end pointer and a character. Those two
  * readings are incompatible, and the discovery call still produced a number, because a wrong argument
- * order does not fault -- it just measures something else. That number (1655 ns) is the only reason this
+ * order does not fault; it just measures something else. That number (1655 ns) is the only reason this
  * export is on the list at all, so the first thing to establish is which reading is real.
  *
  * Every one of changes 283, 284 and 285 was wrong somewhere until it measured instead of inheriting:
@@ -24,7 +24,7 @@
  * through either prototype and the answers compared. A distinguishing case is easy to build: put the
  * target character at index 2 of a six-character string and ask with a count of 6 and with an end
  * pointer of start+6. Only one of the two readings can return start+2 for both, and the readings differ
- * sharply when the second argument is small -- a count of 3 bounds the search, while a POINTER of 3 is
+ * sharply when the second argument is small; a count of 3 bounds the search, while a POINTER of 3 is
  * a wild address below the string.
  *
  * Then, once the shape is known: the relation, the bound's exact meaning, the terminator, and the

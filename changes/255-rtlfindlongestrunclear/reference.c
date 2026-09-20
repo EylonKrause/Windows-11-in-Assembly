@@ -8,7 +8,7 @@
  * bitmap one bit at a time.
  *
  * That is the right shape for an oracle here for a specific reason: every hard part of the
- * implementation is a boundary -- the carry between words, the masking of the slack past
+ * implementation is a boundary, the carry between words, the masking of the slack past
  * SizeOfBitMap, the odd trailing ULONG, the tie-break between equal runs. A bit-at-a-time loop has
  * none of those boundaries to get wrong. It is also, by construction, the same algorithm the
  * shipped code appears to use, which is a point in its favour as a cross-check and not a problem:

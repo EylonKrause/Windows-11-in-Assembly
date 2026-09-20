@@ -1,7 +1,7 @@
 // changes/154-strncpy-s/correctness.c
 // Bit-exact fuzz of wia_strncpy_s vs live ucrtbase!strncpy_s + oracle. Every trial compares the
 // errno return, the number of invalid-parameter-handler invocations, and every byte of a
-// canary-filled destination -- which is what pins the two DIFFERENT truncation behaviours (ERANGE
+// canary-filled destination, which is what pins the two DIFFERENT truncation behaviours (ERANGE
 // empties the string; _TRUNCATE terminates the last byte and stays silent).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -84,7 +84,7 @@ int main(void)
     }
     trial(0, 0, 3, 0, 3, "size 0");
     trial(0, 0, 3, 0, 0, "size 0, count 0");     /* dst non-NULL, so still EINVAL */
-    /* NULL src, with and without count 0 -- count 0 must NOT invoke the handler */
+    /* NULL src, with and without count 0, count 0 must NOT invoke the handler */
     for (int k = 0; k < 2; ++k)
     {
         seed();

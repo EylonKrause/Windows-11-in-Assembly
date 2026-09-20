@@ -10,8 +10,8 @@
 ; shlwapi's export is a jmp thunk through api-ms-win-core-url-l1-1-0).
 ;
 ; Why this target, and it is not the transform. discovery/shlwapi_url_str.c timed the wide form at
-; 1.57 ns per character on a 1000-character URL. The same string through URL_UNESCAPE_INPLACE -- the
-; unescape walk and nothing else -- costs 529 ns of that 1575, and a memcpy of the same buffer costs
+; 1.57 ns per character on a 1000-character URL. The same string through URL_UNESCAPE_INPLACE, the
+; unescape walk and nothing else, costs 529 ns of that 1575, and a memcpy of the same buffer costs
 ; 0.2 ns. Two thirds of the measured cost is scaffolding, and the disassembly says exactly what:
 ;
 ;     0000FC70  call 0x12AF0              ntdll!wcslen on the input
@@ -25,7 +25,7 @@
 ; is visible in the size curve: 1.648 ns/char at 64 characters, where the 65-WCHAR stack buffer still
 ; fits, jumping to 2.067 at 100, where LocalAlloc starts.
 ;
-; THE CONTRACT, measured in probes/unesc.c against the live export -- reference.c lists all of it.
+; THE CONTRACT, measured in probes/unesc.c against the live export, reference.c lists all of it.
 ; The three facts that shape the code:
 ;
 ;   1. The hex set is 22 ASCII characters and nothing else. Swept over all 65535 non-NUL code units
@@ -33,14 +33,14 @@
 ;      accepted. No locale, so a 128-byte table settles it.
 ;   2. %00 Returns E_INVALIDARG with the destination and *pcch untouched, even when it sits in the
 ;      middle of an otherwise valid string. So nothing may be written before the whole input is known
-;      to be free of it -- which is what forces a measuring pass.
+;      to be free of it, which is what forces a measuring pass.
 ;   3. The size test is strict and its failure must also leave the destination untouched:
 ;      *pcch must be GREATER than the result length, and E_POINTER reports result+1.
 ;
 ; Structure: Two vector passes, and both 2 and 3 above are why there are two rather than one.
-;   pass 1 measures -- it scans for the next '%' (and for '#' or '?' when URL_DONT_UNESCAPE_EXTRA_INFO
+;   pass 1 measures, it scans for the next '%' (and for '#' or '?' when URL_DONT_UNESCAPE_EXTRA_INFO
 ;          is set), accumulates the result length, and refuses %00 before anything is written;
-;   pass 2 writes -- the same walk, copying each literal run with 32-byte moves and decoding each
+;   pass 2 writes, the same walk, copying each literal run with 32-byte moves and decoding each
 ;          escape scalar.
 ; The scan is the whole cost and it is one AVX2 compare per sixteen characters; the copy runs at
 ; memcpy speed. Against five scalar walks and an allocation, two vector passes is still a large win.
@@ -57,7 +57,7 @@
 ;     and "%C3" becomes one. Re-deriving that by hand is the change-239 failure mode exactly.
 ;   * Any other bit outside {inplace, DONT_UNESCAPE_EXTRA_INFO}. probes/unesc.c swept all 32 bits
 ;     singly against a subject built to discriminate all three live flags and found only bits 18 and
-;     25 changing the answer -- but "no effect on one subject" is not "no effect", and this project
+;     25 changing the answer, but "no effect on one subject" is not "no effect", and this project
 ;     has been wrong that way before, so anything not implemented is handed to the original body.
 ;   * Overlap in the unsafe direction. The shipped function stages through a temporary, so
 ;     overlapping pszUrl and pszUnescaped are well-defined and probes/unesc.c confirms all five
@@ -65,12 +65,12 @@
 ;     is at or BELOW the source: the result is never longer than the input, so the write cursor never
 ;     passes the read cursor. With the destination ABOVE the source and the ranges overlapping, the
 ;     first write lands on a character not yet read, and there is no allocation here to stage
-;     through -- so that case goes to the original body too.
+;     through, so that case goes to the original body too.
 ;
 ; Register discipline. Every helper takes its inputs in registers, never at a frame offset. The first
 ; draft of this file read the end pointer as [rsp+32+8] inside a helper, which was correct until a
 ; `push rdi` before one of the calls made it silently wrong by eight bytes. The write cursor lives in
-; r14 for the same reason -- so that nothing has to be pushed around a call.
+; r14 for the same reason, so that nothing has to be pushed around a call.
 ;
 ;   rsi = read cursor      r14 = write cursor      rdi = scan result
 ;   r11 = end pointer (the address of the input's terminator)
@@ -110,7 +110,7 @@ g_fallback QWORD 0                    ; the original export, for the delegated c
 ; ---------------------------------------------------------------------------------------------
 ; void wia_uue_set_fallback(void* pfn)
 ; The live-substitution driver and the correctness harness install the shipped export here. Unlike
-; change 243, kernelbase!UrlUnescapeW is NOT a jmp thunk -- the export IS the body -- so a patched
+; change 243, kernelbase!UrlUnescapeW is NOT a jmp thunk (the export IS the body) so a patched
 ; export cannot be tail-jumped back into. Same situation as change 242: the delegated domain is
 ; proved in the validate-first pass, and only the implemented domain runs under the patch.
 ; ---------------------------------------------------------------------------------------------
@@ -198,7 +198,7 @@ uu_dir_ok:
 
         ; ---- Is the measuring pass needed at all? It exists for exactly two reasons: the %00
         ;      refusal and the strict size test. When the caller's buffer is already larger than the
-        ;      INPUT -- which it is whenever anyone sizes a buffer the obvious way -- the size test
+        ;      INPUT (which it is whenever anyone sizes a buffer the obvious way) the size test
         ;      cannot fail, because the result is never longer than the input. What is left is the
         ;      %00 refusal, and that does not need a walk: it needs to know whether the three
         ;      characters '%','0','0' occur, which is a PATTERN SCAN of the same shape change 243
@@ -211,7 +211,7 @@ uu_dir_ok:
         ;      has hex value zero.)
         ;
         ;      The extra-info flag is excluded because it makes the tail verbatim, so a "%00" after
-        ;      the first '#' or '?' must NOT refuse -- that case takes the measuring pass, which is
+        ;      the first '#' or '?' must NOT refuse; that case takes the measuring pass, which is
         ;      correct for it by construction.
         mov       r8, [rsp+16]
         mov       eax, dword ptr [r8]
@@ -462,7 +462,7 @@ wia_urlunescapew ENDP
 
 ; ---------------------------------------------------------------------------------------------
 ; eax = dwFlags -> ymm2 = '%' broadcast; ymm3 and ymm4 = '#' and '?' when
-; URL_DONT_UNESCAPE_EXTRA_INFO is set, and '%' again when it is not -- so one scan loop serves both
+; URL_DONT_UNESCAPE_EXTRA_INFO is set, and '%' again when it is not, so one scan loop serves both
 ; cases and the clear-flag case adds nothing but two compares that can never match anything new.
 ; Clobbers rax, ymm2, ymm3, ymm4.
 ; ---------------------------------------------------------------------------------------------
@@ -574,14 +574,14 @@ scan_special ENDP
 ; characters, no per-escape work.
 ;
 ; The pattern is found the way change 243 found "\.": build the mask of '%' and the mask of '0',
-; shift the second mask down by one and two CHARACTERS -- two and four bits, since vpmovmskb gives
-; two bits per 16-bit lane -- and and the three together. Blocks therefore overlap by two
+; shift the second mask down by one and two CHARACTERS, two and four bits, since vpmovmskb gives
+; two bits per 16-bit lane, and and the three together. Blocks therefore overlap by two
 ; CHARACTERS, because the top two lanes of each block have no room for their own lookahead.
 ;
 ; IT BORROWS ymm3. All six volatile vector registers are already in use and xmm6 upward are
 ; non-volatile under the Win64 ABI, so this cannot simply take a seventh. ymm3 is the extra-info
-; comparand, and this routine only ever runs with that flag CLEAR -- where ymm3 holds '%' again, a
-; copy of ymm2 -- so it is restored from ymm2 on the way out.
+; comparand, and this routine only ever runs with that flag CLEAR, where ymm3 holds '%' again, a
+; copy of ymm2, so it is restored from ymm2 on the way out.
 ; Clobbers rax, rcx, rdi, r10, ymm0, ymm1, ymm3 (restored).
 ; ---------------------------------------------------------------------------------------------
 scan_pct00 PROC

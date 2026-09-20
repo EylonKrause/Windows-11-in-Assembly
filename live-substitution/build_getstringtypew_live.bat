@@ -3,7 +3,7 @@ REM ===========================================================================
 Rem  live-run proof for change 287 (kernelbase!GetStringTypeW).
 REM
 REM  The shipped export costs 421.05 ns for 511 code units, measured by
-REM  discovery/uncovered_2026b.c -- the most expensive uncovered export in that
+REM  discovery/uncovered_2026b.c, the most expensive uncovered export in that
 REM  sweep that is not already a known collation wall.
 REM
 REM  That a TABLE can reproduce it at all was measured, not assumed:

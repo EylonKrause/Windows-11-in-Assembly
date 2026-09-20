@@ -4,7 +4,7 @@
  *
  * probes/contract.c settled that StrChrIW's notion of equality is exactly the ordinal upcase table:
  * `upcase(haystack_char) == upcase(needle)`. The obvious way to vectorise that is to upcase every
- * character of the haystack and compare -- which means a table lookup per character, or an AVX2
+ * character of the haystack and compare, which means a table lookup per character, or an AVX2
  * gather per eight, and gathers are slow enough to throw the win away.
  *
  * There is a much better way, and it depends on one measurement. The needle is FIXED for the whole
@@ -20,8 +20,8 @@
  *   - and every class with three or more members, listed, because those are the ones a
  *     "just check c and c^0x20" implementation would silently get wrong.
  *
- * It also checks the shortcut that would make the table unnecessary -- whether the class is always
- * {U, downcase(U)} -- because if that held, no table would be needed at all.
+ * It also checks the shortcut that would make the table unnecessary, whether the class is always
+ * {U, downcase(U)}, because if that held, no table would be needed at all.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

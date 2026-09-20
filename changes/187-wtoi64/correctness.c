@@ -84,7 +84,7 @@ int main(void){
         for(int i=0;i<(int)(sizeof(edge)/sizeof(edge[0]));i++)
             CHECK(one(edge[i]), "64-bit saturation / edge literal");
     }
-    // the same limits rewritten in every non-ASCII block -- the vector classifier must reach
+    // the same limits rewritten in every non-ASCII block; the vector classifier must reach
     // exactly the same saturating arithmetic
     {
         static const wchar_t* lim[] = { L"9223372036854775807", L"9223372036854775808",

@@ -16,7 +16,7 @@
 ;    enumerated strings. Changes 140, 143 and 144 inherited it verbatim and were all corrected in the
 ;    same session. Change 217 confirmed the corrected rule for the narrow FIND. Whether it holds for
 ;    the narrow REMOVE is a separate question about a separate export, and probes/rmext.c asked it:
-;    over every string in {a, '.', backslash, '/', ':', space} of length 0..7 -- 335923 of them,
+;    over every string in {a, '.', backslash, '/', ':', space} of length 0..7, 335923 of them,
 ;    238267 containing a space --
 ;
 ;        live PathRemoveExtensionA vs the CORRECTED rule : 0 mismatches
@@ -32,14 +32,14 @@
 ; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', the STOPPERS and NUL are
 ; extracted; the running candidate is updated by the rule "a stopper clears the candidate, a later
 ; dot sets it",
-; which per block reduces to comparing the highest dot bit against the highest backslash bit -- no
+; which per block reduces to comparing the highest dot bit against the highest backslash bit, no
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;
 ; A narrow block carries 32 positions to the wide form's 16, and vpcmpeqb sets ONE mask bit per
 ; match rather than a pair, so the `and ecx, -2` that 132 needs after every bsr disappears here.
 ;
-; The write is a SINGLE BYTE -- the terminator, at the extension position. Nothing past it is
+; The write is a SINGLE BYTE; the terminator, at the extension position. Nothing past it is
 ; touched: "file.txt" becomes "file" with "txt" and the original terminator still sitting in the
 ; buffer, so correctness.c compares the whole buffer rather than the resulting string.
 ;

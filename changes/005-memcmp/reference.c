@@ -1,4 +1,4 @@
-// changes/005-memcmp/reference.c -- correctness oracle.
+// changes/005-memcmp/reference.c: correctness oracle.
 #include <stddef.h>
 int ref_memcmp(const void* a, const void* b, size_t n){
     const unsigned char* x=(const unsigned char*)a; const unsigned char* y=(const unsigned char*)b;

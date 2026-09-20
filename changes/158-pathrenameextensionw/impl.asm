@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!PathRenameExtensionW: replace the path's extension with pszExt, or fail if the
 ; result would not fit in MAX_PATH. shlwapi's is a scalar scan for the extension followed by a scalar
-; copy -- 82 ns for a ~90-character path.
+; copy, 82 ns for a ~90-character path.
 ;
 ; Contract (probed against the live export):
 ;   - pszExt == NULL                       -> FALSE, the path is left completely unchanged;
@@ -12,28 +12,28 @@
 ;   - the new extension is NOT validated: "obj" (no dot) gives "f.txtobj" -> "fobj", ".a.b" is taken
 ;     whole, and "" truncates the path at the dot;
 ;   - the result length must be at most 259 characters (MAX_PATH - 1). Probed exactly: a result of
-;     259 succeeds and 260 fails, and on failure the destination is left COMPLETELY UNCHANGED -- not
+;     259 succeeds and 260 fails, and on failure the destination is left COMPLETELY UNCHANGED, not
 ;     truncated, not emptied. That includes the case where the path has no extension at all, where
 ;     the insertion point is the terminator: a 255-character path plus ".obj" is 259 and succeeds,
 ;     256 plus ".obj" is 260 and fails.
 ;
 ; The extension search is change 132 (`PathFindExtensionW`) unchanged, whose rule was reverse
 ; engineered and validated bit-exact over 600k fuzz cases: the extension is the LAST '.' after the
-; last BACKSLASH, and only '\' terminates the search -- '/' and ':' do not, even though
+; last BACKSLASH, and only '\' terminates the search, '/' and ':' do not, even though
 ; PathFindFileNameW treats both as separators. Reusing it verbatim is the point: the subtle part of
 ; this function is already proven, so what is added here is only the length arithmetic and the copy.
 ;
 ; The block scan computes the '.', '\' and NUL masks together and updates the running candidate with
 ; "a backslash clears it, a later dot sets it", which per block reduces to comparing the highest dot
-; bit against the highest backslash bit -- no per-character loop.
+; bit against the highest backslash bit, no per-character loop.
 ;
 ;
 ; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
-; session; and a second, STRUCTURAL sweep -- every landed oracle that computes an extension position,
-; whether or not it cites 132 -- found this change carrying it too.
+; session; and a second, STRUCTURAL sweep, every landed oracle that computes an extension position,
+; whether or not it cites 132, found this change carrying it too.
 ;
 ; discovery/extension_space_audit2.c measured the live export against both rules over every string in
 ; {a, '.', backslash, '[', ']', space} of length 0..7:

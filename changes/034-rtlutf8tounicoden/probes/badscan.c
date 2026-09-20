@@ -1,4 +1,4 @@
-/* badscan.c -- where exactly does the TGL variant stop writing on the bad32 class?
+/* badscan.c: where exactly does the TGL variant stop writing on the bad32 class?
  *
  * classcheck.c showed the variant returns the CORRECT status and the CORRECT byte count on
  * bad32 at n>=512 while leaving the destination at wchar 88 onward unwritten. A correct count

@@ -10,7 +10,7 @@
  *
  *   2. What happens to the output pointer on failure. a caller that checks the return value and
  *      then frees unconditionally behaves differently depending on the answer, and a
- *      reimplementation that cleared the pointer where the original does not -- or the reverse --
+ *      reimplementation that cleared the pointer where the original does not, or the reverse --
  *      would differ in a way no status comparison would catch.
  *
  * Both are read off the live export.

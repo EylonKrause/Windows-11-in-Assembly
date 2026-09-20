@@ -5,7 +5,7 @@
 ; changes/281-strchriw/impl.asm
 ;   PCWSTR wia_strchriw(PCWSTR s, WCHAR c)        [Win64: rcx, dx -> rax]
 ;
-; shlwapi!StrChrIW -- the case-insensitive character search.
+; shlwapi!StrChrIW, the case-insensitive character search.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. The number that started this.
@@ -25,10 +25,10 @@
 ; and are kept, because each was wrong in the way this repository keeps auditing others for: a test
 ; that could not express the case that was wrong.
 ;
-;   contract.c   "it is the ordinal upcase table, exactly" -- 0 disagreements over 3892 candidate
+;   contract.c   "it is the ordinal upcase table, exactly", 0 disagreements over 3892 candidate
 ;                pairs, and WRONG: it built those pairs from CharUpperW/CharLowerW/RtlUpcase/
-;                RtlDowncase, so (U+1D2C modifier letter capital a, 'a') -- a pair none of the four
-;                relates -- could never be asked. The gate caught it: 8 mismatches in 140561.
+;                RtlDowncase, so (U+1D2C modifier letter capital a, 'a'), a pair none of the four
+;                relates, could never be asked. The gate caught it: 8 mismatches in 140561.
 ;   widerfold.c  NOT linguistic: e-acute does not find 'e', n-tilde does not find 'n', fullwidth
 ;                'a' does not find 'a', sharp s does not expand to "ss".
 ;   whichfold.c  FoldStringW(MAP_FOLDCZONE) reproduces the compatibility half exactly and still
@@ -37,13 +37,13 @@
 ;                override. That is what makes this change writable where 274 and 276 parked.
 ;   context.c    every match is decided by ONE character: 200000 random strings, 0 context-dependent
 ;                matches, 0 misses.
-;   isequiv.c    SYMMETRIC: 0 asymmetric pairs in 400000 -- and then the property that broke the
+;   isequiv.c    SYMMETRIC: 0 asymmetric pairs in 400000, and then the property that broke the
 ;                design open:
 ;
 ;                    U+D7B0 matches U+D7A2.  U+D7B1 matches U+D7A2.
 ;                    U+D7B0 does NOT match U+D7B1.
 ;
-; The relation is symmetric but not transitive -- 168 intransitive triples. It is a tolerance
+; The relation is symmetric but not transitive, 168 intransitive triples. It is a tolerance
 ; relation, so it has NO CLASSES, and "the members of the needle's class" is not a well-defined
 ; object. An earlier version of this file compared against class members and was wrong in 66 of
 ; 206096 gate cases, every one of them a case where ours agreed with live and only the class model
@@ -68,7 +68,7 @@
 ; --------------------------------------------------------------------------------------------------
 ; 4. PAGE SAFETY. The string is NUL-terminated, so its length is not known in advance and a 32-byte
 ; load could run off the end into an unmapped page. The pointer is aligned DOWN to 32 and the first
-; block loaded aligned -- a 32-byte aligned load can never cross a page boundary -- with the mask of
+; block loaded aligned (a 32-byte aligned load can never cross a page boundary) with the mask of
 ; everything before the true start discarded. Every later block is loaded only after the previous one
 ; was proved to contain no terminator, which means the string really does extend into it. The two
 ; scalar paths read one code unit at a time and need no such argument.
@@ -97,8 +97,8 @@ wia_strchriw PROC
         ; terminator is never found". That string simply contains no ignorable character. NUL has
         ; zero collation weight, so it matches every other zero-weight code unit: in a 275-character
         ; random string the live export returns offset 28 for needle 0. The strengthened live
-        ; harness caught it in 940 of 40000 cases. Needle 0 dispatches like any other needle -- it
-        ; carries the 3237-member ignorable set, so it takes the bitmap path -- and the only thing
+        ; harness caught it in 940 of 40000 cases. Needle 0 dispatches like any other needle, it
+        ; carries the 3237-member ignorable set, so it takes the bitmap path, and the only thing
         ; special about it is that the scan also stops on it, which the terminator test already does.
 
         ; ---- how big is this needle's match set? decided once per call
@@ -139,7 +139,7 @@ scan_setup:
         and       ecx, 31                         ; the byte offset of the string inside the block
         vmovdqa   ymm0, ymmword ptr [r8]
         ; Only ymm0-ymm5 may be touched, so each mask is extracted to a gpr the instant it is
-        ; computed and the single scratch register is reused -- including for the zero vector the
+        ; computed and the single scratch register is reused, including for the zero vector the
         ; terminator test needs.
         vpcmpeqw  ymm5, ymm0, ymm1
         vpmovmskb eax, ymm5

@@ -6,7 +6,7 @@
    EVERY COMPARISON COVERS FOUR THINGS: the HRESULT, the whole buffer against a poison fill, ppszEnd,
    and pcchRemaining. All four are load-bearing:
 
-     * the out-parameters are written on the failure path -- set to NULL and 0 -- so they are seeded
+     * the out-parameters are written on the failure path (set to NULL and 0) so they are seeded
        with a 0xDEAD sentinel rather than zero, because a function that leaves them untouched when it
        fails is a different function and zero-initialising would hide it;
      * `end` Is reported even when the call declines, and it is where the terminator would go rather
@@ -337,7 +337,7 @@ int main(void){
                 if (shape) p[tail-2] = L'\\';
                 p[tail-1] = 0;
                 memcpy(mirror, p, (size_t)tail * 2);
-                /* REMOVE runs at the guard -- it never writes past the terminator. ADD would append
+                /* REMOVE runs at the guard; it never writes past the terminator. ADD would append
                    one character and there is no room, so it is given the mirror instead. */
                 for (int i = 0; i < WIN; ++i) { br[i] = 0xCDCD; bs[i] = 0xCDCD; }
                 memcpy(br, mirror, (size_t)tail * 2);

@@ -7,11 +7,11 @@
  *   * VarBstrCmp IS CompareStringW. Nine pairs where linguistic and ordinal collation disagree, and
  *     the export tracked the linguistic answer every time; the flag bits pass straight through and
  *     the result is CompareStringW's minus one. The collation is the OS's and is not reimplementable
- *     -- change 210's notes say the same.
+ *, change 210's notes say the same.
  *   * Identical strings always compare equal. Every code unit 1..0xFFFF alone and inside a longer
  *     string, every surrogate and noncharacter asked, under every valid flag and locale: 0 of
  *     131070 not reflexive. The only non-EQ answers came from INVALID locales and flag bits, where
- *     the export returns an ERROR -- which a fast path must not turn into EQ.
+ *     the export returns an ERROR, which a fast path must not turn into EQ.
  *   * And there is no fast path in the export at all: comparing a BSTR with ITSELF costs 3145 ns at
  *     4000 characters, and two equal strings cost 3224 ns, while a difference at character 0 costs a
  *     flat 33.5 ns at every length.
@@ -21,13 +21,13 @@
  * TWO gaps, and neither is guessable:
  *
  *   1. VarBstrCmp minus CompareStringW at the SAME length. That is the wrapper overhead, and it is
- *      what a lean wrapper competes against on the SHORT rows -- the rows that decide whether a
+ *      what a lean wrapper competes against on the SHORT rows, the rows that decide whether a
  *      change lands, as change 274 found out after the fact.
  *   2. the cost of a byte comparison against the cost of collating the same length. That is the win
  *      on the LONG rows.
  *
  * If gap 1 is near zero, the short rows cannot improve and this change is parked before it is
- * written -- which is the whole point of asking now.
+ * written, which is the whole point of asking now.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

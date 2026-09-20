@@ -3,7 +3,7 @@
  * The two "advance a crc past N zero bytes" tables, built once from the polynomial.
  *
  * Why they exist. probes/identify.c established that RtlCrc32 is CRC-32C, whose polynomial the
- * SSE4.2 CRC32 instruction implements in hardware -- and that the shipped export runs a SERIAL
+ * SSE4.2 CRC32 instruction implements in hardware, and that the shipped export runs a SERIAL
  * chain of that instruction. The instruction has 3-cycle latency and 1-per-cycle throughput, so a
  * serial chain runs at 8 bytes per 3 cycles, which is almost exactly the 14 GB/s the survey
  * measured. Three independent chains run at 8 bytes per cycle.
@@ -25,7 +25,7 @@
  * How the operator is built. "One zero bit goes through the crc" is a 32x32 GF(2) matrix; squaring
  * it doubles the number of bits it advances, so the operator for any length is assembled by
  * square-and-multiply in about log2 steps. This is zlib's crc32_combine construction, written out
- * rather than lifted so that it can be read -- and the first draft of this file muddled the
+ * rather than lifted so that it can be read, and the first draft of this file muddled the
  * doubling and had to be rewritten, which is exactly why the tables are CHECKED below against the
  * definition they are supposed to satisfy.
  */
@@ -81,7 +81,7 @@ static void build_operator(unsigned long* op, unsigned long bytes)
 
     for (n = 0; n < 32; ++n) op[n] = 1ul << n; /* start from the identity */
 
-    /* `odd` is four bits here, so the first square below is EIGHT bits -- one byte -- and the loop
+    /* `odd` is four bits here, so the first square below is EIGHT bits (one byte) and the loop
        consumes `len` in bytes from the bottom up, doubling as it goes. */
     for (;;) {
         mat_square(even, odd);                 /* one byte, then two, four, ... */

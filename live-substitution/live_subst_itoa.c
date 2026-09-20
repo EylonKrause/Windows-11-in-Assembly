@@ -14,7 +14,7 @@
 // Radix 2 Is the reason the buffer is 128 Bytes. `_i64toa(v, buf, 2)` renders up to 64 digits plus
 // a terminator, and the documented buffer requirement is 65 characters. The corpus drives every
 // radix from 2 to 36, and weights the values that make a formatter wrong: 0, 1, -1, the radix
-// boundaries (r-1, r, r+1, r*r-1, r*r), INT_MIN and LLONG_MIN -- the last two because negating
+// boundaries (r-1, r, r+1, r*r-1, r*r), INT_MIN and LLONG_MIN, the last two because negating
 // them overflows, which is the classic defect of a signed integer formatter and is invisible to
 // any corpus that only draws uniformly.
 //
@@ -24,7 +24,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ucrtbase -- never a live system process, never the file on disk.
+//       ucrtbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle, and emit nothing while patched: the CRT's own printf formats
 //       integers, and these are the integer formatters.

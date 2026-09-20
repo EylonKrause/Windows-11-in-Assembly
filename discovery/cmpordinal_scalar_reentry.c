@@ -6,7 +6,7 @@
  *
  * The rule it screens for is change 263's: a scalar walk must not re-enter a vector loop. The shape
  * is bit-exact, invisible to a correctness gate, and invisible to a benchmark built from the input
- * the fast path handles -- on the input it does NOT handle, every scalar character pays for the
+ * the fast path handles, on the input it does NOT handle, every scalar character pays for the
  * vector probe again.
  *
  * Reading the site, it is the real shape. `ci_next` is the loop head: two 32-byte loads, a raw
@@ -16,15 +16,15 @@
  *
  * When does that actually happen? Not for ASCII. Two ASCII chunks that differ only in case are
  * folded and compared entirely in tier 2 and advance sixteen characters at a time. The scalar walk
- * is reached only when a chunk is NOT all-ASCII and the fold has to go through the table -- which
+ * is reached only when a chunk is NOT all-ASCII and the fold has to go through the table, which
  * is to say, for any text that is not English. That is a narrower case than "case-insensitive
  * compare" but a much wider one than "exotic".
  *
  * So this measures the three inputs side by side, per character:
  *
- *     1. ASCII, differing case      -- tier 2, sixteen characters per probe
- *     2. non-ASCII, EQUAL raw       -- tier 1, sixteen characters per probe
- *     3. non-ASCII, differing case  -- the scalar walk, and the suspected one per probe
+ *     1. ASCII, differing case, tier 2, sixteen characters per probe
+ *     2. non-ASCII, EQUAL raw, tier 1, sixteen characters per probe
+ *     3. non-ASCII, differing case, the scalar walk, and the suspected one per probe
  *
  * If row 3 costs roughly what rows 1 and 2 cost per character, the re-entry is not hurting and the
  * audit's flag can be closed with a measurement. If it costs several times more AND grows against
@@ -32,7 +32,7 @@
  * the fix is the one 263 used: let the scalar walk run to the end of its run before going back.
  *
  * The live export is timed on the identical input in every row, because the question is not "is
- * the scalar path slow" -- it is "are we slower THAN WINDOWS on this input", which is the only
+ * the scalar path slow"; it is "are we slower THAN WINDOWS on this input", which is the only
  * thing that decides whether the change still earns its place.
  *
  * Run on an idle machine, not during a revalidation sweep. min-of-N.

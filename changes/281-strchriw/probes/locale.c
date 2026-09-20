@@ -10,8 +10,8 @@
  *
  * plus a single bucket of 3237 members, are the signature of CompareStringW with NORM_IGNORECASE
  * called once per character: the TERTIARY weight (case, superscript form, the Kelvin sign) is
- * ignored, the SECONDARY weight (accents) is not -- which is exactly why e-acute does not match
- * 'e' -- and every IGNORABLE code point has zero weight, so they all compare equal to one another.
+ * ignored, the SECONDARY weight (accents) is not, which is exactly why e-acute does not match
+ * 'e', and every IGNORABLE code point has zero weight, so they all compare equal to one another.
  * That also explains 43 ns per character precisely: it is a full collation call per character.
  *
  * Change 277 faced the same fork and came out the other side: CharUpperBuffW LOOKED locale-aware
@@ -20,7 +20,7 @@
  * project does not own.
  *
  * So this asks the only question that decides which of those two this is. Turkish is the test that
- * matters -- dotted and dotless i are where a locale-aware casing rule shows itself -- and the
+ * matters (dotted and dotless i are where a locale-aware casing rule shows itself) and the
  * thread locale is the lever the caller actually has.
  */
 #define WIN32_LEAN_AND_MEAN

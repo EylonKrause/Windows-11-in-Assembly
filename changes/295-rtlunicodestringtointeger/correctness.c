@@ -5,12 +5,12 @@
 // written through *Value are compared, and the ULONG sits inside a poisoned frame so a write past the
 // four bytes it is allowed to touch is a failure too.
 //
-// Build it with /DWIA_NO_ASM to run the oracle against the live export alone -- that is how the
+// Build it with /DWIA_NO_ASM to run the oracle against the live export alone; that is how the
 // contract in reference.c was settled BEFORE a line of assembly existed.
 //
 // The corpus, and why each part is here:
 //   A  explicit edge strings x 26 bases (valid, invalid, and the five that alias onto low bits under
-//      a `bt`-style base check -- change 129's mutant #22 was a real gate hole of exactly that shape)
+//      a `bt`-style base check, change 129's mutant #22 was a real gate hole of exactly that shape)
 //   B  every Length from 0 to 160 bytes over a digit run: 0, 1 (odd), 2 (one character), and every
 //      value either side of it, so "counted, not terminated" is swept rather than sampled. Far past
 //      twice any vector width; this implementation is scalar, so the sweep is the whole point.
@@ -19,7 +19,7 @@
 //   D  UNALIGNED buffers: the same strings at a Buffer that is not 2-byte aligned, plus a string that
 //      both starts and ends unaligned.
 //   E  PAGE GUARD: the last code unit flush against a PAGE_NOACCESS page, at every length 1..64 and
-//      for every shape that could tempt a read one unit further -- "0" and "0x" at the very end, a
+//      for every shape that could tempt a read one unit further, "0" and "0x" at the very end, a
 //      lone sign, an all-whitespace buffer. A fault here is a FAIL, not a crash: it is caught.
 //   F  2,000,000 fuzz strings, FIXED seed, drawn from an alphabet that contains digits, hex letters,
 //      signs, prefix letters, spaces, NULs and high code units, with a random and sometimes ODD or

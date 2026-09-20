@@ -1,4 +1,4 @@
-/* changes/298-findresourceexw/bench.c -- wia_findresourceexw vs the LIVE
+/* changes/298-findresourceexw/bench.c: wia_findresourceexw vs the LIVE
  * kernel32!FindResourceExW, across the size classes this function actually has.
  *
  * "Size class" means something unusual here, so it is worth saying plainly what
@@ -21,8 +21,8 @@
  *  [3] The name path, isolated. The type is an integer that the module does not
  *      have, so ntdll returns at the first level in a fixed ~53 ns and the rest
  *      of the measurement is the normaliser. Both arguments are still
- *      normalised before the search -- that is the order the shipped code uses
- *      -- so this is the cleanest view of the byte work, swept by length.
+ *      normalised before the search; that is the order the shipped code uses
+ *, so this is the cleanest view of the byte work, swept by length.
  *
  * Every case is measured on both implementations with the SAME arguments, and
  * bench.h's estimator is minimum-of-N batches on a pinned core.

@@ -50,7 +50,7 @@ static int ref2_ieq4unc(const wchar_t* r)
     return 1;
 }
 
-/* Does `more` REPLACE the base outright? Two leading separators usually mean yes -- "\\a", "\\.",
+/* Does `more` REPLACE the base outright? Two leading separators usually mean yes, "\\a", "\\.",
    "\\\a", "\\" and even "\\\" all replace -- but NOT "\\?" or "\\?a", which join with BOTH separators
    gone: "a" + "\\?a" is "a\?a" and "" + "\\?a" is "?a". "\\?\" and everything under it replaces again.
    The exception is exactly an INCOMPLETE extended prefix, which is not a root of any kind. */
@@ -129,7 +129,7 @@ static int ref2_join_combine(wchar_t* out, const wchar_t* base, const wchar_t* m
     return 0;
 }
 
-/* a cch outside the allowed range is refused without touching the buffer -- another thing that could
+/* a cch outside the allowed range is refused without touching the buffer, another thing that could
    not be inherited, because PathCchCanonicalizeEx EMPTIES the buffer for the same rejection. Measured on
    Combine, where the destination starts as poison and the difference is therefore visible; on Append the
    base sits in the buffer and hides it. */
@@ -138,7 +138,7 @@ static int ref2_cch_bad(size_t cch)
     return ((size_t)(cch - 1) > 0x7FFFFFFEu) || (cch > 0x8000u);
 }
 
-/* These two check their pointers, where PathCchCanonicalizeEx faults -- a difference inside one family
+/* These two check their pointers, where PathCchCanonicalizeEx faults, a difference inside one family
    and one more thing that could not be inherited. A NULL destination is E_INVALIDARG, and a NULL source
    on either side simply reads as the empty string. */
 long wia_ref_pathcchappendex(wchar_t* path, size_t cch, const wchar_t* more, unsigned long flags)

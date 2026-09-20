@@ -8,7 +8,7 @@
 ; masked: the sentinels are armed around the call, by hand, with no compiled C between the arming
 ; and the call.
 ;
-; That distinction is not pedantry -- tools/abi-check/abi_check.c records it. Its first form armed
+; That distinction is not pedantry, tools/abi-check/abi_check.c records it. Its first form armed
 ; the sentinels and then called a compiled-C thunk, and if the compiler had used r15 for a loop
 ; variable the thunk saved and restored r15 itself, undoing the very damage the gate was looking
 ; for. It was demonstrated on change 258: with `push r15` and its `pop` deleted from impl.asm the

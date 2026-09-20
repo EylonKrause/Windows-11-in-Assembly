@@ -1,4 +1,4 @@
-/* probes/which.c -- when both size limits are breached, which code does PathCchRenameExtension pick?
+/* probes/which.c: when both size limits are breached, which code does PathCchRenameExtension pick?
  *
  * maxpath.c established that a result longer than 259 characters returns 0x800700CE
  * (ERROR_FILENAME_EXCED_RANGE) even when cch is generous, and that a result that merely will not

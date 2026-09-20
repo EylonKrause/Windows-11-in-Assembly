@@ -4,33 +4,33 @@
  *
  * Changes 274 and 276 were both parked for the same reason, and the reason is worth acting on rather
  * than repeating. In both the implementation was correct and enormously faster on the rows it could
- * affect -- 274 was 4-5x above 256 characters, 276 was 24x on equal strings and 113x on identical
- * pointers -- and in both the rows it could NOT affect turned out to be an operating-system call
+ * affect, 274 was 4-5x above 256 characters, 276 was 24x on equal strings and 113x on identical
+ * pointers, and in both the rows it could NOT affect turned out to be an operating-system call
  * this project does not own, with about a nanosecond of our code beside it:
  *
  *     274   SysAllocString    a 13.25 ns private allocator; a hand-made BSTR kills the process
  *     276   VarBstrCmp        a 33 ns collation; the shipped wrapper's whole overhead is 1.25 ns
  *
  * So this sweep deliberately avoids wrappers. It looks at exports that are pure functions of their
- * ARGUMENTS -- no allocation, no locale, no per-thread state, nothing to delegate to -- because
+ * ARGUMENTS (no allocation, no locale, no per-thread state, nothing to delegate to) because
  * those are the ones where the whole measured cost is code this project can write. Change 067's
  * rewrite is the model: its `du` was a division per digit and replacing it was worth 3.4x on the
  * number and 1.42x -> 2.86x on the function.
  *
  * THREE FAMILIES, none of them touched by the thirty sweeps already here:
  *
- *   1. ntdll's INTEGER CONVERSIONS -- RtlIntegerToUnicodeString, RtlUnicodeStringToInteger,
+ *   1. ntdll's INTEGER CONVERSIONS, RtlIntegerToUnicodeString, RtlUnicodeStringToInteger,
  *      RtlCharToInteger, RtlIntegerToChar, RtlLargeIntegerToChar. Number formatting and parsing in
  *      arbitrary bases, which is exactly what change 067 found running at a division per digit.
- *   2. user32's CHARACTER MAPPINGS -- CharUpperW, CharLowerW, CharUpperBuffW, CharLowerBuffW,
+ *   2. user32's CHARACTER MAPPINGS, CharUpperW, CharLowerW, CharUpperBuffW, CharLowerBuffW,
  *      CharNextW, CharPrevW. This project already owns upcase tables built from the OS (changes 015
  *      and 210), so the question is only what the shipped ones cost per character.
- *   3. ntdll's BUFFER PREDICATES -- RtlIsTextUnicode, which scans a buffer and returns statistics,
+ *   3. ntdll's BUFFER PREDICATES, RtlIsTextUnicode, which scans a buffer and returns statistics,
  *      and RtlCompareMemoryUlong, which is a search.
  *
  * Every row prints what it returned. discovery/ntdll_rtl_uncovered3.c timed a refusal as if it were
- * a comparison -- 4000 identical characters answered in 7.9 ns, which is 0.001 ns per byte and
- * impossible -- and only the returned value gave it away. A row that answers instantly because it
+ * a comparison, 4000 identical characters answered in 7.9 ns, which is 0.001 ns per byte and
+ * impossible, and only the returned value gave it away. A row that answers instantly because it
  * did nothing must be visible as such.
  */
 #define WIN32_LEAN_AND_MEAN

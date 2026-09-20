@@ -4,7 +4,7 @@
  *
  * The pointer cannot be compared and should not be. Both implementations return a per-thread buffer
  * of their own; the contract is that the text is valid until the same thread calls again, which
- * probes/contract.c measured. So the comparison is the string -- and the live export's answer has to
+ * probes/contract.c measured. So the comparison is the string, and the live export's answer has to
  * be COPIED before ours is asked for, because if ours were the shipped one they would be the same
  * buffer and the second call would overwrite the first. A gate that forgot that would compare a
  * string against itself and pass no matter what.
@@ -16,7 +16,7 @@
  * because the only thing a field does to the next one is decide where it starts.
  *
  * And the step is what can go wrong. Each field writes four bytes and advances by two, three or
- * four, so the interesting cases are where a short field is followed by a long one -- the long one's
+ * four, so the interesting cases are where a short field is followed by a long one, the long one's
  * store has to land on top of the short one's padding. Every length transition is covered by the
  * pair sweeps by construction.
  */
@@ -128,7 +128,7 @@ int main(void)
         printf("  1. every byte value in every position, four backgrounds: %ld\n", cases - before);
     }
 
-    /* 2. every combination of two ADJACENT bytes -- where one field's step meets the next */
+    /* 2. every combination of two ADJACENT bytes, where one field's step meets the next */
     {
         long before = cases;
         unsigned b0, b1;

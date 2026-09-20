@@ -9,7 +9,7 @@
 ; the last component. 82 ns for a ~90-character path.
 ;
 ; This is change 161 plus a move, and that equivalence was verified rather than assumed: over every
-; string in {a, backslash, slash, colon} up to length 8 -- 87381 of them -- the buffer left by the
+; string in {a, backslash, slash, colon} up to length 8 (87381 of them) the buffer left by the
 ; live PathStripPathW is byte for byte what you get by copying the live PathFindFileNameW result to
 ; the front. So the separator rule is the one derived in 161:
 ;
@@ -19,8 +19,8 @@
 ;     two backslash/slash characters;
 ;   * the answer is the last position that set, otherwise the start.
 ;
-; The live one also leaves the bytes PAST the new terminator untouched -- stripping "C:\dir\file.txt"
-; leaves "file.txt\0" followed by the stale tail "le.txt\0" -- so this is a plain forward copy with
+; The live one also leaves the bytes PAST the new terminator untouched, stripping "C:\dir\file.txt"
+; leaves "file.txt\0" followed by the stale tail "le.txt\0", so this is a plain forward copy with
 ; no zero fill, and the correctness harness compares the whole buffer to prove it.
 ;
 ; The copy is forward and the destination is strictly below the source, so overlap is safe: each
@@ -30,7 +30,7 @@
 ;
 ; ISA: AVX2 + BMI1/BMI2. Validated on Zen3.
 
-; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are --
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64; their low 128 bits are --
 ; so parking the ':' constant in ymm6, as an earlier cut did, silently destroyed any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters.
 ; See tools/abi-check. ':' is the rarest of the four separators and is only compared against, so it

@@ -1,4 +1,4 @@
-/* Derive ucrtbase!_i64toa_s / _ui64toa_s / _i64tow_s / _ui64tow_s -- the 64-bit `_s` integer
+/* Derive ucrtbase!_i64toa_s / _ui64toa_s / _i64tow_s / _ui64tow_s, the 64-bit `_s` integer
    formatters. Plain forms are changes 055/057 (byte) and 073/075 (wide), landed 1.56x-1.61x.
    The `_s` wrapper adds a buffer-size contract, and this repo has now met THREE different `_s`
    error shapes in one CRT (validate-first in 178-181, partial copy in 150, partial fill in

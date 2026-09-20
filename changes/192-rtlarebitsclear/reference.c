@@ -1,7 +1,7 @@
 // changes/192-rtlarebitsclear/reference.c
 // The correctness oracle: the obvious per-bit RtlAreBitsClear. Not fast; just correct.
 // Every edge here was re-derived in probes/abc.c against the live export rather than mirrored
-// from change 030 -- len 0 is FALSE (not "vacuously clear"), an out-of-range or ULONG-wrapping
+// from change 030, len 0 is FALSE (not "vacuously clear"), an out-of-range or ULONG-wrapping
 // range is FALSE, and start == SizeOfBitMap is FALSE for any len. 400 000 randomized bitmaps
 // agreed with the live export on every case.
 typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } RTL_BITMAP;

@@ -1,7 +1,7 @@
 // changes/179-strlwr-s/correctness.c
 // Gate 1: wia_strlwr_s must be indistinguishable from ucrtbase!_strlwr_s.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// Return AND whole buffer are compared -- so the str[0]=0 on the error path, the ABSENCE of any
+// Return AND whole buffer are compared, so the str[0]=0 on the error path, the ABSENCE of any
 // partial fold there, and the absence of any write past the terminator are all checked.
 //
 // Built /MD on purpose: with the default static CRT this exe would carry its own
@@ -76,7 +76,7 @@ int main(void){
         CHECK(one(s,400), "generous bound");
     }
 
-    // every byte value, one character at a time -- pins the fold set to exactly A-Z
+    // every byte value, one character at a time, pins the fold set to exactly A-Z
     for(int c=1;c<256;c++){
         s[0]=(char)c; s[1]=0;
         CHECK(one(s,4), "fold-set sweep");

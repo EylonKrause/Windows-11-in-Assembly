@@ -2,7 +2,7 @@
 // Gate 2: time wia_strchra against the live shlwapi!StrChrA.
 //
 // The same classes change 131 used for the wide form, at the same CHARACTER counts, so the two are
-// directly comparable. The target is absent from every class, which forces the full scan -- the
+// directly comparable. The target is absent from every class, which forces the full scan, the
 // worst case and the one a caller hits when testing "does this path contain a colon".
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

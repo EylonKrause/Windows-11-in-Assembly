@@ -4,7 +4,7 @@
 //
 // There are three ways this function can fail, not two, and each gets its own guard-page sweep.
 // lstrcat reads the destination before it writes it, so an unterminated destination is a distinct
-// failure from a bad source or a short one -- and it is the one an implementation borrowed from
+// failure from a bad source or a short one, and it is the one an implementation borrowed from
 // lstrcpy would never think to handle, because lstrcpy does not read its destination at all.
 //
 // All three are swallowed by the shipped export (it returns NULL rather than faulting), and in two

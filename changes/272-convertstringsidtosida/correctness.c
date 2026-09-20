@@ -7,7 +7,7 @@
  * that fail in different ways:
  *
  *   * The ASCII fast path. probes/asciilen.c licensed it by measuring all 22 code pages Windows can
- *     use as an ACP over every byte 0x00..0x7F -- zero counterexamples -- so a string with no high
+ *     use as an ACP over every byte 0x00..0x7F (zero counterexamples) so a string with no high
  *     byte is widened by zero extension with no code page consulted. The failure mode is the SCAN,
  *     not the arithmetic: it finds the length and the "any byte at or above 0x80" answer in one
  *     pass, with the first block loaded ALIGNED DOWN, so it is wrong at exactly the offsets nobody
@@ -18,7 +18,7 @@
  *     is asked in each of six field positions, exactly as probes/codepage.c asked the live pair.
  *
  * And the length boundary. The widened copy is on the stack up to 1022 characters and allocated past
- * that, so every length from 1000 to 1050 is asked -- a boundary a corpus of realistic SIDs never
+ * that, so every length from 1000 to 1050 is asked, a boundary a corpus of realistic SIDs never
  * goes near. A megabyte of junk is asked too, because probes/asciilen.c established the shipped
  * export answers it rather than crashing, and that is where a fixed buffer dies.
  */
@@ -133,7 +133,7 @@ int main(void)
     if (wia_sid_alias_init())    { printf("the alias table failed to build\n"); return 1; }
     printf("== CORRECTNESS: ConvertStringSidToSidA ==\n");
 
-    /* 1. the shapes, each at every alignment 0..63 -- the scan's first block is aligned down */
+    /* 1. the shapes, each at every alignment 0..63; the scan's first block is aligned down */
     {
         long before = cases;
         static const char* SH[] = {

@@ -6,7 +6,7 @@
 //   137 StrPBrkW     138 PathIsFileSpecW           139 StrTrimW
 //
 // Why these seven together. They are the whole of the uncovered `shlwapi` search family, they share
-// one input shape -- a wide string and, for five of them, a small character set -- and six of the
+// one input shape (a wide string and, for five of them, a small character set) and six of the
 // seven are pure functions of it. The seventh, StrTrimW, edits in place, which is the only reason
 // this harness needs a working copy per case and is also the reason it is the interesting one: its
 // own header records that the export **terminates first and then moves the remainder down**, so the
@@ -17,7 +17,7 @@
 // Three contracts that are not the C library's, each driven deliberately:
 //   * StrChrW with wMatch == 0 returns NULL, where wcschr returns the terminator.
 //   * StrStrW with an EMPTY needle returns NULL, where wcsstr returns the haystack.
-//   * StrRChrW with pszEnd != NULL searches the RAW range [pszStart, pszEnd) -- embedded NULs are
+//   * StrRChrW with pszEnd != NULL searches the RAW range [pszStart, pszEnd), embedded NULs are
 //     ignored and the scan runs PAST the terminator if the range says so. So the corpus hands it
 //     ranges that stop short of the terminator, land exactly on it, and deliberately overrun it
 //     into the poisoned tail, which is real committed memory for exactly this reason.
@@ -28,14 +28,14 @@
 // characters to all seven entries rather than assuming any of them agree.
 //
 // Alignment is part of the corpus. Every one of these is an AVX2 block scan with a masked aligned
-// prologue -- the first load is aligned DOWN and the leading characters are shifted out of the mask
-// -- so the prologue is a different code path at each of the sixteen possible start alignments. The
+// prologue; the first load is aligned DOWN and the leading characters are shifted out of the mask
+//, so the prologue is a different code path at each of the sixteen possible start alignments. The
 // subject of each case therefore begins at a rotating offset inside a 64-byte-aligned buffer, and
 // lengths cluster around the 16-wchar block boundary rather than being drawn uniformly.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copy of shlwapi -- never a live system process, never the file on disk.
+//       copy of shlwapi, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these seven is used by the loader, the heap or the CRT; the
 //       process loads shlwapi itself and nothing else in it is running.
@@ -200,7 +200,7 @@ static void build_corpus(void){
           while(sp[m] && m<9){ r->set[m]=sp[m]; ++m; } r->set[m]=0; }
 
         /* The needle: usually a real substring of the subject (so StrStrW actually matches), and
-         * one time in four something else -- including the EMPTY needle, whose NULL result is the
+         * one time in four something else, including the EMPTY needle, whose NULL result is the
          * contract that differs from wcsstr. */
         if(n>0 && (rnd()%4)){
             int start=(int)(rnd()%(unsigned)n), m=(int)(1+rnd()%4), j;
@@ -223,7 +223,7 @@ static void build_corpus(void){
         else                    r->match=(wchar_t)(0x2200+rnd()%64);
 
         /* StrRChrW's end: NULL, short of the terminator, exactly on it, or PAST it into the
-         * poison -- the raw-range contract, which is committed memory here on purpose. */
+         * poison; the raw-range contract, which is committed memory here on purpose. */
         switch(i%5){
         case 0: r->endsel=-1;                    break;        /* NUL-terminated form */
         case 1: r->endsel=n;                     break;        /* exactly the terminator */
@@ -254,8 +254,8 @@ static void run_all(ans_t* out){
         o->pbrk = offof(s, ((fnPBRK)liveP[F_PBRK])(s, r->set));
         o->spec =          ((fnSPEC)liveP[F_SPEC])(s);
 
-        /* StrTrimW edits in place, so it gets a pristine copy of the whole buffer -- poison and
-         * all -- and the whole buffer is what gets compared afterwards. */
+        /* StrTrimW edits in place, so it gets a pristine copy of the whole buffer, poison and
+         * all, and the whole buffer is what gets compared afterwards. */
         memcpy(work, r->s, sizeof work);
         o->trim = ((fnTRIM)liveP[F_TRIM])(&work[r->off], r->set);
         memcpy(o->trimbuf, work, sizeof work);

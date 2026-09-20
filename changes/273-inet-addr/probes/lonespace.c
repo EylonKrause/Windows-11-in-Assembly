@@ -10,8 +10,8 @@
  *     " 1.2.3.4"   REFUSED
  *
  * Every model that explains three of those fails on the fourth. "Leading whitespace is skipped"
- * predicts " 1.2.3.4" accepted. "A part must start with a digit" -- which is what the BSD source
- * does -- predicts " " refused. "The parse stops at whitespace and the rest is ignored", which is
+ * predicts " 1.2.3.4" accepted. "A part must start with a digit", which is what the BSD source
+ * does, predicts " " refused. "The parse stops at whitespace and the rest is ignored", which is
  * exactly what "1.2.3.4 junk" shows, predicts "  " accepted.
  *
  * A rule that three models disagree about is a rule to MEASURE, not to pick. This file asks the
@@ -19,7 +19,7 @@
  * changes it, and whether the other five whitespace bytes ever behave like the space does.
  *
  * It matters because the answer is a branch in the implementation, and because an input of " " is
- * not exotic -- it is what a caller passes after trimming a field badly.
+ * not exotic; it is what a caller passes after trimming a field badly.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>

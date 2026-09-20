@@ -2,7 +2,7 @@
 // Gate 2: time wia_sysallocstring against the live oleaut32!SysAllocString across size classes.
 //
 // Every iteration frees its BSTR. a benchmark that leaks one allocation per call measures the heap
-// growing, not the function -- the early batches look fast, the later ones slow, and a min-of-N
+// growing, not the function, the early batches look fast, the later ones slow, and a min-of-N
 // reports the warm-up rather than the steady state. The free is inside both sides equally, so it
 // cancels out of the ratio while keeping the allocator in the same state for both.
 //

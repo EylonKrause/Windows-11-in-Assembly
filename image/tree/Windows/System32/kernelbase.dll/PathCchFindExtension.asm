@@ -5,7 +5,7 @@
 ; changes/143-pathcchfindextension/impl.asm
 ; HRESULT wia_pathcchfindext(PCWSTR pszPath, size_t cchPath, PCWSTR* ppszExt)  [Win64: rcx, rdx, r8]
 ;
-; Reimplements kernelbase!PathCchFindExtension -- the modern, "safe" replacement for shlwapi's
+; Reimplements kernelbase!PathCchFindExtension, the modern, "safe" replacement for shlwapi's
 ; PathFindExtensionW. It is SLOWER than the function it replaces: 191 ns for a 254-char path versus
 ; shlwapi's 147 ns (change 132), both scalar.
 ;
@@ -14,7 +14,7 @@
 ;     with '/' and ':' NOT stopping the search. Verified on the same 15 edge cases as change 132;
 ;   - cchPath must be in [1, 32768] (PATHCCH_MAX_CCH). 0 or > 32768 -> E_INVALIDARG (0x80070057);
 ;   - the string must be NUL-terminated strictly inside cchPath (len <= cch-1), else E_INVALIDARG.
-;     Measured: length 32767 with cch 32768 succeeds, length 32768 with cch 32769 fails -- the limit is
+;     Measured: length 32767 with cch 32768 succeeds, length 32768 with cch 32769 fails; the limit is
 ;     on cch, not on the length as such;
 ;   - *ppszExt is written on failure too (set to NULL), not left untouched.
 ;

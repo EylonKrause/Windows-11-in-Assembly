@@ -2,14 +2,14 @@
 ; PWSTR wia_pathremovebackslashw(PWSTR psz)   [Win64: rcx -> rax]
 ;
 ; Reimplements shlwapi!PathRemoveBackslashW: strip ONE trailing backslash unless doing so
-; would destroy a bare root. shlwapi's cost is essentially its scalar length scan -- 64 ns
+; would destroy a bare root. shlwapi's cost is essentially its scalar length scan, 64 ns
 ; for a 254-char path.
 ;
 ; Contract (derived in probes/prb.c, fuzz-confirmed bit-exact against the live export over
 ; 2,000,000 cases):
 ;
 ;   n = wcslen(psz)
-;   The return value is always psz + max(n-1, 0) -- a pointer to the last character, not to
+;   The return value is always psz + max(n-1, 0), a pointer to the last character, not to
 ;   the terminator. That is the same address in both outcomes, which is why this
 ;   implementation computes it once and never branches on it:
 ;       "abc"     -> returns +2 and changes nothing
@@ -21,7 +21,7 @@
 ;       m == 0                                       ("\"   stays "\")
 ;    or m == 1 and psz[0] == '\'                      ("\\"  stays "\\")
 ;    or m == 2 and psz[1] == ':' and psz[0] is a drive letter   ("C:\" stays "C:\")
-;   Note the protection is tested on the RESULT, not on the input -- which is why "\\\"
+;   Note the protection is tested on the RESULT, not on the input, which is why "\\\"
 ;   DOES lose its last backslash (result "\\" is not in the protected set) while "\\" does
 ;   not. That non-monotonic behaviour is the shipped one and is reproduced exactly.
 ;
@@ -31,7 +31,7 @@
 ;   separator convention in this DLL, after 132, 138, 161 and 167.)
 ;
 ; The drive-letter set, pinned by an exhaustive 65535-CHARACTER sweep
-;   It is NOT `isalpha`, and it is NOT `(c|0x20) in 'a'..'z'` -- both differ in 62 cases.
+;   It is NOT `isalpha`, and it is NOT `(c|0x20) in 'a'..'z'`, both differ in 62 cases.
 ;   Exactly 114 code units qualify, and they are exactly the ASCII letters plus the Latin-1
 ;   letters:
 ;       U+0041..U+005A   U+0061..U+007A
@@ -42,7 +42,7 @@
 ;   Encoded below as a 256-bit bitmap tested with a single `bt`, which is branch-free and
 ;   exactly reproduces the measured set.
 ;
-; Method: the length scan is the whole job, so it is vectorised -- a SWAR has-zero probe for
+; Method: the length scan is the whole job, so it is vectorised; a SWAR has-zero probe for
 ; short paths (which avoids a ~9-cycle movemask chain when the answer is tiny) then an AVX2
 ; aligned scan. Everything after it is a handful of compares.
 ;
@@ -52,7 +52,7 @@
 ; string is itself mapped, and every later block is reached only because the string
 ; continued into it.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

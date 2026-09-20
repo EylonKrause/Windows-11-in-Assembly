@@ -1,5 +1,5 @@
 // changes/191-wcstoui64/correctness.c
-// Gate 1: wia_wcstoui64 must be indistinguishable from ucrtbase!_wcstoui64 -- value, *endptr, errno AND
+// Gate 1: wia_wcstoui64 must be indistinguishable from ucrtbase!_wcstoui64, value, *endptr, errno AND
 // the invalid-parameter handler hit count. Three-way against the scalar oracle and the live
 // export.
 //

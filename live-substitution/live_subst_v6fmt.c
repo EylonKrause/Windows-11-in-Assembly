@@ -12,7 +12,7 @@
 //
 // What this harness is looking for, having been taught by its sibling. The IPv4 version failed on
 // its first run and was right to: ntdll's RtlIpv4AddressToString{A,W} write a SECOND terminator at
-// a FIXED index -- the end of the 16-character maximum -- and changes 059 and 061 wrote only the
+// a FIXED index (the end of the 16-character maximum) and changes 059 and 061 wrote only the
 // one after the text. The rendered string and the returned pointer were identical in all 17462
 // failing cases, so nothing but a whole-destination comparison could have seen it. The same
 // comparison is applied here, over a 128-byte poisoned buffer, and the same question is open for a
@@ -26,7 +26,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these four is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.

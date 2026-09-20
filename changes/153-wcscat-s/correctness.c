@@ -1,7 +1,7 @@
 // changes/153-wcscat-s/correctness.c
 // Bit-exact fuzz of wia_wcscat_s vs live ucrtbase!wcscat_s + oracle. Each trial compares the errno
 // return, the number of invalid-parameter-handler invocations, and every BYTE of a canary-filled
-// destination -- which pins both partial-write paths (an unterminated dst, which must write only
+// destination, which pins both partial-write paths (an unterminated dst, which must write only
 // dst[0], and ERANGE, which appends first and empties afterwards).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

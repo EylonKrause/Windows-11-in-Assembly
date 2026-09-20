@@ -1,5 +1,5 @@
 @echo off
-REM changes/200-itow-s/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/200-itow-s/build.bat: assemble, gate on correctness, then benchmark.
 Rem /md is required: errno and the invalid-parameter handler must be UCRTBASE's -- the same ones
 REM our assembly writes through via its exported _errno / _invalid_parameter_noinfo.
 setlocal

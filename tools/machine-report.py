@@ -53,8 +53,8 @@ def parent_geomean(change):
     #   260-rtlcopybitmap "3.36-3.41x geomean, two short rows at 0.90x"              -> took 0.90
     #   212-pathfindfilenamea "26.82x geomean, up to 92.31x"                         -> took 92.31
     #
-    # Each of those produced a plausible-looking delta in the cross-machine table -- 047 appeared to
-    # be 10.3x better on this machine than on the bench that proved it -- which is worse than a
+    # Each of those produced a plausible-looking delta in the cross-machine table, 047 appeared to
+    # be 10.3x better on this machine than on the bench that proved it, which is worse than a
     # missing row, because a missing row is visibly missing.
     #
     # So: the forms that put the number BEFORE the word are tried first and are unambiguous, and the
@@ -87,8 +87,8 @@ def newest_logdir():
 # The same classifier revalidate.ps1 now uses, re-implemented here so a report is correct even when
 # the TSV was produced by an older copy of that script. The rule that matters is #2: it requires a
 # NON-ZERO count, and the lookbehind is what stops "10 mismatches" being read as a zero. Before that
-# fix a bare 'mismatch' word-match condemned six bit-exact changes -- 167, 177, 248, 249, 250 and 251
-# -- because they report their verdict as "N cases, 0 mismatches -- bit-exact" and never print a
+# fix a bare 'mismatch' word-match condemned six bit-exact changes, 167, 177, 248, 249, 250 and 251
+# (because they report their verdict as "N cases, 0 mismatches) bit-exact" and never print a
 # bare "PASS". Re-deriving from the log rather than trusting the TSV means the correction does not
 # require an 80-minute re-sweep to take effect.
 _RULES = [
@@ -150,7 +150,7 @@ def main():
         rows.append(dict(zip(cols, f)))
 
     # Re-derive correctness from each change's own log, and downgrade a CORRECTNESS_FAIL that the
-    # log does not support. Anything corrected this way is listed explicitly in the report -- a
+    # log does not support. Anything corrected this way is listed explicitly in the report, a
     # silent correction would be indistinguishable from the bug it is fixing.
     logdir = newest_logdir()
     corrected = []

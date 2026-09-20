@@ -7,14 +7,14 @@
 // This export has no terminator. probes/bounds.c measured that its end pointer is taken literally:
 // "abcd\0fghijk" with end = start+11 finds 'J' at index 9, and an end pointer past a guard page
 // FAULTS rather than stopping. So the corpus plants NULs inside ranges on purpose, and places
-// ranges hard against a guard page at both ends -- the scan may read neither at or after `end` nor
+// ranges hard against a guard page at both ends, the scan may read neither at or after `end` nor
 // before `start`, and those are two different mistakes.
 //
 // All four dispatch shapes from change 281's relation are driven explicitly rather than by a
 // uniform draw: the bitmap needles are 3321 of 65536 and a short random corpus could miss them.
 //
 // And the range length is drawn small often, because a range that fits inside one 32-byte block is
-// the case where both edge masks apply at once -- the shape a mask written for two separate blocks
+// the case where both edge masks apply at once, the shape a mask written for two separate blocks
 // gets wrong, and the one a corpus of long strings never reaches.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -22,7 +22,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       shlwapi -- never a live system process, never the file on disk.
+//       shlwapi, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -102,7 +102,7 @@ static void build_case(long i)
     rs ^= rs >> 29; rs *= 0xBF58476D1CE4E5B9ull; rs ^= rs >> 32;
     if (!rs) rs = 1;
 
-    /* half the ranges are SHORT, so the single-block case -- where both edge masks apply at once --
+    /* half the ranges are SHORT, so the single-block case, where both edge masks apply at once --
        is reached in bulk rather than by luck */
     /* Empty ranges are in the corpus. a mutant that stopped rejecting them survived this harness
        because every range it built had at least one code unit in it. */
@@ -140,7 +140,7 @@ static void build_case(long i)
     else cur_needle = (wchar_t)(rnd() % 0x10000);
 }
 
-/* BYTE offsets, not code-unit offsets: a mutant that returned a pointer one BYTE off -- into the
+/* BYTE offsets, not code-unit offsets: a mutant that returned a pointer one BYTE off, into the
    middle of a wchar_t, because BSR reports the high byte of a matching word -- survived this
    harness AND gate 1, because `p - cur_s` on a wchar_t* divides the odd byte away. */
 static long run_case(F_rchr f)

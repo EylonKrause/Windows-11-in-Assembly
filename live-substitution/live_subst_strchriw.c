@@ -12,7 +12,7 @@
 //   * 3320 needles have more than eight, sharing
 //     only eleven distinct sets between them     -> an 8 KB membership bitmap, one BT per code unit
 //
-// The relation is symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2,
+// The relation is symmetric but not transitive, U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2,
 // but U+D7B0 does not match U+D7B1, 168 intransitive triples in all. An earlier implementation
 // grouped code units into classes and was wrong in 66 of 206096 gate cases, so this harness draws
 // needles from every one of the four shapes explicitly rather than hoping a random draw reaches
@@ -28,7 +28,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       shlwapi -- never a live system process, never the file on disk.
+//       shlwapi, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -102,7 +102,7 @@ static wchar_t buf[SBUF + 64];
  * what should happen.
  *
  * The other survivor, "the null-needle refusal is dropped", passed because the corpus never used
- * needle 0 -- the one needle the export refuses. build_case now forces it periodically. Both gaps
+ * needle 0, the one needle the export refuses. build_case now forces it periodically. Both gaps
  * are the same gap: a corpus that could not express the case. */
 static unsigned char* gbase;
 static SIZE_T gpagesz;

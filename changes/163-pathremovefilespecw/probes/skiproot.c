@@ -1,4 +1,4 @@
-/* Deriving PathCchSkipRoot -- the keystone under PathSkipRootW, PathIsSameRootW and
+/* Deriving PathCchSkipRoot, the keystone under PathSkipRootW, PathIsSameRootW and
  * PathRemoveFileSpecW.
  *
  * The disassembly says:

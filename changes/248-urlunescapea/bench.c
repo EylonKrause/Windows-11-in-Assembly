@@ -5,8 +5,8 @@
 //
 //   * the per-byte walk, which scales with the input;
 //   * a fixed heap tax above 64 bytes. The shipped code stages every call through an inline buffer
-//     whose size is written in the disassembly -- `mov dword ptr [rbp+7], 0x41` at 0x49E5F, so 65
-//     BYTES -- and calls the grow helper at 0x0F730 past it. That step is at the SAME character count
+//     whose size is written in the disassembly, `mov dword ptr [rbp+7], 0x41` at 0x49E5F, so 65
+//     BYTES, and calls the grow helper at 0x0F730 past it. That step is at the SAME character count
 //     as the wide form's, but at HALF the bytes, which is one reason the narrow form measured worse
 //     per byte in the survey (1.85 ns/char against the wide form's 1.24). 63, 64, 65 and 100 are all
 //     rows, so the step is visible rather than assumed;
@@ -14,8 +14,8 @@
 //     them are 32-byte vector work here and a byte-at-a-time loop there;
 //   * Whether the caller's buffer is bigger than the source. This is the one structural choice in the
 //     change and it has to be measured, not asserted: unescaping never lengthens, so a destination
-//     larger than the source cannot fail the size test, and -- because a zero-valued escape merely
-//     ENDS the result here instead of refusing, unlike the wide form -- nothing has to be pre-scanned
+//     larger than the source cannot fail the size test, and, because a zero-valued escape merely
+//     ENDS the result here instead of refusing, unlike the wide form; nothing has to be pre-scanned
 //     either. That case is ONE pass. A caller that sizes its buffer to the result exactly pays for
 //     two. Rows 10 and 11 are that caller, and they are the honest worst case for this change.
 //     (A PLAIN source cannot reach the two-pass path at all: its result length equals its input
@@ -23,7 +23,7 @@
 //     result enough for an exact buffer to be smaller than the source, so rows 10 and 11 carry them.)
 //
 // No restore is needed on the non-in-place rows: the destination is a separate buffer that is never
-// read back, and the source is never modified -- correctness.c asserts that last part by comparing
+// read back, and the source is never modified, correctness.c asserts that last part by comparing
 // the whole buffer. The IN-PLACE rows are the exception and are the reason for the rotation: an
 // in-place unescape consumes its own input, so it must be restored, and the restore is a memcpy of
 // the whole string. That is heavy relative to the function, so it is (a) charged to both sides
@@ -86,7 +86,7 @@ static uint64_t op_ip_restore(void* c){
 }
 #pragma optimize("", on)
 
-/* Page-aligned arenas, and this is not cosmetic -- change 245's first benchmark cut its subjects out
+/* Page-aligned arenas, and this is not cosmetic, change 245's first benchmark cut its subjects out
    of .bss at whatever offsets the build produced and was NOT REPRODUCIBLE: one row read 2371, 2378
    and then 289 ns for the same call, and adding a diagnostic block ahead of the table (which moved
    nothing but the layout) shifted five other rows by up to 35%. Every subject and every destination

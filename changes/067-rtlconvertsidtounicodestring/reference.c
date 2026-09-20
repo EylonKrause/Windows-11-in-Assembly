@@ -2,7 +2,7 @@
  *
  * The scalar oracle for ntdll!RtlConvertSidToUnicodeString, written to be obviously right rather
  * than fast: one division per digit, a scratch array, and a reversal. It exists so that the
- * assembly is compared against something OTHER than the export it is imitating -- if both the
+ * assembly is compared against something OTHER than the export it is imitating, if both the
  * assembly and the live export were wrong in the same way, only a third opinion would say so.
  *
  * THE RULES, every one of them measured rather than read (changes/270-convertsidtostringsid/probes):
@@ -11,7 +11,7 @@
  *   * The revision must be 1. Anything else is STATUS_INVALID_SID.
  *   * The sub-authority count must be at most 15, and this line was missing from the first version
  *     of this file and from the first version of impl.asm. The corpus that validated them drew its
- *     count as `(seed>>8)%16`, so a count above 15 was never once generated -- and both of them
+ *     count as `(seed>>8)%16`, so a count above 15 was never once generated, and both of them
  *     would have formatted all 200 sub-authorities of a SID whose count byte said 200, reading
  *     1028 bytes out of a 68-byte structure and writing about 2500 bytes into a 400-byte stack
  *     temporary. ConvertStringSidToSidW accepts 254 sub-authorities, so producing such a SID takes
@@ -22,7 +22,7 @@
  *   * Each sub-authority is an unsigned 32-bit decimal, with no padding and no grouping.
  *   * On success the string and a terminating NUL are written and Out->Length is set to the byte
  *     count WITHOUT the NUL. MaximumLength must be at least Length+2, else STATUS_BUFFER_OVERFLOW
- *     and out is left completely untouched -- neither Length nor a single byte of the buffer.
+ *     and out is left completely untouched, neither Length nor a single byte of the buffer.
  */
 
 typedef long NTSTATUS;

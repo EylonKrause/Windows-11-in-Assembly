@@ -4,11 +4,11 @@
  *
  * What this gate inherits, and why. Changes 283, 284 and 285 each ended with corpora that exist only
  * because a mutant survived, and two of them caught real defects in a shipped implementation rather than
- * in a mutant. Change 285 went further and found three of its OWN corpora vacuous -- passing while
+ * in a mutant. Change 285 went further and found three of its OWN corpora vacuous, passing while
  * proving nothing, because the filler character was itself a match. So this file starts with all of it:
  *
  *   * every alignment, because the block scan masks the bytes below the string pointer;
- *   * a match planted where the scan must NOT find it -- below the string pointer;
+ *   * a match planted where the scan must NOT find it, below the string pointer;
  *   * every member AND every neighbour of every dispatch class of the relation;
  *   * the guard page with the terminator as the last readable code unit;
  *   * a non-zero buffer past the terminator, so "it never reads past" is proved rather than assumed;
@@ -17,7 +17,7 @@
  *     times across this family; the helper makes it impossible to happen silently again.
  *
  * And the shape that is new here: THE COUNT. It is tested at the boundary in both directions for every
- * match position -- a count that just reaches the match and a count that just misses it.
+ * match position, a count that just reaches the match and a count that just misses it.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -60,7 +60,7 @@ static void one(const wchar_t* s, wchar_t m, unsigned cch)
     }
 }
 
-/* Plant `c` at `pos` in a FILL-filled string and ask at the count boundary in both directions -- but
+/* Plant `c` at `pos` in a FILL-filled string and ask at the count boundary in both directions, but
    first confirm the untouched string finds nothing, because a filler that matches the sought character
    makes every case vacuous. */
 static void plant(wchar_t* s, int len, int pos, wchar_t c, wchar_t m)
@@ -149,7 +149,7 @@ int main(void)
      * The block scan reads aligned 32-byte blocks, so the block holding the string pointer almost always
      * extends below it, and the bottom edge mask is the only thing stopping a hit there from being
      * accepted. Change 283's equivalent corpus caught exactly that mutant, and it returned a NEGATIVE
-     * byte offset -- a pointer below the string the caller gave.
+     * byte offset, a pointer below the string the caller gave.
      */
     {
         long before = cases;
@@ -169,7 +169,7 @@ int main(void)
                "     above it: %ld\n", cases - before);
     }
 
-    /* 4. The terminator is never a match -- the rule that differs from changes 283 and 284.
+    /* 4. The terminator is never a match, the rule that differs from changes 283 and 284.
      *
      * There, a needle character that matches a NUL matched the terminator itself. Here it does not, so
      * every NUL-matching character must give NULL over a string that contains no other match, however

@@ -5,11 +5,11 @@
 ; changes/284-strstriw/impl.asm
 ;   PCWSTR wia_strstriw(PCWSTR haystack, PCWSTR needle)          [Win64: rcx, rdx -> rax]
 ;
-; shlwapi!StrStrIW -- the case-insensitive SUBSTRING search, FORWARDS.
+; shlwapi!StrStrIW, the case-insensitive SUBSTRING search, FORWARDS.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER. discovery/charclass_strcmp_2026.c measured the shipped export at 1281 ns over 511
-; code units -- the same per-character collation call changes 281, 282 and 283 found, but far cheaper
+; code units, the same per-character collation call changes 281, 282 and 283 found, but far cheaper
 ; than StrRStrIW's 21816.97 ns because a forward search stops at the first hit.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -18,12 +18,12 @@
 ; This is the forward sibling of StrRStrIW, and the obvious move is to take change 283 and reverse
 ; the scan. Change 283 is the reason not to: it shipped TWO wrong drafts, both of which passed a
 ; gate, and both errors were about what the terminator means. So probes/contract.c asked every
-; question again, in the shape that can tell a real load from a virtual NUL -- with NON-ZERO data
+; question again, in the shape that can tell a real load from a virtual NUL, with NON-ZERO data
 ; written after the terminator. The answers:
 ;
 ;   * Per character, not a collation over spans: "ab<SOFT HYPHEN>cd" does not contain "abc". Had it
 ;     been a span collation, a three-character needle could match a four-character span and no
-;     per-character loop could reproduce it -- the wall changes 274 and 276 parked on.
+;     per-character loop could reproduce it, the wall changes 274 and 276 parked on.
 ;   * change 281's relation, unchanged: locale-invariant, symmetric, INTRANSITIVE (so no equivalence
 ;     classes; everything is indexed by NEEDLE). The probe confirmed the intransitive triple holds
 ;     inside a substring: {x,D7A2,y} contains both {x,D7B0,y} and {x,D7B1,y}, while {x,D7B0,y} does
@@ -38,7 +38,7 @@
 ;     contain "QQ".
 ;   * a match may start only at a real character: the needle {soft hyphen} alone finds nothing in
 ;     "zzzq", so the terminator is not itself a candidate position. The highest start is hlen-1.
-;   * An embedded NUL ends the search -- "ab\0cd" does not contain "cd" -- but a NUL-matching needle
+;   * An embedded NUL ends the search ("ab\0cd" does not contain "cd") but a NUL-matching needle
 ;     character MATCHES that embedded NUL: {B,SHY} is found at 1. It still does not read the real
 ;     character behind it: {B,SHY,C} is NOT found.
 ;   * An empty needle returns NULL. This is worth stating because it is the opposite of C strstr,
@@ -57,16 +57,16 @@
 ; and the range splits in two:
 ;
 ;   REGION A   q <= hlen - nlen      the whole match is inside the string, so every load is in
-;                                    bounds -- the vector filter and the last-character probe run
+;                                    bounds, the vector filter and the last-character probe run
 ;                                    with no bound checks at all;
 ;   REGION B   the at-most maxtail candidates above that, where only the characters really present
 ;              are compared; the rest of the needle is ALREADY KNOWN to match a NUL, by the
 ;              definition of maxtail.
 ;
-; Searching FORWARDS, region A comes first and region B last, which is the natural order -- unlike
+; Searching FORWARDS, region A comes first and region B last, which is the natural order, unlike
 ; change 283, where region B had to be searched first because its candidates were the higher ones.
 ;
-; For every needle whose last character is not one of those 3320 -- which is every ordinary needle --
+; For every needle whose last character is not one of those 3320, which is every ordinary needle --
 ; maxtail is zero, region B is empty, and the top collapses to hlen - nlen. maxtail costs a
 ; match_pair call, so it is computed only when it can change the answer.
 ;
@@ -99,7 +99,7 @@ EXTERN wia_sci_bmap:DWORD
                 .code
 
 ; ---------------------------------------------------------------------------------------------
-; match_pair -- ZF=1 if the needle code unit in r14w matches the haystack code unit in r15w.
+; match_pair, ZF=1 if the needle code unit in r14w matches the haystack code unit in r15w.
 ; Clobbers exactly rax, r12, r13. Everything else survives, which is why the maxtail loop below
 ; needs no spills at all.
 ; ---------------------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ mp_bitmap:
 match_pair ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; wterm -- the address of the terminating NUL of the string at rcx, found 16 code units at a time.
+; wterm, the address of the terminating NUL of the string at rcx, found 16 code units at a time.
 ;
 ; A 32-byte aligned load never crosses a page boundary, so the first load aligns DOWN and masks off
 ; the bytes that lie before the string; every later load advances by a whole block and stops at the
@@ -185,7 +185,7 @@ wt_hit:
 wterm ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; vscan -- the LOWEST address in [r11, rbx] whose code unit matches the set broadcast into
+; vscan, the LOWEST address in [r11, rbx] whose code unit matches the set broadcast into
 ; ymm1..ymm4, or 0. Change 282's loop run upwards, with an INCLUSIVE upper bound.
 ;
 ; Both edge masks matter and both were checked by a mutant: without the bottom mask the scan can
@@ -282,8 +282,8 @@ wia_strstriw PROC FRAME
         mov       rsi, rcx                        ; the haystack
         mov       rdi, rdx                        ; the needle
 
-        ; ---- (a) the needle's length, scalar. Needles are short -- the bench rows run 1 to 5 code
-        ; units -- and a vector scan has more fixed overhead than a handful of iterations costs.
+        ; ---- (a) the needle's length, scalar. Needles are short, the bench rows run 1 to 5 code
+        ; units, and a vector scan has more fixed overhead than a handful of iterations costs.
         xor       r9, r9
 nlen_loop:
         cmp       word ptr [rdi + r9*2], 0
@@ -306,7 +306,7 @@ nlen_done:
         ;     StrRStrIW with an empty needle -> always NULL, whatever the haystack holds
         ;
         ; "abcXYZabc" contains no code unit that matches a NUL, so the original probe was right about
-        ; that string and wrong about the rule -- the same blind corpus this family keeps producing.
+        ; that string and wrong about the rule, the same blind corpus this family keeps producing.
         ; A zero width space, ignorable but NOT NUL-matching, still gives NULL, which confirms it is
         ; the NUL relation doing the work and not ignorability.
         ;
@@ -322,20 +322,20 @@ nlen_ok:
         ; ---- (b) The haystack's terminator, in vectors. This is not a detail.
         ;
         ; The first draft found it with the same one-code-unit-at-a-time loop used for the needle, and
-        ; the bench said what that costs: the row "hit near the START (1)" came out at 1.00x -- a
-        ; dead tie with the shipped export -- because a forward search that finds its match at index 1
+        ; the bench said what that costs: the row "hit near the START (1)" came out at 1.00x, a
+        ; dead tie with the shipped export, because a forward search that finds its match at index 1
         ; had already walked all 511 code units to measure the string. The export never does that; it
         ; scans forward and stops. Every other row paid it too, since the length scan is on every path.
         ;
         ; So the terminator is found 16 code units at a time. A 32-byte aligned load never crosses a
         ; page boundary, so aligning DOWN and masking off the bytes before the string is safe even
-        ; when the string begins one code unit before an unmapped page -- the same argument changes
+        ; when the string begins one code unit before an unmapped page, the same argument changes
         ; 281 and 282 rest on.
         mov       rcx, rsi
         call      wterm                           ; rax = the address of the terminator
 
         ; region A's inclusive top is term - nlen*2, which may be BELOW the start when the needle is
-        ; longer than the string -- region A is then empty and only region B can match. The terminator
+        ; longer than the string, region A is then empty and only region B can match. The terminator
         ; stays recoverable as rbx + nlen*2, so nothing has to carry it in a register that vscan would
         ; destroy.
         mov       rbx, rax
@@ -343,7 +343,7 @@ nlen_ok:
         sub       rbx, r10                        ; rbx = term - nlen*2
 
         ; maxtail is NOT computed here. It is needed only by region B, which runs AFTER the vector
-        ; scan -- and vscan uses r8 as its cursor, so anything held there would be destroyed by the
+        ; scan, and vscan uses r8 as its cursor, so anything held there would be destroyed by the
         ; first call. Change 283 could compute it up front because there region B came FIRST; here
         ; that ordering is reversed, and the first draft of this file kept maxtail in r8 across the
         ; scan and reported 115 spurious matches, every one of them ours finding a match at the last
@@ -387,7 +387,7 @@ f_single:
         jmp       f_ready
 f_wide:
         ; more than four partners: the filter cannot be held in registers, so the verifier does all
-        ; the work. Correct, and rare -- 3321 needles of 65536.
+        ; the work. Correct, and rare, 3321 needles of 65536.
         vpcmpeqw  ymm1, ymm1, ymm1
         vpxor     ymm2, ymm2, ymm2
         vmovdqa   ymm3, ymm2

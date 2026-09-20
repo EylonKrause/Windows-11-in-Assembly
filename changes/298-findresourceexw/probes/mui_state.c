@@ -1,4 +1,4 @@
-/* probes/mui_state.c -- the live export is NOT a pure function of its arguments.
+/* probes/mui_state.c; the live export is NOT a pure function of its arguments.
  * For a language that is not in the module, the FIRST call reports a different
  * Win32 error from every call after it, because ntdll caches the failed attempt
  * to load an alternate (MUI) resource module for that image.

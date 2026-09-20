@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours vs an independent oracle vs the LIVE ntdll!RtlIsZeroMemory.
  *
- * a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
+ * a predicate has only two answers, which makes a careless corpus very easy to pass, the lesson
  * change 259 wrote down for RtlAreBitsSet. An implementation that always answered "not zero" would
  * agree with the live export on nearly every random buffer, so every corpus here is built to
  * produce both answers, and the harness COUNTS them and fails if either is missing.

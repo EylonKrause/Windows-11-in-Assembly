@@ -1,8 +1,8 @@
-/* copystr.c -- is ntdll!RtlCopyString actually beatable on this part, measured like-for-like?
+/* copystr.c: is ntdll!RtlCopyString actually beatable on this part, measured like-for-like?
  *
  * Tier 5 put RtlCopyString at 66.25 ns for 4096 bytes and RtlAppendStringToString at 65.55, and
  * called them targets by comparing against a DIFFERENT probe (260's erms.c) that timed rep movsb
- * at 26.20 ns for the same 4096 bytes. Two probes, two harnesses, two runs -- which is exactly the
+ * at 26.20 ns for the same 4096 bytes. Two probes, two harnesses, two runs, which is exactly the
  * kind of cross-referencing this repository keeps catching itself doing.
  *
  * So this times them side by side in one harness, on the same buffers, in the same run: the live

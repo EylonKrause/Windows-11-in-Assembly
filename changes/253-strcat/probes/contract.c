@@ -5,7 +5,7 @@
  * has bitten a change in this project before:
  *
  *   1. The return value. The standard says "returns dst". The disassembly of ucrtbase!strcat
- *      (RVA 0x0ED700) keeps the original rcx in r11 and ends `mov rax, r11`, which agrees -- but
+ *      (RVA 0x0ED700) keeps the original rcx in r11 and ends `mov rax, r11`, which agrees, but
  *      there are two `mov r11, rcx` sites in that function, one at entry and one at 0x0ED7A0 on a
  *      different path, so "it returns the original dst on every path" is worth ten lines of proof
  *      rather than a reading of one of them.
@@ -21,9 +21,9 @@
  *      untouched, and no correctness corpus built from return values alone would ever see it.
  *
  * It also measures the one thing that decides the SHAPE of the implementation: whether the shipped
- * code is SWAR (8 bytes at a time) or SIMD. The disassembly says SWAR -- the classic
+ * code is SWAR (8 bytes at a time) or SIMD. The disassembly says SWAR, the classic
  * 0x7efefefefefefeff / 0x8101010101010100 has-zero trick, in both halves, the destination scan and
- * the copy -- and the survey agrees at 0.200 ns/byte, which is about one byte per cycle.
+ * the copy, and the survey agrees at 0.200 ns/byte, which is about one byte per cycle.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

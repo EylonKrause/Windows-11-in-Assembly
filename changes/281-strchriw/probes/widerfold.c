@@ -4,12 +4,12 @@
  *
  * probes/contract.c concluded that StrChrIW's equality is exactly the ordinal upcase table, with
  * "0 disagreements over 3892 candidate pairs". Then the correctness corpus disagreed on four
- * needles out of 65535 -- U+1D2C, U+1D2E, U+1D43, U+1D47 -- where the live export finds a plain
+ * needles out of 65535 (U+1D2C, U+1D2E, U+1D43, U+1D47) where the live export finds a plain
  * 'a' or 'b' and the ordinal table says they are unrelated characters.
  *
  * The reason contract.c could not see it is the reason changes 097 and 100 shipped broken: THE
  * Corpus could not express the case. It built its candidate pairs from CharUpperW, CharLowerW,
- * RtlUpcaseUnicodeChar and RtlDowncaseUnicodeChar of each code unit -- so a pair that NONE of those
+ * RtlUpcaseUnicodeChar and RtlDowncaseUnicodeChar of each code unit, so a pair that NONE of those
  * four functions relates, such as (U+1D2C modifier letter capital a, 'a'), was never asked about.
  * Zero disagreements over the pairs it could generate, and it generated the wrong pairs.
  *
@@ -21,10 +21,10 @@
  *
  * If it is, the 43 ns per character is a collation this project does not own, and change 281 parks
  * exactly as 274 and 276 did. If it is an ordinal fold with a small set of extra equivalences, the
- * change is still writable -- the extras just have to be in the table.
+ * change is still writable; the extras just have to be in the table.
  *
  * So this asks, for a curated set of needles chosen to separate the two hypotheses, WHICH members
- * of a curated alphabet StrChrIW actually matches -- with no reference to any case function at all.
+ * of a curated alphabet StrChrIW actually matches, with no reference to any case function at all.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

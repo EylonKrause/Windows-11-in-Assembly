@@ -1,9 +1,9 @@
 // changes/224-pathrenameextensiona/reference.c
-// Independent oracle for shlwapi!PathRenameExtensionA -- the narrow sibling of change 158.
+// Independent oracle for shlwapi!PathRenameExtensionA, the narrow sibling of change 158.
 //
 // Every rule here was re-derived against the narrow export (probes/ren.c), not inherited from the
 // wide form. That distinction is not academic in this repository: change 158 SHIPPED WRONG. Its
-// extension position is change 132's rule, and that rule was missing the SPACE stopper -- it was
+// extension position is change 132's rule, and that rule was missing the SPACE stopper; it was
 // wrong on 46158 of 335923 enumerated strings until it was corrected in this session, alongside
 // 132, 140, 143, 144, 159, 160 and 174. Eight landed changes, one missing rule, and the lesson was
 // that a shared rule has to be audited by what the code COMPUTES rather than by what it cites.
@@ -11,7 +11,7 @@
 // What the narrow export actually does, measured:
 //
 //   * The extension is at the last '.' after the last backslash or space. '/' and ':' do not stop
-//     the search ("a.b/c" + ".obj" -> "a.obj"), and neither does a TAB -- the stopper is 0x20
+//     the search ("a.b/c" + ".obj" -> "a.obj"), and neither does a TAB; the stopper is 0x20
 //     specifically. With no extension the position is the terminator, so the extension appends.
 //   * The MAX_PATH limit bounds the result, not the input. Swept over extension lengths 1..6 and
 //     input lengths 240..275: the first FALSE moves with the extension length, and the last

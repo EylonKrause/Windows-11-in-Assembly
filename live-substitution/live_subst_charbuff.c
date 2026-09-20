@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 277 (user32!CharUpperBuffW and user32!CharLowerBuffW).
 //
 // Both exports are patched at once, because the pair is the change: they are the same loop with two
-// tables and two ranges -- 'a'..'z' minus 0x20 going up, 'A'..'Z' plus 0x20 coming down -- and a
+// tables and two ranges ('a'..'z' minus 0x20 going up, 'A'..'Z' plus 0x20 coming down) and a
 // proof that patched only one would be a proof about half a change. discovery/rtl_integer_char.c
 // measured the lower form at 1.16 ns per character against the upper one's 0.78, so they are not
 // even the same code underneath.
@@ -12,8 +12,8 @@
 // code what our code should say.
 //
 // What is compared is the return value and every character of the buffer, including the characters
-// Past the count. These exports take a count, not a terminator -- probes/mapping.c measured them
-// mapping straight past an embedded NUL -- so an implementation that rounded the count up to a whole
+// Past the count. These exports take a count, not a terminator, probes/mapping.c measured them
+// mapping straight past an embedded NUL, so an implementation that rounded the count up to a whole
 // vector block would corrupt what follows, which is change 016's defect exactly and which only a
 // whole-buffer comparison sees.
 //

@@ -1,6 +1,6 @@
 /* changes/258-rtlfindclearruns/probes/contract.c
  *
- * ntdll!RtlFindClearRuns -- "find up to SizeOfRunArray runs of clear bits, optionally the LONGEST
+ * ntdll!RtlFindClearRuns, "find up to SizeOfRunArray runs of clear bits, optionally the LONGEST
  * ones". This is the function change 255's target turned out to be a wrapper around:
  * RtlFindLongestRunClear (RVA 0x0E3240) is nine instructions around
  * RtlFindClearRuns(bitmap, buf, 1, TRUE).
@@ -8,22 +8,22 @@
  * Why it is worth its own change. discovery/ntdll_bitmap.c measured the same call eighty times apart
  * depending on one BOOLEAN:
  *
- *       RtlFindClearRuns 64, UNSORTED, sparse       144.83 ns   -- stops when the array fills
- *       RtlFindClearRuns  1, SORTED,   sparse     13457.57 ns   -- must examine everything
+ *       RtlFindClearRuns 64, UNSORTED, sparse       144.83 ns, stops when the array fills
+ *       RtlFindClearRuns  1, SORTED,   sparse     13457.57 ns, must examine everything
  *       RtlFindClearRuns 64, SORTED,   sparse     14399.10 ns
  *
  * The unsorted form returns as soon as it has enough runs, which on a bitmap with a run every two
  * bits is after about 0.2% of it. The sorted form cannot: to know the LONGEST runs it has to see
  * them all. So the sorted path is a full scan at roughly one bit per cycle, exactly like change
- * 255's, and change 255's machinery -- the per-word scan with the bounded `x &= x >> 1` search and
- * the two vector skips -- applies directly.
+ * 255's, and change 255's machinery, the per-word scan with the bounded `x &= x >> 1` search and
+ * the two vector skips, applies directly.
  *
  * What has to be pinned, because "up to N runs, optionally sorted" leaves a great deal unsaid:
  *
  *   1. The shape of the array. RtlFindLongestRunClear reads [rsp+0x40] as the start and [rsp+0x44]
- *      as the length, so the entry is two ULONGs -- but which order, and is it really two?
+ *      as the length, so the entry is two ULONGs, but which order, and is it really two?
  *   2. Sorted by what, and which way? Length descending is the obvious reading. What breaks a tie
- *      between two runs of equal length -- the earlier one, or the later?
+ *      between two runs of equal length, the earlier one, or the later?
  *   3. When the array is smaller than the number of runs, does the unsorted form return the first
  *      runs or an arbitrary subset? And does the sorted form return the longest N in order?
  *   4. The degenerate cases: SizeOfRunArray = 0, a bitmap with no clear bits at all, and a bitmap
@@ -35,7 +35,7 @@
  * are found in is not left to right. Every run in section 3 sits in a byte of its own, which is the
  * one arrangement where the two orders agree, so the rows below are all true and the conclusion
  * drawn from them was not. The correctness corpus caught it; probes/enumorder.c pins the real rule
- * -- a byte at a time, the carried run first, then the byte's interior runs longest first -- against
+ * (a byte at a time, the carried run first, then the byte's interior runs longest first) against
  * the live export over 1,567,328 cases. The rows printed here are left exactly as they were.
  */
 #define WIN32_LEAN_AND_MEAN

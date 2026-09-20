@@ -3,7 +3,7 @@
 # Register a Scheduled Task that re-proves this repository against System32 whenever Windows
 # services those binaries.
 #
-# TRIGGERS -- three, deliberately overlapping, because no single one is reliable on its own:
+# TRIGGERS, three, deliberately overlapping, because no single one is reliable on its own:
 #   1. Event: Microsoft-Windows-WindowsUpdateClient/Operational, Event ID 19 ("installation
 #      successful"). Fires the moment an update completes. Registered on a best-effort basis: on
 #      some configurations an event subscription needs elevation, and if it cannot be registered

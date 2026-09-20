@@ -10,7 +10,7 @@
 // left implicit. When the caller's buffer is too small for the result the shipped function FAULTS
 // (37 of 37 distances), and probes/pqsa.c dumped what it had written first: indices 1..8, a
 // contiguous run from the LOW end. That is the signature of a chunked memmove whose 8-byte head
-// store lands before the tail store faults -- a strict highest-byte-first shift could not produce
+// store lands before the tail store faults; a strict highest-byte-first shift could not produce
 // it, because its very first write would be the faulting one. Our shift runs from the high end in
 // 32-byte chunks and therefore leaves different bytes behind.
 //
@@ -144,7 +144,7 @@ int main(void){
 
     // ---- NOACCESS page guard on the SCAN: the string ends at the guard ------------------------------
     // The scan must stop at the terminator. These cases have NO space, so the function returns
-    // FALSE and writes nothing -- the guard only tests the read.
+    // FALSE and writes nothing, the guard only tests the read.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

@@ -3,7 +3,7 @@ REM ===========================================================================
 Rem  live-run proof for change 279 (ntdll!RtlIntegerToChar).
 REM
 REM  Every case compares the NTSTATUS AND a hash of the whole 512-byte
-REM  destination -- on REFUSING calls too, because probes/contract.c measured
+REM  destination, on REFUSING calls too, because probes/contract.c measured
 REM  that a refusal leaves the buffer completely untouched. An implementation
 REM  that wrote a terminator before discovering it had no room would pass any
 REM  check that only read the status.

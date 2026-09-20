@@ -1,13 +1,13 @@
 // changes/188-wcstol/reference.c
 // The correctness oracle: the obvious scalar wcstol. Not fast; just correct.
 //
-// Contract derived in probes/wcstol.c and fuzz-confirmed against the live export -- value,
-// *endptr AND errno -- over 1,500,000 cases, 0 mismatches. It is change 110's strtol structure
+// Contract derived in probes/wcstol.c and fuzz-confirmed against the live export, value,
+// *endptr AND errno, over 1,500,000 cases, 0 mismatches. It is change 110's strtol structure
 // crossed with change 186's wide sets, and the crossing is where the surprises live:
 //   * non-ASCII digits work in every base, subject to the ordinary d >= base rejection;
 //   * the base>10 letters are ASCII-only (fullwidth 'f' is not a hex digit, though fullwidth '9'
 //     IS a decimal one);
-//   * the "0x" prefix zero, and base-0 octal detection, accept any block's zero -- the variant
+//   * the "0x" prefix zero, and base-0 octal detection, accept any block's zero, the variant
 //     that required the ASCII L'0' was refuted on 1579 of 1,500,000;
 //   * but the 'x' itself is ASCII-only;
 //   * an invalid base raises the invalid-parameter handler, sets EINVAL, writes *endptr = nptr

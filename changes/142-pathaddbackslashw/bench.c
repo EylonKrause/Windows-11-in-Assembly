@@ -5,7 +5,7 @@
    string into one shared buffer immediately before each call, which got both halves of the restore
    lesson wrong at once, and it is why this change was parked at 0.85x on the 16-character row:
 
-     * The cost (change 238's lesson): the function writes at most two characters -- a separator at
+     * The cost (change 238's lesson): the function writes at most two characters, a separator at
        p[n] and a terminator at p[n+1] -- so undoing it needs a single 2-byte store, putting back the
        terminator the append overwrote. A 34-byte memcpy against a function costing about two
        nanoseconds does not add noise, IT REPLACES THE MEASUREMENT.
@@ -97,7 +97,7 @@ int main(void){
     static CASE C[N]; static wia_case cs[N];
     static const char* names[N] = { "16", "64", "254", "1024 (declines)", "realpath" };
     const wchar_t* srcs[N] = { s16, s64, s254, s1024, sreal };
-    /* COMPUTED, never hardcoded -- the previous version of this file carried 49 for a path that is 51
+    /* COMPUTED, never hardcoded; the previous version of this file carried 49 for a path that is 51
        characters long. It only skewed the reported GB/s there; here the length is the restore index, so
        the setup's own assertion caught it. */
     int L[N];

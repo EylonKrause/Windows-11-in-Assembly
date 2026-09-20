@@ -40,19 +40,19 @@ changes\038-strpbrk\build.bat
 ## Revision (2026-09-07) — geomean **4.982** (was 3.533)
 
 The original implementation re-walked the set **inside every 32-byte block**, broadcasting each
-member afresh -- roughly seven instructions per member per block. Two things were wrong with that.
+member afresh, roughly seven instructions per member per block. Two things were wrong with that.
 
 The obvious one is the instruction count. The less obvious one only showed up when it was measured:
 a branchy loop that small **aliases in the branch predictor**, so its cost is decided by where the
 code happens to land. While working on the sibling routine, adding three uops at the top of the
-function -- or inserting alignment padding on the per-block fall-through -- moved a 1024-character
+function (or inserting alignment padding on the per-block fall-through) moved a 1024-character
 result between **96 and 125 ns with no change whatever to the work done**. Chasing that surfaced the
 real fix.
 
 So the first three set members are now broadcast **once**, before the block loop, into
 `ymm2`/`ymm4`/`ymm5`, and the block body is straight-line. When the set is shorter, the spare
-registers take a **duplicate of member 0** -- harmless, because the compare results are OR-ed and
-$a \lor a = a$ -- which is what avoids needing three separate specialised loops. Members past the
+registers take a **duplicate of member 0**, harmless, because the compare results are OR-ed and
+$a \lor a = a$, which is what avoids needing three separate specialised loops. Members past the
 third are walked from memory in a tail that costs two uops per block when it is empty, so the old
 "sets of 32 or more fall to a scalar path" special case is gone: one code path now handles every set
 size correctly.

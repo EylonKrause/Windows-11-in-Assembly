@@ -3,8 +3,8 @@
 //
 // The point of this file is the failure path. IIDFromString writes into the caller's GUID as it
 // parses, so a malformed string leaves a PARTIALLY FILLED GUID that has to be reproduced byte for
-// byte. probes/wmask.c measured that directly -- corrupt exactly one character, then report which of
-// the sixteen output bytes moved away from a poison fill -- and this is the rule that came back:
+// byte. probes/wmask.c measured that directly, corrupt exactly one character, then report which of
+// the sixteen output bytes moved away from a poison fill, and this is the rule that came back:
 //
 //     corrupted char   bytes written        because
 //     0   '{'          none                 the brace is checked before anything is stored
@@ -20,12 +20,12 @@
 //     25..36           one more byte per hex pair
 //     37  '}'          all 16               Data4[7] is stored BEFORE the brace is checked
 //
-// So each field is stored only once it and its trailing separator validate -- except Data1, which is
+// So each field is stored only once it and its trailing separator validate, except Data1, which is
 // progressive, and Data4[0], which has no trailing separator.
 //
 // Two error codes, not interchangeable:
-//   * 0x80070057 E_INVALIDARG  -- lpiid is NULL, or strlen != 38 exactly. Nothing written.
-//   * 0x800401F4 CO_E_IIDSTRING -- length was right, content was not. Partial writes as above.
+//   * 0x80070057 E_INVALIDARG, lpiid is NULL, or strlen != 38 exactly. Nothing written.
+//   * 0x800401F4 CO_E_IIDSTRING, length was right, content was not. Partial writes as above.
 //
 // lpsz == NULL is SUCCESS: write the nil GUID, return S_OK.
 #include <windows.h>
@@ -49,7 +49,7 @@ long ref_iidfromstring(const wchar_t* s, GUID* out)
     if (out == 0) return H_INVALIDARG;
     if (s == 0) { for (i = 0; i < 16; ++i) g[i] = 0; return 0; }
 
-    /* the length must be exactly 38 -- walked, so a shorter string is never read past */
+    /* the length must be exactly 38, walked, so a shorter string is never read past */
     n = 0;
     while (n < 39 && s[n]) ++n;
     if (n != 38) return H_INVALIDARG;

@@ -5,7 +5,7 @@
  * Changes 281 and 282 landed the character searches by owning shlwapi's match relation: locale
  * invariant, decided one character at a time (probes/context.c, 200000 random strings, 0
  * context-dependent matches), symmetric but INTRANSITIVE. A substring search over that relation
- * would be the obvious next thing -- compare needle[k] against hay[i+k] for every k -- and it is
+ * would be the obvious next thing (compare needle[k] against hay[i+k] for every k) and it is
  * exactly the assumption that has to be checked before a line is written.
  *
  * Because there is a completely different implementation it could have, and one observable
@@ -13,13 +13,13 @@
  *
  *     a per-character loop requires the match to be the same length as the needle.
  *     a collation compare does not. CompareStringW gives ignorable characters zero weight, so
- *     "ab<SOFT HYPHEN>c" and "abc" compare EQUAL -- and a substring search built on it would find a
+ *     "ab<SOFT HYPHEN>c" and "abc" compare EQUAL, and a substring search built on it would find a
  *     three-character needle inside a four-character span.
  *
  * Change 281 measured that the ignorables are real: 3237 of them, all matching each other and
  * nothing else, the largest set in the relation. If they are SKIPPED here rather than matched, then
  * StrRStrIW is doing collation over spans and this change cannot reproduce it with a per-character
- * loop -- it would park the way changes 274 and 276 did.
+ * loop; it would park the way changes 274 and 276 did.
  *
  * So that question is asked first, and the rest of the shape after it.
  */

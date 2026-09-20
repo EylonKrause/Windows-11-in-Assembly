@@ -84,7 +84,7 @@ int main(void){
             for(int i=0;i<160;i++){ d1[i]=POISON; d2[i]=POISON; }
             for(int i=0;i<=len;i++){ d1[i]=in[i]; d2[i]=in[i]; }
 
-            /* candidate: same shape as change 178 -- validate first, no partial fold,
+            /* candidate: same shape as change 178, validate first, no partial fold,
                str[0]=0 on failure (including bound 0), EINVAL 22. */
             int ref;
             {

@@ -7,19 +7,19 @@
 ; one per-character loop whose cost does not depend on the width at all. A narrow character is half
 ; the bytes, so a vector chunk carries twice as many of them and the available ratio is twice as big.
 ;
-; CONTRACT (probes/lcpa.c, measured against the live NARROW export -- not inherited from 209 on the
+; CONTRACT (probes/lcpa.c, measured against the live NARROW export, not inherited from 209 on the
 ; strength of the names matching). The A/W pairs in this project have gone both ways: change 203
 ; inherited 202's contract exactly, while change 205's differed from ntdll's on the one detail that
 ; decided the implementation. This one comes out identical to 209's, point for point:
 ;   * copies at most n-1 characters, stopping early at the source's NUL, then writes ONE terminator.
-;     The destination is NOT padded -- "ab" into n=10 leaves cells 2..9 untouched;
+;     The destination is NOT padded, "ab" into n=10 leaves cells 2..9 untouched;
 ;   * n == 0 writes nothing at all, not even a terminator, and still returns the destination;
 ;   * n is used UNSIGNED: -1 and -1000 both copy the whole string;
 ;   * a NULL source or destination returns NULL (handled in seh.c);
 ;   * it swallows a faulting source, returning NULL with the readable prefix already in place;
 ;   * and it reads the source before testing the bound. The probe walked n from 1 to 10 against an
 ;     8-character unterminated source ending at a guard page: n = 1..8 returned the destination,
-;     n = 9 -- exactly srclen+1 -- returned NULL. It read src[n-1], one PAST the last character it
+;     n = 9 (exactly srclen+1) returned NULL. It read src[n-1], one PAST the last character it
 ;     copied. A bound-first loop would have succeeded there and silently differed from Windows.
 ;
 ; One question the wide form does not have was settled too: a narrow bounded copy could plausibly
@@ -38,7 +38,7 @@
 ; Within a page, though, reading more than the bound permits is free. That observation is what the
 ; short path rests on, and it is the difference between this and a straight port of 209. The first
 ; cut only vectorised when at least 32 characters were still PERMITTED, so an 8-character copy into a
-; 16-byte buffer -- the shape almost every real caller has -- fell into the byte-at-a-time tail and
+; 16-byte buffer (the shape almost every real caller has) fell into the byte-at-a-time tail and
 ; measured 1.10x, with sixteen characters at 1.07x. But the bound governs what may be WRITTEN, not
 ; what may be READ: reading all 32 in-page bytes cannot fault where the shipped code would not, since
 ; a page is mapped or it is not. So the load happens whenever the page allows it, the NUL search runs
@@ -46,7 +46,7 @@
 ; characters went 1.10x -> 3.34x and sixteen 1.07x -> 5.36x.
 ;
 ; The clamped write is a pair of OVERLAPPING power-of-two stores (16+16, 8+8, 4+4, 2+2, 1), which
-; covers any k in 0..32 with at most two stores and never touches a byte past k -- the destination is
+; covers any k in 0..32 with at most two stores and never touches a byte past k; the destination is
 ; Terminated, not padded, so writing the full width and letting the tail land wherever would be a
 ; different function. Both stores carry the same bytes on the overlap, so the duplication is
 ; idempotent; unlike the fold in 209 nothing reads back from these addresses afterwards, so there is
@@ -59,7 +59,7 @@
 .code
 wia_lstrcpyna_core PROC
         ; rax is NOT used to hold the destination: the page arithmetic below computes in eax and a
-        ; 32-bit write zero-extends, which would silently destroy it -- the exact bug 209 hit, where
+        ; 32-bit write zero-extends, which would silently destroy it, the exact bug 209 hit, where
         ; the buffer came out correct and only the return value was wrong. rcx is never modified, so
         ; the destination is simply re-read from it at each exit.
         test      r8d, r8d
@@ -88,7 +88,7 @@ wide:
         jb        vec_tail                     ; the page has room but the BOUND cuts inside a chunk
 
         ; The page arithmetic is hoisted out of the copy. The first cut recomputed it per chunk --
-        ; twenty instructions to move thirty-two bytes -- and measured 85.59 ns on 4000 characters,
+        ; twenty instructions to move thirty-two bytes, and measured 85.59 ns on 4000 characters,
         ; 0.68 ns per chunk against a hardware ceiling nowhere near that. Neither limit can change
         ; under us mid-run, so the count of whole chunks that fit inside both is computed once and
         ; the inner loop below is nine instructions with no address maths in it at all. Reaching a
@@ -99,12 +99,12 @@ wide:
         jb        inner                        ; a single chunk: no point pairing it
 
         ; Two chunks per iteration. With the address maths already hoisted the loop was down to nine
-        ; instructions per thirty-two bytes and running at ~1.7 cycles a chunk -- front-end bound,
+        ; instructions per thirty-two bytes and running at ~1.7 cycles a chunk, front-end bound,
         ; not store bound. Pairing halves the loop overhead, and the NUL search over both halves
         ; costs ONE extra instruction rather than a second compare-and-extract: vpminub is zero in a
         ; lane exactly when either input is, so one compare against zero answers "is there a NUL
         ; anywhere in these sixty-four bytes". When there is, the pair is simply re-run one chunk at
-        ; a time to find out WHERE -- the precise path is the terminating iteration, so it runs once.
+        ; a time to find out WHERE; the precise path is the terminating iteration, so it runs once.
         mov       r8d, eax
         shr       eax, 1                       ; pairs
         and       r8d, 1                       ; an odd chunk left over
@@ -152,8 +152,8 @@ nul_in_chunk:
 
 vec_tail:
         ; Fewer than 32 characters may be WRITTEN, but 32 may be READ: the bound governs the
-        ; destination, and all 32 of these bytes are in the page src[r10] itself lives in -- which
-        ; the shipped loop reads too -- so the load cannot fault where Windows would not. This is
+        ; destination, and all 32 of these bytes are in the page src[r10] itself lives in, which
+        ; the shipped loop reads too, so the load cannot fault where Windows would not. This is
         ; what lets an 8-character copy into a 16-byte buffer vectorise at all.
         vmovdqu   ymm0, ymmword ptr [rdx + r10]
         vpxor     ymm1, ymm1, ymm1
@@ -220,14 +220,14 @@ k_done:
         ret
 
 scalar:
-        ; Within 32 bytes of the end of a page. One character at a time, so the fault -- if the
-        ; source is unterminated and the next page is not mapped -- lands on exactly the character
+        ; Within 32 bytes of the end of a page. One character at a time, so the fault, if the
+        ; source is unterminated and the next page is not mapped, lands on exactly the character
         ; the shipped loop reaches.
         vzeroupper
 s_loop:
         ; The source is read before the bound is tested, and that order is the contract, measured.
-        ; With n-1 exactly equal to the source length the shipped loop still reads src[n-1] -- one
-        ; PAST the last character it copies -- so an unterminated string ending at a page boundary
+        ; With n-1 exactly equal to the source length the shipped loop still reads src[n-1], one
+        ; PAST the last character it copies, so an unterminated string ending at a page boundary
         ; faults THERE and returns NULL. probes/lcpa.c pinned it down: n = 8 returned the
         ; destination, n = 9 returned NULL, on an 8-character source.
         movzx     r11d, byte ptr [rdx + r10]

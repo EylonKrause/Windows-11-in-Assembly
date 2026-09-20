@@ -3,7 +3,7 @@
 // Three-way: our ASM+wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
 // The page-guard sections are the point of this file, not an afterthought at the end. a 32-byte
-// scan that reads one block too far is INVISIBLE to an ordinary length test -- every string in a
+// scan that reads one block too far is INVISIBLE to an ordinary length test, every string in a
 // heap buffer has slack after it, so the over-read lands on readable bytes and the answer is
 // right. It only shows up when the string ends within 32 bytes of an unmapped page, and then it
 // does not crash: the shipped export swallows the fault and returns 0, so a correct 3-character
@@ -162,7 +162,7 @@ int main(void){
     // ---- Page guard with the string starting at the page boundary --------------------------------
     // The first block is aligned DOWN, so for a string starting exactly at a page start the load
     // reaches backwards into the previous page. That page must be the one the caller's string is
-    // in -- which it is, because the alignment is to 32 and 4096 is a multiple of 32, so aligning
+    // in, which it is, because the alignment is to 32 and 4096 is a multiple of 32, so aligning
     // down never leaves the page. This section proves it by making the PRECEDING page unreadable.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);

@@ -12,7 +12,7 @@
  *     U+1D2C..U+1D43 and beyond  ->  A, B, D, E, G, H, I, J, K, a, ...
  *
  * That is an ORDINAL table, just not ntdll's. This project's rule is that a table is built by
- * asking the function that owns it, never transcribed -- change 277's tables.c, change 269's
+ * asking the function that owns it, never transcribed, change 277's tables.c, change 269's
  * aliases, change 210's upcase table. So before any table is written down, the question is which
  * Windows function already computes this mapping, so that it can be ASKED for all 65536 code units
  * the way change 277 asks CharUpperBuffW.
@@ -21,7 +21,7 @@
  *
  *   LCMapStringW(LCMAP_UPPERCASE)                  the NLS uppercase table, which is NOT the same
  *                                                  object as ntdll's RTL table
- *   LCMapStringW(LCMAP_UPPERCASE|LCMAP_LINGUISTIC) the locale-aware variant -- if this is the one,
+ *   LCMapStringW(LCMAP_UPPERCASE|LCMAP_LINGUISTIC) the locale-aware variant, if this is the one,
  *                                                  the change parks, because it is locale-dependent
  *   FoldStringW(MAP_FOLDCZONE)                     compatibility-zone folding, which is exactly the
  *                                                  shape of the observed extras

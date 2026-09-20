@@ -6,8 +6,8 @@
 // behaviours are invisible to a string comparison:
 //   * behaviour 2 writes a second terminator past the first one ("ab   c" -> cells 2 And 4), so
 //     the bytes after the visible string are part of the contract;
-//   * when there is nothing to do the function writes nothing at all -- not even a redundant
-//     terminator over the existing one -- and only poison can tell that apart.
+//   * when there is nothing to do the function writes nothing at all, not even a redundant
+//     terminator over the existing one, and only poison can tell that apart.
 //
 // And the corpus enumerates rather than samples, with a tab in the alphabet. "Exactly 0x20 splits,
 // and whitespace in general does not" is a claim, and a corpus missing one character is precisely

@@ -105,28 +105,28 @@ multiplying by `[0x400, 1]` and summing adjacent pairs **is** `(hi − 0xD800)·
 
 Both packing blocks compute sixteen bytes and then advance by however many were *wanted*. Storing
 all sixteen is the cheap way to finish, and inside the destination's capacity it is not a memory
-error -- but it puts **zeros in the caller's buffer past the end of the string**, and the shipped
+error, but it puts **zeros in the caller's buffer past the end of the string**, and the shipped
 export leaves those bytes exactly as the caller left them.
 
 Nothing here noticed, because this gate compared only up to the produced **length**, which is the
 natural thing to compare and is not enough. [Change 268](../268-rtlunicodestringtoutf8string/)
-compares its *whole* destination -- its wrapper's contract includes what a failing call leaves
-behind -- and the first time it was built against these blocks it reported **154 mismatches**, every
+compares its *whole* destination; its wrapper's contract includes what a failing call leaves
+behind, and the first time it was built against these blocks it reported **154 mismatches**, every
 one a single `00` where ntdll had left the caller's fill. Both gates now compare the whole capacity.
 
 **The first fix was to blend, and it was measured and thrown away.** Reading the sixteen bytes back,
 keeping whatever the output did not reach, and storing the result is four instructions and no
-table -- and it cost **2.9x on three-byte input**, because every iteration's read overlaps the
+table, and it cost **2.9x on three-byte input**, because every iteration's read overlaps the
 previous iteration's store by a few bytes. A partially overlapping load cannot be forwarded from the
 store buffer, so each one waits for the store to reach L1.
 
 **What ships never reads the destination.** Exactly *L* bytes go out as two **overlapping** stores --
-the first eight and the last eight -- which together cover `[0, L)` precisely when `L >= 8`; below
+the first eight and the last eight, which together cover `[0, L)` precisely when `L >= 8`; below
 eight the same trick works with two 4-byte stores, which is the only branch. A third
 assembler-generated table makes the second store possible: entry *k* shuffles byte `k+i` down to
 position *i*, bringing the tail to where an 8-byte store will emit it.
 
-It costs about 10% -- geomean 2.735x to 2.461x over the 24 rows -- and that is the honest price of
+It costs about 10% (geomean 2.735x to 2.461x over the 24 rows) and that is the honest price of
 not writing into bytes the caller did not ask us to touch.
 
 ### One trap, and it would have mangled ordinary text

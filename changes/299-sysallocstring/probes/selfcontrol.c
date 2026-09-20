@@ -1,8 +1,8 @@
-/* changes/299-sysallocstring/probes/selfcontrol.c -- what can this bench actually RESOLVE?
+/* changes/299-sysallocstring/probes/selfcontrol.c: what can this bench actually RESOLVE?
  *
  * The short rows of bench.c are a small difference between two large numbers. At 0, 4 and 16
- * characters the call is 20-25 ns of which almost all is the allocator -- SysAllocStringLen(NULL,n)
- * alone measures 16-25 ns in discovery/oleaut32_sysallocstring.c -- and our contribution, replacing
+ * characters the call is 20-25 ns of which almost all is the allocator, SysAllocStringLen(NULL,n)
+ * alone measures 16-25 ns in discovery/oleaut32_sysallocstring.c, and our contribution, replacing
  * a scalar strlen over a handful of characters, is one to three nanoseconds of that. The ratio is
  * two allocator timings divided by each other. Across four consecutive runs those rows read 1.00x,
  * 1.03x, 0.94x, 1.07x for the empty string and 1.14x, 0.58x, 1.11x, 1.07x for sixteen characters.
@@ -12,7 +12,7 @@
  * AGAINST ITSELF. Both sides are then literally the same function, so any verdict other than a tie
  * is the harness failing to resolve the row, and counting those gives the resolution floor.
  *
- * This must use the same statistic as the gate, and the first version of this file did not -- it
+ * This must use the same statistic as the gate, and the first version of this file did not, it
  * timed one batch per side where wia_measure takes the MINIMUM over `trials` auto-calibrated
  * batches. Single batches made every row look unresolvable, including 4096 characters, where the
  * real margin is 7x and unmistakable. A control that is noisier than the thing it is controlling

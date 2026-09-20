@@ -1,8 +1,8 @@
 @echo off
-REM changes/179-strlwr-s/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/179-strlwr-s/build.bat: assemble, gate on correctness, then benchmark.
 Rem /md is required, not cosmetic: with the default static CRT this exe would carry its own
 REM invalid-parameter handler state, so ucrtbase's _strlwr_s and our _invalid_parameter_noinfo
-REM would consult two different handlers -- the static one is unset, so the live export
+REM would consult two different handlers; the static one is unset, so the live export
 REM __fastfails the process (observed: exit code 9, no output). Change 150 records the same.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

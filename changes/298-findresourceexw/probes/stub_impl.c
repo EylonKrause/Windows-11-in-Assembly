@@ -1,4 +1,4 @@
-/* probes/stub_impl.c -- a stand-in for impl.asm, used only to prove that
+/* probes/stub_impl.c: a stand-in for impl.asm, used only to prove that
  * reference.c matches the LIVE export before a line of assembly was written
  * (docs/METHODOLOGY.md step 4).  It satisfies the two symbols correctness.c
  * imports by forwarding to the reference.  Build:

@@ -4,14 +4,14 @@
  *
  * The whole destination buffer is compared, not the status and not Length. This export writes into
  * a caller's buffer and never writes a terminator, so the only way to catch an implementation that
- * helpfully NUL-terminates -- which the wide analogue in change 101 legitimately does -- is to fill
+ * helpfully NUL-terminates (which the wide analogue in change 101 legitimately does) is to fill
  * the buffer with poison and compare every byte of it afterwards. That check is the whole reason
  * this corpus exists in this shape: a test that looked at the status and the appended bytes would
  * pass an implementation that corrupts one byte past them on every successful call.
  *
  *   1. every combination of destination Length, MaximumLength and source length in a small range,
  *      which enumerates the fit boundary rather than sampling near it.
- *   2. every source length from 0 to 300 into a generous buffer -- the vector loop, its overlapping
+ *   2. every source length from 0 to 300 into a generous buffer, the vector loop, its overlapping
  *      tail, and the byte-at-a-time path below 32 all live here.
  *   3. The failure path at every size: the buffer must come back untouched, byte for byte.
  *   4. The wide sum: a Length and a source length that each fit a ushort but whose sum does not.

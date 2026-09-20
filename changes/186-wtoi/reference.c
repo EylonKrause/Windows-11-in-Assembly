@@ -11,7 +11,7 @@
 //   * overflow SATURATES: positive -> INT_MAX, negative -> INT_MIN.
 #include <stddef.h>
 
-/* 18 contiguous blocks of ten -- the Unicode 3.0-era Nd set, frozen in ucrtbase.
+/* 18 contiguous blocks of ten, the Unicode 3.0-era Nd set, frozen in ucrtbase.
    Change 166 found the identical list frozen in ntdll; measured separately here. */
 static const unsigned short DBLK[18] = {
     0x0030,0x0660,0x06F0,0x0966,0x09E6,0x0A66,0x0AE6,0x0B66,0x0C66,0x0CE6,

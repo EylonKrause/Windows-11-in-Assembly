@@ -1,5 +1,5 @@
 // changes/153-wcscat-s/reference.c
-// Oracle for ucrtbase!wcscat_s -- the UCRT strcat_s algorithm with `size` counted in wchar_t.
+// Oracle for ucrtbase!wcscat_s, the UCRT strcat_s algorithm with `size` counted in wchar_t.
 #include <errno.h>
 #include <stddef.h>
 #include <wchar.h>

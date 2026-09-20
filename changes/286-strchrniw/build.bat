@@ -1,12 +1,12 @@
 @echo off
-REM changes/286-strchrniw/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/286-strchrniw/build.bat: assemble, gate on correctness, benchmark.
 REM
 REM The match relation, its generated tables and the init that checks them against the live export all
 REM come from change 281 unchanged, re-checked here rather than inherited.
 REM
 REM probes/contract.c also settled the PROTOTYPE, which two sources disagreed about: the documented
 REM (start, match, count) reading is the real one, and discovery/charclass_strcmp_2026.c's "range form"
-REM call passed an address as the character and '#' as the count -- so its 1655 ns figure for this export
+REM call passed an address as the character and '#' as the count, so its 1655 ns figure for this export
 REM measured something else entirely. The bench here measures it properly.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

@@ -9,7 +9,7 @@
  *   1. The text is exactly ntdll!RtlConvertSidToUnicodeString's. probes/contract.c formats every
  *      shape of SID with both and compares the strings: the ordinary counts, every revision, every
  *      sub-authority count from 0 to 255, and the identifier authority at every decimal and
- *      hexadecimal boundary. They agree on all of it, including on what they REFUSE -- a revision
+ *      hexadecimal boundary. They agree on all of it, including on what they REFUSE, a revision
  *      other than 1 and a count above 15. So this change is an ENVELOPE over change 067, the way
  *      change 268 is an envelope over 016 and 034, and not a second copy of a formatter.
  *
@@ -20,7 +20,7 @@
  *
  *      That is the whole set. STATUS_INVALID_SID maps to ERROR_INVALID_SID and nothing else does.
  *
- *   3. On failure the output pointer is left alone. Not cleared -- left exactly as the caller had
+ *   3. On failure the output pointer is left alone. Not cleared, left exactly as the caller had
  *      it, which probes/contract.c measured with a poison value. (Its sibling
  *      ConvertStringSidToSidW, change 269, does clear it for three characters out of 65535; this
  *      one never does.)
@@ -34,7 +34,7 @@
  *
  *   6. a SID that is not fully readable is a refusal when its sub-authority array runs off the end
  *      and a FAULT when only its six identifier-authority bytes do (probes/truncated.c). That is
- *      change 067's rule, inherited here because it is the same formatter underneath -- and it is
+ *      change 067's rule, inherited here because it is the same formatter underneath, and it is
  *      why this model cannot express it: a scalar model cannot fault on demand. The correctness
  *      gate checks that behaviour against the LIVE export directly, with a guard page.
  */

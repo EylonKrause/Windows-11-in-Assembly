@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 280 (ntdll!RtlLargeIntegerToChar).
 //
 // What is compared is the whole destination, not the status. probes/contract.c measured that a
-// refusal leaves the caller's buffer COMPLETELY untouched -- not one byte written -- so an
+// refusal leaves the caller's buffer COMPLETELY untouched (not one byte written) so an
 // implementation that wrote a terminator before discovering it had no room would pass any check
 // that only looked at the NTSTATUS. That is not hypothetical here: change 100, the landed
 // implementation of this very export, differs from live on every negative length and six of change
@@ -14,7 +14,7 @@
 //     probes/div64.c proves over the whole domain;
 //   * base 10 BELOW 2^32, which never enters that peel at all;
 //   * the ONE-DIGIT decimal path, which writes its character and returns without touching a table;
-//   * bases 2, 8 and 16, which emit several digits per store -- base 2 running to SIXTY-FOUR
+//   * bases 2, 8 and 16, which emit several digits per store, base 2 running to SIXTY-FOUR
 //     characters, twice the longest answer change 279 could produce;
 //   * the zero-padded field width a negative length asks for, which is a fill loop no positive
 //     length ever reaches and the only place this change touches an XMM register.
@@ -28,7 +28,7 @@
 // The negative lengths are bounded, and that bound is not timidity. a field width is honoured
 // literally: probes/contract.c measured that -96 exactly fills a 96-byte buffer and -97 runs off
 // the end of it, and change 279's first correctness corpus died of an access violation because it
-// asked for INT_MIN+1 -- a field two billion characters wide. The destination here is 640 bytes and
+// asked for INT_MIN+1; a field two billion characters wide. The destination here is 640 bytes and
 // no case asks for more than 400.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -36,7 +36,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -143,7 +143,7 @@ static void build_case(long i)
     rs ^= rs >> 29; rs *= 0xBF58476D1CE4E5B9ull; rs ^= rs >> 32;
     if (!rs) rs = 1;
 
-    /* one case in seven uses an ILLEGAL base -- co-prime with the class so every class gets some */
+    /* one case in seven uses an ILLEGAL base, co-prime with the class so every class gets some */
     if ((i % 7) == 3) cur_base = (ULONG)(rnd() % 40);
     else              cur_base = LEGAL[rnd() % 5];
     b = cur_base ? cur_base : 10;
@@ -172,7 +172,7 @@ static void build_case(long i)
     default: cur_v = 1ull << (rnd() % 64); break;                    /* a single bit */
     }
 
-    /* the length, drawn from AROUND the room rule -- which here is `digits`, with the terminator
+    /* the length, drawn from AROUND the room rule, which here is `digits`, with the terminator
        written only if one more byte is there -- and then given a sign. A NEGATIVE length is not an
        error: it is a zero-padded field of exactly that width. */
     need = digits_of(cur_v, cur_base);

@@ -33,7 +33,7 @@
 ; That is not a compromise on the useful case: hi < Divisor is the only region where a 128/64
 ; quotient is representable at all, and it gets a single hardware divide.
 ;
-; Divisor == 0 needs no case of its own -- DividendHigh >= 0 is always true, so it takes the loop
+; Divisor == 0 needs no case of its own, DividendHigh >= 0 is always true, so it takes the loop
 ; and never reaches a `div`. The shipped function does not fault on a zero divisor and neither may
 ; this one; the loop returns all-ones with Remainder = DividendLow.
 ;

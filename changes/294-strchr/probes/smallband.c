@@ -9,7 +9,7 @@
 //   * it sweeps FOUR start alignments per length (0, 5, 16, 31 mod 32) and reports each one, not
 //     just whatever `malloc` happened to hand back. Both implementations align the pointer DOWN,
 //     so a given length lands on either side of a block boundary depending on where the caller's
-//     string starts -- and bench.c, which uses malloc, sees only one of those cases per run.
+//     string starts, and bench.c, which uses malloc, sees only one of those cases per run.
 //     This is how the 55..80-byte regression below was found at all;
 //   * min-of-600 trials rather than 200, repeated, reporting the median of the repetitions;
 //   * both ISA paths, because they enter the wide loop with different fixed costs.

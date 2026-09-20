@@ -14,7 +14,7 @@
      * the return values and the -1 length convention;
      * NULL and zero-length handling;
      * whether the case-sensitive path is exactly a code-unit compare (the claim to falsify);
-     * whether the ignore-case fold is a simple table -- tested by EQUIVALENCE-CLASS SIZE, which is
+     * whether the ignore-case fold is a simple table, tested by EQUIVALENCE-CLASS SIZE, which is
        what exposed StrChrIW;
      * whether that fold matches ntdll's RtlUpcaseUnicodeChar, the table change 051 already uses;
      * and whether any of it moves with the thread locale.                                          */

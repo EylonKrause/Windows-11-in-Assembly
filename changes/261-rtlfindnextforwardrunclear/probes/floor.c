@@ -3,17 +3,17 @@
  * What does an empty call cost in this harness?
  *
  * The two smallest FORWARD rows of bench.c sit at 1.00x-1.01x and will not move. Three separate
- * structural fixes -- the slack mask hoisted out of both scans, the out-pointer spill removed, the
+ * structural fixes, the slack mask hoisted out of both scans, the out-pointer spill removed, the
  * end scan replaced by change 258's carry strip so a one-word run is answered with no second scan
- * at all -- each made the big rows faster and left those two exactly where they were, ours 3.14 ns
+ * at all; each made the big rows faster and left those two exactly where they were, ours 3.14 ns
  * against ntdll's 3.16 ns. That is not a code problem, and this probe is how that was established
  * instead of assumed.
  *
  * It measures, through the SAME wia_measure path bench.c uses:
  *
- *   1. an op that returns a constant           -- the loop, the indirect call, the XOR
- *   2. an op that calls an empty NTAPI stub    -- ... plus a call and return
- *   3. an op shaped exactly like bench.c's     -- ... plus the branch and the argument loads
+ *   1. an op that returns a constant, the loop, the indirect call, the XOR
+ *   2. an op that calls an empty NTAPI stub, ... plus a call and return
+ *   3. an op shaped exactly like bench.c's, ... plus the branch and the argument loads
  *   4. ours on a 33-bit bitmap
  *   5. the live export on the same bitmap
  *

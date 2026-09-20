@@ -2,12 +2,12 @@
 ; int wia_strspnw(PCWSTR psz, PCWSTR pszSet)   [Win64: rcx, rdx -> eax]
 ;
 ; Reimplements shlwapi!StrSpnW: length of the initial run of characters that all appear in pszSet.
-; shlwapi's is the naive O(n*m) scalar loop -- 1519 ns for a 254-char string against a 23-char set
+; shlwapi's is the naive O(n*m) scalar loop, 1519 ns for a 254-char string against a 23-char set
 ; (~6 ns per character, i.e. ~0.26 ns per (char, set-char) pair).
 ;
 ; Same O(n*m) shape, but 16 characters at a time: for each 32-byte block, every set character is
 ; broadcast and compared, the results OR-ed into an "in set" mask, and the first character NOT in the
-; set ends the span. The terminator needs no special case -- a set is itself NUL-terminated, so it can
+; set ends the span. The terminator needs no special case; a set is itself NUL-terminated, so it can
 ; never contain NUL, and the NUL therefore fails every compare and stops the span naturally.
 ;
 ; Page-safe: the first load is aligned down to 32 bytes and the leading bytes are shifted out of the

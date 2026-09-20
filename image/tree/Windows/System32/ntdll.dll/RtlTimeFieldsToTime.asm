@@ -5,7 +5,7 @@
 ; changes/127-rtltimefieldstotime/impl.asm
 ; BOOLEAN wia_fields2time(const TIME_FIELDS* TimeFields, LONGLONG* Time)   [Win64: rcx, rdx -> al]
 ;
-; Reimplements ntdll!RtlTimeFieldsToTime -- the inverse of change 126 (RtlTimeToTimeFields): validate
+; Reimplements ntdll!RtlTimeFieldsToTime, the inverse of change 126 (RtlTimeToTimeFields): validate
 ; TIME_FIELDS and convert to a 64-bit time (100-ns units since 1601-01-01). Returns TRUE on success;
 ; on failure returns FALSE and leaves *Time untouched.
 ;

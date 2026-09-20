@@ -1,9 +1,9 @@
-/* v6tail.c -- where exactly does ntdll!RtlIpv6AddressToString{A,W} put its second terminator?
+/* v6tail.c: where exactly does ntdll!RtlIpv6AddressToString{A,W} put its second terminator?
  *
  * The IPv4 pair turned out to write one at a FIXED index (15, the end of the 16-character field)
  * as well as the one after the text, and changes 059/061 wrote only the first. The live harness
  * now reports the same shape for 063/064 at byte 45. This asks the exports directly, so the index
- * for the WIDE form is measured rather than assumed to be symmetric -- which is the mistake the
+ * for the WIDE form is measured rather than assumed to be symmetric, which is the mistake the
  * IPv4 case would have invited.
  */
 #include <stdio.h>

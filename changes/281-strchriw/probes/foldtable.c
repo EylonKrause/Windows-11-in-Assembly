@@ -4,22 +4,22 @@
  *
  * Three probes have now narrowed this and two of them were wrong:
  *
- *   contract.c   "the rule IS the ordinal upcase table, exactly" -- WRONG. It built its candidate
+ *   contract.c   "the rule IS the ordinal upcase table, exactly", WRONG. It built its candidate
  *                pairs out of CharUpperW/CharLowerW/RtlUpcase/RtlDowncase, so a pair that none of
- *                those four relates -- (U+1D2C, 'a') -- could never be asked about. Zero
+ *                those four relates ((U+1D2C, 'a')) could never be asked about. Zero
  *                disagreements over the pairs it could generate, and it generated the wrong pairs.
  *   widerfold.c  settled what it is NOT: not linguistic. e-acute does not find 'e', n-tilde does
  *                not find 'n', fullwidth 'a' does not find 'a', sharp s does not expand.
  *   whichfold.c  found FoldStringW(MAP_FOLDCZONE) reproduces the compatibility half exactly
  *                (U+1D2C -> 'A', U+02B0 -> 'h') but does no case folding, so the rule is a
- *                COMPOSITION -- and the composition still fails on U+01BB..U+01BD, which fold onto
+ *                COMPOSITION, and the composition still fails on U+01BB..U+01BD, which fold onto
  *                digits.
  *
  * Guessing the next formula would be a fourth hypothesis. Instead this takes the relation directly.
  *
  * THE TRICK: a haystack containing every code unit 1..65535 in ascending order. StrChrIW returns
  * the FIRST match, so one call per needle yields the SMALLEST code unit that the export considers
- * equal to it -- a canonical representative, straight from the function, with no hypothesis at all.
+ * equal to it, a canonical representative, straight from the function, with no hypothesis at all.
  * 65535 calls, each scanning until it hits, is a couple of minutes; the whole relation falls out.
  *
  * With the ground truth in hand, the candidate formulas are then scored against it, so that

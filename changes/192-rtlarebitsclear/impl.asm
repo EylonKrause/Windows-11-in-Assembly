@@ -1,14 +1,14 @@
 ; changes/192-rtlarebitsclear/impl.asm
 ; BOOLEAN wia_arebitsclear(const RTL_BITMAP* bm, ULONG start, ULONG len)  [rcx, edx, r8d -> al]
 ;
-; Reimplements ntdll!RtlAreBitsClear -- the complement of change 030 (RtlAreBitsSet), which ntdll
+; Reimplements ntdll!RtlAreBitsClear, the complement of change 030 (RtlAreBitsSet), which ntdll
 ; still walks a byte at a time.
 ;
 ; The complement was NOT assumed. Changes 123/124 both found that the clear-side routines in this
 ; family carry their own edge conventions, so probes/abc.c re-derived every edge against the live
 ; export and cross-checked a scalar oracle over 400 000 randomized bitmaps: 0 mismatches.
 ;   * len == 0            -> FALSE. Not TRUE. An empty range is "vacuously clear" by any normal
-;                            reading, and ntdll says FALSE anyway -- the same convention change 030
+;                            reading, and ntdll says FALSE anyway, the same convention change 030
 ;                            recorded for RtlAreBitsSet, confirmed here rather than inherited.
 ;   * start + len > SizeOfBitMap -> FALSE (checked with the carry, so a start+len that wraps ULONG
 ;                            is rejected rather than aliasing back into range).
@@ -17,10 +17,10 @@
 ;
 ; Method: the first and last partial 32-bit words are masked and tested against zero; the full
 ; words between them are scanned 8 dwords (256 bits) per step with a single `vptest`, which sets ZF
-; directly from "this whole 256-bit chunk is zero" -- one instruction where the all-ones test in
+; directly from "this whole 256-bit chunk is zero", one instruction where the all-ones test in
 ; change 030 needs a compare plus a movmsk. Then one dword at a time for the remainder.
 ;
-; ISA: AVX2. No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2. No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_arebitsclear PROC
@@ -53,7 +53,7 @@ wia_arebitsclear PROC
         ; ---- middle full words fw+1 .. lw-1 : all zero ----
         ; The "is there at least one 256-bit chunk?" test is HOISTED out of the loop on purpose.
         ; With it inside, every call executed the shared vzeroupper epilogue even when no ymm
-        ; register had been touched -- which measured 0.94x on the 32-bit class, a regression that
+        ; register had been touched, which measured 0.94x on the 32-bit class, a regression that
         ; parks the change. Now a short range never touches ymm and never pays vzeroupper, and the
         ; loop cleans up exactly once on the path that did use it.
         lea       eax, [r8 + 1]                    ; i

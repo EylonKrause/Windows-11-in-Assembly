@@ -1,13 +1,13 @@
 // changes/294-strchr/probes/abi_dynamic.c
 //
 // Gate 3, run locally. tools/abi-check/check.bat is the repository-wide driver, but adding a row to
-// it would mean editing a file this change is not allowed to touch -- so this probe links the SAME
+// it would mean editing a file this change is not allowed to touch, so this probe links the SAME
 // assembly helper (tools/abi-check/abi_probe.obj) and arms the sentinels around each call itself.
 //
 // Why it matters here more than usual: this change is the first in the tree whose implementation
 // contains a `push`. The once-per-process CPUID block saves and restores rbx, and CPUID itself
 // writes EBX unconditionally. If that push/pop were ever unbalanced, or the pop dropped, the damage
-// would land on ONE call per process -- the one that happened to perform the detection -- and both
+// would land on ONE call per process (the one that happened to perform the detection) and both
 // of the other gates would pass. The `cold` row below is that exact call.
 //
 // Bit layout of the returned mask (from abi_probe.asm): 0-7 = rbx rbp rdi rsi r12 r13 r14 r15,

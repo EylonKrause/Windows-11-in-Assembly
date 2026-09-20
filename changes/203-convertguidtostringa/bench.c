@@ -1,7 +1,7 @@
 // changes/203-convertguidtostringa/bench.c
 // Gate 2: time wia_ConvertGuidToStringA against the live iphlpapi!ConvertGuidToStringA.
 // The classes cover the generous buffer (the normal case), the exact 39-cell fit, and each of the
-// three distinct failure shapes -- because on this function the failures are not rare edge cases,
+// three distinct failure shapes, because on this function the failures are not rare edge cases,
 // they are a third of the contract.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

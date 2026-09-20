@@ -1,16 +1,16 @@
 ; changes/008-rtlcompareunicodestring/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` is UNTOUCHED and remains the 5950X (Zen 3)
 ; implementation of record. This is an ADDITIONAL variant tuned for the second
 ; PC. Same exported symbol (`wia_rtlcmpustr`), so this change's existing
-; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
+; correctness.c and bench.c validate it unmodified, build with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
 ; Re-measured here, the Zen 3 implementation failed the gate on ONE of its
-; twelve size classes -- the shortest case-insensitive compare:
+; twelve size classes, the shortest case-insensitive compare:
 ;
 ;     size        ours ns   system ns   ratio   verdict
 ;     8/cs           4.89        9.21   1.88x   BETTER
@@ -24,7 +24,7 @@
 ;
 ; Cause: fixed prologue cost, not the compare itself. An 8-wchar CI compare
 ; takes the `ci_small` scalar path, which needs NO vector register and NO
-; callee-saved register -- yet it still pays, on every call:
+; callee-saved register, yet it still pays, on every call:
 ;     * five `push` + five `pop` (rbx, rsi, rdi, r12, r13), ten memory ops, and
 ;     * a `vzeroupper` in the shared epilogue even though this path never
 ;       touched a YMM register at all.
@@ -34,7 +34,7 @@
 ; THE FIX
 ; -------
 ; A dedicated short-CI entry placed BEFORE the prologue that runs entirely in
-; volatile registers -- zero pushes, zero pops, no vzeroupper. The register
+; volatile registers, zero pushes, zero pops, no vzeroupper. The register
 ; budget is made to fit by running the compare on a NEGATIVE INDEX: both buffer
 ; pointers are pre-advanced to buffer+common and the index counts up from
 ; -common to 0. That removes the separate length counter, freeing the one
@@ -48,7 +48,7 @@
 ;   * Only the SIGN of the return is contractual (ntdll's magnitude is not
 ;     portable), but this path reproduces the original's magnitude too: on a
 ;     mismatch it returns upcase(c1) - upcase(c2) through the SAME
-;     `wia_upcase[]` table the original uses -- the table built from the OS
+;     `wia_upcase[]` table the original uses, the table built from the OS
 ;     itself, so folding stays bit-exact for every code unit including >= 0x80.
 ;   * When the common prefix is equal it returns lenDiff = Length1 - Length2,
 ;     identical to the original's `ci_small_prefix`.
@@ -61,7 +61,7 @@
 ;   * Reads only; never writes through either buffer. It reads exactly the same
 ;     addresses over the same range as the original scalar path, so it cannot
 ;     fault where the original would not.
-;   * No AVX-512, no GFNI, no vector register at all on the added path -- it is
+;   * No AVX-512, no GFNI, no vector register at all on the added path; it is
 ;     correct on the 5950X too, simply unnecessary there.
 ;
 ; LONG wia_rtlcmpustr(const UNICODE_STRING* s1, const UNICODE_STRING* s2, BOOLEAN ci)
@@ -121,7 +121,7 @@ fast_diff:
         ret
 
         ;----------------------------------------------------------------------
-        ; ORIGINAL BODY -- unchanged from impl.asm from here down.
+        ; ORIGINAL BODY, unchanged from impl.asm from here down.
         ;----------------------------------------------------------------------
 full_path:
         push      rbx

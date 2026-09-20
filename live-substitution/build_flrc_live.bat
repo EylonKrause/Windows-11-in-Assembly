@@ -7,7 +7,7 @@ REM  copy of ntdll. No system process is touched, nothing on disk is modified,
 REM  and the prologue is restored and verified byte-for-byte.
 REM
 Rem  both observables are compared -- the returned length and the written
-REM  *StartingIndex -- because the index is where the tie-break lives, and a
+REM  *StartingIndex, because the index is where the tie-break lives, and a
 REM  harness that checked only the length would pass an implementation that
 REM  updated its best on ">=" instead of ">".
 REM ===========================================================================

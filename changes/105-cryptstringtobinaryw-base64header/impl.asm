@@ -98,7 +98,7 @@ dloop:
         movdqu    xmm5, xmmword ptr [rsi]
         movdqu    xmm0, xmmword ptr [rsi + 16]
         ; xmm6 is CALLEE-SAVED under Win64 and an earlier cut used it here as a scratch load,
-        ; silently destroying any double the caller had live -- invisible to a correctness test,
+        ; silently destroying any double the caller had live, invisible to a correctness test,
         ; which compares bytes. xmm0 is dead until the movdqa two lines down, so it serves as the
         ; pack temp for free. A memory operand is NOT an option: this is legacy SSE, where
         ; packuswb's memory form requires 16-byte alignment that [rsi+16] cannot guarantee.

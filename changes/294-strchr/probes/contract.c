@@ -1,21 +1,21 @@
 // changes/294-strchr/probes/contract.c
 //
-// PROBE -- what does the LIVE ucrtbase!strchr actually do, and does msvcrt!strchr agree?
+// PROBE, what does the LIVE ucrtbase!strchr actually do, and does msvcrt!strchr agree?
 //
 // Four questions the change's contract depends on, none of which are answered by reading the
 // C standard (change 289 proved MSDN wrong about WideCharToMultiByte three separate ways this
 // week, so documented behaviour is a hypothesis, not a fact):
 //
-//   Q1  strchr(s, 0)      -- the standard says the terminator is part of the string and is
+//   Q1  strchr(s, 0); the standard says the terminator is part of the string and is
 //                            therefore matchable. Does ucrtbase return &s[len] or NULL?
-//   Q2  c above 127       -- the parameter is `int` and the comparison is specified "as if
+//   Q2  c above 127; the parameter is `int` and the comparison is specified "as if
 //                            converted to char". Windows' char is SIGNED. Does the export
 //                            compare the byte, or sign-extend and miss?
-//   Q3  c outside 0..255  -- 0x100 + 'a', and negative ints. Truncate to 8 bits, or no match?
-//   Q4  empty string      -- "" with a non-zero needle, and "" with 0.
+//   Q3  c outside 0..255, 0x100 + 'a', and negative ints. Truncate to 8 bits, or no match?
+//   Q4  empty string, "" with a non-zero needle, and "" with 0.
 //
 //  plus Q5: a needle that appears only AFTER the terminator (inside the same aligned block the
-//  scanner will physically load) must NOT be found -- that is the one place a dual-search
+//  scanner will physically load) must NOT be found; that is the one place a dual-search
 //  implementation can silently be wrong while every "normal" test passes.
 //
 // Build:  cl /nologo /O2 contract.c /Fe:contract.exe   (from a VS x64 env)

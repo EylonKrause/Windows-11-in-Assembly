@@ -5,7 +5,7 @@
 // implementation and the correctness test were all wrong together on 295513 of 2015539 enumerated
 // strings. See impl.asm for the full account. The rule is:
 //
-//   the last '.' after the last stopper, where a stopper is a backslash **or a space** -- else a
+//   the last '.' after the last stopper, where a stopper is a backslash **or a space**, else a
 //   pointer to the terminating NUL. '/' and ':' do NOT stop the search, even though
 //   PathFindFileNameW treats both as separators.
 //

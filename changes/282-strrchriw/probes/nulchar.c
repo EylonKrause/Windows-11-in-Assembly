@@ -5,7 +5,7 @@
  * Change 281 extracted the whole match relation from the live export by searching a haystack that
  * contained every code unit 1..65535. It could not contain a NUL: StrChrIW stops at the terminator,
  * so a NUL in the haystack would have ended every search. The relation it produced is therefore
- * complete except for one column -- what matches the code unit ZERO -- and that column is
+ * complete except for one column (what matches the code unit ZERO) and that column is
  * unreachable through StrChrIW by construction.
  *
  * StrRChrIW has no terminator. Its range is explicit, embedded NULs are ordinary characters
@@ -14,7 +14,7 @@
  * ours and the model saying NULL while the live export found it.
  *
  * This is the same failure mode as change 281's probes/contract.c and as changes 097 and 100: a
- * corpus that could not express the case. The difference is where it sat -- not in the test, but in
+ * corpus that could not express the case. The difference is where it sat, not in the test, but in
  * the EXTRACTION METHOD, which is a place worth remembering to look.
  *
  * So: for every code unit, ask StrRChrIW whether it finds a lone NUL. Writes foldnul.c.

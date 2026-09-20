@@ -1,4 +1,4 @@
-// changes/007-rtlcomparememory/correctness.c -- vs scalar ref AND live ntdll!RtlCompareMemory.
+// changes/007-rtlcomparememory/correctness.c: vs scalar ref AND live ntdll!RtlCompareMemory.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

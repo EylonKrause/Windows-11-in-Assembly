@@ -16,13 +16,13 @@
  * argument, which is a wrong answer that looks like a right one.
  *
  * The mask is derived, not listed. probes/errors.c asked CompareStringW bit by bit and got twelve
- * accepted bits, mask 0x5803103F on this machine -- and VarBstrCmp agreed with it on every one of
+ * accepted bits, mask 0x5803103F on this machine, and VarBstrCmp agreed with it on every one of
  * the thirty-two. Writing 0x5803103F into the source would be a constant nobody can check by reading
  * it and one that a future Windows could move; asking the OS costs thirty-two calls, once. It is the
  * same decision change 269 made for its alias table and change 210 for its upcase table.
  *
  * The locale cannot be masked, so it is validated by asking CompareStringW to compare one character
- * -- which probes/gap.c measured at 25.75 ns. That is why the fast path has a LENGTH THRESHOLD: at
+ *, which probes/gap.c measured at 25.75 ns. That is why the fast path has a LENGTH THRESHOLD: at
  * sixteen characters the collation the OS would otherwise do already costs more than the validation,
  * and below it the implementation simply delegates and is a lean wrapper instead.
  */
@@ -41,7 +41,7 @@ int wia_vbc_init(void)
         if (CompareStringW(LOCALE_USER_DEFAULT, fl, L"a", 1, L"b", 1) != 0)
             wia_vbc_mask |= fl;
     }
-    /* A mask that came back empty would send every call down the slow path -- correct, but silently
+    /* A mask that came back empty would send every call down the slow path, correct, but silently
        three times slower, which is the kind of thing that ships. */
     return wia_vbc_mask ? 0 : 1;
 }

@@ -1,6 +1,6 @@
 /* changes/281-strchriw/reference.c
  *
- * The scalar model: shlwapi!StrChrIW written the slow obvious way -- one code unit at a time,
+ * The scalar model: shlwapi!StrChrIW written the slow obvious way, one code unit at a time,
  * folding both sides and comparing.
  *
  * It exists so the gate is THREE-WAY. Comparing an implementation only against the live export
@@ -11,7 +11,7 @@
  *
  * This model deliberately does NOT use the three dispatch paths impl.asm picks between. It asks one
  * question per haystack character through a single shared predicate, so a bug in the path SELECTION
- * -- a needle routed to the vector path that should have used a bitmap -- shows up as a
+ * (a needle routed to the vector path that should have used a bitmap) shows up as a
  * disagreement rather than being reproduced identically on both sides.
  */
 #define WIN32_LEAN_AND_MEAN

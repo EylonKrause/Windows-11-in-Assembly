@@ -1,11 +1,11 @@
 ; changes/047-strlwr/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` is UNTOUCHED and remains the 5950X (Zen 3)
 ; implementation of record. This is an ADDITIONAL variant tuned for the second
 ; PC. Same exported symbol (`wia_strlwr`), so this change's existing
-; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
+; correctness.c and bench.c validate it unmodified, build with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
@@ -18,7 +18,7 @@
 ;     geomean 9.277x => PARKED (a size class regressed)
 ;
 ; Note that an 8-byte string (5.70 ns) costs MORE than a 32-byte one (2.99 ns).
-; That is not a Zen-4 vector weakness -- it is a control-path pathology. For an
+; That is not a Zen-4 vector weakness; it is a control-path pathology. For an
 ; 8-char string the Zen 3 code runs THREE serialized
 ; `load -> vpcmpeqb -> vpmovmskb -> test -> branch` chains (the 32-byte probe,
 ; the 8-byte probe, then the 32-byte probe AGAIN because `try8` jumps back to
@@ -32,7 +32,7 @@
 ;
 ; The fix that works
 ; ------------------
-; Handle short strings entirely in GENERAL-PURPOSE registers -- no vector unit,
+; Handle short strings entirely in GENERAL-PURPOSE registers, no vector unit,
 ; therefore none of those movemask->branch chains, and 8 bytes per operation
 ; instead of one:
 ;
@@ -41,12 +41,12 @@
 ;      independent, so both probes overlap.
 ;   2. If the terminator lies in bytes 8..15, fold bytes 0..7 with a SWAR case
 ;      fold (below), store all eight at once, then finish the last <= 8 bytes
-;      with the scalar loop -- for an 8-char string that is exactly one
+;      with the scalar loop, for an 8-char string that is exactly one
 ;      iteration, because byte 8 IS the terminator.
 ;   3. If the terminator is in bytes 0..7, go straight to the scalar loop
 ;      (at most 7 folds).
 ;   4. If there is no terminator in the first 16 bytes, fall into the original
-;      vector body entered at offset 0, completely unchanged -- no duplicated
+;      vector body entered at offset 0, completely unchanged, no duplicated
 ;      work, and the only added cost on long strings is the ~12-instruction
 ;      probe, against 4.80x-25.22x of existing headroom.
 ;
@@ -61,7 +61,7 @@
 ;   across lanes because 0x80 >> 2 = 0x20 stays inside its own byte.
 ;
 ;   CARRY SAFETY: the adds would carry between bytes if any byte were >= 0xC1,
-;   so the fold is guarded by `test v, 0x80..80` -- if ANY byte has its high bit
+;   so the fold is guarded by `test v, 0x80..80`, if ANY byte has its high bit
 ;   set (non-ASCII), the SWAR path is abandoned and the scalar loop runs
 ;   instead. For bytes < 0x80, v + 0x3F <= 0xBE and v + 0x25 <= 0xA4, so no
 ;   byte addition can ever carry into its neighbour.
@@ -69,7 +69,7 @@
 ; Contract preserved exactly
 ;   * In the default C locale ucrtbase folds only ASCII A-Z -> a-z (verified by
 ;     this change's correctness.c against the live export). All three paths --
-;     SWAR, scalar and the untouched vector body -- implement that same map.
+;     SWAR, scalar and the untouched vector body, implement that same map.
 ;   * Returns the original pointer `s` in rax.
 ;   * In place. Never writes at or past the terminator: the SWAR store covers
 ;     bytes 0..7 only on the branch that has PROVEN the terminator is at index
@@ -77,18 +77,18 @@
 ;
 ; SAFETY / PAGE-SAFETY
 ;   * The two 8-byte probe loads happen only when (s & 4095) <= 4080, which
-;     guarantees bytes [s, s+16) are in the same 4 KB page as s -- a page that
+;     guarantees bytes [s, s+16) are in the same 4 KB page as s, a page that
 ;     must be mapped, since the string starts in it. Nearer than 16 bytes to a
 ;     page end the probe is skipped and the original (already page-safe) path
 ;     runs. This variant can therefore never fault where the original would not.
 ;   * Plain scalar x86-64 in the added code: NO AVX-512, NO GFNI. It is
-;     correct on the 5950X too -- just unnecessary there.
+;     correct on the 5950X too, just unnecessary there.
 ;   * Clobbers only volatile registers (rdx, r8, r9, r10, r11) per the Win64 ABI.
 ;
 ; char* wia_strlwr(char* s)   [Win64: rcx -> rax (returns s)]
 
-; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
-; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64; their low 128 Bits are,
+; the upper halves are volatile, so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
 ; happens to keep its accumulators there. See tools/abi-check.
@@ -179,7 +179,7 @@ short_done:
         ret
 
         ;----------------------------------------------------------------------
-        ; ORIGINAL BODY -- unchanged from impl.asm, entered at offset 0.
+        ; ORIGINAL BODY, unchanged from impl.asm, entered at offset 0.
         ;----------------------------------------------------------------------
 vec_setup:
         vpbroadcastb ymm1, byte ptr [c40b]          ; low bound

@@ -9,13 +9,13 @@
 # already compare against the LIVE export via GetProcAddress, so re-running them is a complete
 # answer to "does our assembly still match what Windows now ships".
 #
-# What "re-apply" can and cannot mean here -- read this before expecting more than it does:
+# What "re-apply" can and cannot mean here, read this before expecting more than it does:
 #   * This repository does NOT install its assembly into Windows. It cannot: System32 binaries are
 #     catalog-signed, Windows Resource Protection + TrustedInstaller own them, and Windows Update
 #     reverts in-place edits. A modified system DLL would fail signature validation.
 #   * What it does instead is live substitution: a per-process hot patch of the process's own
 #     copy-on-write copy, proven and then reverted. That is the strongest honest form of "Windows
-#     ran our code", and it is re-provable on demand -- which is what this script does.
+#     ran our code", and it is re-provable on demand, which is what this script does.
 #   * So after an update the meaningful action is RE-VALIDATE, and fix anything the update broke.
 #     That is what gets automated. Permanently patching System32 is not automated here, and should
 #     not be: it needs Secure Boot off or test-signing on, and it would be undone by the next
@@ -29,7 +29,7 @@
 #   .\revalidate.ps1 -SkipLive        skip the live-substitution harnesses
 #
 # EXIT CODES
-#   0  everything still correct (speed regressions are reported but do NOT fail the run -- see below)
+#   0  everything still correct (speed regressions are reported but do NOT fail the run, see below)
 #   1  at least one CORRECTNESS or BUILD failure: a shipped function no longer matches our model
 #   2  environment problem (no Visual Studio, bad paths)
 #
@@ -64,7 +64,7 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 # The DLLs this repository reimplements functions from. If one of these changes, our contracts
 # are the thing at risk.
 # iphlpapi.dll joined the list with change 202 (ConvertGuidToStringW). Keep this in step with
-# the DLLs any change actually validates against -- a DLL missing here is a DLL whose
+# the DLLs any change actually validates against; a DLL missing here is a DLL whose
 # servicing would not trigger a sweep.
 $WatchedDlls = 'ntdll.dll','ucrtbase.dll','shlwapi.dll','kernelbase.dll','crypt32.dll',
                'msvcrt.dll','iphlpapi.dll','rpcrt4.dll','combase.dll'
@@ -149,7 +149,7 @@ if ($Only.Count) {
 $fails = @(); $regressions = @(); $done = 0
 
 # a change's own RESULTS.md records whether it landed or is parked, and a parked change is one we
-# ALREADY KNOW ties or loses on some size class -- that is precisely why it was never merged as a
+# ALREADY KNOW ties or loses on some size class; that is precisely why it was never merged as a
 # win. Reporting those classes as "speed regressions" on every sweep is noise, and noise is what
 # buries a real one: before this split, every run listed eight regressions of which six were simply
 # the parked changes behaving exactly as documented. Classify first, and keep the two apart.
@@ -198,8 +198,8 @@ foreach ($d in $dirs) {
     # Classify the harness's own output. The order matters, and so does rule 2.
     #
     # The last rule used to be a bare 'MISMATCH|mismatch', which fires on the word inside
-    # "0 mismatches" -- the phrase a PASSING harness prints. Changes 167 (PathCommonPrefixW) and
-    # 177 (PathIsPrefixW) report their result as "407443 cases, 0 mismatches -- bit-exact" and
+    # "0 mismatches", the phrase a PASSING harness prints. Changes 167 (PathCommonPrefixW) and
+    # 177 (PathIsPrefixW) report their result as "407443 cases, 0 mismatches, bit-exact" and
     # never print a bare "PASS", so both were reported as CORRECTNESS_FAIL on every sweep, on
     # every machine, while actually being bit-exact and landing at 14.9x and 27.9x. That is the
     # worst kind of harness bug: it manufactures exactly the signal the sweep exists to detect,
@@ -249,7 +249,7 @@ foreach ($d in $dirs) {
         else                                                             { 'LANDS' }
 
     # BENCH_UNPARSED is listed with the failures on purpose. It is not a wrong answer, it is a
-    # gate that could not run -- which is worse, because a wrong answer is visible and an inert
+    # gate that could not run, which is worse, because a wrong answer is visible and an inert
     # gate reads as a pass. It has to be as loud as a real failure or it will be ignored again.
     if ($status -in 'CORRECTNESS_FAIL','BUILD_FAIL','TIMEOUT','BENCH_UNPARSED') { $fails += "$name ($status)" }
     elseif ($status -eq 'REGRESSED') {
@@ -267,7 +267,7 @@ foreach ($d in $dirs) {
 # Cheap (a regex pass over every .asm) and it catches the one class of bug the correctness and speed
 # gates are structurally blind to: a callee-saved vector register used as scratch. Sixteen changes
 # carried that for months while passing both other gates. Unlike a speed regression, this DOES fail
-# the run -- it is a correctness property, not a measurement.
+# the run; it is a correctness property, not a measurement.
 $abiFails = @()
 $abiScript = Join-Path $PSScriptRoot 'abi-audit.py'
 if (Test-Path $abiScript) {

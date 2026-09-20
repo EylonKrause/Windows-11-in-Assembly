@@ -10,7 +10,7 @@
 // changes have their export hot-patched somewhere and 135 do not, and that the uncovered half is
 // dominated by the early ntdll Rtl string family. These six are the coherent block at the front of
 // it: pure functions over counted strings, no allocation, no side effects, nothing the loader or
-// the heap calls -- which is exactly the shape that can be patched safely, and exactly the shape
+// the heap calls, which is exactly the shape that can be patched safely, and exactly the shape
 // whose correctness gate is easiest to mistake for a live proof.
 //
 // They also SHARE their case-folding table (changes 010/011 and 012/013/014 ship byte-identical
@@ -19,7 +19,7 @@
 //
 // The three-way shape of the check. Every case is asked of the live export before the patch and
 // recorded; asked again WITH the patch and compared to that recording; and asked a third time
-// AFTER the restore. The third pass is not ceremony -- it is what proves the prologues really went
+// AFTER the restore. The third pass is not ceremony; it is what proves the prologues really went
 // back, and it is checked by the call counters as well as by the answers: our-code calls must be
 // non-zero in the middle pass and exactly ZERO in the last one.
 //
@@ -30,7 +30,7 @@
 //
 // FREEZE-SAFETY PROTOCOL (the established one, unchanged):
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: single-threaded, and none of these six is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore VERIFIED byte-for-byte.
@@ -244,7 +244,7 @@ int main(void){
 
     build_corpus();
 
-    /* (1) VALIDATE FIRST -- the shipped exports, untouched */
+    /* (1) VALIDATE FIRST, the shipped exports, untouched */
     run_all(pre);
     printf("  [pre-patch]  %d cases recorded from the SHIPPED exports\n", NCASE);
 

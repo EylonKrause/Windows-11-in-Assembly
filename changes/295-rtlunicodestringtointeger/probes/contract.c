@@ -1,7 +1,7 @@
-/* probes/contract.c -- map ntdll!RtlUnicodeStringToInteger's REAL behaviour.
+/* probes/contract.c: map ntdll!RtlUnicodeStringToInteger's REAL behaviour.
  *
  * Every question the change's task list asks, asked of the live export, with the answer printed as
- * hex bytes rather than as a rendered string -- change 129 learned the hard way that a diagnostic
+ * hex bytes rather than as a rendered string, change 129 learned the hard way that a diagnostic
  * which cannot show the input it is complaining about is not a diagnostic.
  *
  * Build:  . .\tools\vsenv.ps1 ; cl /nologo /O2 contract.c /Fe:contract.exe ntdll.lib

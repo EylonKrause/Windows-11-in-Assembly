@@ -1,4 +1,4 @@
-// changes/002-memchr/reference.c  -- the correctness oracle.
+// changes/002-memchr/reference.c: the correctness oracle.
 #include <stddef.h>
 
 void* ref_memchr(const void* p, int c, size_t n) {

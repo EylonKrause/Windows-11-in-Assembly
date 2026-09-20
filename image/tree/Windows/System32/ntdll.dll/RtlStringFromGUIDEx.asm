@@ -13,7 +13,7 @@
 ; two lowercase hex wchars from a 256-entry table; the field byte order (Data1/2/3 are
 ; little-endian integers printed big-endian, Data4 is a byte array in order) is a 16-entry
 ; index table. Needs MaximumLength >= 78 (76 + NUL) else STATUS_BUFFER_TOO_SMALL.
-; (Allocate=TRUE, which heap-allocates the buffer, is out of scope -- as with 015-031.)
+; (Allocate=TRUE, which heap-allocates the buffer, is out of scope, as with 015-031.)
 ; ISA: baseline x64. Validated on Zen3.
 
 EXTERN wia_hex2:DWORD                                ; 256 * (2 wchars packed in a dword)
@@ -62,7 +62,7 @@ nodash:
         ; And a second NUL at the last WCHAR the buffer can hold.
         ;
         ; The shipped export terminates twice: once after the 38 characters, which this already
-        ; did, and once at Buffer[MaximumLength/2 - 1] -- the last whole WCHAR the caller's
+        ; did, and once at Buffer[MaximumLength/2 - 1], the last whole WCHAR the caller's
         ; capacity allows. probes/tail.c varies MaximumLength and prints every zero position, and
         ; the second index TRACKS CAPACITY rather than sitting still: 78 -> 38 (the two coincide),
         ; 80 -> 39, 82 -> 40, 90 -> 44, 100 -> 49, 120 -> 59, 160 -> 79. It was measured rather
@@ -70,12 +70,12 @@ nodash:
         ; IPv4 one: the same shape can have a different rule.
         ;
         ; Found by live substitution on 13333 of 20000 cases, with the NTSTATUS and Str->Length
-        ; matching on every one of them -- only the bytes past the string differed. The header
+        ; matching on every one of them, only the bytes past the string differed. The header
         ; above says "NUL-terminate", singular, and that was an accurate description of what this
         ; code did and an incomplete description of the export.
         ;
         ; MaximumLength is RE-READ from the descriptor, not taken from eax. The first attempt
-        ; assumed eax still held it from the entry check -- it does not, because the hex loop above
+        ; assumed eax still held it from the entry check; it does not, because the hex loop above
         ; uses eax for every byte it converts, and the store went wherever that left it. The gate
         ; caught it immediately as an access violation. This is the same mistake the IPv6 fix made
         ; with rdx, one file earlier: a register that holds the argument AT ENTRY is not a register

@@ -1,7 +1,7 @@
-/* probes/extlen.c -- is there a LENGTH limit on the extension itself?
+/* probes/extlen.c: is there a LENGTH limit on the extension itself?
  *
  * which.c drove a 300-character extension at a 6-character path with a generous cch and got
- * E_INVALIDARG (0x80070057) with the buffer untouched -- not a size failure, not a truncating
+ * E_INVALIDARG (0x80070057) with the buffer untouched, not a size failure, not a truncating
  * write, but outright rejection, in a case where the result would merely have been too long.
  * A 4-character extension in the same position gives 0x800700CE instead.
  *

@@ -4,7 +4,7 @@
  *
  * correctness.c drives 2646844 cases and every subject in it is at most 96 bytes. The TGL variant
  * adds a SIXTY-FOUR byte block, and a 64-byte block is a FULL block only when 64 or more source
- * bytes still remain -- so a defect in its full-block path needs a subject where a malformed byte
+ * bytes still remain, so a defect in its full-block path needs a subject where a malformed byte
  * has a LONG remainder after it, which that corpus never builds.
  *
  * This is not hypothetical. Change 034's TGL variant had exactly that defect: it advanced both
@@ -13,7 +13,7 @@
  * from the same cursor. It passed all 327758 of its own cases. See changes/034's RESULTS-tgl.md.
  *
  * So this asks the live kernelbase export and the variant the same question on long subjects, and
- * compares the return value, the last error and every output unit -- with the destination
+ * compares the return value, the last error and every output unit, with the destination
  * pre-filled with a sentinel, so "never written" is distinguishable from "written correctly".
  *
  * BUILD (from the change directory, after dot-sourcing tools/vsenv.ps1):

@@ -2,9 +2,9 @@
 // LIVE-RUN PROOF for change 268 (ntdll!RtlUnicodeStringToUTF8String and ntdll!RtlUTF8StringToUnicodeString).
 //
 // Both exports are patched at once, because the pair is the change: the whole point of 268 is that
-// the two directions do FOUR things differently -- what a failing call leaves in the buffer,
+// the two directions do FOUR things differently, what a failing call leaves in the buffer,
 // whether STATUS_SOME_NOT_MAPPED survives, which of two failure codes a shortfall gets, and how
-// much room the terminator needs -- and a proof that patched only one of them would be a proof
+// much room the terminator needs, and a proof that patched only one of them would be a proof
 // about half a change.
 //
 // What is compared is not just the status. Every case records the NTSTATUS, Length, MaximumLength
@@ -20,12 +20,12 @@
 // block the shipped free routine will accept.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
 // shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports before any patch exists.
 //   (2) Patch only when idle: single-threaded, and neither export is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

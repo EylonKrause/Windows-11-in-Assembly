@@ -1,8 +1,8 @@
 @echo off
-REM changes/287-getstringtypew/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/287-getstringtypew/build.bat: assemble, gate on correctness, benchmark.
 REM
 REM The three classification tables are DERIVED from the live export at init by tables.c and re-checked
-REM against it -- every one of the 65536 entries back through both levels of the directory-and-page
+REM against it, every one of the 65536 entries back through both levels of the directory-and-page
 REM layout, and then 511-unit BULK calls re-checked against the per-character extraction, because the
 REM bulk call is what this change replaces.
 REM

@@ -15,21 +15,21 @@
  *
  * Why the address is compared only on success, stated rather than quietly assumed. The shipped IPv6
  * parser fills the destination as it goes, so a call that fails part-way leaves whatever it had
- * committed -- "f:" leaves 00 0F, "1." leaves 01 -- while change 166, whose core this change
+ * committed ("f:" leaves 00 0F, "1." leaves 01) while change 166, whose core this change
  * composes, accumulates into a stack scratch and copies out once, on success. Measured directly,
  * over 55987 enumerated strings: status differ 0, *Terminator differ 0, ADDRESS BYTES differ 17268,
  * every one of them a call the shipped export FAILED and none on a call it succeeded. Trying the
- * obvious fix in 166 -- copy the scratch up to its cursor on the error path -- takes it to 18240 and
+ * obvious fix in 166 (copy the scratch up to its cursor on the error path) takes it to 18240 and
  * inverts it, because a group reaches the destination only when a ':' or '.' COMMITS it.
  *
  * So the divergence is pre-existing in landed change 166, not introduced here; it is on a buffer a
  * caller receiving STATUS_INVALID_PARAMETER has no defined reason to read; and the two things such a
- * caller does act on -- the status and the terminator -- are identical everywhere. Section 7 below
+ * caller does act on (the status and the terminator) are identical everywhere. Section 7 below
  * MEASURES it through this export rather than hiding it, so the number is in this change's own
  * output and not only in a comment.
  *
  * What each comparison isolates. Ours-vs-ORACLE isolates the envelope, because the oracle uses the
- * shipped address parser -- a disagreement there is in the fourteen envelope rules and nowhere else.
+ * shipped address parser; a disagreement there is in the fourteen envelope rules and nowhere else.
  * Ours-vs-LIVE covers both halves at once, so it is also the check that change 166's assembly still
  * agrees with the shipped body it is standing in for.
  */

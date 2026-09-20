@@ -15,7 +15,7 @@ static SNS sys;
 
 // The "254/partial" class deliberately takes the EINVAL path, which calls ucrtbase's
 // _invalid_parameter_noinfo. With no handler installed that default-terminates the process via
-// __fastfail (0xC0000409), so a silent handler is installed in ucrtbase itself -- the same module
+// __fastfail (0xC0000409), so a silent handler is installed in ucrtbase itself, the same module
 // both our error path and the live export route through. Both sides pay the identical call.
 static void __cdecl silent(const wchar_t* a, const wchar_t* b, const wchar_t* c,
                            unsigned d, uintptr_t e){ (void)a;(void)b;(void)c;(void)d;(void)e; }

@@ -1,12 +1,12 @@
 // changes/248-urlunescapea/seh.c
 // The envelope of shlwapi!UrlUnescapeA: the order its decisions are made in, and the two things
-// assembly should not be asked to do -- catch an access violation, and stage a pathological overlap.
+// assembly should not be asked to do, catch an access violation, and stage a pathological overlap.
 //
 // The order is the contract, and it is not the obvious one. From the disassembly of
 // kernelbase!UrlUnescapeA (RVA 0x49DB0), confirmed from the outside by probes/unesca.c:
 //
 //     00049DE1  bt r9d, 0x14 / jae ...      URL_UNESCAPE_INPLACE, tested before any validation and
-//                                          tail-calling the walk -- so an in-place call with a NULL
+//                                          tail-calling the walk, so an in-place call with a NULL
 //                                          destination and *pcch == 0 succeeds, and never writes
 //                                          *pcch at all (measured: cch stays 0).
 //     00049E0F..                            THEN the four NULL/zero checks, all E_INVALIDARG.
@@ -18,17 +18,17 @@
 // combined with AS_UTF8 does NOT refuse, because it never reaches the refusal.
 //
 // Why the __try. The length comes from lstrlenA at 0x4C150, which is seh-wrapped, so an unterminated
-// source running into a PAGE_NOACCESS page yields length 0 -- and the probe confirms the whole call
+// source running into a PAGE_NOACCESS page yields length 0, and the probe confirms the whole call
 // then returns S_OK with cch = 0 and out[0] = 0, for every tail from 1 to 4 bytes. The wide form
 // Faults on exactly that input (change 247 established it for lstrlenW). This is the asymmetry that
 // an implementation would get wrong silently: it would crash a caller that the shipped function
-// serves. The scan itself stays in assembly and stays page-safe -- it must not fault EARLIER than a
+// serves. The scan itself stays in assembly and stays page-safe; it must not fault EARLIER than a
 // byte-at-a-time scan would, or a working call would turn into an empty result.
 //
 // The zeroupper on the fault path is not cosmetic: the scan runs a 256-bit loop, so when the fault
 // arrives its upper halves are dirty and unwinding out of assembly skips its own vzeroupper. Leaving
 // the CPU in that state makes every later legacy-SSE instruction in the CALLER pay an AVX-SSE
-// transition penalty -- a performance bug planted in someone else's code by our error path.
+// transition penalty, a performance bug planted in someone else's code by our error path.
 //
 // SEH costs nothing on the fast path. x64 exception handling is table-driven: the unwind data lives
 // in .pdata/.xdata and not one prologue instruction, register or stack slot is spent unless an
@@ -37,7 +37,7 @@
 // And why the staging buffer is here and not in the kernels. The shipped function copies the source
 // into a temporary (a 65-byte inline buffer, grown on the heap) and walks THAT, which is most of what
 // change 245 removed from the wide form and most of what is removed here. But it is also why every
-// overlap of source and destination is well defined for the shipped export -- including a destination
+// overlap of source and destination is well defined for the shipped export, including a destination
 // ABOVE the source and inside it, where a forward one-pass write clobbers source bytes the walk has
 // not read yet. probes/unesca.c section 9 measures that case (src@0 dst@2 "a%41b%42c" -> "aAbBc",
 // cch = 5) so it has to keep working. So: the common case never stages, and THIS case stages.

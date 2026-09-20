@@ -6,14 +6,14 @@
 ; NTSTATUS wia_ip6exw(PCWSTR S, IN6_ADDR* Addr, ULONG* ScopeId, USHORT* Port)
 ;   [Win64: rcx, rdx, r8, r9 -> eax]
 ;
-; ntdll!RtlIpv6StringToAddressExW -- the last missing member of a sixteen-function family this
+; ntdll!RtlIpv6StringToAddressExW, the last missing member of a sixteen-function family this
 ; project had otherwise finished. Ipv4/Ipv6 x StringToAddress/AddressToString x A/W/ExA/ExW is
 ; sixteen exports; image/tree carried fifteen.
 ;
 ; And it was missed on purpose, for a reason that turned out to be wrong. Change 122 landed
-; RtlIpv6StringToAddressExA, and its README row says in as many words: "`ExW` scoped out -- Unicode
+; RtlIpv6StringToAddressExA, and its README row says in as many words: "`ExW` scoped out, Unicode
 ; digits". Change 166 then landed RtlIpv6StringToAddressW and settled what the wide ADDRESS parser
-; folds -- exactly seventeen contiguous blocks of ten, the frozen Unicode 3.0 Nd list. The natural
+; folds, exactly seventeen contiguous blocks of ten, the frozen Unicode 3.0 Nd list. The natural
 ; reading was that ExW would need that table again for its scope and its port, and that reading is
 ; what kept this function unwritten.
 ;
@@ -47,19 +47,19 @@
 ; The rest of the contract, measured rather than assumed:
 ;
 ;   * The whole string must be consumed. The Ex form has no Terminator out-parameter, so where
-;     RtlIpv6StringToAddressW ACCEPTS "::0x1" and "::1.2.3.0x5" -- stopping and reporting where --
+;     RtlIpv6StringToAddressW ACCEPTS "::0x1" and "::1.2.3.0x5", stopping and reporting where --
 ;     this one REFUSES them. Over fifteen shapes the two forms differ on exactly those two, and on
 ;     ZERO address bytes: same parser, plus a consumed-everything test.
 ;   * On failure the address is written and *ScopeId / *Port are not. The core writes Addr before
 ;     the envelope can know whether the rest of the string is valid, so a failing call still leaves
-;     a parsed address behind -- seeded sentinels confirm ScopeId and Port survive untouched.
+;     a parsed address behind, seeded sentinels confirm ScopeId and Port survive untouched.
 ;   * ':port' Only inside brackets. "::1:80" is an address, not an address and a port.
 ;   * ']' WITHOUT '[' is an error, and '[' without ']' is an error.
 ;   * An empty port is zero: "[::1]:" and "[::1]:0x" both give port 0.
 ;   * port <= 65535 and scope <= 2^32-1, both refused one past.
 ;   * *Port is NETWORK order (80 -> 0x5000); *ScopeId is host order.
 ;
-; ISA: the base integer set. There is nothing to vectorise in an envelope this size -- the address
+; ISA: the base integer set. There is nothing to vectorise in an envelope this size, the address
 ; body is where the work is, and that is change 166's, already AVX2 where it pays.
 
 OPTION PROC:PRIVATE
@@ -72,13 +72,13 @@ STATUS_INVALID_PARAMETER_ EQU 0C000000Dh
 .code
 
 ; One saved register, not five, and the first version of this got that wrong. An envelope over a
-; call has to keep whatever it still needs ACROSS that call -- but only Addr, which is dead the
+; call has to keep whatever it still needs ACROSS that call, but only Addr, which is dead the
 ; moment the core returns, and the cursor actually need registers at all. ScopeId, Port and the
 ; bracket flag are written once and read once and live perfectly well in this frame's own slots, so
 ; pushing r12, r13, rbx and rdi for them bought nothing and cost eight instructions of prologue and
 ; epilogue on every call. That is invisible on a long address and decisive on a short one: with five
 ; pushes the shortest row, "::", measured 19.67/19.89/20.55 ns against the shipped 15.70/15.81/16.03
-; -- 0.78-0.83x, a REGRESSION, and the only row in the table that failed.
+; 0.78-0.83x, a REGRESSION, and the only row in the table that failed.
 ;
 ; frame: [rsp+00..31] shadow space   [rsp+32] the core's *Terminator
 ;        [rsp+40] ScopeId   [rsp+48] Port   [rsp+56] the bracket flag
@@ -134,7 +134,7 @@ ex_scope:
         lea       r10, [rax + r10*2]          ; scope = scope*10 + digit
         ; The obvious `cmp r10, 0FFFFFFFFh` is wrong here and it cost a test run. Cmp r/m64, imm32
         ; SIGN-EXTENDS the immediate, so 0FFFFFFFFh becomes 0FFFFFFFFFFFFFFFFh and the bound is
-        ; 2^64-1 -- which nothing reaches, so "::1%4294967296" came back S_OK with scope 0. Testing
+        ; 2^64-1, which nothing reaches, so "::1%4294967296" came back S_OK with scope 0. Testing
         ; the high half is both correct and shorter.
         mov       rax, r10
         shr       rax, 32
@@ -202,7 +202,7 @@ ex_end:
         cmp       word ptr [rsi], 0
         jne       ex_err                      ; THE Ex FORM HAS NO Terminator, so a remainder that
                                               ; RtlIpv6StringToAddressW would happily report is an
-                                              ; error here -- "::0x1" and "::1.2.3.0x5" both
+                                              ; error here, "::0x1" and "::1.2.3.0x5" both
 
         mov       rcx, [rsp + 40]
         mov       dword ptr [rcx], r10d       ; *ScopeId, host order

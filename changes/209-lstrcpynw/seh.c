@@ -3,7 +3,7 @@
 //
 // Why this file exists. probes/lcp.c established that lstrcpynW swallows a faulting source: an
 // unterminated string running into an unmapped page returns NULL, with the characters that WERE
-// readable already in the destination. That is not incidental -- it is the documented behaviour, and
+// readable already in the destination. That is not incidental; it is the documented behaviour, and
 // a reimplementation that simply faulted would be a crash where the shipped function returns a value.
 //
 // So the copy core stays in assembly and this supplies the two things assembly should not:
@@ -16,7 +16,7 @@
 // unless an exception actually fires. The wrapper compiles to the argument tests and a tail call.
 //
 // The core is page-safe precisely so that when the fault does come, it comes at the same character
-// the shipped byte-at-a-time loop would reach -- see impl.asm.
+// the shipped byte-at-a-time loop would reach, see impl.asm.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 

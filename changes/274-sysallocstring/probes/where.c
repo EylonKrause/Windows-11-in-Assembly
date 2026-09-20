@@ -2,15 +2,15 @@
  *
  * Is the time really the length scan, and is there anything left to win?
  *
- * probes/contract.c settled the shape: a BSTR's allocator is PRIVATE to oleaut32 -- a block made by
+ * probes/contract.c settled the shape: a BSTR's allocator is PRIVATE to oleaut32; a block made by
  * hand through CoTaskMemAlloc fail-fasts when SysFreeString touches it, and so does
- * CoTaskMemRealloc on a real one -- so no implementation outside oleaut32 can produce a block the
+ * CoTaskMemRealloc on a real one, so no implementation outside oleaut32 can produce a block the
  * caller may free. It also established that SysAllocString(s) is byte-for-byte
  * SysAllocStringLen(s, wcslen(s)) over fourteen lengths.
  *
  * So the only thing this change can own is the LENGTH SCAN, and whether that is worth owning is a
  * number, not an opinion. discovery/sid_inet_bstr.c put SysAllocString at 838.28 ns on 8000 bytes
- * and SysAllocStringLen at 65.65 ns, which would make the scan 773 ns for 4000 characters -- about
+ * and SysAllocStringLen at 65.65 ns, which would make the scan 773 ns for 4000 characters, about
  * 0.19 ns per character, roughly one character per cycle, which is what a byte-at-a-time loop
  * costs. Change 001's wcslen runs at about 0.03 ns per character.
  *

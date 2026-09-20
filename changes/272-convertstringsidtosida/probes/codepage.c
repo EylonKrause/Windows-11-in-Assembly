@@ -15,7 +15,7 @@
  *
  * The parsing direction is not the same question and must not be answered by analogy. Here the
  * INPUT is arbitrary caller bytes, so every byte from 0x80 to 0xFF means something different under
- * every code page -- and change 269 established that the wide parser accepts FAR more than ASCII:
+ * every code page, and change 269 established that the wide parser accepts FAR more than ASCII:
  * 180 code units are decimal digits to its lenient number parser (Arabic-Indic, Devanagari, Thai,
  * Khmer and a dozen more blocks) and 25 are whitespace. Under code page 1252, byte 0xB2 is U+00B2
  * Superscript two; under 65001 a two-byte sequence can reach U+0660 arabic-indic digit zero, which
@@ -24,17 +24,17 @@
  * So the questions this file has to answer before a line of assembly is written:
  *
  *   1. Is ConvertStringSidToSidA(s) exactly ConvertStringSidToSidW(widen(s))? With which widening
- *      -- MultiByteToWideChar with which code page and which flags?
+ *, MultiByteToWideChar with which code page and which flags?
  *   2. Does every single byte 0x00..0xFF behave, in each of the three fields, the way its ANSI
  *      code page translation behaves in the wide parser? This is asked byte by byte, in every
  *      field, so the answer is a table rather than a claim.
  *   3. Do the two-letter SDDL ALIASES work the same way? They are matched case-insensitively over
  *      printable ASCII in the wide form (change 269's aliases.c found 66 of them, 264 with case),
  *      and a non-ASCII byte pair is a different question.
- *   4. What happens to a byte that does not TRANSLATE at all -- an unpaired lead byte under a DBCS
+ *   4. What happens to a byte that does not TRANSLATE at all, an unpaired lead byte under a DBCS
  *      code page, or invalid UTF-8 under 65001? MultiByteToWideChar has three possible answers
  *      (substitute U+FFFD, fail, or drop) and which one is used is observable.
- *   5. Is the failure contract identical -- including change 269's finding that three characters,
+ *   5. Is the failure contract identical, including change 269's finding that three characters,
  *      the SDDL terminators ')' ',' and ';', make a FAILING call write the output pointer?
  *
  * Nothing is asserted. Every line prints what the live exports returned.

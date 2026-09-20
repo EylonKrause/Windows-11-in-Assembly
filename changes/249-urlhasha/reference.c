@@ -8,7 +8,7 @@
  *     h[0] = T[ seed[0] ^ src[0] ] = T[ 0 ^ b ] = T[b]
  *
  * That is deliberate on two counts. It means this file shares NO constant with impl.asm's chain --
- * not change 244's c_tab, not change 244's own hard-coded REF_T -- so a wrong table cannot agree
+ * not change 244's c_tab, not change 244's own hard-coded REF_T, so a wrong table cannot agree
  * with itself across the comparison. And it recovers the table from a DIFFERENT EXPORT than the one
  * under test: UrlHashA reaches the worker at RVA 0xC0A10, HashData is the body at 0xBB750, and the
  * disassembly says both `lea` their table from RVA 0x2A6010. Recovering through one and testing
@@ -24,7 +24,7 @@
  * and UrlHashA's own envelope around it, measured by probes/urlhash.c:
  *
  *     pszUrl NULL or pbHash NULL -> 0x80070057, digest untouched;
- *     cbHash is NOT VALIDATED -- every value from 0 to 256 returns S_OK, 0 writes nothing, and
+ *     cbHash is NOT VALIDATED; every value from 0 to 256 returns S_OK, 0 writes nothing, and
  *     nothing past cbHash is ever written;
  *     n comes from lstrlenA, and the return is S_OK UNCONDITIONALLY.
  *
@@ -32,7 +32,7 @@
  * copying out at the end is equivalent for every sane call and NOT equivalent when the digest
  * overlaps the URL, because then the source bytes still to be read have already been rewritten by
  * earlier digest writes. The shipped loop updates in place, so this must, or it cannot judge the
- * overlapping placements at all -- which are precisely the ones change 244's grouped kernel has to
+ * overlapping placements at all, which are precisely the ones change 244's grouped kernel has to
  * hand to its byte-for-byte fallback.
  *
  * What it is not asked: a url that faults. The oracle would have to fault to discover the length,

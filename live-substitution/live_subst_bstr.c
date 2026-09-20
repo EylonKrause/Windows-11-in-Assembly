@@ -2,7 +2,7 @@
 //
 // LIVE-RUN PROOF for change 299, oleaut32!SysAllocString.
 //
-// 299 is PARKED -- not because it loses, but because the bench cannot resolve any row on an
+// 299 is PARKED, not because it loses, but because the bench cannot resolve any row on an
 // allocator-dominated subject (its probes/selfcontrol.c shows the live export scoring a size class
 // WORSE against ITSELF in 17 of 18 runs). Parked changes are not normally gated here, and this one
 // is, for a reason that has nothing to do with speed:
@@ -10,7 +10,7 @@
 //     It is the only change in this repository that tail-jumps into an import.
 //
 // `wia_sysallocstring` replaces the scan and then does `jmp qword ptr [__imp_SysAllocStringLen]`
-// with no frame at all -- rsp exactly as it was at entry, the arguments already in rcx/rdx, and the
+// with no frame at all, rsp exactly as it was at entry, the arguments already in rcx/rdx, and the
 // callee returning straight to OUR caller using the caller's own shadow space. That is correct by
 // construction and it is also the kind of correct that a correctness harness cannot really test,
 // because `correctness.c` calls the function directly, from a caller that was compiled knowing it
@@ -18,17 +18,17 @@
 //
 // Under live substitution the call arrives from somewhere else entirely: through a hot-patched
 // export, from a caller that believed it was calling oleaut32. If the tail jump got the stack
-// discipline wrong -- a missing frame, a misaligned rsp, a return that lands anywhere but the
-// original caller -- that is where it shows, and it shows as a crash rather than a wrong answer.
+// discipline wrong, a missing frame, a misaligned rsp, a return that lands anywhere but the
+// original caller; that is where it shows, and it shows as a crash rather than a wrong answer.
 //
 // The comparison is the same one 299's own gate makes, because a BSTR is not just a pointer: the
 // [-4] byte-count prefix read directly, both lengths, and every byte including the terminator.
-// Pointers themselves are NOT compared -- the allocator is free to hand back different addresses
+// Pointers themselves are NOT compared; the allocator is free to hand back different addresses
 // in different passes, and requiring otherwise would be testing the heap, not the function.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copy of oleaut32 -- never a live system process, never the file on disk.
+//       copy of oleaut32, never a live system process, never the file on disk.
 //   (1) Validate first against the live export over the whole corpus before any patch.
 //   (2) Patch only when idle. Worth being explicit here because the subject allocates:
 //       SysAllocStringLen is NOT patched, only SysAllocString, so the allocator this process uses

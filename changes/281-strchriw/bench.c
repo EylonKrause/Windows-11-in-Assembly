@@ -5,18 +5,18 @@
  * The rows are the three dispatch paths and the two ways a search ends, because those are what the
  * implementation distinguishes:
  *
- *   * a needle that matches only ITSELF (56825 of the 65535) -- one broadcast, one compare per 16;
- *   * a needle with 2..4 partners -- four broadcasts, four compares. Every ASCII letter is here:
+ *   * a needle that matches only ITSELF (56825 of the 65535), one broadcast, one compare per 16;
+ *   * a needle with 2..4 partners, four broadcasts, four compares. Every ASCII letter is here:
  *     'a' matches A, a, U+1D2C and U+1D43;
- *   * a needle with 5..8 partners -- the inline list. U+212A KELVIN SIGN matches K, k, U+1D37,
+ *   * a needle with 5..8 partners, the inline list. U+212A KELVIN SIGN matches K, k, U+1D37,
  *     U+1D4F and itself, which is five;
- *   * a needle with MORE than eight -- the bitmap. U+00AD heads the 3237 ignorables;
+ *   * a needle with MORE than eight, the bitmap. U+00AD heads the 3237 ignorables;
  *   * and a MISS, which must scan the whole string, against a HIT, which stops early. The shipped
  *     export costs 43 ns per character, so the two differ by more than an order of magnitude in it.
  *
  * A bench of one path would measure a quarter of the function. The pre-flight below prints which
  * path each row actually takes, from the same table impl.asm dispatches on, and stops the bench if
- * a row does not reach the path its name promises -- change 269 shipped a row that measured a
+ * a row does not reach the path its name promises, change 269 shipped a row that measured a
  * refusal and reported it as a 30x win, and change 279's "no room" row was not a refusal at all
  * until its pre-flight said so.
  */
@@ -57,7 +57,7 @@ static uint64_t op_sys(void* c)
 enum { K = 12 };
 
 /* Every haystack is built from 'a'..'h' only, so that the needles chosen to exercise the other
- * dispatch paths -- kelvin sign, the soft hyphen, a self-only code unit -- genuinely miss. The
+ * dispatch paths (kelvin sign, the soft hyphen, a self-only code unit) genuinely miss. The
  * first version of this file used 'a'..'x', which contains 'k', and the pre-flight caught the
  * KELVIN row reporting a hit at offset 10 while its name said MISS. That is the same failure
  * change 269 shipped: a row that measures something other than what it is called. */

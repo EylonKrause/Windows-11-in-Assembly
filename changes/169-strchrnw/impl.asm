@@ -3,7 +3,7 @@
 ;   [Win64: rcx, dx, r8d -> rax]
 ;
 ; Reimplements shlwapi!StrChrNW: find the first occurrence of wMatch within the first
-; cchMax characters of pszStart. shlwapi's is a scalar character-at-a-time scan -- 77 ns
+; cchMax characters of pszStart. shlwapi's is a scalar character-at-a-time scan, 77 ns
 ; over a 254-char path.
 ;
 ; Contract (derived in probes/scnw.c, fuzz-confirmed bit-exact against the live export over
@@ -17,17 +17,17 @@
 ;   - cchMax == 0 returns NULL without reading anything.
 ;   - The first match wins; the result is a pointer into pszStart, else NULL.
 ;
-; Method: 16 characters per step with a dual compare -- one vpcmpeqw against the broadcast
-; match, one against zero -- OR-ed into a single mask, so the terminator and the match are
+; Method: 16 characters per step with a dual compare, one vpcmpeqw against the broadcast
+; match, one against zero, OR-ed into a single mask, so the terminator and the match are
 ; found in the same pass. Whichever comes first is decided by a single tzcnt.
 ;
 ; Page safety: the 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- a page that must be mapped, since the characters
+; stays inside the cursor's own page; a page that must be mapped, since the characters
 ; already scanned came from it. Within 32 bytes of a page end the code tests a single
 ; character and retries, so it creeps across the boundary and then resumes vector speed
 ; rather than degrading to scalar for the rest of the string.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_strchrnw PROC

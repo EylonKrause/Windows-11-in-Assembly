@@ -62,7 +62,7 @@ int main(void)
     chk(L"C:\\a\\f.txt", L".a.b", "extension with two dots");
     chk(L"C:\\a\\.hidden", L".obj", "leading-dot filename");
     chk(L"C:\\a\\f.txt", 0,       "NULL extension");
-    /* '/' and ':' are NOT separators for the extension search -- the trap change 132 documents */
+    /* '/' and ':' are NOT separators for the extension search, the trap change 132 documents */
     chk(L"a.b/c",        L".obj", "slash does not stop the search");
     chk(L"a.b\\c",       L".obj", "backslash does");
     chk(L"C:a.b",        L".obj", "colon does not stop it");

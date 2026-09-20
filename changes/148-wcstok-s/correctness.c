@@ -57,7 +57,7 @@ int main(void){
                    buf[1]=L','; chk(buf,len,L",","two-leading");
                    for(int i=0;i<len;i++) buf[i]=(wchar_t)(L'a'+(i%23)); }
     }
-    // non-ASCII delimiters and content -- the wide-specific case a byte-granular bug would survive
+    // non-ASCII delimiters and content; the wide-specific case a byte-granular bug would survive
     for(int len=1; len<=80 && fails<15; len++){
         for(int i=0;i<len;i++) buf[i]=(wchar_t)(0x2100+(i%7));
         chk(buf,len,L"\x2103","nonascii-delim");

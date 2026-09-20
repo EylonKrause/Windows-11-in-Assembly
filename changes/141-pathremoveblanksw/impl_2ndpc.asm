@@ -1,11 +1,11 @@
 ; changes/141-pathremoveblanksw/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` is UNTOUCHED and remains the 5950X (Zen 3)
 ; implementation of record. This is an ADDITIONAL variant tuned for the second
 ; PC. Same exported symbol (`wia_pathremoveblanksw`), so this change's existing
-; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
+; correctness.c and bench.c validate it unmodified, build with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
@@ -20,27 +20,27 @@
 ;     realpath      30.31      347.86  11.48x   BETTER
 ;     geomean 4.610x => PARKED (a size class regressed)
 ;
-; Three repeat runs gave 0.97x / 1.03x / 0.95x -- the class sits exactly on the
+; Three repeat runs gave 0.97x / 1.03x / 0.95x; the class sits exactly on the
 ; 0.97x gate, so it fails about as often as it passes. Note the bench memcpy's
 ; the input on both sides, so the real gap is only ~0.6 ns of routine time.
 ;
 ; Cause: the move step, not the scans. The bench string is 16 chars with two
 ; leading blanks, so `lead` = 2 and the routine shifts 15 wchars (the remainder
 ; plus its terminator) down by two. 15 is below the original's `cmp rcx,24`
-; threshold for `rep movsw`, so it takes `rb_small` -- a WORD-AT-A-TIME loop,
+; threshold for `rep movsw`, so it takes `rb_small`, a WORD-AT-A-TIME loop,
 ; five instructions per wchar, fifteen iterations. That is ~15-20 cycles spent
 ; moving 30 bytes that one pair of overlapping vector accesses moves in four.
 ;
 ; THE FIX
 ; -------
 ; Replace the sub-24-wchar `rb_small` word loop with a size-laddered pair of
-; OVERLAPPING loads/stores -- the standard small-memmove ladder:
+; OVERLAPPING loads/stores, the standard small-memmove ladder:
 ;     bytes >= 32 : two 32-byte (ymm)  accesses, at +0 and at +n-32
 ;     bytes >= 16 : two 16-byte (xmm)  accesses, at +0 and at +n-16
 ;     bytes >=  8 : two  8-byte (gpr)  accesses, at +0 and at +n-8
 ;     bytes <   8 : the original word loop (at most 3 iterations)
-; Each pair touches exactly [p, p+n) -- the overlap is in the middle, never off
-; either end -- so nothing outside the moved range is read or written.
+; Each pair touches exactly [p, p+n); the overlap is in the middle, never off
+; either end, so nothing outside the moved range is read or written.
 ; Everything else in the routine is unchanged.
 ;
 ; The bench's 16-char case takes the 16-byte rung: count = 16 - 2 + 1 = 15
@@ -54,9 +54,9 @@
 ;   first makes the ladder correct regardless of direction.)
 ;
 ; Contract preserved exactly (the subtle parts this change originally pinned)
-;   * Only SPACE (0x0020) is stripped -- a tab is NOT.
+;   * Only SPACE (0x0020) is stripped; a tab is NOT.
 ;   * There is NO MAX_PATH guard here, unlike PathRemoveExtensionW (change 140).
-;   * The order is move first, then terminate -- the reverse of StrTrimW
+;   * The order is move first, then terminate, the reverse of StrTrimW
 ;     (change 139). The whole remainder including trailing blanks AND the
 ;     terminator is shifted down, and only afterwards is the NUL written that
 ;     drops the trailing blanks. That is observable in the bytes left past the
@@ -67,7 +67,7 @@
 ; SAFETY
 ;   * Reads and writes exactly the same byte range as the original word loop;
 ;     it cannot touch a page the original would not.
-;   * AVX2 only (vmovdqu ymm/xmm) -- NO AVX-512, NO GFNI. The added code is
+;   * AVX2 only (vmovdqu ymm/xmm); NO AVX-512, NO GFNI. The added code is
 ;     correct on the 5950X too.
 ;
 ; VOID wia_pathremoveblanksw(PWSTR pszPath)   [Win64: rcx]

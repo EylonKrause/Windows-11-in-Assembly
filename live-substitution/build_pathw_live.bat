@@ -6,7 +6,7 @@ REM                161 PathFindFileNameW      162 PathStripPathW
 REM    kernelbase  143 PathCchFindExtension   144 PathCchRemoveExtension
 REM                159 PathCchRenameExtension 160 PathCchAddExtension
 REM                164 PathCchAddBackslash
-REM  All nine are self-contained impl.asm -- no helper .c, no init call.
+REM  All nine are self-contained impl.asm, no helper .c, no init call.
 REM ===========================================================================
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

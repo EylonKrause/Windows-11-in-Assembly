@@ -12,7 +12,7 @@
  *      contain the whole string, barely occur. This file runs to 8192 bytes.
  *   2. Its malformed input is either random or a single planted byte. The AVX2 file refused every
  *      malformed block and let a scalar decoder handle it, so that was enough. This one implements
- *      the maximal-subpart rule itself, in mask arithmetic -- which byte a sequence swallows, where
+ *      the maximal-subpart rule itself, in mask arithmetic, which byte a sequence swallows, where
  *      an out-of-range second byte stops it, and that an invalid lead swallows nothing. Every one
  *      of those is a separate way to be wrong, and they have to be hit deliberately, at every
  *      offset relative to a 64-byte boundary, because the rule is computed with shifts across a

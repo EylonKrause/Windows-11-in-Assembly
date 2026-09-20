@@ -12,13 +12,13 @@
  *
  *     The string behaves as though the terminator were followed by ENDLESS NULs, and those NULs are
  *     never loaded. 3320 code units match a NUL (change 282), so a needle whose TRAILING characters
- *     all match a NUL can match across the terminator -- over "zzzq" the needle {q, soft hyphen} is
+ *     all match a NUL can match across the terminator, over "zzzq" the needle {q, soft hyphen} is
  *     found at the last character, and over the one-character string "q" a TWO-character needle is
  *     found at 0.
  *
  * For a BACKWARD search that rule decides which candidates exist at the top of the range. For a
  * FORWARD search the same rule would decide whether the scan may run past the end of the string at
- * all -- and a forward scan that must consider candidates past the terminator is a different loop
+ * all, and a forward scan that must consider candidates past the terminator is a different loop
  * from one that may stop there. So the question is asked first, and asked in the shape that can tell
  * a real load from a virtual NUL: with NON-ZERO data written after the terminator.
  *

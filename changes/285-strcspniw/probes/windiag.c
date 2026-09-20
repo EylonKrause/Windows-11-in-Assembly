@@ -4,7 +4,7 @@
  *
  * The count is computed as (best - base) / 2. A mutant that uses the current WINDOW START instead of
  * the string base survived 5354 correctness cases but was caught by the live gate, which means the two
- * registers must be equal in every case the corpus produces -- i.e. the answer is always found in the
+ * registers must be equal in every case the corpus produces, i.e. the answer is always found in the
  * FIRST window. This probe prints, for a 20-character set and a long string, where the answer is and
  * how many accept entries the set expands to, so the reason is measured rather than argued.
  */

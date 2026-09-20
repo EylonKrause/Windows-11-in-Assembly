@@ -1,14 +1,14 @@
 /* changes/288-foldstringw-digits/correctness.c
  *
  * Three-way: ours vs an independent scalar model vs the LIVE kernelbase export, for the MAP_FOLDDIGITS
- * path only -- which is a measured scope, not a convenience. probes/contract.c folded every code unit
+ * path only, which is a measured scope, not a convenience. probes/contract.c folded every code unit
  * under every flag and found MAP_FOLDDIGITS to be the only strictly 1:1 one; the rest turn one unit into
  * as many as eighteen. Those flags are separate problems and this gate asserts that our code DECLINES
  * them rather than leaving the restriction to the corpus.
  *
  * What is compared: the return value, every output word, the word just past the end, and GetLastError on
  * every refusal. The last of those matters because the implementation writes the error straight to the
- * TEB at gs:[68h] instead of calling SetLastError -- a stable offset, but one this gate verifies rather
+ * TEB at gs:[68h] instead of calling SetLastError, a stable offset, but one this gate verifies rather
  * than trusts.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -30,7 +30,7 @@ static FFOLD sys;
 static long cases;
 static int failures;
 
-/* An ARBITRARY call -- any flags, any pointer, any count -- compared three ways on the return value
+/* An ARBITRARY call (any flags, any pointer, any count) compared three ways on the return value
    and on GetLastError. one() below cannot express a NULL destination with a non-zero cchDest, nor a
    declined flag together with a bad pointer, and both of those turned out to matter: see section 7. */
 static void three(const char* what, DWORD flags, const wchar_t* src, int cchSrc,
@@ -240,7 +240,7 @@ int main(void)
              * offsets 1..8, and two mutants survived it by exploiting exactly what it did not reach.
              *
              * Mutant #28 measured the overlap span in code units instead of bytes, so it stops detecting
-             * overlap once the offset reaches half the length -- untested above, because with a length of
+             * overlap once the offset reaches half the length, untested above, because with a length of
              * 8 the undetected offsets are 4..7 and at those offsets the unrolled loop happens to agree
              * with the naive one. Mutant #30 masked the unroll boundary with 15 instead of 7, moving the
              * split between the unrolled body and the tail. Both turned out to be provably equivalent
@@ -251,7 +251,7 @@ int main(void)
              * BELOW the source, which the draft never tried at all even though probes/overlap.c had
              * already shown src-4 to be accepted by the export.
              *
-             * The comparison is against the LIVE EXPORT, not against the model -- the model's forward
+             * The comparison is against the LIVE EXPORT, not against the model, the model's forward
              * loop was derived from the export for exactly this case, so comparing to it would be
              * comparing an assumption to itself. */
             {
@@ -348,17 +348,17 @@ int main(void)
      *
      * Worse, the refusal had never been measured. It was written into impl.asm from the natural
      * assumption that a NULL destination must be refused, and reference.c took the same ordering from
-     * impl.asm rather than from the export -- so the three-way comparison was blind to it. An
+     * impl.asm rather than from the export, so the three-way comparison was blind to it. An
      * assumption held by both sides of a comparison is invisible to that comparison; only asking the
      * export settles it, which is what probes/nulldest.c did.
      *
-     * It found TWO things wrong. A NULL destination with a too-small cchDest gives 87, not 122 -- the
+     * It found TWO things wrong. A NULL destination with a too-small cchDest gives 87, not 122, the
      * NULL test runs BEFORE the buffer test, and the draft had it after, a real defect. And an
-     * unsupported flag reports 1004 alone but 87 when a pointer is also bad -- the flag test runs
+     * unsupported flag reports 1004 alone but 87 when a pointer is also bad, the flag test runs
      * FIFTH, after the four pointer refusals, and the draft had it first.
      *
      * So the order below is asserted step by step, three ways, including the flags this change
-     * declines -- because with the flag test fifth this function now matches the export on every
+     * declines, because with the flag test fifth this function now matches the export on every
      * refusal, declined flags included, and the declared divergence shrinks to exactly one input
      * class: a supported-but-unimplemented flag with wholly valid parameters. */
     {

@@ -12,12 +12,12 @@
  * The three independences that matter:
  *   * THE SEARCH is unfiltered and unblocked, so a wrong candidate filter cannot be mirrored here;
  *   * THE DIRECTION is implemented the other way round, so an off-by-one in the backward block walk
- *     cannot be mirrored either -- "keep the last hit" is slow and obviously correct, which is
+ *     cannot be mirrored either, "keep the last hit" is slow and obviously correct, which is
  *     exactly what an oracle should be;
  *   * The fold calls the live OS function per character rather than reading our table, so a wrong
  *     or UNINITIALISED table cannot be mirrored. That is not hypothetical: change 065 was accused
  *     of a formatting bug for an entire session because its table had never been built, and the
- *     failure was silent -- correct status, correct size, truncated output.
+ *     failure was silent, correct status, correct size, truncated output.
  *
  * It also reproduces the REFUSAL contract, in the order probes/errors.c measured it, because the
  * last-error value is as observable as the return value and is part of what must match.

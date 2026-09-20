@@ -70,7 +70,7 @@ SKIP = [
 ]
 
 # Names whose shape suggests a byte/word loop with a pinnable contract. A candidate matching one of
-# these is promoted in the report -- it is still only a hint, but it is the hint that produced most
+# these is promoted in the report; it is still only a hint, but it is the hint that produced most
 # of the landed changes.
 PROMISING = re.compile(
     r"Str|str|wcs|Char|Path|Url|Guid|Uuid|Sid|Ipv|Ethernet|Hash|Crc|Base64|Hex|"
@@ -92,7 +92,7 @@ def exports(dll: str) -> list[str]:
         return []
     names = []
     for line in out.splitlines():
-        # ordinal, hint, RVA, name -- the name is the 4th column and only on fully-formed rows
+        # ordinal, hint, RVA, name; the name is the 4th column and only on fully-formed rows
         m = re.match(r"\s*\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]{8}\s+(\S+)", line)
         if m:
             names.append(m.group(1).split("=")[0])

@@ -8,7 +8,7 @@ REM
 Rem  one upcase.c and one upcase_ansi.c are linked for all six. Changes 010 and
 REM  011 ship byte-identical upcase.c, 012/013/014 ship byte-identical
 REM  upcase_ansi.c, and 009's upcase.c differs from 010's only in whitespace and
-REM  a comment -- they all define wia_upcase / wia_upcase_init (and the ANSI
+REM  a comment, they all define wia_upcase / wia_upcase_init (and the ANSI
 REM  pair), so linking more than one is a duplicate-symbol error rather than a
 REM  choice. Sharing them is also what makes a case-fold bug show up in five
 REM  places at once instead of one.

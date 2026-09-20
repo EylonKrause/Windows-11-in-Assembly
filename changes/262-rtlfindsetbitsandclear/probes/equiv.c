@@ -3,13 +3,13 @@
  * Is the search half exactly RtlFindSetBits / RtlFindClearBits?
  *
  * contract.c showed a search that wraps, refuses a run straddling the wrap point, treats a hint
- * past the end as zero and returns the hint rounded down to eight for N = 0 -- which is, word for
+ * past the end as zero and returns the hint rounded down to eight for N = 0, which is, word for
  * word, what change 256 measured for the pure read-only pair. The obvious move is to build this
  * change on change 256's core. The obvious move is also how the eight-change space bug happened:
  * a rule was inherited from a sibling because it looked like the same rule, and it was wrong in
- * four landed changes before anyone enumerated it. Change 237 did this properly -- it MEASURED
+ * four landed changes before anyone enumerated it. Change 237 did this properly, it MEASURED
  * `PathIsPrefixA(a,b) == (PathCommonPrefixA(a,b,NULL) == strlen(a))` over 87 million pairs before
- * reusing change 236's scan -- and this is the same test for this pair:
+ * reusing change 236's scan, and this is the same test for this pair:
  *
  *     RtlFindSetBitsAndClear(bm, N, hint)  ==  RtlFindSetBits(bm, N, hint)
  *     RtlFindClearBitsAndSet(bm, N, hint)  ==  RtlFindClearBits(bm, N, hint)

@@ -13,12 +13,12 @@
  *     revision 1, count 0, only TWO bytes readable    FAULTED
  *
  * The middle line is the surprise. With revision 1 the export still has to look at the count byte,
- * which is on the no-access page -- and it came back with ERROR_INVALID_SID instead of raising.
+ * which is on the no-access page, and it came back with ERROR_INVALID_SID instead of raising.
  * The line below it shows there is no blanket handler: once the header is past validation, reading
  * the six authority bytes off the end faults straight through to the caller.
  *
  * The obvious explanation is that the validation step has SEH of its own and the formatting step
- * does not -- i.e. ntdll's RtlValidSid, which is documented to accept "a pointer that may not be
+ * does not, i.e. ntdll's RtlValidSid, which is documented to accept "a pointer that may not be
  * valid". This file tests that explanation instead of assuming it: IsValidSid is asked the same
  * question directly, and so is ntdll!RtlConvertSidToUnicodeString, which change 270 would be built
  * on. If ntdll's formatter FAULTS where advapi32's export REFUSES, the wrapper owns that difference
@@ -27,7 +27,7 @@
  * ---------------------------------------------------------------------------------------------
  * 2. a successful call leaves the last error at zero.
  *
- *     last error before 0D15EA5E, after a SUCCESSFUL call 00000000 -- CHANGED
+ *     last error before 0D15EA5E, after a SUCCESSFUL call 00000000, CHANGED
  *
  * That is observable to any caller that reports GetLastError after an unrelated failure, and it is
  * not something to guess at: it might be a deliberate SetLastError(0), or it might be LocalAlloc

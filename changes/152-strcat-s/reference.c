@@ -1,6 +1,6 @@
 // changes/152-strcat-s/reference.c
 // Oracle for ucrtbase!strcat_s, transcribed from the UCRT algorithm and confirmed against the live
-// export -- return code, handler invocation, and the exact bytes left in dst (both the "dst not
+// export, return code, handler invocation, and the exact bytes left in dst (both the "dst not
 // terminated" path, which writes only dst[0], and the ERANGE path, which appends `size - L` bytes
 // before emptying the string).
 #include <errno.h>

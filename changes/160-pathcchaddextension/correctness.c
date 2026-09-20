@@ -3,7 +3,7 @@
 // HRESULT and every byte of a canary-filled buffer. That matters more here than anywhere: the two
 // SIZE failures perform a truncating write whose shape (a terminator where the dot would go, then
 // the body, then a terminator at min(cch-1, 259)) is invisible to a test that only prints the
-// string -- which is exactly how the first version of this change got it wrong.
+// string, which is exactly how the first version of this change got it wrong.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

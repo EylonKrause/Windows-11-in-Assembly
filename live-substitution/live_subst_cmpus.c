@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 263 (ntdll!RtlCompareUnicodeStrings).
 //
 // The exact long is compared, not its sign. probes/contract.c showed the export returns the
-// DIFFERENCE of the two characters -- -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
+// DIFFERENCE of the two characters, -25 for `A` against `Z`, 65535 for U+FFFF against U+0000 --
 // so an implementation returning -1/0/1 would satisfy every caller that writes `< 0` and every
 // check that only looked at the sign.
 //
@@ -18,12 +18,12 @@
 // how many cases contained a character at or above 0x80.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
-// shipped export disagreeing with itself -- and that is the discipline this avoids.
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
+// shipped export disagreeing with itself, and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

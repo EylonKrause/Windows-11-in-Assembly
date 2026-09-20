@@ -1,4 +1,4 @@
-/* bad32check.c -- independent check of the bench's `bad32` class against the live export.
+/* bad32check.c: independent check of the bench's `bad32` class against the live export.
  *
  * Why. changes/034's tgl variant reports bad32 at ~9.4 ns for 64 bytes and for 32000 bytes --
  * constant time regardless of length, which would be 3379 GB/s. ntdll takes 12000 ns for the same

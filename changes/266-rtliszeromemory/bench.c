@@ -3,14 +3,14 @@
  * OURS vs the LIVE ntdll!RtlIsZeroMemory.
  *
  * What this costs is how far it gets before it can answer, and probes/contract.c established that
- * the shipped export STOPS at the first non-zero byte -- one megabyte costs 1.55 ns with the
+ * the shipped export STOPS at the first non-zero byte; one megabyte costs 1.55 ns with the
  * non-zero byte first and 51424 ns with it last. So "where the first non-zero byte is" is the
  * subject of every row, and a row set that only measured all-zero buffers would describe a
  * different function from the one callers use.
  *
  *   all zero        the whole buffer is read: the expensive case, and the one the name suggests
  *   byte at 0       nothing is read: the floor for a call, and the case the early exit exists for
- *   byte near the   the scan runs almost to the end -- the one that would expose a tail that
+ *   byte near the   the scan runs almost to the end; the one that would expose a tail that
  *   end             re-reads or a final vector that is not overlapping
  *
  * The short rows call sixteen times per timed op, for the reason change 261 established by
@@ -18,7 +18,7 @@
  * scan measures. Their labels say so.
  *
  * Every row prints what it answered and it is checked against the live export before anything is
- * timed -- a predicate that answered from the wrong place would still produce a plausible time.
+ * timed; a predicate that answered from the wrong place would still produce a plausible time.
  */
 #include "bench.h"
 

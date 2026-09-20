@@ -3,26 +3,26 @@
 ;
 ; Reimplements shlwapi!PathRenameExtensionA: replace a path's extension in place, or fail and
 ; leave the buffer untouched if the RESULT would not fit in MAX_PATH. shlwapi's is a scalar
-; MBCS-aware walk -- 188.14 ns against 45.20 ns for the WIDE PathRenameExtensionW on the same
+; MBCS-aware walk, 188.14 ns against 45.20 ns for the WIDE PathRenameExtensionW on the same
 ; character count, 4.16x the wide cost for HALF the bytes (discovery/shlwapi_narrow2.c). The
 ; measured gap on a 254-character path is far larger than that survey figure suggests.
 ;
-; CONTRACT -- every line of it re-derived against the NARROW export in probes/ren.c, not inherited
+; CONTRACT, every line of it re-derived against the NARROW export in probes/ren.c, not inherited
 ; from change 158. That mattered: 158 is the wide form and it SHIPPED WRONG, because its extension
 ; position is change 132's rule and that rule was missing the SPACE stopper. It was wrong on 46158
 ; of 335923 enumerated strings until it was corrected in this session, together with 132, 140, 143,
-; 144, 159, 160 and 174 -- eight landed changes on one missing rule.
+; 144, 159, 160 and 174, eight landed changes on one missing rule.
 ;
 ;   * The extension position is the last '.' after the last backslash or space. Measured, not
 ;     assumed: '/' and ':' do NOT stop the backward scan ("a.b/c" + ".obj" -> "a.obj", "a.b:c" ->
-;     "a.obj"), and neither does a TAB ("a.b<TAB>c" -> "a.obj") -- the stopper is 0x20 specifically.
+;     "a.obj"), and neither does a TAB ("a.b<TAB>c" -> "a.obj"); the stopper is 0x20 specifically.
 ;     A space DOES stop it ("a.b c" + ".obj" -> "a.b c.obj"). When there is no extension the
 ;     position is the terminator, so the extension is appended with no special case.
 ;   * The MAX_PATH limit is on the result, not the input. Swept in probes/ren.c across extension
 ;     lengths 1..6 and input lengths 240..275: the first FALSE moves with the extension length, and
 ;     the last successful RESULT length is 259 in every one of the six sweeps. So the test is
 ;     pos + elen > 259, and nothing else.
-;   * On failure the buffer is untouched -- so the length must be decided before the first store,
+;   * On failure the buffer is untouched, so the length must be decided before the first store,
 ;     which is why this measures the extension before copying it rather than copying as it goes.
 ;   * The extension is not validated. All 255 non-NUL byte values inside it are copied verbatim,
 ;     including a space, a backslash and a non-leading dot. This is where the shlwapi function
@@ -30,11 +30,11 @@
 ;   * A NULL path returns FALSE without faulting; a NULL extension returns FALSE and leaves the
 ;     buffer alone.
 ;   * Only the extension and its terminator are written. "file.txtxxxxxx" + ".o" leaves
-;     "file.o\0txxxxxx" -- the stale tail past the new terminator is the shipped behaviour, so
+;     "file.o\0txxxxxx"; the stale tail past the new terminator is the shipped behaviour, so
 ;     every test here compares the whole buffer rather than the string.
 ;
-; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured, not
-; assumed -- and probes/ren.c sweeps all 255 non-NUL byte values at five positions in the path and
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252, measured, not
+; assumed, and probes/ren.c sweeps all 255 non-NUL byte values at five positions in the path and
 ; every byte value inside the extension, with 0 disagreements. That is the stronger screen adopted
 ; after StrStrA survived three weaker ones and died on the fourth.
 ;
@@ -42,17 +42,17 @@
 ; dot from three vpcmpeqb per 32-byte block. Tracking the LAST match rather than the first is why
 ; this is a forward pass with bsr, in the style of change 149. The overwhelmingly common block holds
 ; none of those characters, so one vpor and one vpmovmskb dismiss it and both extraction blocks are
-; skipped. Note that no `comp` is needed here -- unlike change 223, this function never asks which
+; skipped. Note that no `comp` is needed here, unlike change 223, this function never asks which
 ; component anything is in, so the backslash and the space can be folded together from the start.
 ; A second short scan measures the extension, then a descending 16/8/4/2/1 ladder copies it.
 ;
 ; Page safety: every 32-byte path load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the bytes already scanned came from
+; stays inside the cursor's own page, necessarily mapped, since the bytes already scanned came from
 ; it. The extension scan does the same. The copy issues a 16-byte chunk only when the whole chunk
 ; lies inside the elen+1 bytes being copied, so it neither overreads the extension nor writes past
 ; the terminator it just placed.
 ;
-; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

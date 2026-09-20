@@ -4,8 +4,8 @@
 // Three-way: our assembly vs the scalar oracle vs the LIVE export on this PC.
 //
 // Every case compares the whole buffer. The live export leaves the bytes past the new terminator
-// untouched -- stripping "C:\dir\file.txt" leaves "file.txt\0" followed by the stale tail "le.txt\0"
-// -- so an implementation that zero-filled the vacated space would produce the same STRING on every
+// untouched, stripping "C:\dir\file.txt" leaves "file.txt\0" followed by the stale tail "le.txt\0"
+//, so an implementation that zero-filled the vacated space would produce the same STRING on every
 // input and only a whole-buffer check can tell it apart.
 //
 // And the corpus is EXHAUSTIVE, for the same reason change 212's is: the separator rule is not
@@ -14,7 +14,7 @@
 // of the 349525 strings over {a, backslash, slash, colon}. Sampling cannot establish that.
 //
 // The alphabet includes a SPACE deliberately. Change 132 shipped a PathFindExtension rule missing
-// exactly that character -- wrong on 295513 of 2015539 strings -- and changes 140, 143 and 144
+// exactly that character (wrong on 295513 of 2015539 strings) and changes 140, 143 and 144
 // inherited it. probes/strip.c confirmed this function is clean over 488281 space-bearing strings,
 // and this test keeps it that way.
 #define WIN32_LEAN_AND_MEAN

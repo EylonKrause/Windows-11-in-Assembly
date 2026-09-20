@@ -2,8 +2,8 @@
 // LIVE-RUN PROOF for change 278 (ntdll!RtlIntegerToUnicodeString).
 //
 // What is compared is the whole destination, not the status. probes/contract.c measured that a
-// refusal leaves the UNICODE_STRING COMPLETELY untouched -- Length keeps whatever the caller had in
-// it, and not one character is written -- so an implementation that helpfully zeroed Length on the
+// refusal leaves the UNICODE_STRING COMPLETELY untouched, Length keeps whatever the caller had in
+// it, and not one character is written, so an implementation that helpfully zeroed Length on the
 // way out would pass any check that only looked at the NTSTATUS. That is change 268's rule, which
 // found 154 mismatches in change 016 that were nothing but a single 00 past the end of a string.
 //
@@ -11,7 +11,7 @@
 // length-first and two digits at a time, and bases 2, 8 and 16 share a shift-and-mask loop. A corpus
 // of plausible decimal numbers would exercise one of the two. So every case draws a base from the
 // five legal ones AND the illegal ones, a value from the digit-count boundaries as often as from
-// anywhere, and a MaximumLength from AROUND the room rule -- which is Length+2 here and Length+1 in
+// anywhere, and a MaximumLength from AROUND the room rule, which is Length+2 here and Length+1 in
 // the routine change 067 owns, one byte apart in the same DLL.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -19,7 +19,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -126,7 +126,7 @@ static void build_case(long i)
 
     cur_cls = (int)(i % 6);
 
-    /* one case in seven uses an ILLEGAL base -- co-prime with the class so every class gets some */
+    /* one case in seven uses an ILLEGAL base, co-prime with the class so every class gets some */
     if ((i % 7) == 3) cur_base = (ULONG)(rnd() % 40);
     else              cur_base = LEGAL[rnd() % 5];
     b = cur_base ? cur_base : 10;

@@ -6,8 +6,8 @@
  * number parsers, and that neither of them is "the ASCII digits":
  *
  *   the revision and the identifier authority are read by a lenient routine that skips leading
- *   whitespace -- and whitespace here is the full Unicode set, U+1680, U+180E, U+2000..U+200A,
- *   U+2028, U+2029, U+202F, U+205F, U+3000 and U+00A0 as well as the ASCII five -- takes an
+ *   whitespace, and whitespace here is the full Unicode set, U+1680, U+180E, U+2000..U+200A,
+ *   U+2028, U+2029, U+202F, U+205F, U+3000 and U+00A0 as well as the ASCII five, takes an
  *   optional single '+', and then accepts the whole unicode decimal digit set. U+0661 (Arabic-Indic
  *   one), U+0967 (Devanagari), U+0E51 (Thai), U+17E1 (Khmer) and a dozen more blocks are each worth
  *   their face value.
@@ -17,7 +17,7 @@
  *
  * None of that is transcribed here. Both classes are derived at run time by asking the export
  * itself, which needs no Unicode knowledge at all and cannot drift when a future Windows adds a
- * digit block. The alternative -- GetStringTypeW's C1_DIGIT and C1_SPACE -- would be a second
+ * digit block. The alternative (GetStringTypeW's C1_DIGIT and C1_SPACE) would be a second
  * opinion about what advapi32 does rather than a measurement of it.
  *
  * It takes two questions per code unit, not one, and the reason is worth recording because the
@@ -32,7 +32,7 @@
  *     S-1-1<c>-1      accepted with authority 10+v -> <c> is a digit worth v
  *                     refused                      -> <c> is not a digit at all
  *
- * -- trailing whitespace inside a field is refused ("S-1-5 -1" does not parse), so the second
+ *, trailing whitespace inside a field is refused ("S-1-5 -1" does not parse), so the second
  * question separates the two cleanly, and the first is then only needed to tell whitespace from
  * a character that is simply not allowed.
  */

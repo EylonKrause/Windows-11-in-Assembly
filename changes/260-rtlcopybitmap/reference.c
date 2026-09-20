@@ -12,8 +12,8 @@
  *     Extract reads the source at TargetBit and writes it from bit 0. They are the same move in
  *     opposite directions.
  *
- *   * RtlCopyBitMap's fourth argument is ignored. It is a three-argument function -- r9d is
- *     overwritten at RVA 0x13E34A before it is ever read -- and passing 0, 1, 16 or 0xFFFFFFFF as a
+ *   * RtlCopyBitMap's fourth argument is ignored. It is a three-argument function, r9d is
+ *     overwritten at RVA 0x13E34A before it is ever read, and passing 0, 1, 16 or 0xFFFFFFFF as a
  *     fourth argument produces byte-for-byte identical results. The count is
  *
  *           min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit)
@@ -23,12 +23,12 @@
  *           min(NumberOfBits, Source->SizeOfBitMap - TargetBit, Destination->SizeOfBitMap)
  *
  *   * That subtraction is done in 32 Bits and tested in 64, so a TargetBit past the destination's
- *     size does not refuse -- it wraps to a huge unsigned count and copies the whole source anyway,
+ *     size does not refuse, it wraps to a huge unsigned count and copies the whole source anyway,
  *     past the declared size. With a 64-bit destination, TargetBit = 64 copies nothing and
  *     TargetBit = 65 writes four bytes at byte 8. That is reproduced here deliberately: it is what
  *     the shipped export does, and an implementation that "fixed" it would not be a replacement.
  *
- *   * Every bit outside the range is preserved, in both directions -- copying five bits into bits
+ *   * Every bit outside the range is preserved, in both directions, copying five bits into bits
  *     3..7 of a destination byte holding 0xCC leaves 0xC4, not 0x18.
  */
 #define WIN32_LEAN_AND_MEAN

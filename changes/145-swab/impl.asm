@@ -2,7 +2,7 @@
 ; void wia_swab(char* src, char* dest, int n)   [Win64: rcx, rdx, r8d]
 ;
 ; Reimplements ucrtbase!_swab: copy n bytes from src to dest with every adjacent byte PAIR swapped.
-; ucrtbase's is scalar at ~1 cycle/byte (118 ns for 508 bytes) -- the whole operation is one `vpshufb`.
+; ucrtbase's is scalar at ~1 cycle/byte (118 ns for 508 bytes); the whole operation is one `vpshufb`.
 ;
 ; Contract (probed against the live export):
 ;   - floor(n/2) pairs are written; an ODD n leaves the final destination byte untouched (n=7 writes 6
@@ -14,7 +14,7 @@
 ;     vector loop cannot reproduce that, so overlap in that direction is detected and handled by a
 ;     scalar forward loop. (dest < src needs no special case: writes then land below the reads.)
 ;
-; A NEGATIVE n is deliberately NOT reproduced -- the live routine runs away and corrupts the stack
+; A NEGATIVE n is deliberately NOT reproduced, the live routine runs away and corrupts the stack
 ; (verified: it faults with STATUS_STACK_BUFFER_OVERRUN). Replicating a buffer overrun is not a goal;
 ; this returns without writing. That is the one intentional divergence.
 ;

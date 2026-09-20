@@ -21,7 +21,7 @@
  *
  *     "1.1.65535"     accepted        "1.1.65536"     refused
  *     "1.16777215"    accepted        "1.16777216"    refused
- *     "4294967295"    refused         -- but that value IS INADDR_NONE, which is ambiguous
+ *     "4294967295"    refused, but that value IS INADDR_NONE, which is ambiguous
  *
  * The last line is the one that matters: a one-part address of 0xFFFFFFFF returns the same 32 bits
  * as a refusal, so "refused" and "accepted" are indistinguishable there BY CONSTRUCTION. What is

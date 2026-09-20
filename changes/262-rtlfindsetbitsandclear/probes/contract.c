@@ -4,9 +4,9 @@
  *
  * They are a search and a mutation in one call, and the mutation is the half that has no analogue
  * anywhere else in this project so far. Change 256 established the search half for the pure
- * RtlFindSetBits / RtlFindClearBits pair -- it wraps, a run straddling the wrap point does not
+ * RtlFindSetBits / RtlFindClearBits pair; it wraps, a run straddling the wrap point does not
  * count, a hint past the end is treated as zero, N = 0 returns the hint rounded down to a multiple
- * of eight -- but NONE of that may be assumed here. The bitmap family has already produced two
+ * of eight, but NONE of that may be assumed here. The bitmap family has already produced two
  * cases where the obvious sibling rule was wrong (changes 123/124), and a function that MUTATES
  * has room for a whole class of rules the read-only one cannot have:
  *

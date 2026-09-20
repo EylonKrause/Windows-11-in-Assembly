@@ -2,14 +2,14 @@
 ;   HRESULT wia_varbstrcmp(BSTR l, BSTR r, LCID lcid, ULONG flags)
 ;       [Win64: rcx, rdx, r8d, r9d -> eax]
 ;
-; oleaut32!VarBstrCmp. discovery/sid_inet_bstr.c measured it at 3162.50 ns on 8000 bytes -- by far
+; oleaut32!VarBstrCmp. discovery/sid_inet_bstr.c measured it at 3162.50 ns on 8000 bytes, by far
 ; the largest number in that sweep, and about 0.40 ns per byte where this project's
 ; RtlCompareUnicodeString runs at 0.01.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; The collation is the os's and is not reimplemented. probes/contract.c asked the export nine pairs
-; where a linguistic comparison and an ordinal one DISAGREE -- "a" vs "B", "co-op" vs "coop", "can't"
-; vs "cant" -- and it tracked CompareStringW every time, never the ordinal answer. The flag bits pass
+; where a linguistic comparison and an ordinal one DISAGREE; "a" vs "B", "co-op" vs "coop", "can't"
+; vs "cant", and it tracked CompareStringW every time, never the ordinal answer. The flag bits pass
 ; straight through and the result is CompareStringW's minus one. That is not something to rewrite;
 ; change 210's notes say the same about linguistic comparison.
 ;
@@ -31,8 +31,8 @@
 ; anything but EQ with themselves.
 ;
 ; And the arguments still have to be checked. probes/errors.c found that a non-empty pair validates
-; even when the two operands are the same pointer -- `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG,
-; not eq -- while the empty cases do not validate at all: `"" vs ""` with a bad locale is still eq,
+; even when the two operands are the same pointer, `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG,
+; not eq, while the empty cases do not validate at all: `"" vs ""` with a bad locale is still eq,
 ; and `"abc" vs ""` with a bad flag is still GT. So the empty rules come first and answer from the
 ; lengths alone; the fast path validates before it answers.
 ;
@@ -42,7 +42,7 @@
 ; keeps beating it by more the longer the strings get.
 ;
 ; ISA: AVX2 for the byte comparison. The threshold guarantees at least one full 32-byte block, and
-; the tail is an OVERLAPPING block from the end rather than a rounded-up one -- a BSTR is exactly
+; the tail is an OVERLAPPING block from the end rather than a rounded-up one; a BSTR is exactly
 ; len*2+2 bytes and reading past it is reading past the allocation.
 
 OPTION PROC:PRIVATE
@@ -59,8 +59,8 @@ FASTMIN   EQU 16                            ; characters; below this, delegating
 .code
 
 ; No registers are saved at all, and that is deliberate. The first version pushed six, and the rows
-; that must collate -- where probes/gap.c showed the shipped wrapper has only 1.25 ns of overhead to
-; give -- measured 0.97x, exactly at the gate's floor. Twelve push/pop instructions on every call is
+; that must collate, where probes/gap.c showed the shipped wrapper has only 1.25 ns of overhead to
+; give, measured 0.97x, exactly at the gate's floor. Twelve push/pop instructions on every call is
 ; most of that budget. Nothing needs to survive the call to CompareStringW, because the result is
 ; mapped and returned immediately; the fast path keeps the locale and flags in r8d and r9d, which
 ; the byte comparison below is written not to touch.
@@ -74,7 +74,7 @@ wia_varbstrcmp PROC FRAME
         .allocstack FRAME_SZ
         .endprolog
 
-        ; rcx = left, rdx = right, r8d = lcid, r9d = flags -- and they stay there.
+        ; rcx = left, rdx = right, r8d = lcid, r9d = flags, and they stay there.
         ; A BSTR's byte count sits four bytes before the pointer, and a NULL BSTR is the same as an
         ; empty one, both ways round (probes/contract.c).
         xor       r10d, r10d
@@ -138,7 +138,7 @@ cmp_ne:
         jmp       slow
 
 fast:
-        ; identical -- but a NON-EMPTY pair still validates, even when the two operands are the same
+        ; identical, but a NON-EMPTY pair still validates, even when the two operands are the same
         ; pointer: probes/errors.c measured VarBstrCmp(x, x, ..., 0x40) as E_INVALIDARG, not EQ.
         mov       ecx, r8d
         mov       edx, r9d
@@ -156,7 +156,7 @@ ret_badarg:
         jmp       epi
 
 slow:
-        ; CompareStringW is called directly, not through a helper -- a second call layer is most of
+        ; CompareStringW is called directly, not through a helper; a second call layer is most of
         ; the 1.25 ns the shipped wrapper spends. This is the whole hot path for every comparison the
         ; fast path does not answer.
         ;   ecx = lcid, edx = flags, r8 = left, r9d = nl, [rsp+32] = right, [rsp+40] = nr

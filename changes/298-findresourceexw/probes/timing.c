@@ -1,4 +1,4 @@
-/* probes/timing.c -- is FindResourceExW a target at all?
+/* probes/timing.c: is FindResourceExW a target at all?
  *
  * The tier-2 sweep could not resolve a usable subject (it asked for
  * GetModuleHandleW(L"user32.dll") in a console process that never loaded user32).
@@ -7,7 +7,7 @@
  *   [A] ID type + ID name, present, in a module with 1 name vs one with 3570.
  *   [B] ID lookup that FAILS at each of the three levels.
  *   [C] STRING type + STRING name, present, real names of 27..38 chars.
- *   [D] STRING name ABSENT, length swept 1..1024 -- this is the only place where
+ *   [D] STRING name ABSENT, length swept 1..1024; this is the only place where
  *       the shipped code can be length-driven, because normalisation of both
  *       arguments happens BEFORE LdrFindResource_U is called, so an absent name
  *       still pays the whole string cost.

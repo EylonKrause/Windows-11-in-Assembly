@@ -4,7 +4,7 @@
  *
  * This probe exists because change 283 shipped its first draft with a bug, and the corpus written to
  * catch a MUTANT found it instead. The mutant was "the haystack length is not clamped by the needle
- * length" -- dropping `hlen -= nlen`, which sets the highest candidate start to start+hlen rather
+ * length", dropping `hlen -= nlen`, which sets the highest candidate start to start+hlen rather
  * than start+hlen-nlen. To make that clamp observable at all, the corpus needed a needle that can
  * match ACROSS the terminator, and change 282 had already established that 3238 code units match a
  * NUL. So: a haystack whose only 'q' is its last character, and the needle {'Q', 0x00AD}.
@@ -16,16 +16,16 @@
  * its RESULTS.md is wrong for such needles, and the mutant was closer to the truth than the code.
  *
  * Both of our sides agreed with each other and both were wrong. That is exactly what the three-way
- * comparison is for -- the live export is one of the three, and it outvoted the pair.
+ * comparison is for; the live export is one of the three, and it outvoted the pair.
  *
  * So the contract has to be re-derived rather than patched by guess. The questions, in order:
  *
- *   1. how high can a match START -- start+hlen-nlen, start+hlen-1, or higher?
+ *   1. how high can a match START, start+hlen-nlen, start+hlen-1, or higher?
  *   2. how far past the terminator will the comparison run?
  *   3. can a needle LONGER than the whole string match?
  *   4. does `end` bound the start, the comparison, or both?
  *   5. can an EMBEDDED NUL be matched by a NUL-matching needle character?
- *   6. will it read past an unreadable page -- i.e. is the behaviour we must copy also unsafe?
+ *   6. will it read past an unreadable page, i.e. is the behaviour we must copy also unsafe?
  *
  * Question 6 is asked with a guard page and structured exception handling, because the answer
  * decides whether this change can be bit-exact on every input or only on the inputs a caller can

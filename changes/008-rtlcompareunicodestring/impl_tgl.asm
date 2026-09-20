@@ -9,7 +9,7 @@
 ; -----------------------------
 ; The parent wins every class on Zen 3. Here the 8-wchar case-insensitive class measures 0.94x
 ; against ntdll while the change still wins 3.2x overall. Below 16 wchars the parent takes
-; `ci_small`, a scalar walk costing FOUR loads per character in two DEPENDENT pairs -- load the
+; `ci_small`, a scalar walk costing FOUR loads per character in two DEPENDENT pairs, load the
 ; wchar, then index the OS upcase table with the value just loaded, for each side. The second load
 ; of each pair cannot issue until the first retires, and at eight characters there is nothing else
 ; in flight to hide sixteen such latencies behind.
@@ -17,13 +17,13 @@
 ; The first attempt at this was worse, and why that is worth recording
 ; --------------------------------------------------------------------
 ; The obvious fix is to compare the two RAW wchars first and consult the table only when they
-; differ. That is sound -- upcase is a function, so bit-identical inputs have bit-identical folds.
+; differ. That is sound, upcase is a function, so bit-identical inputs have bit-identical folds.
 ; Written as a per-character test it measured **0.78x**: worse than the parent it was meant to fix.
 ;
 ; The saving was real; the shape was not. Skipping the table put the common case behind a TAKEN
 ; branch into the loop tail, so every matching character paid two taken branches where the parent
 ; paid one. Two loads saved, one extra taken branch spent, net loss. The lesson is not that the
-; idea was wrong -- it is that at eight characters this function is branch-bound rather than
+; idea was wrong; it is that at eight characters this function is branch-bound rather than
 ; load-bound, and only a measurement says which.
 ;
 ; So the unit is the BLOCK, not the character. One 128-bit load pair covers eight wchars, and a
@@ -34,26 +34,26 @@
 ; Why 128-BIT and not 256
 ; -----------------------
 ; The parent's vector path is 256-bit and needs five ymm constants, which forces it to spill
-; ymm6/ymm7 -- 64 bytes of stack -- because Win64 preserves the low 128 bits of xmm6-xmm15. At
+; ymm6/ymm7 (64 bytes of stack) because Win64 preserves the low 128 bits of xmm6-xmm15. At
 ; eight wchars that spill costs more than the extra width earns. At 128 bits the constants fit in
 ; xmm0-xmm5, which are volatile. So the short path saves nothing to the stack, and being
 ; VEX/EVEX-128 throughout it never dirties the upper state and owes no `vzeroupper`.
 ;
 ; The fold itself is where this machine pays off. On AVX-512 a compare writes a MASK REGISTER, and
-; the subtract can be predicated on it -- so `islower` costs two compares, one `kandw` and a masked
+; the subtract can be predicated on it, so `islower` costs two compares, one `kandw` and a masked
 ; `vpsubw` In place, with no and of two 128-bit compare results and no temporary vector register to
 ; hold them. The parent needs five vector operations per side and a spare register for each; this
 ; needs four and none. k0-k7 are volatile under Win64, so again nothing is saved.
 ;
 ; (An earlier draft tried to keep the parent's shape and put the two compare results in xmm16/xmm17.
-; MASM rejects it, correctly: Vpcmpgtw has no evex form that writes a vector -- the evex encoding
+; MASM rejects it, correctly: Vpcmpgtw has no evex form that writes a vector, the evex encoding
 ; IS the mask-writing one, and the VEX form cannot reach xmm16-31. The instruction set was pointing
 ; at the better sequence.)
 ;
 ; Exactness is unchanged. a differing block is still resolved through `wia_upcase`, the table built
 ; once from the OS, so the answer is bit-exact rather than an ASCII approximation. The vectorized
-; ASCII fold runs only after `vptest` has proved every wchar in both blocks is < 0x80 -- the same
-; guard the parent's 256-bit path uses -- and a pair that survives the fold as different is
+; ASCII fold runs only after `vptest` has proved every wchar in both blocks is < 0x80, the same
+; guard the parent's 256-bit path uses, and a pair that survives the fold as different is
 ; resolved through the table, so the returned magnitude comes from the source it always did.
 ;
 ; The parent is left untouched: its numbers were taken on a machine with no AVX-512 at all and
@@ -61,10 +61,10 @@
 ;
 ; ISA: AVX2 for the parent's paths; VEX-128 plus AVX512BW+VL (mask registers k1/k2 and a
 ; masked 128-bit vpsubw) for the short CI path.
-; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 ;
 ; UNICODE_STRING: Length @+0 (u16 BYTES), MaximumLength @+2, Buffer @+8. Length is in BYTES, so the
-; bench row labelled "8/CI" is 16 bytes -- eight wchars, exactly one 128-bit block.
+; bench row labelled "8/CI" is 16 bytes, eight wchars, exactly one 128-bit block.
 
 EXTERN wia_upcase:WORD
 
@@ -121,7 +121,7 @@ nci_blk:
         vmovdqu   xmm4, xmmword ptr [C007B]
         vmovdqu   xmm5, xmmword ptr [C0020]
         ; AVX-512 does this in half the instructions the parent needs, because a compare writes a
-        ; MASK and the subtract can then be predicated on it -- no AND of two 128-bit compare
+        ; MASK and the subtract can then be predicated on it, no AND of two 128-bit compare
         ; results, and no temporary vector register to hold them. k0-k7 are volatile under Win64.
         vpcmpgtw  k1, xmm0, xmm3                   ; a > 0x60
         vpcmpgtw  k2, xmm4, xmm0                   ; 0x7B > a
@@ -179,7 +179,7 @@ ns_out:
 
 ; ================ everything below is the parent's, reached via this shim ================
 ; The parent's body expects its own register assignment, so it is restored here rather than
-; rewritten -- the case-sensitive scan and the 256-bit CI fold are not what this variant is about.
+; rewritten; the case-sensitive scan and the 256-bit CI fold are not what this variant is about.
 heavy:
         push      rbx
         push      rsi

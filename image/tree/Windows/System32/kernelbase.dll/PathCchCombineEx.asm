@@ -7,7 +7,7 @@
 ;
 ; Both functions are a join followed by canonicalisation. That is measured, not assumed:
 ; probes/compose.c compares each against PathCchCanonicalizeEx(join(base, more)) on the LIVE export over
-; 789,770 pairs -- three crossed alphabets plus 63 pairs against every cch from 0 to 30 -- with 0
+; 789,770 pairs (three crossed alphabets plus 63 pairs against every cch from 0 to 30) with 0
 ; mismatches. So this file is the JOIN plus change 243's walk, and RESULTS.md carries the derivation of
 ; both.
 ;
@@ -21,20 +21,20 @@
 ; For append the output buffer is the base, so that segment is walked in place. That is safe by the same
 ; argument the walk already relies on: canonicalisation only ever drops characters, so the write cursor
 ; never passes the read cursor, and the seam separator is written after the base is fully consumed. It is
-; also why this file does NOT empty the buffer on entry the way change 243 does -- that would destroy the
-; base before reading it -- and empties it on the error paths instead, which is the same observable.
+; also why this file does NOT empty the buffer on entry the way change 243 does; that would destroy the
+; base before reading it, and empties it on the error paths instead, which is the same observable.
 ;
 ; The prefix can straddle the seam. "\\?" + "C:" joins to "\\?\c:", which canonicalises to "c:\", so the
 ; extended-prefix test cannot be run on the base alone. The first eight characters of the joined stream
 ; are gathered into a small buffer and classified there, and the segment plan is then advanced past
-; whatever the classification consumed -- which may land inside `more`.
+; whatever the classification consumed, which may land inside `more`.
 ;
 ; The domain is dwFlags == 0, for the reason change 243 recorded: flag 0x01 is not a post-step but a
 ; different backward walk. Nonzero flags tail-jump to the original implementation.
 ;
 ; Gates: correctness.c (three-way against reference.c and the live exports), bench.c, tools/abi-check.
 
-; The helper procedures here carry the same names as change 243's -- find_sep, copy_n, isroot -- because
+; The helper procedures here carry the same names as change 243's (find_sep, copy_n, isroot) because
 ; they are the same ideas. MASM makes PROC symbols public by default, so linking both changes into one
 ; binary (which the live-substitution driver does) collided on all three. Everything is private here and
 ; only the four entry points are exported.
@@ -64,7 +64,7 @@ HR_EXCED    EQU     0800700CEh
 
         .code
 
-; IS_LETTER_JMP ch, S1, S2, notletter -- ch is preserved; S1 and S2 are scratch; all three distinct.
+; IS_LETTER_JMP ch, S1, S2, notletter, ch is preserved; S1 and S2 are scratch; all three distinct.
 ; A drive letter is an ISO-8859-1 letter: change 243's probes/letter.c measured all 65536 code units and
 ; found exactly 114 accepted, so this is neither ASCII nor IsCharAlphaW.
 IS_LETTER_JMP MACRO CH, S1, S2, NOTLETTER
@@ -236,7 +236,7 @@ cb_have_more:
         jmp     walk_start
 cb_rooted:
         ; segment 1 is base's root, without its trailing separator, and `more` keeps its separator.
-        ; root_nosep hands r9 to IS_LETTER_JMP as scratch, so `more` is parked first -- carrying a live
+        ; root_nosep hands r9 to IS_LETTER_JMP as scratch, so `more` is parked first, carrying a live
         ; value through a call in a register the callee documents as clobbered is what sent this walk
         ; reading from address 2.
         mov     qword ptr [rsp], r9
@@ -301,7 +301,7 @@ cb_delegate_unset:
         ret
 
 ; ---------------------------------------------------------------------------------------------------
-; The shared walk -- change 243's contract, reading a two-segment stream.
+; The shared walk, change 243's contract, reading a two-segment stream.
 walk_start::
         ; --- the extended prefix, classified on the JOINED stream ---------------------
         call    gather8                         ; rsp[0..15] = up to 8 characters, ecx = how many,
@@ -616,7 +616,7 @@ ret_common:
 wia_pathcchcombineex ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; check_cch -- validates rdx against change 243's rules and sets r11 = &out[usable-1].
+; check_cch, validates rdx against change 243's rules and sets r11 = &out[usable-1].
 ; A failing check does NOT return: it jumps to the shared exit. Clobbers rax, rcx.
         ALIGN 16
 check_cch PROC
@@ -632,7 +632,7 @@ check_cch PROC
         dec     r11
         lea     r11, [rbx + r11*2]
         ret
-        ; a cch outside the range is refused without touching the buffer -- where change 243's
+        ; a cch outside the range is refused without touching the buffer, where change 243's
         ; canonicaliser EMPTIES it for the same rejection. Visible on Combine, whose destination starts
         ; as poison; on Append the base sits in the buffer and hides the difference.
 cc_bad:
@@ -643,7 +643,7 @@ cc_inval:
         jmp     ret_invalid_nowrite
 check_cch ENDP
 
-; check_cch_quiet -- al = 1 when cch is writable at all (used only for the both-NULL refusal, where the
+; check_cch_quiet, al = 1 when cch is writable at all (used only for the both-NULL refusal, where the
 ; buffer must still be left untouched when cch is 0). Clobbers rax.
         ALIGN 16
 check_cch_quiet PROC
@@ -656,7 +656,7 @@ ccq_done:
 check_cch_quiet ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; more_replaces -- does the string at r8 replace the base outright? al = 0/1.
+; more_replaces, does the string at r8 replace the base outright? al = 0/1.
 ; Two leading separators usually mean yes, but NOT "\\?" or "\\?a": an INCOMPLETE extended prefix is not
 ; a root of any kind, and joins with both separators stripped. "\\?\" and everything under it replaces.
         ALIGN 16
@@ -676,7 +676,7 @@ mr_done:
         ret
 more_replaces ENDP
 
-; strip_seps -- advance r8 past every leading separator. Clobbers nothing else.
+; strip_seps, advance r8 past every leading separator. Clobbers nothing else.
         ALIGN 16
 strip_seps PROC
 ss_loop:
@@ -688,7 +688,7 @@ ss_done:
         ret
 strip_seps ENDP
 
-; is_drive_at_r8 -- al = 1 when r8 points at a drive letter and a colon. Clobbers rax, rcx, r10.
+; is_drive_at_r8, al = 1 when r8 points at a drive letter and a colon. Clobbers rax, rcx, r10.
         ALIGN 16
 is_drive_at_r8 PROC
         movzx   ecx, word ptr [r8]
@@ -703,9 +703,9 @@ idr_no:
 is_drive_at_r8 ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; root_nosep -- the root of the string at r8 WITHOUT its trailing separator, in characters, or -1 when
+; root_nosep, the root of the string at r8 WITHOUT its trailing separator, in characters, or -1 when
 ; it has none. This is what Combine prepends to a rooted `more`: "C:\a" + "\b" is "C:\b", so the drive
-; root contributes "C:" and not "c:\" -- prepending "c:\" would leave a doubled separator, and change
+; root contributes "C:" and not "c:\", prepending "c:\" would leave a doubled separator, and change
 ; 243 proved doubled separators SURVIVE canonicalisation, so the difference shows in the answer.
 ; Clobbers rax, rcx, rdx, r9, r10.
         ALIGN 16
@@ -805,7 +805,7 @@ rn_none:
 root_nosep ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; gather8 -- the first up to eight characters of the JOINED stream, into the 32 bytes of shadow space
+; gather8, the first up to eight characters of the JOINED stream, into the 32 bytes of shadow space
 ; this frame reserved. Returns ecx = how many were gathered, r10d = how many came from segment 1, and
 ; r9d = 1 when a seam separator is among them. Clobbers rax, rcx, rdx, r8, r9, r10.
 ; The prefix has to be classified here rather than on the base alone, because "\\?" + "C:" joins to
@@ -870,7 +870,7 @@ g_ret:
 
 gather8 ENDP
 
-; classify_prefix -- given the gathered characters at [rsp+8] and their count in ecx, return eax = how
+; classify_prefix, given the gathered characters at [rsp+8] and their count in ecx, return eax = how
 ; many characters the extended prefix consumes (0, 4 or 8) and edx = 1 when the walk must seed "\\".
 ; Clobbers rax, rcx, rdx, r8.
         ALIGN 16
@@ -889,7 +889,7 @@ classify_prefix PROC
         jne     cp_none
         cmp     ecx, 6
         jb      cp_none
-        ; "\\?\C:" -- nothing is required after the colon. Inlined so the gathered count in ecx and the
+        ; "\\?\C:"; nothing is required after the colon. Inlined so the gathered count in ecx and the
         ; segment outputs in r9 and r10 survive.
         movzx   edx, word ptr [r8 + 8]
         IS_LETTER_JMP edx, eax, r8d, cp_try_unc
@@ -927,7 +927,7 @@ cp_none:
 classify_prefix ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; stream_at -- the character at rax as the joined stream sees it. Inside segment 1 that is simply the
+; stream_at; the character at rax as the joined stream sees it. Inside segment 1 that is simply the
 ; character; at segment 1's end it is the seam separator if one is owed, else segment 2's first
 ; character, else the true end of the stream. Returns eax; clobbers rax.
 ; Callers only ever ask about the character one or two positions ahead, and the two-ahead question is
@@ -946,7 +946,7 @@ sa_take:
         movzx   eax, word ptr [rax]
         ret
 sa_boundary:
-        ; rax is still the POINTER here -- zeroing it for a default return value and then reading
+        ; rax is still the POINTER here, zeroing it for a default return value and then reading
         ; [rax-2] is how this faulted the first time
         test    r13, r13
         jz      sa_end                          ; no segment 2: the stream really has ended
@@ -964,7 +964,7 @@ sa_end:
         ret
 stream_at ENDP
 
-; stream_consume_sep -- rsi is at a separator as the stream sees it; step past it. Inside segment 1
+; stream_consume_sep, rsi is at a separator as the stream sees it; step past it. Inside segment 1
 ; that is two bytes; at the boundary it is the seam (switch to segment 2) or segment 2's own first
 ; character (switch and step past it). Clobbers rax.
         ALIGN 16
@@ -986,7 +986,7 @@ scs_boundary:
         mov     rax, r13
         test    r14, r14
         jz      scs_take_seg2
-        ; rsi-2 is the last character segment 1 actually supplied -- the dot just consumed -- so this
+        ; rsi-2 is the last character segment 1 actually supplied (the dot just consumed) so this
         ; is the same seam question segment_end asks, answered one component earlier
         cmp     word ptr [rsi - 2], 005Ch
         je      scs_take_seg2
@@ -1003,7 +1003,7 @@ scs_done:
 stream_consume_sep ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; find_sep -- rsi -> rdx, the first '\' at or after rsi, or the terminator, or the segment bound.
+; find_sep, rsi -> rdx, the first '\' at or after rsi, or the terminator, or the segment bound.
 ; Clobbers rax, rcx, rdx, ymm0..ymm2.
 ;
 ; a scalar probe first, for eight characters: real components are a handful of characters long, and the
@@ -1052,7 +1052,7 @@ fs_scalar:
 fs_ret:
         ret
 fs_bounded:
-        ; a bounded segment is short -- it is a root -- so it is walked one character at a time
+        ; a bounded segment is short (it is a root) so it is walked one character at a time
         cmp     rdx, r12
         jae     fs_ret
         movzx   eax, word ptr [rdx]
@@ -1065,7 +1065,7 @@ fs_bounded:
 find_sep ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; copy_n -- copy r10 characters from rsi to rdi, advancing both. The caller has checked the destination
+; copy_n, copy r10 characters from rsi to rdi, advancing both. The caller has checked the destination
 ; bound, and the source holds r10 characters, so the reads stay inside the string. The tail is a ladder
 ; of OVERLAPPING moves rather than a character loop, because components in a real path are a handful of
 ; characters long and the tail IS the cost. Clobbers rax, rcx, ymm0, ymm1.
@@ -1134,8 +1134,8 @@ cn_done:
 copy_n ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; isroot -- PathCchIsRoot on the NUL-terminated output at rbx; al = 0/1. The length is already known --
-; it is rdi - rbx -- so the two cheapest rejections come first: an output that does not begin with a
+; isroot, PathCchIsRoot on the NUL-terminated output at rbx; al = 0/1. The length is already known --
+; it is rdi - rbx, so the two cheapest rejections come first: an output that does not begin with a
 ; separator can only be the three-character "X:\". Clobbers rax, rcx, r8, r9, r10. Preserves rdx.
         ALIGN 16
 isroot PROC
@@ -1207,7 +1207,7 @@ ir_no:
         xor     al, al
         ret
 
-; unc_shape -- r8 points past the two leading separators. "\\", "\\server" and "\\server\share" are
+; unc_shape, r8 points past the two leading separators. "\\", "\\server" and "\\server\share" are
 ; roots; a trailing separator or a third component is not. The search for a third component starts at
 ; the character right after the share separator, not after the one beyond it.
 unc_shape:

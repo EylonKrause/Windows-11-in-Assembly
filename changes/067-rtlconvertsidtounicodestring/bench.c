@@ -4,7 +4,7 @@
  *
  * The old bench was one row, built /Od, and it hid the whole point of the function. It formatted a
  * single five-sub-authority SID and printed 1.42x. What it could not show is that this function's
- * cost is almost entirely the NUMBER CONVERSIONS -- so the rows that matter are the ones that vary
+ * cost is almost entirely the NUMBER CONVERSIONS, so the rows that matter are the ones that vary
  * how many numbers there are and how many digits each has, and the row that has none at all.
  *
  *   count 0, 1, 2, 5, 8, 15    the per-number cost, which is what the rewrite changed
@@ -15,7 +15,7 @@
  *                              "how fast does it format" row measures
  *
  * Every row is pre-flighted. a row named for a path it does not reach is timing something else
- * under that name -- change 210 shipped a "table path" row that short-circuited in tier one, and
+ * under that name, change 210 shipped a "table path" row that short-circuited in tier one, and
  * change 269's first bench had a "Unicode digits" row that was a refusal. The table below states
  * per row what it must return, and the bench refuses to run if the live export disagrees.
  */

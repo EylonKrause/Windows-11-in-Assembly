@@ -100,7 +100,7 @@ static void unprefix(wchar_t* w, const wchar_t* s)
     if (len >= 4 && s[0]==L'\\' && s[1]==L'\\' && s[2]==L'?' && s[3]==L'\\') {
         const wchar_t* r = s + 4;
         size_t rl = len - 4;
-        /* a drive letter and a colon is enough -- nothing is required after it: "\\?\a:?" -> "a:?" */
+        /* a drive letter and a colon is enough; nothing is required after it: "\\?\a:?" -> "a:?" */
         if (rl >= 2 && is_letter(r[0]) && r[1]==L':') { wcscpy(w, r); return; }
         if (rl >= 4 && ieq(r, L"UNC\\", 4)) { w[0]=L'\\'; w[1]=L'\\'; wcscpy(w+2, r+4); return; }
     }

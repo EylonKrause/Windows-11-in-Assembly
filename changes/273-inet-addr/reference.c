@@ -1,7 +1,7 @@
 /* changes/273-inet-addr/reference.c
  *
  * The scalar model for ws2_32!inet_addr, written from what four probes measured rather than from
- * the BSD source everyone quotes -- the two disagree in three places.
+ * the BSD source everyone quotes, the two disagree in three places.
  *
  * THE GRAMMAR (probes/grammar.c). Four forms, and each part is decimal, octal after a leading `0`,
  * or hexadecimal after `0x`/`0X`. The base is decided PER PART: `1.0x2.03.4` is legal.
@@ -21,29 +21,29 @@
  *    STRICTLY LESS than the value before it. That is not the textbook test, and the difference is
  *    observable on inputs anyone could type:
  *
- *        0x112345678    accepted, 0x12345678   -- the textbook check `acc > (MAX-d)/16` refuses it
- *        0x212345678    REFUSED                -- 0x12345678 < 0x21234567, so it goes down
- *        12345678901    accepted, 0xDFDC1C35   -- wrapped, and larger than 1234567890
- *        99999999999    REFUSED                -- wrapped to something smaller
- *        0x7FFFFFFF0    accepted, 0xFFFFFFF0   -- overflows the 32 bits and is still accepted
+ *        0x112345678    accepted, 0x12345678, the textbook check `acc > (MAX-d)/16` refuses it
+ *        0x212345678    REFUSED, 0x12345678 < 0x21234567, so it goes down
+ *        12345678901    accepted, 0xDFDC1C35, wrapped, and larger than 1234567890
+ *        99999999999    REFUSED, wrapped to something smaller
+ *        0x7FFFFFFF0    accepted, 0xFFFFFFF0, overflows the 32 bits and is still accepted
  *
  *    A nine-digit hexadecimal number is accepted if and only if its leading digit is 0 or 1, and
  *    probes/accum.c swept all sixteen to establish that. An implementation with the "correct" check
  *    is wrong on the first and third lines.
  *
- * 2. Whitespace ends the address and everything after it is ignored -- but only once a digit has
+ * 2. Whitespace ends the address and everything after it is ignored, but only once a digit has
  *    been consumed. Any of the six bytes 09 0A 0B 0C 0D 20 does it, and the rest of the string is
  *    never looked at: "1.2.3.4 junk" is 1.2.3.4 and "1 junk" is 0.0.0.1. Leading whitespace is
  *    refused. probes/bytes.c swept every byte in every position to get that set.
  *
- * 3. The single byte 0x20 is an address. `" "` -- one space and a terminator, nothing else -- comes
+ * 3. The single byte 0x20 is an address. `" "` (one space and a terminator, nothing else) comes
  *    back as 0.0.0.0. Two spaces do not. A tab does not. `" 1"` does not. `""` does not.
  *    probes/lonespace.c asked it from every side, and no model of the grammar explains it: it is
  *    one input out of all possible inputs, and it is reproduced here because a gate that compares
  *    against the live export would otherwise report it forever.
  *
  * And one ambiguity that is built in. INADDR_NONE is 0xFFFFFFFF, which is also the value of
- * 255.255.255.255, so a refusal and that one address are indistinguishable -- to this model, to the
+ * 255.255.255.255, so a refusal and that one address are indistinguishable, to this model, to the
  * assembly, and to every caller. probes/grammar.c confirmed the last error is not set either way.
  */
 #define WIN32_LEAN_AND_MEAN

@@ -2,14 +2,14 @@
  *
  * Do the bounded searches stop at a NUL, or only at their bound?
  *
- * probes/contract.c settled the signatures -- StrChrNIW takes a COUNT and StrRChrIW an EXCLUSIVE
- * END POINTER -- and showed that StrRChrIW walks straight through an embedded NUL: in
+ * probes/contract.c settled the signatures, StrChrNIW takes a COUNT and StrRChrIW an EXCLUSIVE
+ * END POINTER, and showed that StrRChrIW walks straight through an embedded NUL: in
  * "abcd\0fghijk" with end = start+11 it finds 'J' at index 9.
  *
  * That one fact decides how the implementation may read memory, so the same question has to be put
  * to StrChrNIW rather than assumed from its sibling. If it stops at a NUL, its scan is bounded by
  * min(count, length) and it must find the terminator as it goes. If it does not, the count alone
- * bounds it and the loop is simpler -- but then a caller passing a count larger than the string
+ * bounds it and the loop is simpler, but then a caller passing a count larger than the string
  * gets a read past the terminator, and the gate must reproduce that rather than "fix" it.
  *
  * Change 281 got caught believing a contract fact measured on one convenient string
@@ -37,7 +37,7 @@ int main(void)
     setvbuf(stdout, NULL, _IONBF, 0);
     if (!chrN || !rchr) { printf("resolve failed\n"); return 1; }
 
-    /* "abcd\0fghij" -- the match is AFTER the embedded NUL */
+    /* "abcd\0fghij"; the match is AFTER the embedded NUL */
     for (i = 0; i < 11; ++i) emb[i] = (wchar_t)(L'a' + i);
     emb[4] = 0;
     emb[11] = 0;

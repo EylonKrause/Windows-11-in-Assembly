@@ -6,7 +6,7 @@
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER. discovery/uncovered_2026b.c measured MAP_FOLDDIGITS at 636.57 ns for 511 code units,
-; 0.623 ns per byte -- the second most expensive uncovered export in that sweep, behind only lstrcmpiW,
+; 0.623 ns per byte, the second most expensive uncovered export in that sweep, behind only lstrcmpiW,
 ; which is a known collation wall.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 ;      MAP_EXPAND_LIGATURES    710         3                0               0
 ;
 ; MAP_FOLDDIGITS is the only strictly 1:1 flag. Every other one turns a single input unit into several --
-; up to EIGHTEEN for one MAP_FOLDCZONE input -- and a mapping that changes the length is not a
+; up to EIGHTEEN for one MAP_FOLDCZONE input, and a mapping that changes the length is not a
 ; per-character table at any width. Composition additionally depends on neighbouring characters, which
 ; is the same wall changes 274 and 276 died on.
 ;
@@ -40,7 +40,7 @@
 ;
 ;   * cchSrc > 0 is a count; cchSrc == -1 is NUL-terminated and includes the terminator, so "abc" gives 4;
 ;   * cchDest == 0 is a LENGTH QUERY: return the required count and write nothing;
-;   * cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes nothing -- measured: the
+;   * cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes nothing, measured: the
 ;     destination's first word was still its sentinel afterwards;
 ;   * cchSrc == 0 returns 0 with ERROR_INVALID_PARAMETER. probes/contract.c first reported
 ;     ERROR_INSUFFICIENT_BUFFER, and that was a measurement bug rather than a fact: it read GetLastError
@@ -53,13 +53,13 @@
 ;     probes/overlap.c then measured WHAT it produces for the accepted overlaps: exactly what a naive
 ;     forward one-unit-at-a-time loop produces, at every offset. It reads units it has already
 ;     overwritten rather than buffering, which is unspecified by the documentation and entirely
-;     deterministic in fact -- so this implementation drops its unroll when the buffers overlap;
+;     deterministic in fact, so this implementation drops its unroll when the buffers overlap;
 
 ;   * a NULL destination is refused only when cchDest is non-zero, and the whole refusal order is
 ;     OBSERVABLE. probes/nulldest.c exists because of a mutation survivor: mutant #10 deleted the
 ;     NULL-destination refusal and the correctness gate still passed 66,410 cases with 0 mismatches,
 ;     because not one of them passed a NULL destination together with a non-zero cchDest. The corpus
-;     could not express the case -- and worse, the refusal had never been MEASURED at all. It was
+;     could not express the case, and worse, the refusal had never been MEASURED at all. It was
 ;     written from the natural assumption that a NULL destination must be refused, and reference.c
 ;     inherited the same assumption from this file rather than from the export, so the three-way
 ;     comparison was blind to it: an assumption shared by both sides of a comparison cannot be caught
@@ -121,7 +121,7 @@ TEB_LASTERROR      EQU 68h
                 .code
 
 ; ---------------------------------------------------------------------------------------------
-; foldlen -- the address of the terminator of the string at rcx, in rax.
+; foldlen, the address of the terminator of the string at rcx, in rax.
 ; Clobbers rax, rcx, rdx, r8, ymm0, ymm5.
 ; ---------------------------------------------------------------------------------------------
 foldlen PROC PRIVATE
@@ -233,7 +233,7 @@ f_have_count:
         ;
         ; dest == src is refused above, but every other overlap is ACCEPTED by the export, and
         ; probes/overlap.c measured what it then produces: exactly what a naive forward
-        ; one-unit-at-a-time loop produces, at every offset -- it reads units it has already
+        ; one-unit-at-a-time loop produces, at every offset; it reads units it has already
         ; overwritten rather than buffering. With twelve Arabic-Indic digits and dest = src+3 the
         ; export returns 0030 0031 0032 repeated, which is the signature of reading its own output.
         ;

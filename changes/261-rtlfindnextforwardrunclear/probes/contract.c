@@ -1,6 +1,6 @@
 /* changes/261-rtlfindnextforwardrunclear/probes/contract.c
  *
- * ntdll!RtlFindNextForwardRunClear (RVA 0x0DB350) and ntdll!RtlFindLastBackwardRunClear -- "the
+ * ntdll!RtlFindNextForwardRunClear (RVA 0x0DB350) and ntdll!RtlFindLastBackwardRunClear, "the
  * next run of clear bits at or after this index", and "the last one at or before it".
  *
  * WHY. discovery/ntdll_bitmap2.c timed both for the first time:
@@ -35,7 +35,7 @@
  *   3. nothing FOUND: what length, and is the start pointer written at all? A caller that trusts an
  *      untouched pointer reads whatever it happened to contain.
  *   4. FromIndex at or past SizeOfBitMap.
- *   5. a run that reaches the end of the bitmap -- the slack past SizeOfBitMap must not extend it.
+ *   5. a run that reaches the end of the bitmap; the slack past SizeOfBitMap must not extend it.
  *   6. An entirely clear and an entirely set bitmap, and SizeOfBitMap = 0.
  */
 #define WIN32_LEAN_AND_MEAN

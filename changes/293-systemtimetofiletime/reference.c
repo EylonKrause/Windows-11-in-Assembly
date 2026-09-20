@@ -9,13 +9,13 @@
 //     and calls ntdll!RtlTimeFieldsToTime.  wDayOfWeek (offset 4) is never READ.
 //   * The seven words are copied with `movzx`/16-bit stores, so they land in a CSHORT (signed
 //     16-bit) field: a WORD above 0x7FFF becomes a negative TIME_FIELDS value and is rejected.
-//   * Field ranges: Year 1601..30827 (30828 is a HARD BOUND, not an overflow -- 30828-01-01 would
+//   * Field ranges: Year 1601..30827 (30828 is a HARD BOUND, not an overflow, 30828-01-01 would
 //     still fit a positive int64), Month 1..12, Day 1..days-in-month with full Gregorian leap
 //     rules, Hour 0..23, Minute 0..59, Second 0..59, Milliseconds 0..999.
 //   * Second == 60 is REJECTED on this machine. PEB->LeapSecondData is present and its Enabled
 //     byte is 1, but PEB->LeapSecondFlags bit 0 (SixtySecondEnabled) is 0 and the leap-second
 //     record count is 0, so ntdll runs its leap-second-aware body and still produces exactly the
-//     plain Gregorian answer -- verified over 874,248 cases including every second of the real
+//     plain Gregorian answer, verified over 874,248 cases including every second of the real
 //     2016-12-31/2017-01-01 leap-second boundary.
 //   * On success: returns 1, writes the 8-byte FILETIME, and does NOT touch TEB->LastErrorValue
 //     or TEB->LastStatusValue.

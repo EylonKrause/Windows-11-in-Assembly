@@ -10,14 +10,14 @@
 // The terminator pointer is why this family is worth a harness. Five of these write a `Terminator`
 // out-parameter pointing at the first character they did not consume, and a parser can return the
 // right NTSTATUS and the right address while stopping in the wrong place. That is the same shape as
-// the defect this directory found in 059/061 -- correct answer, correct return value, wrong byte --
+// the defect this directory found in 059/061, correct answer, correct return value, wrong byte --
 // and nothing but an explicit comparison catches it. It is compared as an OFFSET from the start of
 // the subject, because the same logical answer has different addresses in different runs.
 //
 // Malformed input is in scope here, unlike the crypt32 decoders. These changes document their
-// refusal behaviour rather than declining it -- change 119's header spells out a "terminator quirk"
+// refusal behaviour rather than declining it, change 119's header spells out a "terminator quirk"
 // for a separator where a hex digit was expected, and 121's cites a whole rule catalogue for
-// octal/overflow terminator quirks -- so the corpus damages inputs deliberately and those cases
+// octal/overflow terminator quirks, so the corpus damages inputs deliberately and those cases
 // count towards the verdict.
 //
 // Every output byte is compared, not just the ones the call should have written: the address
@@ -26,7 +26,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these eight is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -223,7 +223,7 @@ static void run_all(ans_t* out){
  * opposite direction to the Ethernet pair: the SHIPPED export writes partial data and these
  * implementations leave the buffer untouched. `RtlIpv6StringToAddressA("182.77.169.58", ...)`
  * returns STATUS_INVALID_PARAMETER with the same terminator either way, and ntdll has left
- * B6 4D A9 -- 182, 77, 169 -- in the first three bytes.
+ * B6 4D A9 (182, 77, 169) in the first three bytes.
  *
  * This is the SAFER direction (we do not write to memory the caller was told we failed on), but it
  * is still a difference, and matching it means reproducing ntdll's abandonment behaviour exactly
@@ -232,8 +232,8 @@ static void run_all(ans_t* out){
  *
  * It is therefore counted and named rather than folded into the verdict OR quietly dropped: the
  * run prints it every time, so it cannot be forgotten, and the status/terminator half of those
- * same calls still counts. The Ethernet pair had the same shape in the dangerous direction -- OUR
- * partial result reaching the caller's buffer on a failing input -- and that one was fixed.
+ * same calls still counts. The Ethernet pair had the same shape in the dangerous direction, OUR
+ * partial result reaching the caller's buffer on a failing input, and that one was fixed.
  */
 static int ip6_failbuf;
 static int percnt[NFN];

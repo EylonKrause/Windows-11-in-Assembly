@@ -2,7 +2,7 @@
 ; errno_t wia_wcscpy_s(wchar_t* dst, rsize_t size, const wchar_t* src)   [Win64: rcx, rdx, r8]
 ;
 ; The wide twin of change 150. ucrtbase!wcscpy_s is the same UCRT scalar loop, one wchar per
-; iteration -- 62.5 ns for 254 wide characters, ~1.1 cycles per character.
+; iteration, 62.5 ns for 254 wide characters, ~1.1 cycles per character.
 ;
 ; Same contract as strcpy_s with `size` counted in wchar_t:
 ;   - dst == NULL or size == 0 -> handler, EINVAL (22), dst untouched;
@@ -16,7 +16,7 @@
 ; Everything below works in BYTES: `size` is doubled up front, with a saturating
 ; `shl / sbb / or` so a nonsensical size near 2^63 clamps instead of wrapping to a small bound.
 ; From there this is a byte-for-byte port of 150 with `vpcmpeqb` -> `vpcmpeqw`. `vpcmpeqw` sets both
-; bytes of a matching word, so `tzcnt` lands on the low (even) byte of the terminator -- no rounding
+; bytes of a matching word, so `tzcnt` lands on the low (even) byte of the terminator, no rounding
 ; is needed here, unlike the `bsr` in change 132/149.
 ;
 ; Reads are 32-byte ALIGNED loads (align down, shift the leading bytes out of the mask); a wchar can

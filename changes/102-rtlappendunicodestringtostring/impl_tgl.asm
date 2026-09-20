@@ -11,7 +11,7 @@
 ; 128-byte class measures 0.75x, and the reason is arithmetic: 128 bytes is EIGHT iterations of a
 ; loop whose pointer increments are serial and which branches once per 16 bytes, while ntdll simply
 ; calls a memcpy that is tuned for precisely this length. At 128 bytes the parent's advantage over
-; ntdll -- not making the call -- is worth less than the call buys.
+; ntdll (not making the call) is worth less than the call buys.
 ;
 ; The variant changes only how the bytes move:
 ;
@@ -24,7 +24,7 @@
 ; already copies. It cannot run past the destination buffer, because n was bounded against
 ; MaximumLength before any of this runs.
 ;
-; `vzeroupper` is now paid, but only on the paths that write a ymm -- that is, only where a 32-byte
+; `vzeroupper` is now paid, but only on the paths that write a ymm; that is, only where a 32-byte
 ; copy has already saved more than it costs. Everything below 32 bytes stays in general-purpose
 ; registers and returns without touching the vector state at all, which is where the parent already
 ; wins and where a wider copy could only lose.
@@ -42,7 +42,7 @@
 ; Lengths are BYTE counts and are always even, which is what lets the small ladder below stop at 2.
 ;
 ; ISA: AVX2 for the >= 32 B paths, general-purpose below. Validated on bench #3 (Intel i9-11900H,
-; Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 ;
 ; ABI: frameless leaf; xmm0/ymm0/ymm1 only, all volatile under Win64. Nothing to spill.
 

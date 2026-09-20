@@ -5,7 +5,7 @@
  * It deliberately calls the LIVE PathCommonPrefixW for the walk, exactly as the shipped function
  * does, so that ours-vs-oracle ISOLATES the two rules this change actually adds:
  *
- *   1. the NULL contract -- every NULL combination is FALSE, including an empty prefix against a
+ *   1. the NULL contract; every NULL combination is FALSE, including an empty prefix against a
  *      NULL path, which the identity itself cannot express because wcslen(NULL) is not evaluable;
  *   2. the comparison, `common == wcslen(pszPrefix)`.
  *
@@ -16,7 +16,7 @@
  * The identity itself was established by this change's original probes (2M cases against both live
  * exports) and re-established from scratch by probes/pip2.c now that 167 has landed: 516441 cases,
  * 0 mismatches. It is what explains every odd result the direct probing found, including the
- * trailing-backslash case -- "C:\a\" against "C:\a\b" gives a common prefix of 4 against a prefix
+ * trailing-backslash case, "C:\a\" against "C:\a\b" gives a common prefix of 4 against a prefix
  * length of 5, so FALSE.
  */
 #define WIN32_LEAN_AND_MEAN

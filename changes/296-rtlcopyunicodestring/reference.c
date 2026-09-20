@@ -1,4 +1,4 @@
-/* changes/296-rtlcopyunicodestring/reference.c -- the correctness oracle.
+/* changes/296-rtlcopyunicodestring/reference.c: the correctness oracle.
  *
  * VOID NTAPI RtlCopyUnicodeString(UNICODE_STRING* dst, const UNICODE_STRING* src)
  *
@@ -11,13 +11,13 @@
  *  1. src == NULL  ->  dst->Length = 0 and nothing ELSE happens. dst->Buffer is not
  *     dereferenced, dst->MaximumLength is unchanged, no NUL is written.
  *
- *  2. n = min(src->Length, dst->MaximumLength)   -- a BYTE count, and the clamp is
+ *  2. n = min(src->Length, dst->MaximumLength); a BYTE count, and the clamp is
  *     RAW: it does NOT round down to a whole WCHAR. With MaximumLength = 7 and a
  *     20-byte source, the live export copies SEVEN bytes and reports Length = 7,
  *     leaving half a WCHAR in the destination. (Shipped code: `cmovbe eax,r8d` on
  *     the 16-bit compare, with no `and eax,-2` anywhere.)
  *
- *  3. dst->Length = n, always -- including n = 0.
+ *  3. dst->Length = n, always, including n = 0.
  *
  *  4. dst->MaximumLength is never written.
  *
@@ -27,14 +27,14 @@
  *     dst = src + 8.
  *
  *  6. A terminating wide NUL is written IFF  n + 2 <= dst->MaximumLength, and it is
- *     placed at BYTE offset (n & ~1) -- i.e. at WCHAR index n/2, floored. For an ODD
+ *     placed at BYTE offset (n & ~1), i.e. at WCHAR index n/2, floored. For an ODD
  *     n that offset is n-1, so the NUL overwrites the last byte copied. Proved:
  *     src->Length = 1 with room to spare leaves `00 00` in the destination, not
  *     `41 00`. (Shipped code: `shr rbx,1` then `mov [rsi+rbx*2],ax`.)
  *     Note this is the opposite of RtlAppendUnicodeStringToString (change 102),
  *     which writes no NUL at all when the appended length is zero.
  *
- *  7. src->MaximumLength is never read -- a source claiming MaximumLength = 0 with
+ *  7. src->MaximumLength is never read, a source claiming MaximumLength = 0 with
  *     Length = 8 still copies 8 bytes.
  *
  * Out of contract (matched by neither this reference nor impl.asm, and excluded from

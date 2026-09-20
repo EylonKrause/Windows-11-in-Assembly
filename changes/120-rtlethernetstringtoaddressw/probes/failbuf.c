@@ -1,7 +1,7 @@
-/* ethfail.c -- on a FAILED parse, what do these leave in the caller's address buffer?
+/* ethfail.c: on a FAILED parse, what do these leave in the caller's address buffer?
  *
  * The live harness reports the status and the terminator matching on every sampled case while the
- * address buffer differs -- 10678 of 20000 for RtlEthernetStringToAddress and ~6900 for the IPv6
+ * address buffer differs, 10678 of 20000 for RtlEthernetStringToAddress and ~6900 for the IPv6
  * pair. So the question is what each one writes before giving up.
  */
 #include <stdio.h>

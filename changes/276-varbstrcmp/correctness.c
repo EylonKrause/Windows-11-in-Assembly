@@ -6,8 +6,8 @@
  * That can happen three ways, and the corpus is built around all three:
  *
  *   1. The arguments are invalid. probes/errors.c found that a non-empty pair validates even when
- *      the two operands are the SAME POINTER -- `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG, not
- *      EQ -- while the empty cases do not validate at all. So every shape is asked under every
+ *      the two operands are the SAME POINTER, `VarBstrCmp(x, x, ..., 0x40)` is E_INVALIDARG, not
+ *      EQ, while the empty cases do not validate at all. So every shape is asked under every
  *      single-bit flag value 0..31 and under invalid locales, and the identical pairs are asked
  *      most of all.
  *
@@ -20,7 +20,7 @@
  *      are different lengths and compare GT, not by length.
  *
  * And the threshold itself. The fast path only runs at sixteen characters or more, so every length
- * from 0 to 40 is asked with equal content -- the answer must be the same on both sides of the
+ * from 0 to 40 is asked with equal content; the answer must be the same on both sides of the
  * boundary, which is the one thing a threshold can get wrong.
  *
  * Embedded NULs are in the corpus because a BSTR is counted, not terminated: probes/contract.c
@@ -92,7 +92,7 @@ int main(void)
         printf("  1. NULL and empty, 33 flag values x 4 locales: %ld\n", cases - before);
     }
 
-    /* 2. IDENTICAL strings under every single-bit flag and invalid locales -- the fast path's own
+    /* 2. IDENTICAL strings under every single-bit flag and invalid locales, the fast path's own
           question, since the export validates even when the operands are the same pointer */
     {
         long before = cases;
@@ -116,7 +116,7 @@ int main(void)
                cases - before);
     }
 
-    /* 3. every LENGTH 0..40 with equal content -- the threshold is at 16 and both sides must agree */
+    /* 3. every LENGTH 0..40 with equal content; the threshold is at 16 and both sides must agree */
     {
         long before = cases;
         for (k = 0; k <= 40; ++k) {
@@ -168,7 +168,7 @@ int main(void)
         printf("  5. pairs where length and collation disagree: %ld\n", cases - before);
     }
 
-    /* 6. embedded NULs -- a BSTR is counted, not terminated */
+    /* 6. embedded NULs; a BSTR is counted, not terminated */
     {
         long before = cases;
         static const wchar_t A[6] = { 'a', 0, 'b', 'c', 0, 'd' };

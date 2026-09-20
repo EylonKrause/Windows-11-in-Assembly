@@ -3,7 +3,7 @@
  * The contract of shlwapi/kernelbase!HashData, measured against the live export.
  *
  * Why this function. discovery/shlwapi_url_str.c timed it at 6.37 ns per source byte with a
- * 16-byte digest -- 26 102 ns to hash 4096 bytes, i.e. 0.157 GB/s. That is not a semantic cost:
+ * 16-byte digest, 26 102 ns to hash 4096 bytes, i.e. 0.157 GB/s. That is not a semantic cost:
  * there is no locale, no code page, no path grammar and no allocation anywhere in it. It is bytes
  * in, bytes out.
  *
@@ -29,12 +29,12 @@
  *
  *   4. Whether the digest bytes interact. If digest byte j is updated only from itself and the
  *      current source byte, the bytes are 16 independent chains and an implementation may compute
- *      them in any order -- which is the whole basis of making this fast. If they interact, it is
+ *      them in any order, which is the whole basis of making this fast. If they interact, it is
  *      a serial chain and there is nothing to win. Measured with cbHash = 4 over every source byte
  *      and every digest position.
  *
- *   5. The degenerate and failing cases. cbData == 0, cbHash == 0, NULL either side, and -- the one
- *      that decides whether an implementation may touch the buffer at all -- whether cbHash == 0
+ *   5. The degenerate and failing cases. cbData == 0, cbHash == 0, NULL either side, and, the one
+ *      that decides whether an implementation may touch the buffer at all, whether cbHash == 0
  *      writes anything, and whether cbData == 0 READS anything. Both are answered against a
  *      PAGE_NOACCESS page rather than by inspection, because "it appears not to" and "it does not"
  *      are different claims.

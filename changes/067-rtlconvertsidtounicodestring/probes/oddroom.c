@@ -8,15 +8,15 @@
  *     Length 36,  MaximumLength 37   ntdll: SUCCESS       ours and the model: STATUS_BUFFER_OVERFLOW
  *     Length 102, MaximumLength 103  ntdll: SUCCESS       ours and the model: STATUS_BUFFER_OVERFLOW
  *
- * The rule everyone writes down -- and the rule the previous reference.c and impl.asm both
- * implemented -- is "MaximumLength must be at least Length + 2, because the terminator is a wide
+ * The rule everyone writes down, and the rule the previous reference.c and impl.asm both
+ * implemented, is "MaximumLength must be at least Length + 2, because the terminator is a wide
  * character". The live export evidently wants only Length + 1.
  *
  * The old gate stepped MaximumLength by two:
  *
  *     for (USHORT ml = 8; ml <= 22; ml += 2) chk(sid, ml);
  *
- * so every odd value -- which is to say the entire boundary -- was skipped, and 3,000,000 further
+ * so every odd value (which is to say the entire boundary) was skipped, and 3,000,000 further
  * cases all used MaximumLength 600. It is the same defect as change 269's bench row that never
  * reached its own path and change 268's corpus class that could only land on the wrong direction:
  * a test whose generator cannot express the case is not a weak test, it is an absent one.
@@ -30,7 +30,7 @@
  *
  * (c) would be a buffer overrun in ntdll, which is worth knowing either way. This file puts a
  * poison pattern in the destination, calls the export at every MaximumLength around the boundary,
- * and prints the bytes at and after the end of the string -- so the answer is read off rather than
+ * and prints the bytes at and after the end of the string, so the answer is read off rather than
  * reasoned about. It also checks Out->Length, which the caller uses to find the string.
  */
 #define WIN32_LEAN_AND_MEAN

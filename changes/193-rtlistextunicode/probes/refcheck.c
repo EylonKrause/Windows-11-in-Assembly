@@ -1,4 +1,4 @@
-/* RtlIsTextUnicode -- candidate reference, fuzzed against the live export.
+/* RtlIsTextUnicode, candidate reference, fuzzed against the live export.
  *
  * Black-box probing (itu.c, itu2.c, itu3.c) settled the cap, CONTROLS, ODD_LENGTH and NULL_BYTES
  * but could not explain ASCII16 or STATISTICS. The shipped code answered both:
@@ -19,7 +19,7 @@
  *             hi_var += |hi - prev_hi| ; lo_var += |lo - prev_lo|   (prev starts at 0)
  *   after the loop: if last_HI != 0 { zc_adj = zero_count; if (last_hi == 0x1A) crlf++; }
  *                   else             zc_adj = zero_count - 1;
- *                   (the last HIGH byte -- the loop exit overwrites the prev_lo slot with it)
+ *                   (the last HIGH byte, the loop exit overwrites the prev_lo slot with it)
  *
  *   ASCII16          iff lo_var < 0x7F and hi_var == 0
  *   REVERSE_ASCII16  iff lo_var < 0x7F and hi_var != 0 and lo_var == 0
@@ -170,7 +170,7 @@ int main(void){
     long long bad=0, N=3000000, dbcs=0;
     int shown=0;
 
-    /* ask-masks: NULL, all, and random subsets -- the masking interacts with the BOOL */
+    /* ask-masks: NULL, all, and random subsets, the masking interacts with the BOOL */
     for(long long t=0;t<N;t++){
         int len;
         unsigned shape = rnd()%10;

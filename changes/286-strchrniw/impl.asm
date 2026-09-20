@@ -1,7 +1,7 @@
 ; changes/286-strchrniw/impl.asm
 ;   PCWSTR wia_strchrniw(PCWSTR start, WCHAR match, UINT cchMax)   [Win64: rcx, dx, r8d -> rax]
 ;
-; shlwapi!StrChrNIW -- the case-insensitive character search, bounded by a COUNT.
+; shlwapi!StrChrNIW, the case-insensitive character search, bounded by a COUNT.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. The number in the discovery sweep is not this function's cost.
@@ -12,7 +12,7 @@
 ;     nn(A, A + 511, L'#')        labelled "range form"
 ;
 ; reusing StrRChrIW's three-argument typedef. The real shape is (start, match, count), so that call
-; passed the low sixteen bits of an ADDRESS as the character and '#' -- thirty-five -- as the count. It
+; passed the low sixteen bits of an ADDRESS as the character and '#' (thirty-five) as the count. It
 ; did not fault, so it produced a number; the number just measured something else. probes/contract.c
 ; settled the shape by calling the same address through both prototypes: the count reading returns the
 ; right pointer, the range reading returns NULL. The bench in this change measures the export properly.
@@ -24,7 +24,7 @@
 ;     index 2, a count of 3 does, a count of 0 gives NULL;
 ;   * the relation is change 281's: the intransitive triple holds, it is symmetric, the 3237-member
 ;     ignorable set works, and U+200B matches only itself;
-;   * The terminator stops the scan and is never a match -- and this is where it parts company with
+;   * The terminator stops the scan and is never a match, and this is where it parts company with
 ;     changes 283 and 284. There, a needle character that matches a NUL matched the terminator itself,
 ;     and modelling that took two wrong drafts. Here searching "abcd" for a NUL gives NULL, and so does
 ;     searching it for a SOFT HYPHEN, which the relation says matches a NUL. An embedded NUL behaves the
@@ -36,20 +36,20 @@
 ; --------------------------------------------------------------------------------------------------
 ; 3. THE ALGORITHM.
 ;
-; The terminator is folded into the vector scan -- compared against a zeroed register in the same pass --
+; The terminator is folded into the vector scan, compared against a zeroed register in the same pass --
 ; so one scan finds whichever comes first, the match or the end of the string. If what comes first is a
 ; NUL the answer is NULL, whatever the relation says about NUL, which is exactly the measured rule.
 ;
 ;   (a) the inclusive top address is start + (cchMax-1)*2, so the scan examines indices 0..cchMax-1;
-;   (b) broadcast the match set of the sought character -- itself when it has no partners, its pool slot
-;       when it has two to four -- and scan forward sixteen code units at a time;
+;   (b) broadcast the match set of the sought character, itself when it has no partners, its pool slot
+;       when it has two to four, and scan forward sixteen code units at a time;
 ;   (c) a character with more than four partners cannot be held in four registers, so it takes a
-;       scalar path bounded by the same count -- with the character's kind dispatched ONCE and no calls
+;       scalar path bounded by the same count, with the character's kind dispatched ONCE and no calls
 ;       at all, which is why this change has no match_pair routine: nothing would call it.
 ;
 ; Only ymm0..ymm5 are touched, so nothing has to be saved. A 32-byte aligned load never crosses a page
 ; boundary, so aligning DOWN and masking is safe even when the string starts or ends one code unit before
-; an unmapped page -- and because the terminator is in the accept set, the scan cannot run past it.
+; an unmapped page, and because the terminator is in the accept set, the scan cannot run past it.
 ;
 ; Isa: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi). Vzeroupper on every exit.
 ; --------------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ EXTERN wia_sci_bmap:DWORD
                 .code
 
 ; ---------------------------------------------------------------------------------------------
-; chrscan -- the LOWEST address in [r11, rbx] whose code unit matches one of the broadcasts in
+; chrscan, the LOWEST address in [r11, rbx] whose code unit matches one of the broadcasts in
 ; ymm1..ymm4 or is zero. Returns that address in rax, or 0 if the bound was reached first.
 ;
 ; The zero compare is what makes the count bound safe: a count may reach far past the end of the
@@ -161,7 +161,7 @@ wia_strchrniw PROC FRAME
 
         ; ---- (a) the inclusive top address: index cchMax-1.
         ; A huge count makes this a far address that is never reached, because the terminator is in the
-        ; accept set and stops the scan first -- the same reasoning change 285 uses for its unbounded
+        ; accept set and stops the scan first, the same reasoning change 285 uses for its unbounded
         ; first pass.
         mov       eax, r9d
         dec       eax
@@ -198,7 +198,7 @@ c_scan:
         test      rax, rax
         jz        cn_null
         ; The terminator is never a match. The scan finds whichever comes first, and if that is a NUL the
-        ; answer is NULL -- even when the sought character is one of the 3320 that the relation says
+        ; answer is NULL, even when the sought character is one of the 3320 that the relation says
         ; matches a NUL. Measured: "abcd" searched for a SOFT HYPHEN gives NULL.
         cmp       word ptr [rax], 0
         je        cn_null

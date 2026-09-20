@@ -2,7 +2,7 @@
 ; Dword wia_ConvertGuidToStringW(const guid* Guid, PWSTR String, dword StringLenInChars)
 ;   [rcx, rdx, r8d -> eax]
 ;
-; Reimplements iphlpapi!ConvertGuidToStringW -- 315 ns per call in the shipped build, the most
+; Reimplements iphlpapi!ConvertGuidToStringW, 315 ns per call in the shipped build, the most
 ; expensive routine found in this project's System32 survey after RtlIsTextUnicode, and expensive
 ; for an almost comic reason: It does not format the GUID. The disassembly at rva 0x3F60 spills the
 ; eleven GUID fields to the stack as varargs, loads the literal format string
@@ -17,7 +17,7 @@
 ;   * 1 <= cch <= 38                  -> 122, and the buffer IS written: the first cch-1 characters
 ;     then a NUL at [cch-1]. cch = 38 stops one short of the closing brace;
 ;   * cch >= 39                       -> 0;
-;   * cch >= 0x80000000               -> 122 with String[0] = 0, NOT 87 -- the inner helper rejects
+;   * cch >= 0x80000000               -> 122 with String[0] = 0, NOT 87, the inner helper rejects
 ;     (cch-1) > 0x7FFFFFFE and the wrapper maps its E_INVALIDARG to 122 like any other failure.
 ;     A reimplementation that treats an absurd length as a bad parameter returns the wrong code.
 ;
@@ -34,7 +34,7 @@
 ; and the separators never take part: a 39-cell template is stored first and the five runs of hex
 ; are written over the placeholder digits.
 ;
-; ISA: AVX2. No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2. No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16
@@ -108,7 +108,7 @@ render:
         vpmovzxbw ymm2, xmm4
         ; Only xmm0-xmm5 may be touched. xmm6-xmm15 are callee-saved under Win64, and clobbering
         ; them is invisible to a correctness test that compares integers while silently destroying
-        ; a caller's live doubles -- which is exactly how this was found: the benchmark harness
+        ; a caller's live doubles, which is exactly how this was found: the benchmark harness
         ; keeps its timing accumulators in xmm6/xmm7, so an earlier cut of this function reported
         ; 0.00 ns while being perfectly correct. xmm0 and xmm5 are both dead by here.
         vextracti128 xmm0, ymm1, 1             ; cells 8..15 of the first half

@@ -6,49 +6,49 @@
 ; void wia_pathundecoratea(PSTR psz)   [Win64: rcx]
 ;
 ; Reimplements shlwapi!PathUndecorateA: remove a "[n]" decoration from a file name, so
-; "file[1].txt" becomes "file.txt". shlwapi's is a scalar per-character walk -- 183.31 ns for a
+; "file[1].txt" becomes "file.txt". shlwapi's is a scalar per-character walk, 183.31 ns for a
 ; 254-character path, against 41.14 ns for the WIDE PathUndecorateW on the same character count.
 ; That is 4.46x the wide cost for HALF the bytes, the best remaining ratio of the twelve narrow
 ; siblings in discovery/shlwapi_narrow2.c after PathRemoveBlanks (change 221).
 ;
 ; Contract: the four conjuncts change 174 derived for the wide form, re-derived here against the
-; NARROW export rather than inherited -- see reference.c and probes/. The decoration goes only when
+; NARROW export rather than inherited, see reference.c and probes/. The decoration goes only when
 ; all of these hold:
 ;
 ;   (a) it is in the LAST COMPONENT, after the last backslash;
-;   (b) its ']' is the character immediately before THE EXTENSION -- the last '.' after the last
-;       backslash OR SPACE -- or immediately before the end when there is no such dot;
+;   (b) its ']' is the character immediately before THE EXTENSION, the last '.' after the last
+;       backslash OR SPACE, or immediately before the end when there is no such dot;
 ;   (c) the contents are decimal digits, and there may be NONE ("file[].txt" -> "file.txt");
 ;   (d) the '[' is not the component's first character.
 ;
 ; The space in (b) Is why this change was worth writing twice. probes/space2.c enumerated the narrow
-; export against 174's rule as it shipped and found 2724 of 335923 mismatches -- and then put the
+; export against 174's rule as it shipped and found 2724 of 335923 mismatches, and then put the
 ; same question to the WIDE export and got the same 2724. Change 174 had been wrong since it landed,
 ; and so had 132, 140, 143, 144, 158, 159 and 160, all on one missing stopper. All eight are
 ; corrected; this one was built on the corrected rule from the start.
 ;
 ; Note the asymmetry: the space bounds the extension search in (b) but does not start a component
-; for (d), so the scan tracks two positions -- `comp` past the last backslash, and `stop` past the
+; for (d), so the scan tracks two positions, `comp` past the last backslash, and `stop` past the
 ; last backslash OR space. That is what rbx is pushed for.
 ;
 ; Byte-wise is correct here: the active code page is 1252 and has ZERO DBCS lead bytes, and
 ; probes/bytes.c swept all 255 non-NUL byte values at each of the six positions the rule consults
-; with 0 disagreements -- the stronger screen adopted after StrStrA survived three weaker ones.
+; with 0 disagreements, the stronger screen adopted after StrStrA survived three weaker ones.
 ;
-; Method: ONE forward pass computes everything the rule needs -- the length, the last backslash,
-; the last backslash-or-space and the last dot -- from four vpcmpeqb per 32-byte block. Tracking the
+; Method: ONE forward pass computes everything the rule needs, the length, the last backslash,
+; the last backslash-or-space and the last dot, from four vpcmpeqb per 32-byte block. Tracking the
 ; LAST match rather than the first is why this is a forward pass with bsr, in the style of change
 ; 149. The overwhelmingly common block contains NONE of those characters, so one vpor and one
 ; vpmovmskb answer for all three at once and the three extraction blocks are skipped entirely.
 ; Everything after the scan is a short backward digit walk and one vectorised move.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the characters already scanned
+; stays inside the cursor's own page, necessarily mapped, since the characters already scanned
 ; came from it. Within 32 bytes of a page end it steps one byte and retries. The move loop issues a
 ; 32-byte block only when the whole block lies inside the bytes it must move, so it never overreads
 ; past the terminator either.
 ;
-; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

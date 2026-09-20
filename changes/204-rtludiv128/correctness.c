@@ -1,5 +1,5 @@
 // changes/204-rtludiv128/correctness.c
-// Gate 1: wia_udiv128 must be indistinguishable from ntdll!RtlUdiv128 -- quotient AND remainder.
+// Gate 1: wia_udiv128 must be indistinguishable from ntdll!RtlUdiv128, quotient AND remainder.
 //
 // Three-way: our assembly vs the transcribed-loop oracle vs the LIVE export on this PC.
 //

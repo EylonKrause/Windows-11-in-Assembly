@@ -3,18 +3,18 @@
  * Gate 1 for change 247: wia_pathaddextensionw must be indistinguishable from the live
  * shlwapi!PathAddExtensionW.
  *
- * Three-way on every case -- ours, an independent oracle (reference.c) and the live export -- with
+ * Three-way on every case (ours, an independent oracle (reference.c) and the live export) with
  * THREE observables, all of them load-bearing:
  *
  *   * the BOOL;
  *   * the whole buffer against a poison fill. a refusal writes nothing at all and an empty extension
- *     writes nothing either, not even the terminator already there -- neither of which a string
+ *     writes nothing either, not even the terminator already there, neither of which a string
  *     comparison can tell from writing the same bytes back;
  *   * a canary past the buffer, because the bound this function enforces is on the RESULT and an
  *     implementation that bounded the INPUT instead would append past MAX_PATH.
  *
  * The alphabet carries a space, and that is the point. The append point is PathFindExtensionW's, and
- * change 132 SHIPPED WRONG with only the backslash stopping its backward scan -- wrong on 295 513 of
+ * change 132 SHIPPED WRONG with only the backslash stopping its backward scan, wrong on 295 513 of
  * 2 015 539 enumerated strings until the space was added. An alphabet without a space would validate
  * that same mistake all over again, so every enumerated sweep here includes one.
  */

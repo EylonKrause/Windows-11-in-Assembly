@@ -3,14 +3,14 @@
  * What does the export produce when the buffers overlap, and is it even well defined?
  *
  * probes/contract.c established that FoldStringW refuses dest == src with ERROR_INVALID_PARAMETER but
- * ACCEPTS every other overlap -- dest = src+1, src+4, src+8, src-4 all returned a length. The
+ * ACCEPTS every other overlap, dest = src+1, src+4, src+8, src-4 all returned a length. The
  * documentation calls overlapping buffers illegal, so the accepted cases are behaviour outside the
  * contract, and the correctness gate found our forward loop disagreeing with the export at dest = src+1,
  * +2 and +3.
  *
  * Before deciding what to do about that, the question has to be answered properly: is the export's
- * overlapped output the CLEAN fold of the original string -- which would mean it buffers internally, and
- * would make the behaviour well defined and worth reproducing -- or is it self-referential, reading units
+ * overlapped output the CLEAN fold of the original string, which would mean it buffers internally, and
+ * would make the behaviour well defined and worth reproducing, or is it self-referential, reading units
  * it has already overwritten, which would make it unspecified and not worth reproducing at all?
  *
  * The test: fold a pristine copy to get the clean answer, then fold in place at various offsets and

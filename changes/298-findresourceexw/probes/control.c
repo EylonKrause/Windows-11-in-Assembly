@@ -1,10 +1,10 @@
-/* probes/control.c -- is the table itself fair?
+/* probes/control.c: is the table itself fair?
  *
  * bench.h measures OURS first and SYSTEM second for every case. On a subject
  * where 95% of the time is a call into ntdll whose cost moves with page and MUI
  * cache state, an ordering bias would look exactly like a small win. Table [1]
  * of bench.c reads a median of about 1.03x on classes where our code removes
- * perhaps 15 ns of wrapper out of 580 -- so the question has to be answered
+ * perhaps 15 ns of wrapper out of 580, so the question has to be answered
  * before that 1.03x is believed.
  *
  * The control: run the same bench with the live export on both sides. Anything

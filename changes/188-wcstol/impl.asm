@@ -1,7 +1,7 @@
 ; changes/188-wcstol/impl.asm
 ; long wia_wcstol(const wchar_t* nptr, wchar_t** endptr, int base)   [rcx, rdx, r8d -> eax]
 ;
-; Reimplements ucrtbase!wcstol -- the wide general integer parser, and the third function unblocked
+; Reimplements ucrtbase!wcstol, the wide general integer parser, and the third function unblocked
 ; by change 186's sweeps (the whole wide family was scoped out in changes/109-atoi64/RESULTS.md on
 ; the assumption that it needed "the CRT's full Unicode digit table").
 ;
@@ -17,28 +17,28 @@
 ;     hex: <U+0660>x1f -> 31. So does base-0 octal detection: <U+FF10>77 -> 63.
 ;     >>> This is the trap. A natural port compares the prefix character to L'0' and is WRONG;
 ;         that variant was fuzzed side by side with this one and refuted on 1579 of 1 500 000.
-;   * But the 'x' itself is ascii-only -- '0' followed by fullwidth x parses as just "0".
+;   * But the 'x' itself is ascii-only, '0' followed by fullwidth x parses as just "0".
 ;   * endptr / ERANGE / no-conversion behave exactly as change 110 measured for strtol, including
 ;     the ucrtbase quirk that a "0x" with no hex digit after it is NO CONVERSION (*endptr = nptr).
 ;   * An invalid base (anything other than 0 or 2..36, including negatives) raises the
 ;     invalid-parameter handler ONCE, sets errno = EINVAL (22), writes *endptr = nptr and
 ;     returns 0. Measured, not assumed.
 ;
-; SHAPE -- measured into this shape, not guessed:
+; SHAPE, measured into this shape, not guessed:
 ;   The digit loop has NO CALL on any path. An earlier cut used one classifier subroutine called
 ;   once per character; it was bit-exact but measured 0.95x on a 10-digit decimal and 0.85x on the
-;   20-digit ERANGE case -- both REGRESSIONS, which park a change under this project's all-classes
+;   20-digit ERANGE case, both REGRESSIONS, which park a change under this project's all-classes
 ;   gate. Inlining the classifier in frequency order fixed every class:
 ;       ASCII digit      1 lea/cmp          the overwhelmingly common case
 ;       ASCII letter     3 instructions     bases 11..36 are letter-dominated
 ;       fullwidth        3 instructions     the commonest non-ASCII digit
 ;       the other 16     one AVX2 pass      vpminuw + vpcmpeqw, constant time
-;   The two PREFIX sites do not need any of that -- they only ask "is this code unit a block
-;   ZERO?" -- so they call a much cheaper `is_zero` helper, at most twice per call.
+;   The two PREFIX sites do not need any of that; they only ask "is this code unit a block
+;   ZERO?", so they call a much cheaper `is_zero` helper, at most twice per call.
 ;   xmm only throughout (VEX.128 zeroes the upper lanes), so no vzeroupper is needed on any path,
 ;   including the ASCII-only one that never touches a vector register.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _errno:PROC
 EXTERN _invalid_parameter_noinfo:PROC
@@ -171,7 +171,7 @@ have_base:
         add       rsi, 4
 no_prefix:
 
-        ;================ digits -- no call on any path ================
+        ;================ digits, no call on any path ================
         mov       rbx, rsi                       ; digstart
         xor       r12, r12                       ; acc
         xor       r9d, r9d                       ; overflow flag
@@ -277,7 +277,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
+; is_zero, internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; The prefix sites need only this question, not a full 0..35 classification.
 ; ---------------------------------------------------------------------------

@@ -3,13 +3,13 @@
  * A CORRECTION, 2026-09-16. This change's RESULTS.md, its impl.asm header and its README row all
  * said the same thing about the pair:
  *
- *      "Five times apart for the same failing full scan -- and not because of the subject: both
+ *      "Five times apart for the same failing full scan, and not because of the subject: both
  *       searches fail, both examine everything. They are simply not the same code."
  *
  * The measurement was real. The explanation was wrong, and this probe is what settles it: the two
  * exports run the SAME skip loop, and the survey's bitmap happens to let one of them use it and
- * force the other off it. Swapping 0xA5A5A5A5 for 0x5A5A5A5A -- the same density, the same number
- * of runs, the same failing search, one bit rotated -- FLIPS which export is five times slower.
+ * force the other off it. Swapping 0xA5A5A5A5 for 0x5A5A5A5A, the same density, the same number
+ * of runs, the same failing search, one bit rotated, FLIPS which export is five times slower.
  *
  * What the two loops actually are. Both exports, for 64 <= NumberToFind <= 127, skip words with a
  * seven-instruction loop that differs by exactly one `not`:
@@ -20,7 +20,7 @@
  * and both CONTINUE SKIPPING while the sign bit is set. `RtlFindSetBits` inverts the word, so the
  * two loops are driven by OPPOSITE top bits of the same data: a bitmap whose every word has bit 63
  * SET lets `RtlFindClearBits` skip the whole map and forces `RtlFindSetBits` onto the slow path,
- * one word at a time, for every word. 0xA5A5A5A5 -- the survey's subject -- has bit 31 set, so
+ * one word at a time, for every word. 0xA5A5A5A5 (the survey's subject) has bit 31 set, so
  * every 64-bit word of it has bit 63 set.
  *
  * The reason the test is a fair one: Every row here fails to find anything, and the row says so.
@@ -28,7 +28,7 @@
  *
  * So the real finding is better than the one that was published, not worse. It is not that one
  * export is badly written. It is that both have a fast path of about one cycle per 64-bit word and
- * a slow path of about five, and which one runs is decided by the top bit of every word -- a data
+ * a slow path of about five, and which one runs is decided by the top bit of every word, a data
  * dependence no caller can see, on a search whose answer does not depend on it at all.
  */
 #define WIN32_LEAN_AND_MEAN

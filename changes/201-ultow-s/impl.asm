@@ -2,7 +2,7 @@
 ; errno_t wia_ultow_s(unsigned long Value, wchar_t* Buffer, size_t SizeInChars, int Radix)
 ;   [rcx, rdx, r8, r9d -> eax]
 ;
-; Reimplements ucrtbase!_ultow_s -- the unsigned wide 32-bit form, bounded form of change 072, and
+; Reimplements ucrtbase!_ultow_s, the unsigned wide 32-bit form, bounded form of change 072, and
 ; the last of the bounded integer formatters. Its entry passes a HARD ZERO for `negative` to the
 ; same worker, so this is change 200 with the sign permanently absent.
 ;
@@ -16,7 +16,7 @@
 ;
 ; That one difference is the whole contract difference: the magnitude is 32 bits, so for any radix
 ; other than 10 the value is formatted as an UNSIGNED 32-BIT quantity. _itoa_s(-1, buf, n, 16)
-; gives "ffffffff" -- eight f's, not the sixteen that change 194 produces.
+; gives "ffffffff", eight f's, not the sixteen that change 194 produces.
 ;
 ; Everything else is change 194's contract, read out of the shipped disassembly because the ERANGE
 ; path could not be fitted from probing:
@@ -88,7 +88,7 @@ wia_ultow_s PROC
         ; Can the buffer even be too small? Decide here, once, instead of bound-checking every
         ; digit. ucrtbase emits straight into the caller's buffer and stops when full; generating
         ; every digit and only then finding it does not fit made the 10-digit-into-6-cells case
-        ; measure 0.93x -- a regression -- because a 32-bit `div` is cheap enough for the extra
+        ; measure 0.93x (a regression) because a 32-bit `div` is cheap enough for the extra
         ; digits to show. But putting the bound check INSIDE the loops cost ~1.5 cycles per digit
         ; and was worse still: base 36 fell to 0.88x and base 2 from 3.98x to 2.51x.
         ; So the check is hoisted. If the cells available cannot hold the widest possible result
@@ -101,7 +101,7 @@ wia_ultow_s PROC
         cmp       r11, rax
         ja        fits_for_sure                ; cells > widest result => digits + terminator fit
         ; ---- bounded emit: only reachable when the buffer really might be too small, so it is
-        ; ---- kept simple -- one generic division per digit, every radix, no table, no shift.
+        ; ---- kept simple, one generic division per digit, every radix, no table, no shift.
         add       r11, r11                     ; ... in bytes
         mov       rax, rdi
         sub       rax, r11
@@ -111,8 +111,8 @@ wia_ultow_s PROC
         lea       r8, [rbx + r12*2]              ; ...and a FORWARD cursor into the caller's buffer.
         ; Each digit is stored TWICE: descending into the scratch (so the fitted case can copy it
         ; out most-significant-first) and ascending into the caller's buffer. The second store is
-        ; free -- this loop is bound by a 32-bit `div` at ~15 cycles, which leaves the store ports
-        ; idle -- and it is exactly the cell ucrtbase would have left there, because ucrtbase emits
+        ; free; this loop is bound by a 32-bit `div` at ~15 cycles, which leaves the store ports
+        ; idle, and it is exactly the cell ucrtbase would have left there, because ucrtbase emits
         ; into the caller's buffer least-significant-first and simply stops when it runs out. So
         ; the ERANGE exit below has nothing left to do but write the terminator.
         ; This is what took the ERANGE class from below 1.00x to a win: the old code generated into
@@ -120,7 +120,7 @@ wia_ultow_s PROC
         ; loop was the entire deficit against ucrtbase.
         ; Radix 10 Gets its own bounded loop. This path is the erange case, and erange is
         ; dominated by two calls into ucrtbase (_errno and _invalid_parameter_noinfo) that our
-        ; contract obliges us to make and that ucrtbase pays too -- so the only part of the class
+        ; contract obliges us to make and that ucrtbase pays too, so the only part of the class
         ; we can actually win is the digit loop, and at the generic `div` it was an exact tie.
         ; Radix 10 is a compile-time constant here, so the divide becomes a constant reciprocal:
         ; v/10 == (v * 0CCCCCCCDh) >> 35 for every 32-bit v (verified exhaustively near both ends
@@ -183,9 +183,9 @@ fits_for_sure:
 dgen:
         ; Measured, not assumed: a reciprocal multiply was tried here and is not faster on this
         ; core. Two forms were built and benchmarked against this divide, both bit-exact:
-        ;   * magic scaled to 2^38, quotient extracted with `shrd rax, rdx, 38` -- base 36 went
+        ;   * magic scaled to 2^38, quotient extracted with `shrd rax, rdx, 38`, base 36 went
         ;     8.19 ns -> 10.45 ns (0.99x -> 0.77x); shrd-with-immediate is multi-uop here;
-        ;   * magic scaled to 2^64, quotient arriving in rdx with no shift at all -- 8.45 ns, still
+        ;   * magic scaled to 2^64, quotient arriving in rdx with no shift at all, 8.45 ns, still
         ;     short of the divide.
         ; Zen 4's 32-bit divider is simply fast enough that a dependent `mul` chain does not beat
         ; it at these digit counts, and the divide keeps the loop four instructions shorter.
@@ -287,13 +287,13 @@ s_small:
         ; 4..7 characters in TWO overlapping 8-byte moves instead of up to seven dependent word
         ; iterations. This is the base-36 class: a 32-bit value is at most 7 digits there, so it
         ; always landed in the word loop, and that loop was the whole remaining deficit against
-        ; ucrtbase -- which reverses in place and never copies at all. Both moves stay strictly
+        ; ucrtbase, which reverses in place and never copies at all. Both moves stay strictly
         ; inside the digit run at both ends, so nothing outside [rdx, rdx+2*count) is written.
         cmp       rax, 4
         jae       s_wide
         ; 1..3 characters, BRANCH-FREE: first cell, last cell, middle cell. For count 1 all three
         ; target the same cell; for 2 they cover 0 and 1; for 3 they cover 0, 2 and 1. This
-        ; replaces a counted loop whose per-iteration overhead dominated the two-digit case -- the
+        ; replaces a counted loop whose per-iteration overhead dominated the two-digit case, the
         ; smallest class in the bench, and the one where ucrtbase was still ahead.
         mov       r9w, word ptr [rdi]
         mov       word ptr [rdx], r9w

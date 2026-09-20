@@ -1,7 +1,7 @@
 // changes/175-pathremoveargsw/correctness.c
 // Gate 1: wia_pathremoveargsw must be indistinguishable from shlwapi!PathRemoveArgsW.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// The whole buffer is compared -- which matters more here than usual, because this function
+// The whole buffer is compared, which matters more here than usual, because this function
 // writes more than one cell and leaves the argument text in place behind the terminator.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -71,12 +71,12 @@ int main(void){
         }
     }
 
-    // every code unit as the middle character -- pins the split set to exactly U+0020
+    // every code unit as the middle character, pins the split set to exactly U+0020
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=(wchar_t)c; s[2]=L'b'; s[3]=0;
         CHECK(one(s), "split-set sweep");
     }
-    // and as a trailing character -- pins the trailing trim to exactly U+0020 too
+    // and as a trailing character, pins the trailing trim to exactly U+0020 too
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=L'b'; s[2]=(wchar_t)c; s[3]=0;
         CHECK(one(s), "trailing-trim sweep");

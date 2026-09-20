@@ -4,7 +4,7 @@
  *
  * probes/gentable.c extracted a canonical representative per code unit and called the result
  * "classes". probes/context.c then proved the relation really is decided one character at a time --
- * 200000 random strings, 0 context-dependent matches -- and probes/isequiv.c proved it symmetric.
+ * 200000 random strings, 0 context-dependent matches, and probes/isequiv.c proved it symmetric.
  * Both of those are necessary for a table. Neither is sufficient, and the missing one is the one
  * nothing checked:
  *

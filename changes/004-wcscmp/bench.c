@@ -1,4 +1,4 @@
-// changes/004-wcscmp/bench.c -- equal strings (worst case: full scan) vs live ucrtbase wcscmp.
+// changes/004-wcscmp/bench.c: equal strings (worst case: full scan) vs live ucrtbase wcscmp.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

@@ -5,11 +5,11 @@
  * Change 210 (kernelbase!CompareStringOrdinal) benches its ignore-case mode in four rows, one of
  * them labelled "4000 Cyrillic, ci (table path)", and its bench.c says in as many words:
  *
- *     "The NON-ASCII class exists precisely to keep that fallback honest -- an implementation that
+ *     "The NON-ASCII class exists precisely to keep that fallback honest, an implementation that
  *      only ever benchmarked ASCII would hide it."
  *
  * The intent is right and the row does not do it. Every pair in that benchmark is built as
- * `BU[i] = AU[i]` -- the two strings are IDENTICAL -- and the implementation's first tier is
+ * `BU[i] = AU[i]` (the two strings are IDENTICAL) and the implementation's first tier is
  *
  *     equal raw  =>  equal folded, in any alphabet  =>  advance 16
  *
@@ -24,7 +24,7 @@
  *   ascii same      identical ASCII                       tier 1, and the published row
  *   ascii case      ASCII differing only in CASE          tier 2: the in-register fold
  *   ascii differ    ASCII differing in the last character tier 2 then a verdict
- *   cyr same        identical Cyrillic                    tier 1 -- what the "table path" row does
+ *   cyr same        identical Cyrillic                    tier 1, what the "table path" row does
  *   cyr case        Cyrillic differing only in case       TIER 3: the 64K table, at last
  *   cyr differ      Cyrillic differing in the last char   tier 3 then a verdict
  *   mixed case      ASCII and Cyrillic interleaved, case-differing

@@ -2,7 +2,7 @@
 // Gate 2: time wia_pathcommonprefixw against the live shlwapi!PathCommonPrefixW.
 //
 // The row this change exists for is "254 identical": discovery measured the shipped export at
-// 698 ns on it -- 2.75 ns per character, the slowest of every shlwapi export this project had not
+// 698 ns on it, 2.75 ns per character, the slowest of every shlwapi export this project had not
 // yet converted, and the reason the target was picked at all.
 //
 // The case mix. The shipped function calls a comparison routine once per component on top of two
@@ -16,12 +16,12 @@
 //     identical" row with the separators removed.
 //
 // And three rows that are not about the happy path:
-//   * "differ at 0" -- the answer is 0 and neither implementation walks anything. If a vector
+//   * "differ at 0"; the answer is 0 and neither implementation walks anything. If a vector
 //     prologue cost anything, this is the row that would show it.
-//   * "case-differing" -- every component differs only in case, so the raw comparison fails at the
+//   * "case-differing", every component differs only in case, so the raw comparison fails at the
 //     first character of every component and the fold table is consulted on each. That is this
 //     implementation's own worst case, and it is a row rather than a footnote.
-//   * "UNC" -- both paths skip two characters before the walk begins.
+//   * "UNC", both paths skip two characters before the walk begins.
 //
 // Nothing to restore: both inputs are read-only and the output is a separate buffer that is never
 // read back. The output buffers still rotate across eight slots, staggered within their pages --
@@ -118,7 +118,7 @@ int main(void){
         for (i = 0; i < N; ++i) {
             C[i].idx = 0;
             for (int q = 0; q < ROT; ++q) {
-                /* staggered within the page, not all at offset 0 -- see change 250 */
+                /* staggered within the page, not all at offset 0, see change 250 */
                 C[i].o[q] = (wchar_t*)(dpool + dcur + (unsigned long)q * 256);
                 dcur += SLOT;
             }

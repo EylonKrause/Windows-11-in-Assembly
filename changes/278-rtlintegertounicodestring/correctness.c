@@ -4,7 +4,7 @@
  * NTSTATUS, Out->Length, Out->MaximumLength AND every byte of a poison-filled destination.
  *
  * The whole destination is compared, on failing calls as well, because probes/contract.c measured
- * that a refusal leaves it COMPLETELY untouched -- Length keeps whatever the caller had in it. An
+ * that a refusal leaves it COMPLETELY untouched, Length keeps whatever the caller had in it. An
  * implementation that helpfully zeroed Length on the way out would pass any check that only looked
  * at the status. That is change 268's whole-buffer rule, which found 154 mismatches in change 016
  * that were nothing but a single 00 past the end of a string.
@@ -14,7 +14,7 @@
  *   * every BASE 0..40 plus 256 and 0xFFFFFFFF, because only five are legal and the other
  *     thirty-seven have to be refused with the right status. probes/contract.c asked them one at a
  *     time rather than trusting the documented set.
- *   * Every digit-count boundary in every base -- every power of the base, and one either side.
+ *   * Every digit-count boundary in every base, every power of the base, and one either side.
  *     The length is computed from a BSR and a table, so the values where the answer changes are
  *     exactly the ones a round-numbered corpus walks past.
  *   * every MaximumLength from 0 to Length+4, at every one of those values, because the room rule is

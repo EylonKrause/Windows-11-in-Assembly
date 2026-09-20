@@ -1,6 +1,6 @@
 // changes/230-lstrcatw/bench.c
 // Gate 2: time wia_lstrcatw against the live kernelbase!lstrcatW.
-// Pool offsets are COMPUTED with guaranteed spacing -- hand-placed ones let case buffers overlap
+// Pool offsets are COMPUTED with guaranteed spacing, hand-placed ones let case buffers overlap
 // twice while change 228 was being written, and the only thing that caught it was a row reporting
 // a throughput above memcpy's.
 //
@@ -19,7 +19,7 @@ extern wchar_t* wia_lstrcatw(wchar_t*, const wchar_t*);
 typedef wchar_t* (WINAPI *FN)(wchar_t*, const wchar_t*);
 static FN sys;
 
-/* The restore's address, not its cost. This restore is already minimal -- one store putting back the
+/* The restore's address, not its cost. This restore is already minimal, one store putting back the
    destination's terminator -- but it landed on the buffer the next call was about to read, and for the
    "8 onto 8" row that store sits INSIDE the first 32-byte block the destination scan loads. A wide load
    overlapping a just-retired narrow store cannot use store-to-load forwarding: it waits for the store to

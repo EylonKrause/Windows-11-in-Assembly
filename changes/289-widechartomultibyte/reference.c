@@ -6,7 +6,7 @@
  * It models kernelbase!WideCharToMultiByte for CodePage == CP_UTF8 (65001), which the disassembly
  * at RVA 0x00054A80 shows is nothing but argument validation wrapped around one call to
  * ntdll!RtlUnicodeToUTF8N. Every rule below was read out of that disassembly and then PROVED
- * against the running export by probes/contract.c -- see RESULTS.md for the transcript.
+ * against the running export by probes/contract.c, see RESULTS.md for the transcript.
  *
  * The shipped order of operations, which this file reproduces exactly:
  *
@@ -15,16 +15,16 @@
  *    3  lpWideCharStr == NULL                  -> 0, ERROR_INVALID_PARAMETER
  *    4  cbMultiByte != 0 and lpMultiByteStr == NULL            -> 0, ERROR_INVALID_PARAMETER
  *    5  cbMultiByte != 0 and lpMultiByteStr == lpWideCharStr   -> 0, ERROR_INVALID_PARAMETER
- *       (Exact pointer equality. a merely overlapping destination is accepted -- proved.)
+ *       (Exact pointer equality. a merely overlapping destination is accepted, proved.)
  *    6  cchWideChar < 0  -> scan for U+0000; the count becomes length+1, so the terminator is
- *       CONVERTED and counted. ANY negative value does this, not only -1 -- proved for -2,
+ *       CONVERTED and counted. ANY negative value does this, not only -1, proved for -2,
  *       -1000 and INT_MIN.
  *    7  dwFlags & ~0x000006F0                  -> 0, ERROR_INVALID_FLAGS      (1004)
  *       The accepted set is exactly WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR|WC_ERR_INVALID_CHARS|
- *       WC_COMPOSITECHECK|WC_NO_BEST_FIT_CHARS -- proved bit by bit, all 32 of them.
+ *       WC_COMPOSITECHECK|WC_NO_BEST_FIT_CHARS, proved bit by bit, all 32 of them.
  *    8  status = RtlUnicodeToUTF8N(cbMultiByte ? lpMultiByteStr : NULL, cbMultiByte, &produced,
  *                                  lpWideCharStr, (ULONG)(cchWideChar * 2))
- *       -- so cbMultiByte == 0 is the MEASURING MODE and the destination pointer is not read.
+ *, so cbMultiByte == 0 is the MEASURING MODE and the destination pointer is not read.
  *    9  status < 0   -> 0, and ERROR_INSUFFICIENT_BUFFER (122) if it was STATUS_BUFFER_TOO_SMALL,
  *                      else ERROR_INVALID_PARAMETER. The partial output stays in the buffer.
  *   10  produced == 0 -> the last error is SET TO 0. (Unreachable for CP_UTF8: cchWideChar != 0,
@@ -34,12 +34,12 @@
  *       MSDN says this must be NULL for CP_UTF8 and that a non-NULL one fails the call. It does
  *       not: the shipped code checks that only for CP_UTF7 (65000). Proved both ways.
  *   12  status == STATUS_SOME_NOT_MAPPED and (dwFlags & WC_ERR_INVALID_CHARS)
- *                    -> 0, ERROR_NO_UNICODE_TRANSLATION (1113) -- AFTER the conversion has already
+ *                    -> 0, ERROR_NO_UNICODE_TRANSLATION (1113), AFTER the conversion has already
  *                       written its U+FFFD bytes into the buffer. Proved.
  *   13  produced > INT_MAX -> 0, ERROR_INVALID_PARAMETER.
  *   14  otherwise -> (int)produced, and the last error is left exactly as the caller had it.
  *
- * lpDefaultChar is IGNORED for CP_UTF8 (again, checked only for CP_UTF7) -- proved.
+ * lpDefaultChar is IGNORED for CP_UTF8 (again, checked only for CP_UTF7), proved.
  *
  * `lasterr` is in/out: on entry it holds whatever the caller's last-error value was, and on return
  * it holds what it would be after the call. That is how "left untouched" is expressed as data.
@@ -158,7 +158,7 @@ int ref_wc2mb(unsigned int CodePage, ref_ulong dwFlags,
 
     if (dwFlags & ~0x000006F0ul) { *lasterr = REF_ERROR_INVALID_FLAGS; return 0; }
 
-    /* the shipped code computes the byte count with `lea eax,[rdi+rdi]` -- a 32-bit doubling that
+    /* the shipped code computes the byte count with `lea eax,[rdi+rdi]`, a 32-bit doubling that
      * wraps. Reproduced, so the model is the code and not an idealisation of it. */
     status = ref_u2u8(cbMultiByte ? lpMultiByteStr : 0, (ref_ulong)cbMultiByte, &produced,
                       lpWideCharStr, (ref_ulong)((ref_ulong)cchWideChar * 2ul));

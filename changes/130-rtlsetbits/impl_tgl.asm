@@ -2,25 +2,25 @@
 ; Void wia_setbits(RTL_BITMAP* bm, ulong StartingIndex, ulong NumberToSet)   [Win64: rcx, edx, r8d]
 ;
 ; Reimplements ntdll!RtlSetBits: set bits [StartingIndex, StartingIndex+NumberToSet) to 1.
-; Contract (probed against the live export): there is NO bounds check whatsoever -- ntdll writes past
+; Contract (probed against the live export): there is NO bounds check whatsoever, ntdll writes past
 ; SizeOfBitMap if asked (start=250,num=20 on a 256-bit map sets bits 250..269; start=300 sets 300..309),
 ; and NumberToSet == 0 is a no-op. So SizeOfBitMap is never read.
 ;
 ; ntdll costs ~3.8 ns even to set a single word (~17 cycles of fixed overhead) while its bulk fill is
 ; already wide, so the win here is the small/medium range. Edges are masked at ULONG granularity --
 ; matching the buffer's declared element type, so no byte outside the ULONG array is ever touched (a
-; 64-bit read-modify-write could fault on a buffer ending exactly at a page boundary) -- and the
+; 64-bit read-modify-write could fault on a buffer ending exactly at a page boundary), and the
 ; interior is filled 32 bytes at a time with AVX2.
 ;
 ; ISA: AVX2, plus ERMS/FSRM `rep stosb`. Validated on bench #3 (Intel i9-11900H, Tiger Lake-H)
-; -- see docs/PLATFORM-i9-11900H.md.
+; see docs/PLATFORM-i9-11900H.md.
 ;
 ; Tiger lake variant of change 130. Everything below is the parent's code except two things in the
 ; bulk fill, and the two things it is NOT are worth recording because both were tried and measured.
 ;
 ; What is wrong on this part
 ;   * The parent does not reach `rep` until 4096 ULONGs (16 KB), because on Zen 3 rep startup is
-;     brutal -- its own comment records 512 bytes costing 37 ns via rep against 6 ns unrolled. This
+;     brutal, its own comment records 512 bytes costing 37 ns via rep against 6 ns unrolled. This
 ;     part has ERMS/FSRM, and the parent's 40000-bit class measures 0.55x here: 69.68 ns against
 ;     ntdll's 38.38, while ntdll moves 130 GB/s, which is more than a 32-byte-store loop can do.
 ;   * The parent uses `rep STOSD`. ERMS accelerates the BYTE form; the dword form does not get the
@@ -33,12 +33,12 @@
 ;     through stores. Fast-short-rep is faster than the old rep, not free; there is still roughly
 ;     15 ns of startup.
 ;   * 512-bit stores for the middle rung. At 512 bytes that measured 13.17 ns against the parent's
-;     7.86 -- eight stores are not enough to amortise the AVX-512 transition this part pays when
+;     7.86, eight stores are not enough to amortise the AVX-512 transition this part pays when
 ;     zmm has not been used recently. The parent's 128-byte-unrolled SSE/AVX2 rungs are kept
 ;     unchanged for exactly that reason.
 ;
 ; So the variant changes the THRESHOLD and the INSTRUCTION, and nothing else. From the two measured
-; points -- stores at about 100 GB/s, rep streaming about 200 GB/s after startup -- the crossover is
+; points (stores at about 100 GB/s, rep streaming about 200 GB/s after startup) the crossover is
 ; near 3 KB, which is 768 ULONGs.
 ;
 ; Filling ULONGs byte-wise is exact here only because the fill value is all-ones: every byte of
@@ -83,7 +83,7 @@ sb_full1:
 sb_aligned:
         mov       r11, r10
         shr       r11, 5                          ; whole ULONGs to fill
-        ; Bulk fill, three regimes -- each measured (see RESULTS.md): a plain store loop for tiny
+        ; Bulk fill, three regimes, each measured (see RESULTS.md): a plain store loop for tiny
         ; runs, an UNROLLED 128-byte AVX2 loop for the middle (rep stos has too much startup there:
         ; 512 bytes cost 37 ns via rep vs 6 ns unrolled), and rep stosd only once it is large enough
         ; for fast-short-rep to win on streaming bandwidth.
@@ -180,7 +180,7 @@ sb_rep:
         ; Without it the 5000-byte class is BIMODAL: the same binary measured 37.2 ns four times in
         ; a row and then 53.9-55.4 ns six times in a row, while ntdll's figure for the same class
         ; never left 36-38 ns. A swing that large in ours alone, with the comparand steady, is not
-        ; ambient load -- load would move both. `rep stosb` is sensitive to the alignment of its
+        ; ambient load, load would move both. `rep stosb` is sensitive to the alignment of its
         ; destination, and the harness's buffer comes from an allocation whose alignment is not
         ; fixed from run to run. That is exactly what a bimodal distribution with a stable
         ; comparand looks like.

@@ -9,18 +9,18 @@
  *     S-1-5-1,     the same
  *     S-1-5-1;     the same
  *
- * Every other trailing character -- and there are 65532 of them -- leaves the pointer alone, which
+ * Every other trailing character (and there are 65532 of them) leaves the pointer alone, which
  * probes/bounds.c had established and which this implementation reproduced.
  *
  * `)`, `,` and `;` are not arbitrary: they are the sddl ace terminators. a SID appears inside an ace
  * as `(A;;FA;;;S-1-5-18)`, so the parser underneath this export plainly has a mode that stops at
- * them and reports where it stopped -- and the public wrapper, which does not accept trailing text,
+ * them and reports where it stopped, and the public wrapper, which does not accept trailing text,
  * rejects the result AFTER the inner call has already stored its answer.
  *
  * This file asks what is actually in that pointer, because an implementation cannot reproduce
  * "written" without knowing what was written. Three things matter: whether it is a valid SID,
  * whether it is the SID the prefix describes, and whether it is a LocalAlloc block the caller could
- * free -- because if it is, the shipped export LEAKS it on every such call, and a reimplementation
+ * free, because if it is, the shipped export LEAKS it on every such call, and a reimplementation
  * that did not leak would differ in a way that only a leak test could see.
  */
 #define WIN32_LEAN_AND_MEAN

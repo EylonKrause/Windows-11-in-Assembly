@@ -1,7 +1,7 @@
 /* One call per process: radix1.exe <ours|ucrt> <fn> <radix>
  *
  * The all-in-one version died at exit code 148 on the very first call and printed nothing, which is
- * the signature of a FAIL-FAST -- an uncatchable termination, not an exception __except can see.
+ * the signature of a FAIL-FAST; an uncatchable termination, not an exception __except can see.
  * Changes 274 and 276 hit the same wall calling SysFreeString on a hand-made BSTR. The only way to
  * attribute a fail-fast to one side is to give each call its own process and read the exit code.
  */

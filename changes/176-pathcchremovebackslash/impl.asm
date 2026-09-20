@@ -2,7 +2,7 @@
 ; HRESULT wia_pathcchremovebackslash(PWSTR psz, size_t cchPath)
 ;   [Win64: rcx, rdx -> eax]
 ;
-; Reimplements kernelbase!PathCchRemoveBackslash -- the "safe" modern counterpart of
+; Reimplements kernelbase!PathCchRemoveBackslash, the "safe" modern counterpart of
 ; shlwapi!PathRemoveBackslashW (change 171). shlwapi's is 64 ns for a 254-char path; this one is
 ; 54 ns, so once again the PathCch* form is barely cheaper than the shlwapi one it replaces
 ; (compare change 143, where the modern function was actually SLOWER).
@@ -14,7 +14,7 @@
 ;     it may never read past cchPath characters.
 ;   * No upper bound on cchPath was found: 32768, 32769 and 0x7FFFFFFF are all accepted. That
 ;     differs from change 143's PathCchFindExtension, which rejects anything outside
-;     [1, 32768] -- another inconsistency inside the same "safe" API family.
+;     [1, 32768], another inconsistency inside the same "safe" API family.
 ;   * Removed a backslash -> S_OK (0). Nothing to remove -> S_FALSE (1), buffer untouched.
 ;     E_INVALIDARG is 0x80070057.
 ;   * Root protection is IDENTICAL to change 171, including its non-monotonic behaviour:
@@ -32,12 +32,12 @@
 ; characters of budget remain, so the read is inside the cursor's own page AND inside the
 ; caller's declared buffer. Within 32 bytes of a page end it tests one character and retries.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16
 ; bit c set iff code unit c is one of the 114 measured drive letters (c < 0x100).
-; Identical to change 171's table -- the two functions agree on all 65535 code units.
+; Identical to change 171's table, the two functions agree on all 65535 code units.
 l1alpha QWORD 0000000000000000h, 07FFFFFE07FFFFFEh, 0000000000000000h, 0FF7FFFFFFF7FFFFFh
 
 .code
@@ -48,11 +48,11 @@ wia_pathcchremovebackslash PROC
 
         ;---------------- narrow short probe: does it end within 8 characters? ----------------
         ; Two 8-byte SWAR has-zero tests. Narrow loads forward from a caller's recent narrow
-        ; write where a 32-byte load cannot -- the hazard change 164 records and change 172 had
+        ; write where a 32-byte load cannot; the hazard change 164 records and change 172 had
         ; to fix. Without this the 4-character and drive-root classes sat at 0.94x and 0.83x.
         ; It is taken only when cchPath allows reading 8 characters, because the bound is part
         ; of the CONTRACT here (an unterminated buffer must give E_INVALIDARG), not merely a
-        ; safety matter -- reading past cchPath could find a terminator that does not count.
+        ; safety matter, reading past cchPath could find a terminator that does not count.
         cmp       rdx, 8
         jb        setup_scan
         mov       eax, ecx

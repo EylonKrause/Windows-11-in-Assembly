@@ -5,10 +5,10 @@
 //   * copies at most n-1 characters, stopping early at the source's NUL, then writes ONE terminator;
 //   * the destination is NOT padded. "ab" into n=10 leaves cells 2..9 untouched, which rules out a
 //     strncpy-shaped implementation and is the reason the correctness test compares the whole buffer;
-//   * n == 0 writes nothing at all -- not even a terminator -- and still returns the destination;
+//   * n == 0 writes nothing at all (not even a terminator) and still returns the destination;
 //   * n is used UNSIGNED: -1 and -1000 both copy the whole string rather than meaning "empty";
 //   * a NULL source or destination returns NULL;
-//   * the copy is byte-wise -- GetACP() is 1252 here with ZERO DBCS lead bytes, so no double-byte
+//   * the copy is byte-wise, GetACP() is 1252 here with ZERO DBCS lead bytes, so no double-byte
 //     character can exist to be split and no DBCS-aware truncation rule is observable;
 //   * a faulting source returns NULL with the readable prefix already copied. The oracle cannot
 //     reproduce that portably, so the page-guard case is compared against the LIVE export only --

@@ -16,7 +16,7 @@
  *
  * What comes out of it is the rule the wrapper has to implement: a SID that is too short is a
  * REFUSAL for some shapes and a FAULT for others, and an implementation that refuses everywhere --
- * or faults everywhere -- is wrong in a way only a guard page can show.
+ * or faults everywhere, is wrong in a way only a guard page can show.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -5,11 +5,11 @@
  * probes/contract.c established the three facts that make a table legal at all, and each of them would
  * have killed the change on its own:
  *
- *   * CONTEXT-FREEDOM -- 20000 random strings up to 2048 code units, 0 words where a character's class
+ *   * CONTEXT-FREEDOM, 20000 random strings up to 2048 code units, 0 words where a character's class
  *     differed from the class it gets alone, for all three info types;
- *   * LOCALE INVARIANCE -- the whole CT_CTYPE1 table rebuilt under seven thread locales (en-US, de-DE,
+ *   * LOCALE INVARIANCE, the whole CT_CTYPE1 table rebuilt under seven thread locales (en-US, de-DE,
  *     ru-RU, ja-JP, ko-KR, pt-BR, ar-SA), 0 entries different;
- *   * TOTALITY -- every one of the 65535 non-zero code units is classified; none is refused.
+ *   * TOTALITY; every one of the 65535 non-zero code units is classified; none is refused.
  *
  * probes/tableshape.c then measured how much of the table is redundant, because a flat 65536-WORD table
  * is 128 KB per info type and 384 KB for the three, which does not fit L2 and would make this a slow

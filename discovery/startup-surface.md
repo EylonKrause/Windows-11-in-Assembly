@@ -1,6 +1,6 @@
 # The startup path's actual call surface, and the part of it we have
 
-Built by `tools/desktop-surface.py --profile startup` from the **running** system on this machine: the modules currently mapped into the boot and service spine -- csrss, wininit, winlogon, services, lsass, every svchost group, LogonUI, fontdrvhost, dwm, dllhost, conhost and the platform services. These processes started at boot and never restarted, so their module set IS what the startup path loaded. **smss.exe is the one gap**: it exits before anything can sample it, so its private imports are not represented here, and the union of their **import tables**.
+Built by `tools/desktop-surface.py --profile startup` from the **running** system on this machine: the modules currently mapped into the boot and service spine, csrss, wininit, winlogon, services, lsass, every svchost group, LogonUI, fontdrvhost, dwm, dllhost, conhost and the platform services. These processes started at boot and never restarted, so their module set IS what the startup path loaded. **smss.exe is the one gap**: it exits before anything can sample it, so its private imports are not represented here, and the union of their **import tables**.
 
 An export is a function that exists. An import is a function something actually binds to. This is the second thing.
 

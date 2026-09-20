@@ -6,18 +6,18 @@
 ; RPC_STATUS wia_uuidfromstringa(unsigned char* StringUuid, GUID* Uuid)   [rcx, rdx -> eax]
 ;
 ; Reimplements rpcrt4!UuidFromStringA, which measures 82.39 ns against its own wide sibling's
-; 23.33 ns for identical work -- the signature of a narrow wrapper that widens its input and calls
+; 23.33 ns for identical work, the signature of a narrow wrapper that widens its input and calls
 ; the wide path. This project's wide GUID parser (change 118, ntdll!RtlGUIDFromString) already does
 ; the same job in ~12 ns.
 ;
 ; CONTRACT, every line of it measured against the live export in probes/ufs.c:
 ;   * exactly 36 characters, UNBRACED: 8 hex, '-', 4 hex, '-', 4 hex, '-', 4 hex, '-', 12 hex,
 ;     then a NUL at [36]. Hex is case-insensitive;
-;   * a BRACED string is REJECTED -- 1705 (RPC_S_INVALID_STRING_UUID). That is the opposite of
+;   * a BRACED string is REJECTED, 1705 (RPC_S_INVALID_STRING_UUID). That is the opposite of
 ;     change 118's ntdll parser, which requires the braces, so the two contracts are not
 ;     interchangeable;
 ;   * StringUuid == NULL is SUCCESS: it returns 0 and writes the nil UUID (16 zero bytes). Measured,
-;     not guessed -- rpcrt4 really does treat a null pointer as "the nil uuid";
+;     not guessed, rpcrt4 really does treat a null pointer as "the nil uuid";
 ;   * anything else malformed -> 1705 and the output is not touched. a pre-poisoned GUID came back
 ;     byte-identical from every failing case, so this implementation accumulates into a stack
 ;     scratch and only stores on success. (Change 118 writes as it parses, which would be wrong
@@ -27,13 +27,13 @@
 ; their value and everything else to 0FFh. All 32 looked-up values are OR-ed into one accumulator,
 ; and a single `test acc, 0F0h` at the end catches any invalid character: a real nibble only ever
 ; sets bits 0..3, so any 0FFh in the input leaves a high bit set. That replaces 32 conditional
-; branches with one test -- and it is also why the separators can be checked before the digits
+; branches with one test, and it is also why the separators can be checked before the digits
 ; without any ordering subtlety.
 ;
 ; PAGE SAFETY. The fast path reads all 37 bytes (0..36) before it knows the string is that long,
 ; which is harmless inside a mapped page and a fault across the end of one. So the page offset is
 ; checked first: within 37 bytes of a page boundary the code walks the string for its terminator
-; first -- a bounded 37-byte scan -- and only then parses, by which point all 37 bytes are provably
+; first (a bounded 37-byte scan) and only then parses, by which point all 37 bytes are provably
 ; readable. Same discipline as the unbounded string scans in changes 001-004.
 ;
 ; ISA: baseline x64. No SIMD: 32 table lookups are two dependent loads each, and at 2-3 loads per

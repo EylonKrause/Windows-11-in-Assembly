@@ -4,7 +4,7 @@
  * and every byte of a poison-filled buffer.
  *
  * The whole buffer is compared, on failing calls as well, because probes/contract.c measured that a
- * refusal leaves it untouched -- and because the two success shapes differ in what they leave
+ * refusal leaves it untouched, and because the two success shapes differ in what they leave
  * BEHIND the answer:
  *
  *     a POSITIVE length writes the digits and a terminator only if one fits;
@@ -112,7 +112,7 @@ static int check_tables(void)
         char want = (char)(i < 10 ? '0' + i : 'A' + i - 10);
         if (hex[i] != want) { printf("  the hex table is wrong at %d\n", i); bad = 1; }
     }
-    /* The power-of-two digit count is no longer a table -- it is bsr, one shift or one multiply,
+    /* The power-of-two digit count is no longer a table; it is bsr, one shift or one multiply,
        and a lea. So it is checked the only way an arithmetic identity can be: over EVERY value
        whose digit count could differ, which for a power-of-two base is every power of two and its
        two neighbours, in all three bases. A wrong constant in the divide-by-3 shows up at the
@@ -224,7 +224,7 @@ int main(void)
      *
      * INT_MIN is the only negative length that is a REFUSAL rather than a field width, and it is
      * here. Its neighbour is not, and that is deliberate: length INT_MIN+1 is a field width of
-     * 2147483647, and the live export duly starts writing two billion zeros -- the first draft of
+     * 2147483647, and the live export duly starts writing two billion zeros, the first draft of
      * this file included it and the harness died of an access violation before it printed a single
      * mismatch. The largest negative length a 256-byte buffer can hold is -256, section 6 sweeps to
      * -200, and RESULTS.md records the far ones as a measurement from probes/negative.c (which has

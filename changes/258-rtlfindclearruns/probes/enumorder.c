@@ -1,11 +1,11 @@
 /* changes/258-rtlfindclearruns/probes/enumorder.c
  *
- * The order the shipped export finds runs in -- which is not the order they occur in.
+ * The order the shipped export finds runs in, which is not the order they occur in.
  *
  * probes/contract.c concluded that the UNSORTED form "returns the FIRST runs found, in order". The
  * first half is right and the second half is wrong, and the correctness corpus caught it: on a
  * sixteen-bit bitmap with clear runs at 1 (one bit), 3 (two bits) and 6 (ten bits), the shipped
- * export with SizeOfRunArray = 1 returns (3,2) -- not (1,1) -- and with room for all three:
+ * export with SizeOfRunArray = 1 returns (3,2) (not (1,1)) and with room for all three:
  *
  *      (3,2)  (1,1)  (6,10)
  *
@@ -18,7 +18,7 @@
  *      Rva 0x192560[b]  the number of clear bits at the top of b        (leading zeros)
  *      RVA 0x192548[n]  (1 << n) - 1
  *      Rva 0x180570[b]  the length of the longest clear run in b
- *      RVA 0x180558[n]  the mask of the bits at and above n -- used both to force the slack past
+ *      RVA 0x180558[n]  the mask of the bits at and above n, used both to force the slack past
  *                       SizeOfBitMap to ones AND, read backwards from 0x180560, as the top-n mask
  *
  * (Every one of those was dumped from the live image and checked against its claimed meaning over
@@ -28,8 +28,8 @@
  *
  *   1. the run CARRIED IN from earlier bytes, plus this byte's trailing zeros, is now complete --
  *      emitted FIRST;
- *   2. the run at the TOP of the byte becomes the new carry -- NOT emitted here;
- *   3. both of those are masked off, and what is left -- the runs strictly INSIDE the byte -- is
+ *   2. the run at the TOP of the byte becomes the new carry, NOT emitted here;
+ *   3. both of those are masked off, and what is left (the runs strictly INSIDE the byte) is
  *      emitted by repeatedly taking the longest one (0x180570), ties going to the lowest position,
  *      masking it off and going again.
  *
@@ -39,13 +39,13 @@
  *
  * And the sorted form is unaffected, which is worth stating because it is not obvious. Sorted output
  * is a STABLE sort of the found order by descending length, so the found order can only show through
- * between runs of EQUAL length -- and for two runs of equal length the found order and the ascending
+ * between runs of EQUAL length, and for two runs of equal length the found order and the ascending
  * order AGREE:
  *
  *      two runs of the same length L with starts s1 < s2 end at s1+L < s2+L, so the byte in which
  *      each completes is ordered the same way. If those bytes differ, the earlier one is emitted
- *      first. If they are the same byte, either both are interior -- equal length, so the tie goes
- *      to the lower position, which is s1 -- or one is the carry, and the carry starts at or below
+ *      first. If they are the same byte, either both are interior, equal length, so the tie goes
+ *      to the lower position, which is s1, or one is the carry, and the carry starts at or below
  *      the byte's first bit while an interior run starts above it, so the carry is the one at s1
  *      and the carry is emitted first.
  *

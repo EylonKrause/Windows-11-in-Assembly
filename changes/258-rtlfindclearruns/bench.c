@@ -10,27 +10,27 @@
  * on that one BOOLEAN. So every shape below is measured both WAYS, and the two forms are separate
  * rows rather than an average.
  *
- * THE SHAPES, chosen the same way change 255's were -- a run search's cost depends on the bitmap's
+ * THE SHAPES, chosen the same way change 255's were; a run search's cost depends on the bitmap's
  * shape and not only its size:
  *
- *   all set        -- no clear bits at all. Nothing is ever emitted; the whole map is rejected in
- *                     one compare per 64 bits. UNSORTED does NOT stop early here -- there is
- *                     nothing to fill the array with -- so this is a full scan in both forms.
- *   dense          -- eight runs in 64 Kbit. Unsorted with room for eight has to walk the entire
+ *   all set; no clear bits at all. Nothing is ever emitted; the whole map is rejected in
+ *                     one compare per 64 bits. UNSORTED does NOT stop early here; there is
+ *                     nothing to fill the array with, so this is a full scan in both forms.
+ *   dense, eight runs in 64 Kbit. Unsorted with room for eight has to walk the entire
  *                     bitmap to find its eighth run, so it cannot short-circuit either.
- *   realistic      -- ~200 free extents of varying length, which is what a live bitmap looks like.
- *   sparse         -- 0xA5A5A5A5: a clear run every two bits, SIXTEEN THOUSAND of them. Sorted,
- *                     this is the adversarial shape; unsorted, it is the opposite -- the array
+ *   realistic, ~200 free extents of varying length, which is what a live bitmap looks like.
+ *   sparse, 0xA5A5A5A5: a clear run every two bits, SIXTEEN THOUSAND of them. Sorted,
+ *                     this is the adversarial shape; unsorted, it is the opposite, the array
  *                     fills in the first few bytes and the call returns almost immediately.
- *   half-and-half  -- alternating 32-bit blocks of ones and zeros: the longest run inside a word is
+ *   half-and-half, alternating 32-bit blocks of ones and zeros: the longest run inside a word is
  *                     32, which is the worst case for the sorted form's `x &= x >> 1` skip test.
- *   all clear      -- one run covering everything, and the fast path for both forms.
+ *   all clear, one run covering everything, and the fast path for both forms.
  *
  * And the capacity is part of the subject, not a detail: SizeOfRunArray = 1 is what
  * RtlFindLongestRunClear passes, and a larger array makes the sorted form's insertion longer and
  * the unsorted form's scan longer. Rows at 1, 8 and 64 are all here.
  *
- * Every row states what it found before the table -- the number of runs and the first entry ours
+ * Every row states what it found before the table, the number of runs and the first entry ours
  * and the live export agreed on. A run search whose answer is not what the row's name implies would
  * still produce a perfectly plausible time.
  */

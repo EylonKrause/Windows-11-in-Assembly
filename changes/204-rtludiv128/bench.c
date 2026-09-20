@@ -1,7 +1,7 @@
 // changes/204-rtludiv128/bench.c
 // Gate 2: time wia_udiv128 against the live ntdll!RtlUdiv128.
 //
-// The shipped function costs the same for every input -- it always runs 64 iterations -- so the
+// The shipped function costs the same for every input (it always runs 64 iterations) so the
 // classes here are chosen to separate OUR two paths rather than to vary a size: the hardware-divide
 // region, the saturating region, and a divisor of 0. A random mix is included last so a
 // branch-predictor-friendly single-path benchmark cannot flatter the result.

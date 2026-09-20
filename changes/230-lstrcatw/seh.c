@@ -1,14 +1,14 @@
 // changes/230-lstrcatw/seh.c
 // The exception wrapper for kernelbase!lstrcatW, and the NULL checks.
 //
-// probes/catw.c measured the shipped export against all THREE ways it can go wrong -- lstrcat reads
-// the destination as well as writing it -- and it swallows every one:
+// probes/catw.c measured the shipped export against all THREE ways it can go wrong, lstrcat reads
+// the destination as well as writing it, and it swallows every one:
 //
 //     an unterminated destination at a NOACCESS page : 80 of 80 Returned NULL, 0 faulted
 //     an unterminated SOURCE at a NOACCESS page      : 80 of 80 RETURNED NULL, 0 faulted
 //     a DESTINATION too small for the append         : 38 of 38 RETURNED NULL, 0 faulted
 //
-// So the scan and the append stay in assembly and this supplies the NULL checks -- a NULL source
+// So the scan and the append stay in assembly and this supplies the NULL checks, a NULL source
 // returns NULL and leaves the destination alone, which is why the check must precede the core --
 // and a __try/__except converting an access violation into NULL, leaving whatever the core had
 // already written. That partial matches the shipped one because the core page-clamps every pointer

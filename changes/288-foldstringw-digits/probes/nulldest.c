@@ -4,7 +4,7 @@
  *
  * impl.asm refuses a NULL destination when cchDest is non-zero, and reference.c does the same. Mutation
  * mutant #10 deleted that refusal from impl.asm and the correctness gate still passed 66,410 cases with
- * 0 mismatches -- because not one of those cases passes a NULL destination together with a non-zero
+ * 0 mismatches, because not one of those cases passes a NULL destination together with a non-zero
  * cchDest. The corpus could not express the case, so the check was untested; worse, the check itself was
  * never MEASURED. It was written from the natural assumption that a NULL destination must be refused,
  * and reference.c inherited the assumption from impl.asm rather than from the export. An assumption
@@ -12,11 +12,11 @@
  *
  * So this probe asks the live export directly, at every combination that can reach the question:
  *
- *     dest == NULL with cchDest == 0            -- the length query, where NULL is the normal call
+ *     dest == NULL with cchDest == 0; the length query, where NULL is the normal call
  *     dest == NULL with cchDest large enough
  *     dest == NULL with cchDest too small
  *     dest == NULL with cchDest == 1 and cchSrc == 1
- *     dest != NULL with cchDest == 0            -- the converse: is dest ignored when cchDest is 0?
+ *     dest != NULL with cchDest == 0; the converse: is dest ignored when cchDest is 0?
  *
  * and it prints the return value AND the error for each, with the error reset before every call (the
  * lesson of the cchSrc == 0 measurement bug: a stale error is indistinguishable from a real one).

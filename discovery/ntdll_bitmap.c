@@ -4,19 +4,19 @@
  *
  * discovery/ntdll_rtl_uncovered.c screened thirteen uncovered ntdll exports and found
  * RtlFindUnicodeSubstring at the top by a factor of six (it became change 252). The SECOND most
- * expensive row in that table was RtlFindSetBits at 0.133 ns/byte -- a RUN SEARCH, "find N
- * consecutive set bits" -- and the family around it was only sampled, not surveyed. This surveys it.
+ * expensive row in that table was RtlFindSetBits at 0.133 ns/byte, a RUN SEARCH, "find N
+ * consecutive set bits", and the family around it was only sampled, not surveyed. This surveys it.
  *
  * Why this family is worth a second look. a bitmap search is the rare case where the shipped code
  * cannot easily be dismissed as "already optimal": popcount has a dedicated instruction, run-finding
- * maps onto TZCNT/LZCNT/BLSR, and 64 KB of bitmap is only 1024 qwords -- so a run search costing
+ * maps onto TZCNT/LZCNT/BLSR, and 64 KB of bitmap is only 1024 qwords, so a run search costing
  * 1088 ns means roughly one bit per cycle, which is what a naive bit-at-a-time loop costs and what a
  * word-at-a-time one does not.
  *
  * The subject matters more here than anywhere else in this project, and getting it wrong is easy.
  * A bitmap of 0xA5A5A5A5 has a longest set run of TWO, so a request for 64 consecutive set bits
  * cannot be satisfied and the row measures the FULL-SCAN FAILURE path. That is a legitimate thing to
- * measure -- it is the expensive case -- but a row that does not SAY so reads as though the function
+ * measure (it is the expensive case) but a row that does not SAY so reads as though the function
  * is slow at finding things when it is actually slow at not finding them. So every row below states
  * the density of its bitmap, what it asked for, and what it got, and each search is run against
  * THREE different bitmaps: sparse, dense, and one with a planted run near the end.

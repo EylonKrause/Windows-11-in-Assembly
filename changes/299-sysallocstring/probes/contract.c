@@ -1,15 +1,15 @@
-/* changes/299-sysallocstring/probes/contract.c -- pin SysAllocString's contract before implementing it.
+/* changes/299-sysallocstring/probes/contract.c: pin SysAllocString's contract before implementing it.
  *
  * discovery/oleaut32_sysallocstring.c established WHAT is slow (a scalar strlen in front of
  * SysAllocStringLen). This establishes what it does, because "it is obviously SysAllocStringLen(s,
  * wcslen(s))" is a guess until the corners are measured:
  *
- *   1. NULL input -- NULL out, or an empty BSTR?
- *   2. the empty string -- a NULL BSTR, or a real zero-length one? These are different things: a
+ *   1. NULL input, NULL out, or an empty BSTR?
+ *   2. the empty string; a NULL BSTR, or a real zero-length one? These are different things: a
  *      NULL BSTR and a zero-length BSTR both have SysStringLen() == 0.
  *   3. is the returned block really SysAllocStringLen's? Compare the byte-length prefix at [-4],
  *      the terminator, and whether SysFreeString accepts it.
- *   4. embedded NULs -- the measurement must stop at the first one.
+ *   4. embedded NULs; the measurement must stop at the first one.
  *   5. is the prefix a BYTE count (it is documented as one, but the whole point of this file is
  *      not to take documentation for measurement).
  */

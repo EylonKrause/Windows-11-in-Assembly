@@ -4,23 +4,23 @@
  *
  * The subject matters more here than in any other benchmark in this project, because the cost of a
  * run search depends on the bitmap's SHAPE and not only its size, and the two are easy to confuse.
- * discovery/ntdll_bitmap.c established that the shipped code's cost is NOT per-run -- eight runs
- * cost 8423 ns and two hundred cost 8689 -- so it is a fixed per-bit scan. Ours is not: it is
+ * discovery/ntdll_bitmap.c established that the shipped code's cost is NOT per-run, eight runs
+ * cost 8423 ns and two hundred cost 8689, so it is a fixed per-bit scan. Ours is not: it is
  * per-word with a per-word inner loop bounded by the longest run INSIDE that word. So the rows below
  * span the whole range of shapes deliberately, and the one this implementation is worst at is
  * included rather than omitted:
  *
- *   all set        -- no clear bits at all. Every word is rejected by one CMP against -1.
- *   dense          -- a real allocation bitmap that is nearly full.
- *   realistic      -- ~200 free extents of varying length, which is what a live bitmap looks like.
- *   sparse         -- 0xA5A5A5A5: a clear run every two bits, SIXTEEN THOUSAND of them. This is the
+ *   all set; no clear bits at all. Every word is rejected by one CMP against -1.
+ *   dense; a real allocation bitmap that is nearly full.
+ *   realistic, ~200 free extents of varying length, which is what a live bitmap looks like.
+ *   sparse, 0xA5A5A5A5: a clear run every two bits, SIXTEEN THOUSAND of them. This is the
  *                     adversarial shape, and the one where a per-run implementation would lose.
- *   half-and-half  -- alternating 32-bit blocks of ones and zeros: the longest run INSIDE a word is
+ *   half-and-half, alternating 32-bit blocks of ones and zeros: the longest run INSIDE a word is
  *                     32, so the inner `x &= x >> 1` loop runs 33 times for every word it examines.
  *                     This is the worst case for the approach and it is measured.
- *   all clear      -- one run covering everything; every word takes the all-zero fast path.
+ *   all clear; one run covering everything; every word takes the all-zero fast path.
  *
- * Every row states what it found before the table -- the length and the start index ours and the
+ * Every row states what it found before the table, the length and the start index ours and the
  * live export agreed on. A run search whose answer is not what the row's name implies would still
  * produce a plausible time.
  */

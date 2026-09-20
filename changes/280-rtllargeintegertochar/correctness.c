@@ -4,22 +4,22 @@
  * NTSTATUS and every byte of a poison-filled buffer.
  *
  * The whole buffer is compared, on failing calls as well, because probes/contract.c measured that a
- * refusal leaves it untouched -- and because the two success shapes differ in what they leave
+ * refusal leaves it untouched, and because the two success shapes differ in what they leave
  * BEHIND the answer:
  *
  *     a POSITIVE length writes the digits and a terminator only if one fits;
  *     a NEGATIVE length writes exactly -length characters, ZERO-PADDED on the left, and no
  *     terminator at all.
  *
- * That is exactly the distinction change 100 -- the landed implementation of this export -- gets
+ * That is exactly the distinction change 100 (the landed implementation of this export) gets
  * wrong on every single negative length, and it is invisible to any check that compares only the
  * status. Six of change 279's eleven mutants had identical statuses on both sides.
  *
  * The corpus is built where a 64-BIT length-first converter goes wrong:
  *
- *   * Every power of two, all sixty-four, one either side -- the bit lengths where the digit count
+ *   * Every power of two, all sixty-four, one either side, the bit lengths where the digit count
  *     from BSR changes, in every base.
- *   * Every power of ten, all twenty, one either side -- where the decimal correction fires.
+ *   * Every power of ten, all twenty, one either side, where the decimal correction fires.
  *   * THE 2^32 BOUNDARY, because the eight-digit peel is what separates the 64-bit reciprocal from
  *     067's 32-bit one, and a value just above it takes one more trip through the peel than a
  *     value just below.
@@ -294,7 +294,7 @@ int main(void)
      * INT_MIN is the only negative length that is a REFUSAL rather than a field width, and it is
      * here. Its neighbour is not, and that is deliberate: INT_MIN+1 is a field width of
      * 2147483647, and probes/contract.c measured that a width longer than the buffer runs off the
-     * end -- change 279's first corpus died of an access violation for exactly that reason. The
+     * end, change 279's first corpus died of an access violation for exactly that reason. The
      * buffer here is 320 bytes and nothing asks for more than 200.
      */
     {

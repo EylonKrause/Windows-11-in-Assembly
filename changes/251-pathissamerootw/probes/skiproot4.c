@@ -11,7 +11,7 @@
  *   s[0] alpha and s[1] == ':'               -> 3 if s[2] is a separator, else 2
  *   otherwise                                -> E_INVALIDARG
  *
- * the UNC walk from i (this is 0x2B47C literally -- two wcschr calls and a cmove):
+ * the UNC walk from i (this is 0x2B47C literally, two wcschr calls and a cmove):
  *   consume the server; if there is no separator after it, stop;
  *   consume that separator even if the server was empty;
  *   consume the share; if the share was EMPTY, stop BEFORE its separator, otherwise consume it too.

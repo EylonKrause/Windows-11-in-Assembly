@@ -30,7 +30,7 @@ static FN ren;
 #define POISON '#'
 #define NB 512
 
-/* the wide rule as CORRECTED, transcribed to bytes -- the model under test */
+/* the wide rule as CORRECTED, transcribed to bytes, the model under test */
 static int ext_pos(const char* p){
     int n = 0; while (p[n]) ++n;
     int cand = -1, i;

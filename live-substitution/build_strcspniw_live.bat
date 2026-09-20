@@ -2,7 +2,7 @@
 REM ===========================================================================
 Rem  live-run proof for change 285 (shlwapi!StrCSpnIW).
 REM
-REM  The shipped export costs 2971 ns over 511 code units -- the most expensive of
+REM  The shipped export costs 2971 ns over 511 code units, the most expensive of
 REM  the remaining StrXxxIW family.
 REM
 REM  Its relation is change 281's, and that was MEASURED rather than assumed:
@@ -12,7 +12,7 @@ REM  symmetric, with a multi-member set exactly the union of its members' rows.
 REM
 REM  The virtual NUL that changes 283 and 284 had to model is UNOBSERVABLE here:
 REM  whether the terminator counts as a set member or merely stops the scan, the
-REM  answer is the length either way -- which is why this change never measures
+REM  answer is the length either way, which is why this change never measures
 REM  the string at all.
 REM
 REM  All the paths are driven: the single unbounded pass for a small set, the

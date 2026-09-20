@@ -60,7 +60,7 @@ static void build_fold(void){
     for (int v = 0xF8; v <= 0xFE; ++v) FOLD[v] = (unsigned char)(v - 0x20);
     FOLD[0x9A] = 0x8A; FOLD[0x9C] = 0x8C; FOLD[0x9E] = 0x8E;
     FOLD[0xFF] = 0x9F;
-    /* deliberately NOT FOLD[0x88] = 0x5E -- that is change 236's fold, not this one */
+    /* deliberately NOT FOLD[0x88] = 0x5E; that is change 236's fold, not this one */
 }
 
 /* standard greedy matcher over a pattern of exactly pl characters, case-folded */

@@ -5,7 +5,7 @@
    EVERY COMPARISON CHECKS THE RETURN AND THE WHOLE BUFFER AGAINST A POISON FILL, because this
    function's contract splits into parts that a looser check cannot separate:
 
-     * the RETURN does not mean "something changed" -- "123456", "" and "\\\\" all return 1 while
+     * the RETURN does not mean "something changed", "123456", "" and "\\\\" all return 1 while
        changing nothing, so a harness that inferred one from the other would pass an implementation
        that returned the wrong thing on exactly those;
      * a REFUSAL writes nothing, and a string comparison cannot tell that from writing the same bytes

@@ -6,7 +6,7 @@
 ; errno_t wia_wcsset_s(wchar_t* str, size_t numberOfElements, wchar_t c)
 ;   [Win64: rcx, rdx, r8w -> eax]
 ;
-; Reimplements ucrtbase!_wcsset_s -- the bounded sibling of change 079 (_wcsset) and the wide
+; Reimplements ucrtbase!_wcsset_s, the bounded sibling of change 079 (_wcsset) and the wide
 ; mirror of change 182. ucrtbase's is scalar.
 ;
 ; Contract: identical in shape to change 182's, and that is a MEASUREMENT, not an assumption --
@@ -19,8 +19,8 @@
 ;   * Otherwise -> fill every cell before the terminator, keep the terminator, return 0.
 ;   * Every fill value behaves the same, including 0.
 ;
-; (Byte/wide pairs in this CRT are not automatically identical -- change 048 folds the 26 ASCII
-;  letters and so does change 050, but the Rtl* family diverges -- so the wide form was fuzzed
+; (Byte/wide pairs in this CRT are not automatically identical, change 048 folds the 26 ASCII
+;  letters and so does change 050, but the Rtl* family diverges, so the wide form was fuzzed
 ;  in its own right.)
 ;
 ; Method: because both outcomes fill, the fill count is computed once --
@@ -33,7 +33,7 @@
 ; 32 bytes of a page end it steps one character and retries. The fill writes at most
 ; numberOfElements-1 characters, so it stays inside the declared buffer.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

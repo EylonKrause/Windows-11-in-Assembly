@@ -135,7 +135,7 @@ static HRESULT model(wchar_t* p, size_t cch)
         end = j; za = j;
         if (end > rl && is_sep(p[end-1])) { zb = end - 1; end = end - 1; }
         else if (j == rl && unc_root) zc = j + 1;
-            /* The cut lands ON the root and the root is a SERVER/SHARE root -- then one more slot is
+            /* The cut lands ON the root and the root is a SERVER/SHARE root, then one more slot is
                cleared. It is the root's TYPE that decides, not whether the root ends in a separator:
                "\\\" (root "\\", server/share) clears the extra slot, while "a:\\aa"
                (root "a:\", a drive) does not. j+1 <= n, so the write is always in bounds, and when

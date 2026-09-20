@@ -77,19 +77,19 @@ changes\035-wcspbrk\build.bat
 ## Revision (2026-09-07) — geomean **7.975** (was 4.738)
 
 The original implementation re-walked the set **inside every 32-byte block**, broadcasting each
-member afresh -- roughly seven instructions per member per block. Two things were wrong with that.
+member afresh, roughly seven instructions per member per block. Two things were wrong with that.
 
 The obvious one is the instruction count. The less obvious one only showed up when it was measured:
 a branchy loop that small **aliases in the branch predictor**, so its cost is decided by where the
 code happens to land. While working on the sibling routine, adding three uops at the top of the
-function -- or inserting alignment padding on the per-block fall-through -- moved a 1024-character
+function (or inserting alignment padding on the per-block fall-through) moved a 1024-character
 result between **96 and 125 ns with no change whatever to the work done**. Chasing that surfaced the
 real fix.
 
 So the first three set members are now broadcast **once**, before the block loop, into
 `ymm2`/`ymm4`/`ymm5`, and the block body is straight-line. When the set is shorter, the spare
-registers take a **duplicate of member 0** -- harmless, because the compare results are OR-ed and
-$a \lor a = a$ -- which is what avoids needing three separate specialised loops. Members past the
+registers take a **duplicate of member 0**, harmless, because the compare results are OR-ed and
+$a \lor a = a$, which is what avoids needing three separate specialised loops. Members past the
 third are walked from memory in a tail that costs two uops per block when it is empty, so the old
 "sets of 32 or more fall to a scalar path" special case is gone: one code path now handles every set
 size correctly.
@@ -103,11 +103,11 @@ the "both are terminators" case is separated from a genuine hit by a single `tes
 
 ### Correctness — re-run with a strengthened harness
 `correctness.exe`: **PASS**, comparing against both the live export and the oracle over **16 alignments** (every legal, i.e. even, 32-byte offset) **x lengths 0..200 x set sizes
-0..8 and 12/20/33/40** -- the larger sets run well past the three hoisted registers into the
+0..8 and 12/20/33/40**, the larger sets run well past the three hoisted registers into the
 memory tail; a **disjoint set at every length**; a **single member planted at every position of
 every length**; zero-low-byte (`0x4100`), zero-high-byte (`0x0041`) and `0xFFFF` wchar traps that
 a byte-granular compare would fail; and **NOACCESS page-guard sweeps on both the string and the
-set** -- the set matters because it is walked scalar-wise and must stop at its own NUL.
+set**; the set matters because it is walked scalar-wise and must stop at its own NUL.
 
 ### Benchmark — re-run vs live `ucrtbase`
 

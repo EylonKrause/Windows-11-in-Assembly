@@ -6,12 +6,12 @@
    StrCatBuff) and the path *editors* (PathRemoveExtension, PathUndecorate, PathQuoteSpaces, ...),
    which is where changes 131-239 came from. Three whole families were never measured at all:
 
-     * the URL family -- UrlEscape, UrlUnescape, UrlCanonicalize, UrlGetPart, UrlIs, UrlHash,
+     * the URL family, UrlEscape, UrlUnescape, UrlCanonicalize, UrlGetPart, UrlIs, UrlHash,
        UrlCompare, UrlApplyScheme, UrlCreateFromPath. These are per-character transforms with a
        table and a %XX escape, which is the exact shape this project converts best;
-     * the formatters and parsers -- StrFormatByteSize, StrFormatKBSize, StrFromTimeInterval,
+     * the formatters and parsers, StrFormatByteSize, StrFormatKBSize, StrFromTimeInterval,
        StrToIntEx, StrToInt64Ex, HashData;
-     * the path predicates and the remaining writers -- PathCanonicalize, PathCombine, PathAppend,
+     * the path predicates and the remaining writers, PathCanonicalize, PathCombine, PathAppend,
        PathAddExtension, PathCompactPathEx, PathUnquoteSpaces, PathMatchSpec/Ex, PathRelativePathTo,
        PathSkipRoot, PathBuildRoot, PathIsRoot/UNC/Relative/NetworkPath/SameRoot/LFNFileSpec/URL,
        PathGetCharType, PathGetDriveNumber, PathFindSuffixArray, PathParseIconLocation.
@@ -238,7 +238,7 @@ int main(void){
         BYTE hashbuf[16];
 
         if (esc) {
-            /* TWO ROWS, and the pair is the point -- see the note at the subjects. The first
+            /* TWO ROWS, and the pair is the point, see the note at the subjects. The first
                subject's escapable characters sit in the query, which UrlEscape leaves alone, so
                that row is the cost of deciding there is nothing to do. The second's sit in the
                path, so that row carries the escaping as well. */

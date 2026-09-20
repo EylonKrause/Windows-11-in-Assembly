@@ -8,14 +8,14 @@
  * But FoldStringW is five different functions behind one entry point, and they are not equally
  * tractable:
  *
- *     MAP_FOLDDIGITS       0x0080   digits of every script to ASCII 0-9    -- plausibly 1:1
- *     MAP_FOLDCZONE        0x0010   compatibility-zone characters          -- plausibly 1:1
- *     MAP_PRECOMPOSED      0x0020   combine base + accent into one unit    -- LENGTH CHANGING
- *     MAP_COMPOSITE        0x0040   split one unit into base + accent      -- LENGTH CHANGING
- *     MAP_EXPAND_LIGATURES 0x2000   one unit into several                  -- LENGTH CHANGING
+ *     MAP_FOLDDIGITS       0x0080   digits of every script to ASCII 0-9, plausibly 1:1
+ *     MAP_FOLDCZONE        0x0010   compatibility-zone characters, plausibly 1:1
+ *     MAP_PRECOMPOSED      0x0020   combine base + accent into one unit, LENGTH CHANGING
+ *     MAP_COMPOSITE        0x0040   split one unit into base + accent, LENGTH CHANGING
+ *     MAP_EXPAND_LIGATURES 0x2000   one unit into several, LENGTH CHANGING
  *
  * A mapping that changes the length is not a per-character table, and a mapping that depends on
- * neighbouring characters -- which composition inherently does -- is not one either. Change 287's
+ * neighbouring characters (which composition inherently does) is not one either. Change 287's
  * questions therefore have to be asked PER FLAG rather than once, and the answer decides the scope of
  * this change rather than whether it happens at all: the repository already carries four separate
  * changes for crypt32!CryptBinaryToStringA, one per output format, and materialize.py combines them.
@@ -24,7 +24,7 @@
  *
  *   1. which flags are accepted at all, alone and together;
  *   2. whether the output LENGTH ever differs from the input length;
- *   3. whether the mapping is CONTEXT-FREE -- a long string compared against the per-character result;
+ *   3. whether the mapping is CONTEXT-FREE, a long string compared against the per-character result;
  *   4. whether it is LOCALE-INVARIANT across several thread locales;
  *   5. how many code units the 1:1 flags actually change, which is what decides whether a table is
  *      worth having at all;

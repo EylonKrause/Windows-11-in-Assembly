@@ -11,7 +11,7 @@
  * which looks like proof that the accumulator wraps at 32 bits. It is not proof of anything. The
  * value 0x11111111 has all four bytes equal, and inet_addr returns NETWORK byte order, so the
  * answer reads the same whether the parser wrapped, truncated, saturated or byte-swapped. It was a
- * test whose input could not distinguish the hypotheses -- the same defect as change 067's corpus
+ * test whose input could not distinguish the hypotheses, the same defect as change 067's corpus
  * stepping MaximumLength by two, in a different costume.
  *
  * So this file asks again with values whose four bytes are all DIFFERENT, and separates the three
@@ -25,7 +25,7 @@
  * one that accumulates in 64 bits and checks at the end differ exactly here.
  *
  * It also settles what LEADING ZEROS do to the count, since probes/bytes.c showed 37 of them are
- * tolerated -- so "at most N digits" cannot be the rule as stated.
+ * tolerated, so "at most N digits" cannot be the rule as stated.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>

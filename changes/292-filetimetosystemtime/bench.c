@@ -3,7 +3,7 @@
  * GATE 2, against the LIVE kernel32!FileTimeToSystemTime.
  *
  * A FILETIME is always eight bytes, so there is no length axis and the "size classes" of this
- * benchmark are input classes instead -- the ones whose cost could plausibly differ: the epoch
+ * benchmark are input classes instead; the ones whose cost could plausibly differ: the epoch
  * itself, a date at each end of the useful range, the largest accepted value, and the reject path,
  * which is a separate code path in both implementations and therefore a separate row. The
  * arithmetic is branch-free and data-independent, so the accepted rows are expected to be flat;

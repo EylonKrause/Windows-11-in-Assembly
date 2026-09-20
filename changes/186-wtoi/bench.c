@@ -2,7 +2,7 @@
 // Gate 2: time wia_wtoi against the live ucrtbase!_wtoi across input shapes.
 // The classes cover the frequency split the implementation is built around: ASCII digits (the
 // common case), a leading whitespace run, the saturating path, and the two non-ASCII digit
-// routes -- fullwidth (scalar) and a block that only the AVX2 classifier can resolve.
+// routes, fullwidth (scalar) and a block that only the AVX2 classifier can resolve.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>
@@ -23,14 +23,14 @@ int main(void){
     HMODULE hu = LoadLibraryW(L"ucrtbase.dll");
     sys = (WTOI)GetProcAddress(hu,"_wtoi");
 
-    /* U+FF10.. fullwidth "1234567890" -- the scalar non-ASCII route */
+    /* U+FF10.. fullwidth "1234567890", the scalar non-ASCII route */
     { const wchar_t* d=L"1234567890"; int k=0; for(;d[k];k++) fw[k]=(wchar_t)(0xFF10+(d[k]-L'0')); fw[k]=0; }
-    /* U+0660.. Arabic-Indic "1234567890" -- only the AVX2 classifier resolves this block */
+    /* U+0660.. Arabic-Indic "1234567890", only the AVX2 classifier resolves this block */
     { const wchar_t* d=L"1234567890"; int k=0; for(;d[k];k++) arab[k]=(wchar_t)(0x0660+(d[k]-L'0')); arab[k]=0; }
     /* one digit from each of several different blocks, concatenated */
     { static const unsigned short B[10]={0x0030,0xFF10,0x0660,0x06F0,0x0966,0x09E6,0x0A66,0x0B66,0x0E50,0x1810};
       for(int i=0;i<10;i++) mixed[i]=(wchar_t)(B[i]+((i*3+1)%10)); mixed[10]=0; }
-    /* 32 leading zeros then a value -- the long-run case change 109 also benches */
+    /* 32 leading zeros then a value, the long-run case change 109 also benches */
     { int k=0; for(;k<32;k++) longz[k]=L'0'; longz[k++]=L'4'; longz[k++]=L'2'; longz[k]=0; }
 
     enum { N = 8 };

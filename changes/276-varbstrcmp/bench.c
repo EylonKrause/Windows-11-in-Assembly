@@ -4,17 +4,17 @@
  *
  * The rows that decide this change are the ones it cannot win, and they are in the table for that
  * reason. probes/gap.c measured the shipped wrapper's own overhead at 1.25-2.25 ns on top of the
- * CompareStringW it calls -- so any comparison that has to be collated has essentially nothing to
+ * CompareStringW it calls, so any comparison that has to be collated has essentially nothing to
  * give, and only the comparisons that do NOT have to be collated can be won:
  *
  *     equal by content       0.8 ns per character of pure waste, at every length
  *     the same pointer       3208 ns at 4000 characters, for a pointer comparison
- *     differing at 0         33.25 ns whatever the length -- CompareStringW exits early itself
+ *     differing at 0         33.25 ns whatever the length, CompareStringW exits early itself
  *     different lengths      the same
  *
  * A bench made only of the first two would report a spectacular geomean and hide every row in
- * doubt. Both kinds are here at every length, and the short equal rows -- below the fast path's
- * sixteen-character threshold, where this implementation is a lean wrapper and nothing more -- are
+ * doubt. Both kinds are here at every length, and the short equal rows, below the fast path's
+ * sixteen-character threshold, where this implementation is a lean wrapper and nothing more, are
  * the ones to read first.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -76,7 +76,7 @@ int main(void)
         wsprintfA(names[k], "equal, %d chars", n);
         ++k;
     }
-    /* differing at character 0, at every length -- what CompareStringW already does well */
+    /* differing at character 0, at every length, what CompareStringW already does well */
     for (i = 0; i < (int)(sizeof LENS / sizeof LENS[0]); ++i) {
         n = LENS[i];
         q[0] = L'Z';

@@ -1,14 +1,14 @@
 ; changes/295-rtlunicodestringtointeger/impl.asm
 ; Long wia_ustr2int(const UNICODE_STRING* s, ulong Base, ulong* Value)   [Win64: rcx, edx, r8 -> eax]
 ;
-; Reimplements ntdll!RtlUnicodeStringToInteger -- the COUNTED-UNICODE sibling of the landed
+; Reimplements ntdll!RtlUnicodeStringToInteger, the COUNTED-UNICODE sibling of the landed
 ; 129 RtlCharToInteger, and the parse-side complement of 278 RtlIntegerToUnicodeString.
 ;
 ; The contract is not 129's. Two rules differ, both measured, and taking either one from the ANSI
 ; sibling instead of from this export would have been silently wrong:
 ;
 ;   * the leading skip here is an UNSIGNED 16-bit compare against 0x20, so U+0000..U+0020 are all
-;     whitespace -- a leading NUL is skipped as a SPACE, not stepped over as a special case -- and
+;     whitespace (a leading NUL is skipped as a SPACE, not stepped over as a special case) and
 ;     U+0080..U+FFFF are NOT whitespace. 129's ANSI skip is a SIGNED char compare and therefore also
 ;     eats 0x80-0xFF, and it needs an explicit "step over one leading NUL" rule that has no
 ;     counterpart here;
@@ -22,7 +22,7 @@
 ; overflow detection and no status change. reference.c carries the full rule list and where each one
 ; was measured; probes/contract.c and probes/pageguard.c are the measurements.
 ;
-; ISA: baseline x86-64. No SSE/AVX at all -- RESULTS.md records why the vector idea was rejected on
+; ISA: baseline x86-64. No SSE/AVX at all, RESULTS.md records why the vector idea was rejected on
 ; page-safety grounds before it was ever worth timing. No stack frame, no non-volatile register, no
 ; memory written but the caller's ULONG.
 ;
@@ -40,7 +40,7 @@
 ;  1. The cursor is a negative offset from the end, not a pointer compared against one. Advancing and
 ;     testing for the end then become a single `add r10,2 / jz`, where a forward cursor needs
 ;     `add / cmp / jae`. That is one fewer uop in every loop in this file, including the whitespace
-;     skip -- and because Length is a USHORT count of bytes and the odd case has already been
+;     skip, and because Length is a USHORT count of bytes and the odd case has already been
 ;     refused, the offset lands exactly on zero and can never step over it.
 ;
 ;  2. Four digit loops instead of one. The shipped export runs a single loop carrying the base in one

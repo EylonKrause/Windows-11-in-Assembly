@@ -4,20 +4,20 @@
 // The case mix. This function's cost has three components and the rows are chosen to separate them:
 //   * the per-character walk, which scales with the input;
 //   * a FIXED heap tax above 64 wide characters, where the shipped code stops fitting its 65-WCHAR
-//     stage buffer and calls LocalAlloc(LMEM_ZEROINIT) -- discovery measured the step directly,
-//     1.648 ns/char at 64 characters against 2.067 at 100 -- so 63 and 64 are both rows;
+//     stage buffer and calls LocalAlloc(LMEM_ZEROINIT), discovery measured the step directly,
+//     1.648 ns/char at 64 characters against 2.067 at 100, so 63 and 64 are both rows;
 //   * the escape density, because every escape is a scalar step in both implementations while the
 //     runs between them are vector work here and a per-character loop there.
 //
 // No restore is needed on the non-in-place rows: the destination is a separate buffer that is never
-// read back, and the source is never modified -- the correctness harness asserts that last part. The
+// read back, and the source is never modified, the correctness harness asserts that last part. The
 // IN-PLACE rows are the exception and they are the reason for the rotation and for the diagnostic
 // below: an in-place unescape consumes its own input, so it has to be restored, and a restore is a
 // memcpy of the whole string. That is heavy relative to the function, so it is (a) charged to both
 // sides equally, (b) placed on a buffer eight slots away from the one being processed, so it cannot
 // stall the next call's wide load the way the restores that parked changes 142, 228, 230 and 241 did,
 // and (c) printed on its own line so it can be subtracted. A restore heavier than the function
-// REPLACES the measurement -- change 238's benchmark had to be rebuilt over exactly that.
+// REPLACES the measurement, change 238's benchmark had to be rebuilt over exactly that.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

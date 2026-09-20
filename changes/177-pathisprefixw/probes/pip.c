@@ -108,7 +108,7 @@ int main(void){
             else for(int i=0;i<lq;i++) path[i]=AL[RND%6];
             path[lq]=0;
 
-            /* candidate v2 -- the reduction hypothesis:
+            /* candidate v2, the reduction hypothesis:
                    PathIsPrefixW(pre, path)  ==  ( PathCommonPrefixW(path, pre, NULL)
                                                    == wcslen(pre) )
                If this holds, PathIsPrefixW inherits change 167's contract wholesale -- which

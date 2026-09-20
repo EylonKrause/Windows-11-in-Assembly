@@ -1,7 +1,7 @@
 /* discovery/rtlrandomex_is_not_a_function_of_its_seed.c
  *
  * ntdll!RtlRandomEx cannot be reimplemented bit-exactly. This file is the measurement that kills it, in
- * the shape of discovery/lstrcmp_is_linguistic.c and discovery/strstra_not_bytewise.c -- a candidate that
+ * the shape of discovery/lstrcmp_is_linguistic.c and discovery/strstra_not_bytewise.c, a candidate that
  * looked excellent on the numbers and died on its contract, recorded rather than deleted so it is not
  * picked up again.
  *
@@ -33,21 +33,21 @@
  * ntdll's data and therefore belongs to the whole process, not to the caller's seed.
  *
  * A bit-exact replacement would have to reproduce that table, which means knowing its initial contents AND
- * every RtlRandomEx call any code in the process has made since -- including calls made by code that is
+ * every RtlRandomEx call any code in the process has made since, including calls made by code that is
  * not ours. That is not a function this project can reimplement; it is not a function at all in the sense
  * the gates require.
  *
  * And it is not even reproducible across processes. The obvious last hope was that the table is seeded
  * deterministically at process start, so that at least the FIRST call with a given seed would be a
- * function of that seed. Section 5 captures exactly that -- the first RtlRandomEx call of the process,
- * taken at the top of main before anything else in this program touches the table -- and two consecutive
+ * function of that seed. Section 5 captures exactly that, the first RtlRandomEx call of the process,
+ * taken at the top of main before anything else in this program touches the table, and two consecutive
  * runs of this same binary give:
  *
  *      run 1:  first call of the process, seed 12345 -> F78ED844, seed left at 7FFC9BC1
  *      run 2:  first call of the process, seed 12345 -> D3287E76, seed left at 7FFC9BC1
  *
  * Different values, identical seed update. The table is seeded from something unpredictable at process
- * start, so there is no call anywhere -- not even the first -- whose return value is determined by the
+ * start, so there is no call anywhere (not even the first) whose return value is determined by the
  * documented input. The kill is total.
  *
  * (The first draft of section 5 sat where its number belonged, AFTER sections 2-4, and therefore measured
@@ -70,7 +70,7 @@
  *      randomex(2147483646) -> 077939D0, seed becomes 7FFFFFD5
  *
  * So RtlRandomEx advances the caller's seed with exactly one RtlUniform step and then returns something
- * else entirely -- a value pulled out of the shuffle table, with the fresh Lehmer output stirred back in.
+ * else entirely, a value pulled out of the shuffle table, with the fresh Lehmer output stirred back in.
  * The seed trajectory is reproducible and the return value is not. Section 4 below sweeps that over
  * thousands of seeds rather than asserting it from three.
  *

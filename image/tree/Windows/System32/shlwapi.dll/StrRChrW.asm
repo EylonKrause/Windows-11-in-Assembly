@@ -21,7 +21,7 @@
 ; Two AVX2 paths. The bounded form scans BACKWARD from the end so it exits at the first match (the
 ; common "last separator in a path" use); the unbounded form scans forward tracking the last match,
 ; because finding the terminator first would cost a whole extra pass. All loads are 32-byte ALIGNED,
-; and a 32-byte aligned load never crosses a page boundary, so page safety is structural here -- the
+; and a 32-byte aligned load never crosses a page boundary, so page safety is structural here, the
 ; range ends are handled by masking bits out of the compare result, never by narrowing the load.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
@@ -30,19 +30,19 @@
 wia_strrchrw PROC
         ; The "wMatch == 0 -> NULL" rule belongs to the nul-terminated form alone, and this early-out
         ; used to sit here, above the test that picks the form, so it fired for both. In the raw-range
-        ; form the range is scanned LITERALLY -- the contract above says so itself, "ignoring embedded
-        ; NULs and running past the terminator if asked" -- and a NUL inside that range is an ordinary
+        ; form the range is scanned LITERALLY, the contract above says so itself, "ignoring embedded
+        ; NULs and running past the terminator if asked", and a NUL inside that range is an ordinary
         ; character that can be found. probes/nulmatch.c puts three NULs in a buffer and asks the export:
         ; [0,16) -> 11, [0,12) -> 11, [0,11) -> 7, [0,8) -> 7, so it is the LAST occurrence; [0,3) ->
         ; NULL and [0,4) -> 3, so the range is half-open; and seeking 'x' over the same ranges answers
         ; identically. A NUL in a raw range is not special in any way.
         ;
         ; In the NUL-terminated form it needs no rule at all: a scan that stops AT the terminator can
-        ; never match it, so NULL falls out for free -- which is why the original line looked correct
+        ; never match it, so NULL falls out for free, which is why the original line looked correct
         ; and read correct. It was right about the form it was written for and applied to both.
         ;
         ; Found by live substitution on 364 of 20000 cases, every one of them wMatch == 0 with a
-        ; pszEnd past the terminator -- exactly the 1-in-55 overlap of the corpus's two knobs, which
+        ; pszEnd past the terminator, exactly the 1-in-55 overlap of the corpus's two knobs, which
         ; is what made it obvious the two conditions had to occur TOGETHER to expose it. The change's
         ; own correctness gate never drew that combination.
         vmovd     xmm2, r8d

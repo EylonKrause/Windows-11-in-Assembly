@@ -4,21 +4,21 @@
  *
  * The rows cover all four modes, because they have different costs and only two of them are
  * searches. FIND_STARTSWITH and FIND_ENDSWITH are a single comparison, so their row is dominated by
- * the ENVELOPE -- the validation, the last-error store, and the length resolution -- and is the row
+ * the ENVELOPE (the validation, the last-error store, and the length resolution) and is the row
  * where a vector implementation has the least to win and the most to lose. FIND_FROMEND is the half
  * with no precedent in change 252: a backward block walk, where finding the answer in the last block
  * should cost almost nothing and the shipped code still scans from the front.
  *
  * Both length forms are measured. a cch of -1 makes the function measure the string first, which is
- * change 001's wia_wcslen here and an unrolled scalar loop (RVA 0x0A1F4B) in the shipped code -- a
+ * change 001's wia_wcslen here and an unrolled scalar loop (RVA 0x0A1F4B) in the shipped code, a
  * real difference that only shows up on that form.
  *
  * Every row states what it did before the table: the mode, the lengths, and the index ours and the
  * live export agreed on. A row labelled "miss" whose index is not -1 would be timing a short scan
  * and would still look entirely plausible; this project has twice measured a no-op and believed it.
  *
- * The adversarial row is kept from change 252 -- a needle whose first and last characters are both
- * the character the haystack is made of -- because that is the shape that made 252's gate report a
+ * The adversarial row is kept from change 252; a needle whose first and last characters are both
+ * the character the haystack is made of, because that is the shape that made 252's gate report a
  * different verdict on the same code until the far anchor was CHOSEN rather than fixed at m-1.
  */
 #include "bench.h"

@@ -8,7 +8,7 @@
 ; Reimplements shlwapi!PathMakePrettyA: lowercase a path that contains no lowercase letter, keeping
 ; its drive letter uppercase.
 ;
-; 1900.95 ns for 254 characters -- 7.48 ns PER BYTE, about 21 cycles a byte -- against 444.80 for the
+; 1900.95 ns for 254 characters (7.48 ns PER BYTE, about 21 cycles a byte) against 444.80 for the
 ; wide form on the same character count. That is 4.3x the wide cost for HALF the bytes, 8.5x per
 ; byte: the widest narrow/wide gap in discovery/shlwapi_path3.c. It is also that survey's largest
 ; early-versus-full gap at 98.6x, because the shared early subject is mixed case and gets refused in
@@ -18,26 +18,26 @@
 ; parts of the string, gated by a predicate that is narrower than either of them, with a bound on one
 ; of the two scans and not the other. Every clause below is measured in probes/pmpa2.c and pmpa3.c.
 ;
-;   * It refuses if the string contains any byte in 'a'..'z' -- exactly those 26 values. Not the
+;   * It refuses if the string contains any byte in 'a'..'z', exactly those 26 values. Not the
 ;     CP1252 lowercase range, not digits, not punctuation: 26 of 255 veto, and the same 26 at index
-;     45 of a 70-byte path as at index 2 of an 8-byte one. So a path containing 0xE0 -- a-grave,
-;     which IS a lowercase letter in this code page -- is not considered to contain one, and is
+;     45 of a 70-byte path as at index 2 of an 8-byte one. So a path containing 0xE0, a-grave,
+;     which IS a lowercase letter in this code page, is not considered to contain one, and is
 ;     rewritten anyway.
 ;   * The refusal scan is unbounded. a lowercase letter at index 560 of a 600-character path still
 ;     vetoes.
 ;   * Index 0 Is uppercased, not skipped. 34 of 255 byte values move there.
 ;   * Index 1 Onward is lowercased. 60 of 255 byte values move.
-;   * The rewrite is bounded to 259 Characters -- indices 0..258 -- and the bound truncates. a path
+;   * The rewrite is bounded to 259 Characters (indices 0..258) and the bound truncates. a path
 ;     longer than that has a NUL written AT INDEX 259: 259 characters plus a terminator is MAX_PATH.
 ;     probes/pmpa3.c first reported index 259 as "left alone" because it tested whether that byte had
 ;     been LOWERCASED, and a not-lowercased test cannot tell "unchanged" from "replaced by a
-;     terminator" -- the third time in this one change that a detector, not the function, was wrong.
+;     terminator"; the third time in this one change that a detector, not the function, was wrong.
 ;     So the two scans have DIFFERENT bounds: the veto reads the whole string, the rewrite cuts it.
 ;   * The return means "no ASCII lowercase letter was present", not "something changed". "123456",
 ;     "" and "\\\\" all return 1 while changing nothing.
 ;   * NULL returns 0.
 ;
-; The two tables, derived byte by byte from the narrow export -- never from CharLowerA, never from the
+; The two tables, derived byte by byte from the narrow export, never from CharLowerA, never from the
 ; wide form, never from a CP1252 table:
 ;
 ;   LOWERCASE (index >= 1), 60 values:  0x41..0x5A, 0xC0..0xD6, 0xD8..0xDE  by +0x20
@@ -47,11 +47,11 @@
 ;
 ; Both counts are closed forms, which is how we know the tables are complete rather than approximate:
 ; 26 + 23 + 7 + 3 + 1 = 60, and 23 + 7 + 3 + 1 = 34. The uppercase map is 26 entries shorter because
-; 'a'..'z' can never REACH index 0 -- any of them anywhere forces the refusal -- so what the export
+; 'a'..'z' can never REACH index 0 (any of them anywhere forces the refusal) so what the export
 ; would do to them there is unobservable, and unreachable, and therefore cannot matter.
 ;
 ; And the table is not change 236'S. PathCommonPrefixA's comparison fold, enumerated in that change,
-; conflates 0x5E with 0x88 -- a pair that is not a case pair at all. NEITHER of the tables here
+; conflates 0x5E with 0x88; a pair that is not a case pair at all. NEITHER of the tables here
 ; contains 0x5E or 0x88. Two functions in the same DLL, two different mappings; reusing 236's would
 ; have been wrong on exactly those two bytes, and inheriting a shared rule instead of re-deriving it
 ; is how the eight-change SPACE-rule bug happened.
@@ -65,7 +65,7 @@
 ;   pass 2 needs and would otherwise have to find again.
 ;
 ;   PASS 2 lowercases indices 0..end-1 in 32-byte blocks, then puts the UPPERCASE map's answer over
-;   index 0. Doing index 0 twice is deliberate and free: The lowercase map is idempotent -- its
+;   index 0. Doing index 0 twice is deliberate and free: The lowercase map is idempotent, its
 ;   outputs (0x61..0x7A, 0xE0..0xF6, 0xF8..0xFE, 0x9A/0x9C/0x9E, 0xFF) are disjoint from its inputs --
 ;   so lowercasing the whole range and then overwriting one byte is exactly the same as skipping that
 ;   byte, and it keeps the vector loop 32-byte aligned to the start of the string instead of offset by
@@ -73,7 +73,7 @@
 ;   form, so the two maps never compose.
 ;
 ; Page safety: pass 1 issues a 32-byte load only when (cursor & 4095) <= 4064, and steps one byte
-; otherwise. Pass 2 Needs no check at all -- it is bounded by the length pass 1 measured, so every
+; otherwise. Pass 2 Needs no check at all; it is bounded by the length pass 1 measured, so every
 ; byte it touches is inside a string whose bytes are already known to be mapped. probes/pmpa.c
 ; confirms the shipped export does not overread either: 398 of 398 guard-page cases clean.
 ;
@@ -230,7 +230,7 @@ lo32:
         add       r9, 32
         jmp       lo32
         ; The tail stores EXACT sizes. An overlapping 32-byte store would be safe for the map --
-        ; LOWERMAP is idempotent -- but it would write bytes at or past the bound, which is the one
+        ; LOWERMAP is idempotent, but it would write bytes at or past the bound, which is the one
         ; thing the 259-character limit says not to do.
 lo16:
         cmp       rax, 16

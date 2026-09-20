@@ -5,10 +5,10 @@
 ; implementation covers both exported names (verified: both at ucrtbase+0x5B580 on this build).
 ; Fifth function unblocked by change 186's sweeps.
 ;
-; Contract: everything change 188 established for the wide/base crossing -- the 26 whitespace
+; Contract: everything change 188 established for the wide/base crossing, the 26 whitespace
 ; units, the 18 digit blocks, ASCII-only letters for values 10..35, the "0x" prefix zero being ANY
 ; block's zero while the 'x' stays ASCII-only, the no-conversion quirk and the invalid-base
-; handler + EINVAL -- with change 112's 64-bit signed tail. The tail was RE-MEASURED rather than
+; handler + EINVAL, with change 112's 64-bit signed tail. The tail was RE-MEASURED rather than
 ; inherited (probes/wcstoi64.c), because the overflow edge is exactly where these families keep
 ; differing:
 ;
@@ -20,20 +20,20 @@
 ;   * the prefix-zero rule holds here too: the ASCII-only variant was refuted on 1525 of
 ;     1,500,000 fuzz cases, the any-block variant on 0.
 ;
-; Overflow guard: a mul-carry test, not a cutoff/cutlim division -- `mul r15` gives the high half
+; Overflow guard: a mul-carry test, not a cutoff/cutlim division, `mul r15` gives the high half
 ; for free, so `jc` catches a product >= 2^64, a second `jc` catches the digit add, and only then
 ; is the sign-dependent limit compared. That keeps a 64-bit DIV out of the function entirely.
 ;
-; Shape: identical to change 188 -- the digit loop has NO CALL on any path, classifier inlined in
+; Shape: identical to change 188; the digit loop has NO CALL on any path, classifier inlined in
 ; frequency order (ASCII digit, ASCII letter, fullwidth, then one AVX2 pass over the remaining 16
 ; blocks); the two prefix sites use the cheap `is_zero` helper. 188's RESULTS.md records the
 ; measurements that forced that shape.
 ;
 ; Register note: this needs one more long-lived value than 188 (the sign-dependent limit), so rbp
 ; carries the accumulator and there are EIGHT pushes. That changes the ABI-call padding from 20h
-; to 28h -- with 8 pushes rsp is 8 mod 16, so 40 bytes restores 16-byte alignment.
+; to 28h, with 8 pushes rsp is 8 mod 16, so 40 bytes restores 16-byte alignment.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _errno:PROC
 EXTERN _invalid_parameter_noinfo:PROC
@@ -168,7 +168,7 @@ no_prefix:
         mov       r12, 8000000000000000h         ; a magnitude of exactly 2^63 is legal when negative
 lim_ok:
 
-        ;================ digits -- no call on any path ================
+        ;================ digits, no call on any path ================
         mov       rbx, rsi                       ; digstart
         xor       rbp, rbp                       ; acc
         xor       r9d, r9d                       ; overflow flag
@@ -270,7 +270,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
+; is_zero, internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; ---------------------------------------------------------------------------
 is_zero:

@@ -8,7 +8,7 @@
 ; The wide twin of change 152, with `size` counted in wchar_t. ucrtbase!wcscat_s is the same pair of
 ; scalar loops, one wide character per iteration.
 ;
-; Contract -- identical to strcat_s in wide units:
+; Contract, identical to strcat_s in wide units:
 ;   1. dst == NULL or size == 0      -> handler, EINVAL (22), dst untouched;
 ;   2. no terminator in dst[0..size) -> dst[0] = 0, handler, EINVAL, and only dst[0] is written;
 ;   3. src == NULL                   -> dst[0] = 0, handler, EINVAL;
@@ -25,7 +25,7 @@
 ; lands on the low (even) byte and the indices it produces are already byte offsets.
 ;
 ; The scalar `dst[0]` test in front of the vector loads is the same trick as 152 and matters for the
-; same reason -- a caller's `dst[0] = 0` leaves a small store that a 32-byte load over those bytes
+; same reason; a caller's `dst[0] = 0` leaves a small store that a 32-byte load over those bytes
 ; cannot forward from (~24 cycles on Zen3), while a 2-byte load forwards cleanly.
 ;
 ; ISA: AVX2 + BMI2. Validated on Zen3.

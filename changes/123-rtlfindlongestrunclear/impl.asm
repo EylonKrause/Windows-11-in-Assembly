@@ -134,7 +134,7 @@ fdone:
 ;   updates run(r10)/runStart(r11)/best(rbx)/bestStart(rbp); base in r8. scratch: rax,rcx,rdx,r12,r14,r15.
 ;   The interior longest clear-run is found by whichever of two O(k) scans is cheaper for this word:
 ;   loop over set bits (k = popcount) when the word is sparse, else shift-AND (k = run length) when
-;   dense -- so cost is ~min(popcount, longest-run) <= 32 per word regardless of density.
+;   dense, so cost is ~min(popcount, longest-run) <= 32 per word regardless of density.
 do_mixed:
         ; --- merge the incoming cross-word run with this word's low clear-run ---
         tzcnt     rcx, rdi                    ; lo = low clear-bit run (pos of first set bit)

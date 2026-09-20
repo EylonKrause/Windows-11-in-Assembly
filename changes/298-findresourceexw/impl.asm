@@ -11,7 +11,7 @@
 ; (len+1)*2, one call to RtlUpcaseUnicodeChar per character through the IAT, and an RtlFreeHeap.
 ; Measured on this machine (probes/attribute.c): the heap round trip is 40.8 ns and the per-
 ; character call chain is 1.19-1.24 ns/char, for a normaliser cost of 41 + 1.5*N ns per string
-; argument.  ntdll!LdrFindResource_U -- the SxS / MUI / language-fallback walk -- is NOT
+; argument.  ntdll!LdrFindResource_U (the SxS / MUI / language-fallback walk) is NOT
 ; reimplemented here; it is called exactly as kernelbase calls it. It cannot be: its answer
 ; depends on the activation context, on the loaded alternate resource modules and on per-image
 ; cached MUI state that probes/mui_state.c shows is not even a function of the arguments.
@@ -19,13 +19,13 @@
 ; So this replaces the WRAPPER, which is all of the byte work and none of the loader machinery.
 ;
 ; THE NORMALISER (wia_resname_upcase), which is the part worth writing in assembly:
-;   * no heap at all for names up to 768 characters -- the caller's stack buffer takes them;
+;   * no heap at all for names up to 768 characters; the caller's stack buffer takes them;
 ;   * 16 characters per iteration with AVX2, upcased branchlessly;
 ;   * proven ASCII-exact: probes/contract.c walks all 65536 code units through the live
 ;     RtlUpcaseUnicodeChar and finds that below 0x80 it is exactly the a-z fold, 26 code units
 ;     change, zero exceptions. The first code unit at or above 0x80 that changes is U+00E0, so
 ;     any character >= 0x80 abandons the vector path and the whole string is redone through the
-;     real table -- a full restart, never a scalar step back into the vector loop (change 263).
+;     real table, a full restart, never a scalar step back into the vector loop (change 263).
 ;
 ; Page safety. Only the first 32-byte load can be at an arbitrary address, and it is issued only
 ; when (src & 4095) <= 4064, so it cannot cross into the next page. When it would, the string is
@@ -58,7 +58,7 @@ STACK_BYTES     EQU (2 * STACK_CHARS) + 32      ; + the 32-byte block slack, see
 
                 .const
 ; VEX-encoded memory operands have no alignment requirement, and .const rejects ALIGN 32
-; (MASM A2189) -- the same note changes 042/043/044 carry.
+; (MASM A2189), the same note changes 042/043/044 carry.
 k_zero          dq      0, 0, 0, 0
 k_7f            dw      16 dup(007Fh)
 k_60            dw      16 dup(0060h)

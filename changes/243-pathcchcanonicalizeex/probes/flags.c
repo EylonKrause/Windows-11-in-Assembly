@@ -7,7 +7,7 @@
 
    The disassembly says what to expect and where the one hole is:
 
-     * 0x01 ALLOW_LONG_PATHS lifts the usable buffer from 0x104 to 0x8000 -- and at 0x110AB it
+     * 0x01 ALLOW_LONG_PATHS lifts the usable buffer from 0x104 to 0x8000, and at 0x110AB it
        lazily resolves RtlAreLongPathsEnabled through a cached global and, when long paths are NOT
        enabled for the process, ORs 0x04 into its own flags. That is the ONLY environment-dependent
        decision in the whole function, and 0x02 / 0x04 exist to override that query.

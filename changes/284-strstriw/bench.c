@@ -5,14 +5,14 @@
  * The rows are what a forward substring search actually costs, and they are not change 283's rows
  * With the labels swapped:
  *
- *   * a MISS over a long haystack, which must try every start position -- the worst case;
+ *   * a MISS over a long haystack, which must try every start position, the worst case;
  *   * a hit near the START, which a forward search finds at once and a backward one does not;
- *   * a hit near the END, which is the forward search's own worst case -- the mirror of 283;
+ *   * a hit near the END, which is the forward search's own worst case, the mirror of 283;
  *   * a needle whose first character is COMMON, so the filter fires constantly and verification runs
  *     on almost every position. This is the row that measures the filter's value, and a bench
  *     without it reports only the easy case. Change 283's equivalent row sat at 8.09x while every
  *     other row was past a hundred;
- *   * a needle whose TAIL matches a NUL, which forces region B -- the path that exists only because
+ *   * a needle whose TAIL matches a NUL, which forces region B, the path that exists only because
  *     of the virtual-NUL rule, and which no other row reaches;
  *   * short haystacks, where the whole cost is the call and the two length scans.
  *

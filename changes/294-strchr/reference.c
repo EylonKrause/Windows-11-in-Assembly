@@ -1,4 +1,4 @@
-// changes/294-strchr/reference.c -- correctness oracle.
+// changes/294-strchr/reference.c: correctness oracle.
 //
 // Deliberately naive. Written from what probes/contract.c PROVED about the live
 // ucrtbase!strchr on this machine, not from the C standard:

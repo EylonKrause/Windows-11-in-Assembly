@@ -1,7 +1,7 @@
 /* changes/269-convertstringsidtosid/reference.c
  *
  * A scalar model of advapi32!ConvertStringSidToSidW, written from what the probes measured rather
- * than from the documentation -- the two disagree in six places.
+ * than from the documentation, the two disagree in six places.
  *
  * THE GRAMMAR, as probes/grammar.c, probes/limits.c and probes/bounds.c established it:
  *
@@ -19,7 +19,7 @@
  *   and the thing the first model got wrong on 2822 of 36508 cases:
  *
  *   Lenient    [space]* '+'? ( Digit+ | '0' ('x'|'X') hexdigit+ )
- *              where [space] is the whole Unicode whitespace set -- U+0009..U+000D, U+0020,
+ *              where [space] is the whole Unicode whitespace set, U+0009..U+000D, U+0020,
  *              U+00A0, U+1680, U+180E, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F, U+3000 --
  *              and digit is the whole Unicode decimal digit set, so U+0661, U+0967, U+0E51 and a
  *              dozen other blocks are each worth their face value. A '+' and an '0x' are mutually
@@ -54,14 +54,14 @@
  *   * the identifier authority refuses. It is 48 bits, "281474976710655" is accepted and
  *     "281474976710656" is not.
  *   * the revision is stored, not validated. "S-0-5-18" and "S-255-5-18" are both accepted and
- *     produce SIDs whose revision byte is 0 and 255 -- which ConvertSidToStringSid then refuses to
+ *     produce SIDs whose revision byte is 0 and 255, which ConvertSidToStringSid then refuses to
  *     format. Above 255 the parser refuses.
  *
- *   * and the COUNT stops at 254, not at the documented fifteen -- 8 + 4*254 is exactly 1024 --
+ *   * and the COUNT stops at 254, not at the documented fifteen, 8 + 4*254 is exactly 1024 --
  *     with ERROR_ARITHMETIC_OVERFLOW rather than ERROR_INVALID_SID. A sixteen-sub-authority SID is
  *     built happily and then cannot be formatted back.
  *
- * On failure the output pointer is left alone -- except after an sddl terminator. Three characters
+ * On failure the output pointer is left alone, except after an sddl terminator. Three characters
  * behave differently from the other 65532, and it took a sweep of every trailing code unit to find
  * them:
  *
@@ -70,12 +70,12 @@
  *     S-1-5-1;   the same
  *     S-1-5-1a   FALSE, and the pointer LEFT ALONE, like everything else
  *
- * `)`, `,` and `;` are the sddl ace terminators -- a SID appears inside an ace as
- * `(A;;FA;;;S-1-5-18)` -- so the parser underneath this export has a mode that stops at them, and
+ * `)`, `,` and `;` are the sddl ace terminators, a SID appears inside an ace as
+ * `(A;;FA;;;S-1-5-18)`, so the parser underneath this export has a mode that stops at them, and
  * the public wrapper, which does not accept trailing text, rejects the result AFTER the inner call
  * has already stored its answer and then clears it. It only happens when a COMPLETE SID precedes
  * the terminator: `S-1-5-)` and `S-1)5-1` leave the pointer alone, and the alias path never does
- * it. probes/terminators.c is where that was measured, and it is not a leak -- the pointer comes
+ * it. probes/terminators.c is where that was measured, and it is not a leak; the pointer comes
  * back NULL, not dangling.
  */
 #define WIN32_LEAN_AND_MEAN

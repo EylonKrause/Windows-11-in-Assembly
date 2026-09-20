@@ -5,7 +5,7 @@
  * The rows are the two paths and the lengths that cross between them. a 16-character block with no
  * code unit at or above 0x80 is handled entirely in registers; any block with a high code unit falls
  * back to the table for that block. So a bench of ASCII alone would measure one path and report it
- * as the function -- which is the defect change 210 shipped and change 269's first bench had.
+ * as the function, which is the defect change 210 shipped and change 269's first bench had.
  *
  *   ASCII            the in-register range subtract
  *   all high         the table, every block

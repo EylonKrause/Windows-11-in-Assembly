@@ -1,4 +1,4 @@
-/* Derive ntdll!RtlAreBitsClear -- the complement of change 030 (RtlAreBitsSet).
+/* Derive ntdll!RtlAreBitsClear, the complement of change 030 (RtlAreBitsSet).
    The complement is NOT assumed: change 124 (RtlNumberOfClearBits) and change 123 both showed the
    clear-side routines in this family have their own edge conventions, and change 030 records that
    RtlAreBitsSet returns FALSE for len==0, which is NOT what "all zero bits in an empty range" would

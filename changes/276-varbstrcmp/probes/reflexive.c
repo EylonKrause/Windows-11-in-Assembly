@@ -2,7 +2,7 @@
  *
  * The whole change rests on one claim: Identical strings compare equal. So measure it.
  *
- * probes/contract.c established that VarBstrCmp IS CompareStringW -- nine hand-picked pairs where a
+ * probes/contract.c established that VarBstrCmp IS CompareStringW, nine hand-picked pairs where a
  * linguistic comparison and an ordinal one disagree, and the export tracked the linguistic answer
  * every time. So the collation is the OS's and this project does not reimplement it (change 210's
  * notes say the same about linguistic comparison).
@@ -18,7 +18,7 @@
  * same cost 0.8 ns per character to discover that, and the same POINTER twice costs it too.
  *
  * A fast path that answers EQ whenever the two operands are byte-identical would turn 3224 ns into
- * the cost of a memcmp -- but only if "byte-identical implies VARCMP_EQ" is TRUE, for every string,
+ * the cost of a memcmp, but only if "byte-identical implies VARCMP_EQ" is TRUE, for every string,
  * under every flag combination and locale the caller might pass. That is reflexivity, and it is the
  * kind of thing everybody assumes and nobody checks. Linguistic collation has non-obvious corners:
  * ignorable characters, unpaired surrogates, noncharacters, and the flags that change what counts as

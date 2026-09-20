@@ -1,6 +1,6 @@
 // changes/150-strcpy-s/reference.c
 // Oracle for ucrtbase!strcpy_s, transcribed from the UCRT algorithm and confirmed against the live
-// export (return code, handler invocation, AND the exact bytes left in dst -- the ERANGE path writes
+// export (return code, handler invocation, AND the exact bytes left in dst; the ERANGE path writes
 // `size` bytes of src before emptying dst, which is observable).
 #include <errno.h>
 #include <stddef.h>

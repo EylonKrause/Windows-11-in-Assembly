@@ -3,7 +3,7 @@ REM ===========================================================================
 REM  Live substitution for the seven uncovered shlwapi string scanners:
 REM    131 StrChrW    133 StrStrW          134 StrRChrW   136 StrCSpnW
 REM    137 StrPBrkW   138 PathIsFileSpecW  139 StrTrimW
-REM  All seven are self-contained impl.asm -- no helper .c, no init call.
+REM  All seven are self-contained impl.asm, no helper .c, no init call.
 REM ===========================================================================
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

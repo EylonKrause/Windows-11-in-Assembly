@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 279 (ntdll!RtlIntegerToChar).
 //
 // What is compared is the whole destination, not the status. probes/contract.c measured that a
-// refusal leaves the caller's buffer COMPLETELY untouched -- not one byte written -- so an
+// refusal leaves the caller's buffer COMPLETELY untouched (not one byte written) so an
 // implementation that helpfully wrote a terminator before discovering it had no room would pass any
 // check that only looked at the NTSTATUS. That is change 268's rule, which found 154 mismatches in
 // change 016 that were nothing but a single 00 past the end of a string.
@@ -11,8 +11,8 @@
 //
 //   * base 10 is length-first and two digits at a time;
 //   * bases 2, 8 and 16 emit more than one digit per store from wide tables;
-//   * a negative `length` is a zero-padded field width -- probes/negative.c found it by sweeping
-//     every negative length against a guard page -- and it runs a fill loop that NO positive length
+//   * a negative `length` is a zero-padded field width, probes/negative.c found it by sweeping
+//     every negative length against a guard page, and it runs a fill loop that NO positive length
 //     ever reaches. It is also the only part of this change that touches an XMM register.
 //
 // A corpus of plausible positive lengths would drive two of the three and report them as the
@@ -24,7 +24,7 @@
 // The negative lengths are bounded, and that bound is not timidity. a field width is honoured
 // literally: probes/negative.c measured that length -100 writes a hundred characters and FAULTS if
 // the buffer is shorter, and the first draft of change 279's correctness corpus died of an access
-// violation because it asked for INT_MIN+1 -- a field two billion characters wide. The destination
+// violation because it asked for INT_MIN+1, a field two billion characters wide. The destination
 // here is 512 bytes and no case asks for more than 300.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -32,7 +32,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -140,7 +140,7 @@ static void build_case(long i)
 
     cur_cls = (int)(i % 6);
 
-    /* one case in seven uses an ILLEGAL base -- co-prime with the class so every class gets some */
+    /* one case in seven uses an ILLEGAL base, co-prime with the class so every class gets some */
     if ((i % 7) == 3) cur_base = (ULONG)(rnd() % 40);
     else              cur_base = LEGAL[rnd() % 5];
     b = cur_base ? cur_base : 10;
@@ -160,7 +160,7 @@ static void build_case(long i)
     default: cur_v = 1ul << (rnd() % 32); break;                   /* a single bit */
     }
 
-    /* the length, drawn from AROUND the room rule -- which here is `digits`, with the terminator
+    /* the length, drawn from AROUND the room rule, which here is `digits`, with the terminator
        written only if one more byte is there -- and then given a sign. A NEGATIVE length is not an
        error: it is a zero-padded field of exactly that width. */
     need = digits_of(cur_v, cur_base);

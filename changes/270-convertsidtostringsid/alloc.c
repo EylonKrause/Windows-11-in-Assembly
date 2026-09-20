@@ -3,7 +3,7 @@
  * The four things this change asks the OS for, rather than imitating.
  *
  * `ConvertSidToStringSidW` hands the caller a block that the CALLER frees with LocalFree, so the
- * block has to be one LocalFree accepts -- and the only way to be sure of that is to make the same
+ * block has to be one LocalFree accepts, and the only way to be sure of that is to make the same
  * call. probes/contract.c measured what comes back: LocalFlags 0 (LMEM_FIXED) and a LocalSize of
  * exactly (characters + 1) * 2, at counts 0, 1, 5 and 15. That is the same decision change 269 made
  * for the parsing direction and change 268 made about the process heap: an implementation that
@@ -19,7 +19,7 @@
  *     (an allocation failure)            ERROR_NOT_ENOUGH_MEMORY
  *
  * The zero on success is not an assumption. probes/validate.c set the last error to five different
- * values -- 0, 1, 87, 0x0D15EA5E and 1337 -- and called at four lengths: all twenty came back 0. It
+ * values (0, 1, 87, 0x0D15EA5E and 1337) and called at four lengths: all twenty came back 0. It
  * is set here explicitly rather than left to whatever LocalAlloc happens to leave behind, because
  * "LocalAlloc happened to leave zero on this heap state" is not something a test can hold to.
  *

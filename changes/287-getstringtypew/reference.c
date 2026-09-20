@@ -15,7 +15,7 @@
  *   * an embedded NUL under an explicit count is just another code unit, classified like any other.
  *
  * This model reads the class straight out of the flat extraction that tables.c builds, so it shares no
- * structure with impl.asm -- which goes through the two-level directory and page tables, and has a
+ * structure with impl.asm, which goes through the two-level directory and page tables, and has a
  * separate Latin-1 path. A mistake in either level of that indirection shows up here as a disagreement
  * rather than being reproduced on both sides.
  */

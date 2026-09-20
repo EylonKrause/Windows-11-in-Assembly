@@ -4,23 +4,23 @@
  *
  * image/tree covers 244 exports across nine DLLs. Subtracting those from the export tables of
  * twenty-four System32 DLLs and keeping the names that suggest a byte-wise leaf leaves three
- * families that are plausibly convertible -- pure functions of their arguments, no locale, no code
+ * families that are plausibly convertible, pure functions of their arguments, no locale, no code
  * page, no registry, no network:
  *
  *   advapi32  the SID formatters and parsers, and the small SID accessors. A SID is a fixed header
  *             plus up to fifteen 32-bit sub-authorities, and its string form is "S-1-<id>-<a>-<b>…"
  *             in decimal. This project already owns ntdll!RtlConvertSidToUnicodeString, so the
  *             first question is whether advapi32's is that function or a different one.
- *   ws2_32    inet_addr and its siblings. inet_addr is the LENIENT IPv4 parser -- it accepts "1.2",
- *             "0x7f.1" and octal, which RtlIpv4StringToAddressA (change 114) does NOT -- so the
+ *   ws2_32    inet_addr and its siblings. inet_addr is the LENIENT IPv4 parser, it accepts "1.2",
+ *             "0x7f.1" and octal, which RtlIpv4StringToAddressA (change 114) does NOT, so the
  *             contract has to be measured, not assumed from the family.
  *   oleaut32  the BSTR primitives. SysStringLen should be a header read; SysAllocString is a length
  *             scan plus an allocation, and whether its block can be produced by hand is the same
  *             question change 268 had to answer for RtlFreeUTF8String.
  *
  * Every row prints what it returned. Sweep 4 (discovery/ntdll_rtl_uncovered3.c) timed a refusal as
- * if it were a comparison -- 4000 identical characters answered in 7.9 ns, which is 0.001 ns per
- * byte and impossible -- and only the returned value gave it away. A row that answers instantly
+ * if it were a comparison, 4000 identical characters answered in 7.9 ns, which is 0.001 ns per
+ * byte and impossible, and only the returned value gave it away. A row that answers instantly
  * because it did nothing must be visible as such.
  */
 #define WIN32_LEAN_AND_MEAN

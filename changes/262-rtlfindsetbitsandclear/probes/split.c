@@ -2,21 +2,21 @@
  *
  * Where does the general path's time go?
  *
- * Three rows of eighteen sit just under the gate -- 256 bits at 0.97x, 1 Kbit at 0.96x, and the
- * N=1024 mutation at 0.90x -- and there are two completely different explanations available:
+ * Three rows of eighteen sit just under the gate, 256 bits at 0.97x, 1 Kbit at 0.96x, and the
+ * N=1024 mutation at 0.90x, and there are two completely different explanations available:
  *
  *   (a) change 256's SEARCH is itself no faster than the shipped code at these sizes, in which case
  *       nothing this change does to its own wrapper can fix the row;
- *   (b) the search is comfortably faster and the wrapper -- a frame, a call, a return and the
- *       parameter shuffle around it -- is eating the margin, in which case the call has to go.
+ *   (b) the search is comfortably faster and the wrapper, a frame, a call, a return and the
+ *       parameter shuffle around it, is eating the margin, in which case the call has to go.
  *
  * Guessing between those two is how time gets spent on the wrong code, so this measures them
  * apart, on the exact subjects the failing rows use:
  *
- *   1. ntdll!RtlFindSetBitsAndClear      -- what has to be beaten
- *   2. ntdll!RtlFindSetBits              -- the same search WITHOUT the mutation, shipped
- *   3. wia_findsetbits (change 256)      -- our search alone, no wrapper at all
- *   4. wia_findsetbitsandclear (262)     -- our search plus this change's wrapper
+ *   1. ntdll!RtlFindSetBitsAndClear, what has to be beaten
+ *   2. ntdll!RtlFindSetBits, the same search WITHOUT the mutation, shipped
+ *   3. wia_findsetbits (change 256), our search alone, no wrapper at all
+ *   4. wia_findsetbitsandclear (262), our search plus this change's wrapper
  *
  * (4) minus (3) Is the wrapper, measured rather than estimated. (1) minus (2) is what the shipped
  * code pays for the same privilege, which is the fair thing to compare it against.
@@ -28,8 +28,8 @@
  *
  * The last section then did the same thing to the PAIR rows, and it is the reason this probe has a
  * read-only column at all: the first write-up of this change asserted that the cliff between N=64
- * and N=256 was the MUTATION -- a store-forwarding stall between the fill and the next call's
- * vector loads -- and credited the search with none of it. Timing the SEARCH ALONE at the same N
+ * and N=256 was the MUTATION, a store-forwarding stall between the fill and the next call's
+ * vector loads, and credited the search with none of it. Timing the SEARCH ALONE at the same N
  * shows it stepping 2.43 -> 5.03 ns across exactly that boundary, which is more than half of the
  * cliff and belongs to change 256. The hypothesis about the remaining ~2.1 ns may still be right;
  * it is now written down as a hypothesis.
@@ -98,7 +98,7 @@ static void row_pat(const char* label, ULONG bits, ULONG n, ULONG pat)
 /* NOT FOUND: a full scan that writes nothing */
 static void row(const char* label, ULONG bits, ULONG n) { row_pat(label, bits, n, 0xA5A5A5A5u); }
 
-/* Found at bit zero: the search is trivial, so the row is almost entirely the mutation -- which is
+/* Found at bit zero: the search is trivial, so the row is almost entirely the mutation, which is
    the other thing that could be wrong. Note this one is NOT repeatable: each call consumes N bits,
    so it is only meaningful as a first-call comparison, and it is printed apart from the rest. */
 static void row_found(const char* label, ULONG bits, ULONG n)

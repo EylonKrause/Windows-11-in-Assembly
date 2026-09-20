@@ -10,12 +10,12 @@
 // on erange the `_s` contract requires the destination be left as an empty string, not merely
 // unwritten, and `strncpy_s` additionally zero-pads. An implementation can return the right errno
 // and still leave the wrong bytes behind, which is exactly the defect class this directory has now
-// found three times -- in 059/061, in 063/064 and in 101.
+// found three times, in 059/061, in 063/064 and in 101.
 //
 // An invalid-parameter handler is installed, and without it this harness cannot run at all. The
 // `_s` functions report a bad argument by calling ucrtbase's `_invalid_parameter_noinfo`, which by
 // default terminates the process. `_set_invalid_parameter_handler` replaces that with a handler
-// that records the call and returns, so the function goes on to return its error code -- which is
+// that records the call and returns, so the function goes on to return its error code, which is
 // what makes the NULL, zero-size and overlapping cases drivable instead of fatal. The handler is
 // process-global inside ucrtbase, so it covers the shipped export and our code identically, and
 // the COUNT of handler calls is compared as well: a change that skipped a validation would return
@@ -27,7 +27,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ucrtbase -- never a live system process, never the file on disk.
+//       ucrtbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle, and emit nothing while patched.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -137,7 +137,7 @@ static void build_corpus(void){
         r->src[sn]=0; r->wsrc[sn]=0;
         for(k=0;k<pn;++k){ unsigned c=rnd(); r->pre[k]=(char)('A'+c%26); r->wpre[k]=(wchar_t)('A'+c%26); }
         r->pre[pn]=0; r->wpre[pn]=0;
-        /* the SIZE is often too small -- that is where the _s contract lives */
+        /* the SIZE is often too small; that is where the _s contract lives */
         r->size = (i%3==0) ? (size_t)(rnd()%(unsigned)(sn+2)) : (size_t)DCAP;
         if(i%11==0) r->size = (size_t)(sn+1);        /* exactly enough */
         r->count = (i%7==0) ? (size_t)-1             /* _TRUNCATE */

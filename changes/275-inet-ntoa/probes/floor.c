@@ -3,12 +3,12 @@
  * Is there anything to win, and what does the buffer cost?
  *
  * discovery/sid_inet_bstr.c measured ws2_32!inet_ntoa at 7.56 ns. That is four numbers of at most
- * three digits and three dots -- change 067's rewrite formats a single 32-bit number in 3.76 ns --
+ * three digits and three dots, change 067's rewrite formats a single 32-bit number in 3.76 ns --
  * so 7.56 ns is not obviously beatable, and that is the question to settle before writing any
  * ASSEMBLY. Change 274 is parked because its short rows turned out to be an allocator call this
  * project does not own; the same trap is here in a different shape.
  *
- * probes/contract.c established that the answer goes in a PER-THREAD buffer -- the same pointer on
+ * probes/contract.c established that the answer goes in a PER-THREAD buffer, the same pointer on
  * every call from one thread, a different one per thread, undisturbed by other Winsock calls. So an
  * implementation needs thread-local storage of its own, and on x64 that is either a call to a
  * helper the compiler generates or a hand-written walk of the TLS array. The call is the honest

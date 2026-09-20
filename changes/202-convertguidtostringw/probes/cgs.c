@@ -1,7 +1,7 @@
 /* Derive iphlpapi!ConvertGuidToStringW and ConvertGuidToStringA.
  *
  * WHY: at 315 ns (W) and 275 ns (A) per call these are, after RtlIsTextUnicode, the most
- * expensive thing found in the whole System32 headroom survey -- and for a reason that is almost
+ * expensive thing found in the whole System32 headroom survey, and for a reason that is almost
  * comic. The function does not format the GUID at all. The disassembly spills the eleven GUID
  * fields to the stack as varargs, loads the literal format string
  *     "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}"
@@ -16,7 +16,7 @@
  *   3. StringLenInChars == 0.
  *   4. 1 <= cch <= 38: is the buffer left untouched, or truncated-and-terminated?
  *   5. cch >= 39.
- *   6. cch >= 0x80000000 -- claimed to return 122, not 87, with String[0] = 0.
+ *   6. cch >= 0x80000000, claimed to return 122, not 87, with String[0] = 0.
  *   7. is the A form byte-for-byte the same string?
  *   8. unaligned GUID pointer.
  * Build: cl /nologo /O2 /MD cgs.c && cgs.exe

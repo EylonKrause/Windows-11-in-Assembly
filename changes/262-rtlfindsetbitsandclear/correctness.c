@@ -6,23 +6,23 @@
  * The return value is the smaller half of what has to match. These functions mutate the bitmap, so
  * every case is run three times on three separate copies of the same input, and all three resulting
  * BUFFERS are compared word for word along with the three answers. An implementation that returned
- * the right index and cleared one bit too many -- or cleared the right bits and also touched a word
- * at the far end of the bitmap -- would pass any test that only looked at the return value, and
+ * the right index and cleared one bit too many, or cleared the right bits and also touched a word
+ * at the far end of the bitmap, would pass any test that only looked at the return value, and
  * would corrupt a caller's allocator silently.
  *
  * The three arms are counted and the run fails if any is empty. "Found", "not found" and
- * NumberToFind = 0 are three completely different paths through both implementations -- only the
- * first writes anything at all -- and a corpus that never reached one of them would have proved
+ * NumberToFind = 0 are three completely different paths through both implementations, only the
+ * first writes anything at all, and a corpus that never reached one of them would have proved
  * nothing about it.
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap x N x hint, both exports. Every arrangement of runs,
  *      every N that can and cannot be satisfied, and both sides of the wrap.
- *   2. One planted run at every position and length, asked with every N around its length -- the
+ *   2. One planted run at every position and length, asked with every N around its length, the
  *      "exactly N bits, not the whole run" rule is the one this change adds, and this is where it
  *      lives.
  *   3. Repeated calls on one bitmap until it is exhausted: each call must consume exactly what it
  *      claims, so the sequence of answers is itself a check that the mutation is exact.
- *   4. THE WRAP: the only run behind the hint, so the answer is the wrapped one -- and it must
+ *   4. THE WRAP: the only run behind the hint, so the answer is the wrapped one, and it must
  *      still mutate.
  *   5. A GUARD PAGE at the end of the buffer: the mutation writes, so an overrun here is a fault
  *      rather than a wrong answer.

@@ -3,11 +3,11 @@
  * msvcrt.dll is the LEGACY C runtime and it is still loaded by a large part of the desktop. It is a
  * separate binary from ucrtbase.dll with its own code, and this repository's image tree reflects
  * that unevenly: 75 functions are covered for ucrtbase and only 34 for msvcrt, leaving 41 that are
- * converted for one CRT and not the other -- the parsers (`strtol`, `_strtoi64`, `atoi` and their
+ * converted for one CRT and not the other, the parsers (`strtol`, `_strtoi64`, `atoi` and their
  * wide siblings), the bounds-checked `_s` family, `wcsrchr`, `_swab`, `_memccpy`.
  *
  * The assembly for all 41 already exists, is gate-validated and is proved live. So the question is
- * not "can we write it" -- it is the two questions that decide whether the existing assembly may be
+ * not "can we write it"; it is the two questions that decide whether the existing assembly may be
  * pointed at msvcrt's exports at all:
  *
  *   1. Are they the same function? msvcrt predates the ucrt. Its `_s` functions and its parsers may
@@ -15,7 +15,7 @@
  *      error, a different partial write, a different answer to an invalid parameter. Assuming they
  *      match because the names match is the mistake that produced twelve defects in the live
  *      substitution campaign. So every function here is driven through a DIFFERENTIAL corpus and
- *      the two CRTs' answers are compared -- return value, output buffer AND errno.
+ *      the two CRTs' answers are compared, return value, output buffer AND errno.
  *   2. IS msvcrt SLOWER? If the two binaries ship the same vectorised code, there is no work here
  *      beyond bookkeeping. If msvcrt ships the older scalar code, every msvcrt process on the
  *      machine is paying for it.
@@ -60,7 +60,7 @@ static HMODULE hM, hU;
  * (1) The invalid-parameter handler is per-crt. `_set_invalid_parameter_handler` installs a
  *     handler in the CRT that exports it, and this program links against the UCRT. Handing msvcrt
  *     an invalid base therefore went to MSVCRT's handler, which is the default one, which
- *     terminates the process: the first run died at 0xC0000409 with no output at all -- the same
+ *     terminates the process: the first run died at 0xC0000409 with no output at all, the same
  *     trap changes 110-113 hit. Both handlers are installed below.
  *
  * (2) `errno` Is per-crt too. The `errno` macro resolves to the UCRT's thread-local, so reading it
@@ -220,11 +220,11 @@ static int diffs_writers(void)
     GETB(_swab, F_swab); GETB(_memccpy, F_memccpy);
     for (si = 0; si < 4; ++si) {
         /* msvcrt does not export _set_invalid_parameter_handler, so there is no way to make its
-         * `_s` functions report instead of terminating -- and the termination is __fastfail, which
+         * `_s` functions report instead of terminating, and the termination is __fastfail, which
          * SEH cannot catch either. The second run of this file died there, at 0xC0000409, after
          * printing the parser results. So the `_s` corpus is restricted to parameters that are
          * VALID for both CRTs: a destination big enough for the source. The too-small case is not
-         * undriven because it is uninteresting -- it is undriven because driving it costs the run,
+         * undriven because it is uninteresting; it is undriven because driving it costs the run,
          * and this file says so rather than quietly starting the loop one index later. */
         int ci_min = (int)strlen(S[si]) + 1;
         for (ci = ci_min; ci <= 24; ++ci) {

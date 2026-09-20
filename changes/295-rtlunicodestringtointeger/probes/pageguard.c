@@ -1,10 +1,10 @@
 /* probes/pageguard.c
  *
  * Two questions the first probe cannot ask:
- *   1. does the shipped export read PAST Length? -- put the last WCHAR of the string flush against a
+ *   1. does the shipped export read PAST Length?, put the last WCHAR of the string flush against a
  *      PAGE_NOACCESS page; if it overreads, it faults and we see it;
  *   2. does it really WRITE *Value on the INVALID_PARAMETER paths? probes/contract.c showed the word
- *      coming back 0 from a 0xDEADBEEF sentinel, which already says "written" -- this makes the same
+ *      coming back 0 from a 0xDEADBEEF sentinel, which already says "written"; this makes the same
  *      statement the other way round: pass a NULL Value and see whether the failure path faults.
  *      If it faults, the write is unconditional and a drop-in must do it too.
  *

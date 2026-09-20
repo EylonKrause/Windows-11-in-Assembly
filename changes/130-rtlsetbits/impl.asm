@@ -2,14 +2,14 @@
 ; Void wia_setbits(RTL_BITMAP* bm, ulong StartingIndex, ulong NumberToSet)   [Win64: rcx, edx, r8d]
 ;
 ; Reimplements ntdll!RtlSetBits: set bits [StartingIndex, StartingIndex+NumberToSet) to 1.
-; Contract (probed against the live export): there is NO bounds check whatsoever -- ntdll writes past
+; Contract (probed against the live export): there is NO bounds check whatsoever, ntdll writes past
 ; SizeOfBitMap if asked (start=250,num=20 on a 256-bit map sets bits 250..269; start=300 sets 300..309),
 ; and NumberToSet == 0 is a no-op. So SizeOfBitMap is never read.
 ;
 ; ntdll costs ~3.8 ns even to set a single word (~17 cycles of fixed overhead) while its bulk fill is
 ; already wide, so the win here is the small/medium range. Edges are masked at ULONG granularity --
 ; matching the buffer's declared element type, so no byte outside the ULONG array is ever touched (a
-; 64-bit read-modify-write could fault on a buffer ending exactly at a page boundary) -- and the
+; 64-bit read-modify-write could fault on a buffer ending exactly at a page boundary), and the
 ; interior is filled 32 bytes at a time with AVX2.
 ;
 ; ISA: AVX2. Validated on Zen3.
@@ -52,7 +52,7 @@ sb_full1:
 sb_aligned:
         mov       r11, r10
         shr       r11, 5                          ; whole ULONGs to fill
-        ; Bulk fill, three regimes -- each measured (see RESULTS.md): a plain store loop for tiny
+        ; Bulk fill, three regimes, each measured (see RESULTS.md): a plain store loop for tiny
         ; runs, an UNROLLED 128-byte AVX2 loop for the middle (rep stos has too much startup there:
         ; 512 bytes cost 37 ns via rep vs 6 ns unrolled), and rep stosd only once it is large enough
         ; for fast-short-rep to win on streaming bandwidth.

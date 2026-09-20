@@ -4,7 +4,7 @@
  * else here: three-way against the live export, over a corpus built to reach every rule.
  *
  * RtlUTF8ToUnicodeN(NULL, ...) asks how many BYTES of UTF-16 the output would need. This
- * implementation did not answer it -- it returned STATUS_BUFFER_TOO_SMALL with nothing produced,
+ * implementation did not answer it, it returned STATUS_BUFFER_TOO_SMALL with nothing produced,
  * and with a NULL pointer and a NON-ZERO size it dereferenced the pointer and faulted. The decoder
  * itself was and is bit-exact; what was missing was a whole MODE of the function, which every
  * corpus here managed to miss because they all pass a real destination buffer.
@@ -21,7 +21,7 @@
  *   1. the size AND the status against live, over every length from 0 to 300, for ASCII, valid
  *      two-, three- and four-byte sequences, continuation runs, lead runs and fully random bytes;
  *   2. the hand-built malformed sequences from probes/policy.c, which are the cases the rule was
- *      derived from -- truncations, interrupted leads, out-of-range byte-2, invalid leads;
+ *      derived from, truncations, interrupted leads, out-of-range byte-2, invalid leads;
  *   3. a NULL destination with a NON-ZERO size, which is the case that used to fault;
  *   4. that the measured size is exactly the size a real conversion produces.
  */

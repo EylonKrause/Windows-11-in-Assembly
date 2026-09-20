@@ -9,7 +9,7 @@
 //   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), and nothing is written;
 //   * otherwise Buffer[0] = 0 is written IMMEDIATELY, before the rest of the validation, which is
 //     why an invalid radix still empties the buffer while size 0 leaves it untouched;
-//   * there is no sign at all here -- ucrtbase's _ui64toa_s passes a hard zero to the same
+//   * there is no sign at all here, ucrtbase's _ui64toa_s passes a hard zero to the same
 //     worker _i64toa_s calls, so every "negative" term in change 194's model is 0;
 //   * SizeInChars <= negative + 1 -> ERANGE (34) straight away, Buffer[0] = 0 and nothing else;
 //   * Radix outside 2..36 -> EINVAL (22), Buffer[0] = 0;

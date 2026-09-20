@@ -11,7 +11,7 @@
  *
  * The obvious reading is that each ANSI form is its wide sibling plus a code-page conversion, and
  * the 73 ns gap here is about what a WideCharToMultiByte of a 44-character string costs. If that is
- * what it is, this change is change 270 plus a narrowing -- and since a SID string is ASCII by
+ * what it is, this change is change 270 plus a narrowing, and since a SID string is ASCII by
  * construction ("S", "-", "0x", the digits and A-F), the narrowing is a byte-per-character pack
  * that needs no code page at all.
  *
@@ -22,11 +22,11 @@
  * siblings are not). So the questions are:
  *
  *   1. does the ANSI form produce exactly the wide form's characters, narrowed one for one, for
- *      every shape of SID -- every count, every revision, every authority form?
+ *      every shape of SID, every count, every revision, every authority form?
  *   2. does it REFUSE exactly what the wide form refuses, with the same GetLastError?
- *   3. is the block the same shape -- LocalAlloc, LMEM_FIXED, exactly characters+1 bytes?
+ *   3. is the block the same shape, LocalAlloc, LMEM_FIXED, exactly characters+1 bytes?
  *   4. does it leave the output pointer alone on failure, and zero the last error on success?
- *   5. Does the active code page change anything? a SID string is ASCII, so it should not -- but
+ *   5. Does the active code page change anything? a SID string is ASCII, so it should not, but
  *      "should not" is what changes 021 and 027 were built on before their code pages were
  *      measured. This asks under the ANSI code page, under 1252, under 932 (Shift-JIS, where the
  *      lead-byte range would matter if anything non-ASCII ever appeared) and under 65001 (UTF-8).

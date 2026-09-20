@@ -15,7 +15,7 @@
 // ---- 1. The kernel32 exports are thunks, and patching one would corrupt its neighbour ----------
 // kernel32!FileTimeToSystemTime is not a function; it is `jmp qword ptr [rip+disp32]` onto
 // kernelbase, and that is SIX bytes. The 14-byte patch every other harness here installs would run
-// six bytes into whatever follows -- the next export's thunk. Nothing would fail at patch time; the
+// six bytes into whatever follows; the next export's thunk. Nothing would fail at patch time; the
 // damage would appear later, in an unrelated function, as the kind of bug that takes a day.
 //
 // So `follow_thunk()` decodes an `FF 25` jump once and returns what it points at, and the patch
@@ -25,7 +25,7 @@
 //
 // ---- 2. FoldStringW is five functions behind one entry point --------------------------------
 // Change 288 implements MAP_FOLDDIGITS and DECLINES the other four flags with ERROR_INVALID_FLAGS,
-// because they are the only 1:1 mapping -- MAP_FOLDCZONE turns one input unit into up to eighteen.
+// because they are the only 1:1 mapping, MAP_FOLDCZONE turns one input unit into up to eighteen.
 // That exclusion is declared, so it is driven and COUNTED rather than quietly skipped: a slice of
 // the corpus asks for MAP_FOLDCZONE and MAP_COMPOSITE, and those cases are tallied into
 // `oos_flags`, printed every run, and never counted as failures. The same discipline as change
@@ -35,12 +35,12 @@
 // WindowsCompareStringOrdinal takes handles, not pointers, so the corpus builds them with
 // WindowsCreateString before any patch is installed and reuses the same handles across all three
 // passes. The NULL-result path (which change 297 implements as its own cold PROC) is PRE-FLIGHTED
-// inside a __try before the corpus commits to driving it -- if the export faults on it, the harness
+// inside a __try before the corpus commits to driving it, if the export faults on it, the harness
 // says so and drops those cases rather than taking the whole run down with it.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copies -- never a live system process, never a file on disk.
+//       copies, never a live system process, never a file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of the seven is used by the loader, the heap or the CRT, and
 //       nothing else in this process runs while the patch is in place.
@@ -116,7 +116,7 @@ static int patch_off(patch_t* p){
 }
 
 /* An export that is `jmp qword ptr [rip+disp32]` is a SIX-BYTE thunk. A 14-byte patch over it runs
- * into whatever follows, which is the next export's thunk -- silent at patch time, catastrophic
+ * into whatever follows, which is the next export's thunk, silent at patch time, catastrophic
  * later. Follow it once and patch the real implementation instead. */
 static void* follow_thunk(void* p){
     unsigned char* b=(unsigned char*)p;
@@ -404,7 +404,7 @@ int main(void){
     for(i=0;i<NFN;++i) if(!liveP[i]){ printf("  could not resolve %s\n",ENAME[i]); return 2; }
     if(!Create||!Delete){ printf("  could not resolve WindowsCreateString/DeleteString\n"); return 2; }
 
-    /* follow thunks BEFORE patching -- see the note at the top of this file */
+    /* follow thunks BEFORE patching, see the note at the top of this file */
     printf("  patch targets (a 6-byte jmp thunk is followed to its real implementation):\n");
     for(i=0;i<NFN;++i){
         patchP[i]=follow_thunk(liveP[i]);
@@ -431,12 +431,12 @@ int main(void){
     wia_crc64_init();
     /* Change 288's fold table is built from the live export, so this call has to happen while the
      * export is still the shipped one. Installing the patch first would have it build its table by
-     * asking OUR implementation, whose table is empty at that moment -- a circular initialisation
+     * asking OUR implementation, whose table is empty at that moment, a circular initialisation
      * that produces a table of zeros and an implementation that agrees with itself perfectly.
      * The first run of this harness omitted the call entirely and FoldStringW differed on 4347 of
      * 8000 cases with the right return value and a destination full of zeros, which is what that
      * failure looks like from the outside. */
-    /* wia_fold_init() returns 0 for SUCCESS -- it is a status, not a boolean, and reading it the
+    /* wia_fold_init() returns 0 for SUCCESS; it is a status, not a boolean, and reading it the
      * other way round makes a healthy table look like a failure. */
     if(wia_fold_init()!=0){ printf("  FAIL: wia_fold_init() could not build the digit table\n"); return 2; }
 

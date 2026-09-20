@@ -3,7 +3,7 @@
  * The signatures first, because two of them are genuinely ambiguous.
  *
  * Change 281 landed StrChrIW at 145.36x by characterising shlwapi's case-insensitive match relation
- * -- locale-invariant, symmetric, INTRANSITIVE, 10553170 pairs -- and generating it from the live
+ * (locale-invariant, symmetric, INTRANSITIVE, 10553170 pairs) and generating it from the live
  * export. The rest of the family shares that relation, so the expensive part is already done:
  *
  *     StrRChrIW  24263.40 ns / 511 code units      StrRStrIW  21816.97 ns
@@ -12,8 +12,8 @@
  *
  * What is NOT done is their shapes, and two of them cannot be assumed:
  *
- *   * MSDN documents StrChrNIW as (pszStart, wMatch, cchMax) -- a COUNT.
- *   * discovery/charclass_strcmp_2026.c called it as (start, end, wMatch) -- an END POINTER -- and
+ *   * MSDN documents StrChrNIW as (pszStart, wMatch, cchMax), a COUNT.
+ *   * discovery/charclass_strcmp_2026.c called it as (start, end, wMatch) (an END POINTER) and
  *     got a plausible answer, which proves nothing: passing (s, s+3, 'e') under the documented
  *     signature means wMatch is the low half of a pointer and cchMax is 101, and that returns NULL
  *     too. Both hypotheses produce the same answer on that call, so it never distinguished them.

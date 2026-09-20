@@ -54,7 +54,7 @@ int ref_pathmakeprettya(char* p)
 
     if (len) {
         unsigned char first = (unsigned char)p[0];
-        /* The rewrite is bounded at 259 characters -- indices 0..258, which with a terminator is
+        /* The rewrite is bounded at 259 characters, indices 0..258, which with a terminator is
            MAX_PATH -- and the bound is a TRUNCATION, not merely a stopping point: a longer path has
            a NUL written AT INDEX 259. probes/pmpa3.c reported index 259 as "left alone" because it
            tested whether the byte had been lowercased, and a not-lowercased test cannot tell

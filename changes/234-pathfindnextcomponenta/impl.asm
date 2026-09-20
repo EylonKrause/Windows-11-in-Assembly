@@ -2,7 +2,7 @@
 ; char* wia_pathfindnextcomponenta(PCSTR psz)   [Win64: rcx -> rax]
 ;
 ; Reimplements shlwapi!PathFindNextComponentA: return a pointer to the component after the first
-; separator. 9.33 ns against 1.96 ns for the wide form on the same character count -- 4.75x the wide
+; separator. 9.33 ns against 1.96 ns for the wide form on the same character count, 4.75x the wide
 ; cost for HALF the bytes, the worst per-byte ratio of the narrow siblings still unconverted.
 ;
 ; This function only READS and returns a pointer. No wrapper, no store, no bound: the whole job is
@@ -12,10 +12,10 @@
 ;
 ;   * NULL and the EMPTY STRING both return NULL, and those are the only NULLs.
 ;   * Exactly one byte value is a separator: 0x5C. Sweeping all 255 non-NUL values between two
-;     letters, only the backslash moves the answer -- a forward slash is not a separator.
+;     letters, only the backslash moves the answer; a forward slash is not a separator.
 ;   * With no separator the answer is a pointer to the TERMINATOR, not NULL.
 ;   * The doubled-separator quirk: when the byte after the first separator is also a separator,
-;     advance exactly ONE more -- never the whole run. Measured directly with leading runs of
+;     advance exactly ONE more, never the whole run. Measured directly with leading runs of
 ;     increasing length:
 ;
 ;         1 backslash then 'x' -> offset 1
@@ -26,21 +26,21 @@
 ;         6 backslashes        -> offset 2
 ;
 ;     The offset stops at 2 however long the run is. "Skip the run of separators" is the obvious
-;     thing to write and it is WRONG from three backslashes onward -- which is why this was measured
+;     thing to write and it is WRONG from three backslashes onward, which is why this was measured
 ;     rather than assumed, and why the correctness corpus enumerates runs.
 ;   * 0 mismatches over all 349525 strings of {a, backslash, /, 0x80} to length 9.
 ;   * It does not read past the terminator: 200 of 200 strings ending at a NOACCESS page were fine.
 ;
-; Method: one forward pass looking for EITHER the terminator or a separator -- two vpcmpeqb and a
+; Method: one forward pass looking for EITHER the terminator or a separator, two vpcmpeqb and a
 ; vpor per 32-byte block, so the first of the two is found in a single extraction. Reading the byte
 ; after a separator is always safe: a separator is not the terminator, so the byte after it is part
 ; of the string or is the terminator itself.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the bytes already scanned came
+; stays inside the cursor's own page, necessarily mapped, since the bytes already scanned came
 ; from it. Within 32 bytes of a page end it steps one byte and retries.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

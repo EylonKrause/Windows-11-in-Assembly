@@ -6,7 +6,7 @@
 //
 //     over tails 1..80 with no terminator: 80 returned, 0 faulted
 //
-// and what it returns is always **0** -- not the partial length, and not the distance to the guard.
+// and what it returns is always **0**, not the partial length, and not the distance to the guard.
 // That is the documented lstrlen* behaviour, and a reimplementation that simply faulted would be a
 // crash where the shipped function returns a value. So the scan stays in assembly and this supplies
 // the two things assembly should not:
@@ -22,7 +22,7 @@
 // The zeroupper on the fault path is not cosmetic. The core runs a 256-bit loop, so when the fault
 // arrives mid-scan the upper halves of ymm0-ymm15 are dirty. Unwinding out of assembly skips the
 // core's own vzeroupper, and leaving the CPU in that state makes every subsequent legacy-SSE
-// instruction in the caller pay an AVX-SSE transition penalty -- a performance bug planted in
+// instruction in the caller pay an AVX-SSE transition penalty, a performance bug planted in
 // someone else's code by our error path. One instruction here closes it.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

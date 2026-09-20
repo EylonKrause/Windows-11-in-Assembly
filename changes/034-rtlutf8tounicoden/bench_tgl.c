@@ -5,7 +5,7 @@
  * a machine with no AVX-512, and `build_tgl.bat` points here instead.
  *
  * What was wrong with the old table. Its six classes are ASCII, 2-byte, 3-byte, 4-byte, "mixed"
- * and u+fffd. Five of the six are homogeneous -- every character the same width -- and the sixth,
+ * and u+fffd. Five of the six are homogeneous (every character the same width) and the sixth,
  * "mixed", is ASCII alternating with two-byte sequences, which is precisely the one mixture the
  * AVX2 file has a kernel for. So the table covers each width on its own, plus the one mixture that
  * has a kernel, and nothing else. `discovery/utf8_width_mixtures.c` measured the classes it cannot
@@ -15,22 +15,22 @@
  *
  * So this table adds, and every one of them is a class the AVX2 blocks fall out of:
  *
- *   e0ed    three-byte sequences whose lead is 0xE0 or 0xED -- Devanagari, Bengali, Tamil, Thai,
+ *   e0ed    three-byte sequences whose lead is 0xE0 or 0xED, Devanagari, Bengali, Tamil, Thai,
  *           and the top of the Hangul block. The AVX2 three-byte kernel DECLINES both leads by
  *           construction, because they are the two with a narrower second byte, so all of Indic
  *           and part of Korean used to go one character at a time.
- *   a+3     ASCII with three-byte sequences -- English prose with a euro sign, and CJK with spaces
+ *   a+3     ASCII with three-byte sequences, English prose with a euro sign, and CJK with spaces
  *   a+4     ASCII with emoji
- *   2+3     two-byte with three-byte -- Greek or Hebrew with punctuation above U+2000
+ *   2+3     two-byte with three-byte, Greek or Hebrew with punctuation above U+2000
  *   1234    all four widths interleaved
- *   bad32   ASCII with one malformed byte every 32 -- a log file, a network buffer, user input
+ *   bad32   ASCII with one malformed byte every 32, a log file, a network buffer, user input
  *   rand    bytes drawn the way correctness.c's fuzz draws them: mostly malformed, every class
  *
  * ALIGNMENT. Change 294's lesson is that the (length, alignment) pair malloc happens to hand out
  * is not the speed gate, and change 296's is that (dst - src) mod 4096 can cost a size class on its
  * own. Both axes are swept in probes/tglaxes.c. This table then runs every row at the WORST
- * alignment a 64-byte-load kernel can have -- source at offset 63 of a 4K page, so every wide load
- * straddles a cache line and the tail falls at the least convenient place -- with the destination
+ * alignment a 64-byte-load kernel can have, source at offset 63 of a 4K page, so every wide load
+ * straddles a cache line and the tail falls at the least convenient place, with the destination
  * off its own 64-byte boundary too. The numbers below are therefore a floor, not a best case.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -79,7 +79,7 @@ static void fill(int c, unsigned char* s, int n)
                  break;
         case 4:  if (i + 2 < n) { s[i++] = 0xEF; s[i++] = 0xBF; s[i++] = 0xBD; } else s[i++] = 'z';
                  break;
-        /* 0xE0 needs a second byte of 0xA0..0xBF and 0xED one of 0x80..0x9F -- the two leads the
+        /* 0xE0 needs a second byte of 0xA0..0xBF and 0xED one of 0x80..0x9F, the two leads the
            AVX2 three-byte kernel refuses. U+0900.. is Devanagari; U+D7xx is the end of Hangul. */
         case 5:  if (i + 2 < n) { if (k++ & 1) { s[i++] = 0xE0; s[i++] = (unsigned char)(0xA4 + (i & 7)); }
                                   else        { s[i++] = 0xED; s[i++] = (unsigned char)(0x80 + (i & 15)); }

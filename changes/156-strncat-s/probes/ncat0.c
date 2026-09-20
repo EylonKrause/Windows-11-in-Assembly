@@ -1,8 +1,8 @@
-/* ncat0.c -- what does strncat_s really do when count == 0 and src == NULL?
+/* ncat0.c: what does strncat_s really do when count == 0 and src == NULL?
  *
  * changes/156's header states rule 3 as: "count == 0 And src == NULL -> return 0, nothing written
  * and no handler". The live harness found three cases where the shipped export disagrees --
- * size = 1 with a non-empty destination -- returning EINVAL, emptying the destination and calling
+ * size = 1 with a non-empty destination, returning EINVAL, emptying the destination and calling
  * the invalid-parameter handler.
  *
  * So the question is the PRECEDENCE: does the destination-terminator check come before that

@@ -1,10 +1,10 @@
 // live-substitution/live_subst_iphlpapi.c
-// LIVE-RUN PROOF for changes 202 and 203 -- iphlpapi!ConvertGuidToStringW and ...A.
+// LIVE-RUN PROOF for changes 202 and 203, iphlpapi!ConvertGuidToStringW and ...A.
 //
 // The first targets in this project from iphlpapi.dll, and the largest wins in it: neither shipped
 // routine formats the GUID. Both spill the eleven fields as varargs and hand them to a
 // StringCchPrintf clone that re-parses "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}" on
-// every call, dispatching each conversion through a per-character output helper -- ~305 ns (W) and
+// every call, dispatching each conversion through a per-character output helper, ~305 ns (W) and
 // ~263 ns (A) to write 38 characters. Ours is one vpshufb and a template store.
 //
 // What must be proved live. The return value alone is worthless here: three different lengths fail

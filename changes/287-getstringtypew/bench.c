@@ -9,8 +9,8 @@
  *   * LATIN-1 across the whole 0..255 range, the same 512 bytes but all of them;
  *   * CJK, which reads from the far side of a 128 KB table, so the cache behaviour is the worst case;
  *   * ALTERNATING Latin-1 and CJK, which was written when the implementation still had a per-unit branch
- *     on U+0100 and would mispredict on every character. That branch is gone -- measured, it cost more
- *     than the second load it avoided -- and this row now shows the result: it times the same as all the
+ *     on U+0100 and would mispredict on every character. That branch is gone, measured, it cost more
+ *     than the second load it avoided, and this row now shows the result: it times the same as all the
  *     others, which is itself the evidence that nothing in the loop depends on the input's composition;
  *   * SURROGATES, their own range and their own class;
  *   * all three info types, because they are three separate 128 KB tables;

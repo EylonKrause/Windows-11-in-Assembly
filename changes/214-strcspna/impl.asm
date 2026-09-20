@@ -3,13 +3,13 @@
 ;
 ; Reimplements shlwapi!StrCSpnA: the number of leading characters of pszStr that are NOT in pszSet.
 ; The live export costs 42868.10 ns on 4000 characters against 3166.56 ns for StrCSpnW over the same
-; character count -- 13.54x the wide cost for HALF the bytes, the MBCS-walk signature this project
+; character count, 13.54x the wide cost for HALF the bytes, the MBCS-walk signature this project
 ; has now seen across the whole narrow shlwapi family.
 ;
 ; ---- what the probe settled (probes/span.c) ---------------------------------------------------------
 ;   * BYTE-WISE, and so are its two siblings. Every byte value 0x01..0xFF was placed where a lead byte
 ;     would swallow the character after it: 0 of 254 misbehave for StrCSpnA, StrPBrkA and StrSpnA
-;     alike. The SET string is byte-wise too -- 0 of 252 values cannot be a member -- so any byte can
+;     alike. The SET string is byte-wise too (0 of 252 values cannot be a member) so any byte can
 ;     belong to the set and a 256-bit membership test reproduces all of it exactly.
 ;   * a NULL set is not the empty set. StrCSpnA("abc", NULL) is 0, while StrCSpnA("abc", "") is 3.
 ;     A reimplementation that treated NULL as "no members" would return 3 and be wrong.
@@ -21,18 +21,18 @@
 ;
 ;     the index of the first position that is EITHER a set member OR the terminator
 ;
-; -- one scan, one mask, no separate length pass and no second stopping rule. (Its sibling StrSpnA
+; one scan, one mask, no separate length pass and no second stopping rule. (Its sibling StrSpnA
 ; gets the same gift from the other side: the terminator is never a member, so "first non-member"
 ; already stops there.)
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT bitmap in the caller's shadow space -- which is 32 bytes, exactly the
+; The set becomes a 256-BIT bitmap in the caller's shadow space, which is 32 bytes, exactly the
 ; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
 ; character sets bit b of that region: byte b>>3, bit b&7.
 ;
 ; Membership for 32 characters at once is then the standard two-table vpshufb test, and the bitmap's
 ; natural layout is exactly what it wants:
-;     idx   = (v >> 3) & 15      -- which bitmap byte, within a 16-byte half
+;     idx   = (v >> 3) & 15, which bitmap byte, within a 16-byte half
 ;     rows  = vpshufb(tabL, idx) or vpshufb(tabH, idx), selected by v's BIT 7 (i.e. v >= 128,
 ;             i.e. bitmap byte >= 16) using vpblendvb, which keys on exactly that bit
 ;     bits  = vpshufb(POW2, v & 7)
@@ -92,8 +92,8 @@ wia_strcspna PROC
         xor       r8d, r8d
 cs_bld:
         ; `bts dword ptr [r11], eax` expresses this in ONE instruction and was the first cut, but a
-        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded -- it is a
-        ; read-modify-write whose address depends on the offset -- and the set-13 class paid for it.
+        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded; it is a
+        ; read-modify-write whose address depends on the offset, and the set-13 class paid for it.
         ; Splitting it into an explicit byte index and a table-driven bit does the same work in
         ; simple ops.
         movzx     eax, byte ptr [rdx + r8]

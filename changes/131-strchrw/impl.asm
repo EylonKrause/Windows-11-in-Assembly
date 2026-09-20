@@ -10,7 +10,7 @@
 ; pointer to the terminator. Verified against the live export.
 ;
 ; Page-safe: the first load is aligned down to a 32-byte boundary and the leading bytes are shifted out
-; of the mask, and every later load is 32-aligned -- so no load ever crosses into a page the string does
+; of the mask, and every later load is 32-aligned, so no load ever crosses into a page the string does
 ; not already occupy.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.

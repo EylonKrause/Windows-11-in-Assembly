@@ -6,11 +6,11 @@
 ; void* wia_memccpy(void* dest, const void* src, int c, size_t count)  [Win64: rcx, rdx, r8d, r9]
 ;
 ; Reimplements ucrtbase!_memccpy: copy bytes until the delimiter byte has been copied, or count bytes
-; have been. ucrtbase's is scalar (~0.5 cycles/byte -- 58 ns for 508 bytes, while its own memset does
+; have been. ucrtbase's is scalar (~0.5 cycles/byte, 58 ns for 508 bytes, while its own memset does
 ; the same size in 4 ns). This is a fused memchr+memcpy, so one AVX2 pass does both.
 ;
 ; Contract (probed against the live export):
-;   - only the LOW BYTE of c is used -- c = 0x1263 matches 'c' (0x63), and c = -1 matches 0xFF;
+;   - only the LOW BYTE of c is used, c = 0x1263 matches 'c' (0x63), and c = -1 matches 0xFF;
 ;   - the delimiter is copied too: found at index i means exactly i+1 bytes are written and the return
 ;     is dest + i + 1;
 ;   - NOT found -> all count bytes are written and the return is NULL;
@@ -18,7 +18,7 @@
 ;
 ; The "exactly i+1 bytes" rule is what stops this from being a plain vector copy: on the block that
 ; contains the delimiter the copy must be truncated, so that block is finished byte-wise. Every other
-; block is copied whole. Reads are also never allowed past src+count -- the vector steps only run while
+; block is copied whole. Reads are also never allowed past src+count, the vector steps only run while
 ; a whole block remains, so the caller's buffer bound is respected without needing masked loads.
 ;
 ; ISA: AVX2. Validated on Zen3.

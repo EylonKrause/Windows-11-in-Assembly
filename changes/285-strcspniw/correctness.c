@@ -8,7 +8,7 @@
  * walk into the same holes, so the shapes come over from the start and are adapted to a SET-based span:
  *
  *   * every alignment, because the block scan masks the bytes below the string pointer;
- *   * a match planted where the scan must NOT find it -- below the string pointer;
+ *   * a match planted where the scan must NOT find it, below the string pointer;
  *   * Every member of every dispatch class of the relation, because this change expands a set member's
  *     whole pool slot and only the last member of a slot exposes an off-by-one there;
  *   * the guard page with the terminator as the last readable code unit;
@@ -39,12 +39,12 @@ static int failures;
 /* The filler, and why it is checked rather than chosen.
  *
  * Three corpora in this file were written with a filler that turned out to be IN the set under test,
- * which makes every answer 0 and the whole corpus vacuous -- it passes, it proves nothing, and the
+ * which makes every answer 0 and the whole corpus vacuous, it passes, it proves nothing, and the
  * mutant it was written to catch walks straight through it:
  *
  *   * corpus 14 filled with 'z' against a set spanning U+004D..U+0060, and 'z' matches 'Z';
  *   * corpora 7, 9 and 16 filled with U+FFFD, which has n = 255 and is itself one of the 3237
- *     ignorables -- so it matched the SOFT HYPHEN member those corpora deliberately included.
+ *     ignorables, so it matched the SOFT HYPHEN member those corpora deliberately included.
  *
  * A code unit with n = 0 matches only itself, and the relation is symmetric, so such a unit is in no
  * other member's set. U+0002 is one, and vacuity_check() proves it at startup against every set this
@@ -71,7 +71,7 @@ static void one(const wchar_t* s, const wchar_t* set)
     }
 }
 
-/* Plant `c` at `pos` in a FILL-filled string of length `len` and compare three ways -- but first
+/* Plant `c` at `pos` in a FILL-filled string of length `len` and compare three ways, but first
    confirm the untouched string answers `len`, because a filler that is itself in the set makes the
    case vacuous. That has happened three times in this file, and it always passed. */
 static void plant(wchar_t* s, int len, int pos, wchar_t c, const wchar_t* set)
@@ -261,7 +261,7 @@ int main(void)
      * A set member with 2..8 partners has its whole pool slot copied into the accept list, so an
      * off-by-one there is only visible through the LAST member of the slot. probes/relation.c (via
      * change 283's probes/partners.c) established that only nine counts occur: 0, 2, 3, 4, 5, 6, 7, 8
-     * and the 255 bitmap sentinel -- and 5..8 are the counts that cross this change's chunk of four.
+     * and the 255 bitmap sentinel, and 5..8 are the counts that cross this change's chunk of four.
      */
     {
         long before = cases;
@@ -283,7 +283,7 @@ int main(void)
             }
             /* And the neighbours, which is what a one-too-far walk of the pool slot reads.
              * probes/pooltail.c measured it: a slot holds eight words, so for a member with n = 8 the
-             * entry at [n] is the first word of the next slot -- U+02B9's is U+02BA, which its set
+             * entry at [n] is the first word of the next slot, U+02B9's is U+02BA, which its set
              * does not accept. Fifteen slots are like that, so walking one member too far is a genuine
              * false-match bug, and planting only MEMBERS of the set could never catch it. */
             for (mem = (r > 4 ? r - 4 : 1); mem <= (unsigned)r + 10 && mem < 65536; ++mem) {
@@ -326,7 +326,7 @@ int main(void)
     }
 
     /* 9. The accept-list cap. Sixteen entries is the cap, and beyond it the whole call takes the
-     * scalar path -- so the answer must be identical on both sides of that line. A one-character set
+     * scalar path, so the answer must be identical on both sides of that line. A one-character set
      * member with four partners contributes four entries, so four such members fill the list exactly.
      */
     {
@@ -424,7 +424,7 @@ int main(void)
      *
      * An empty set expands to nothing, and the implementation appends a single zero entry rather than
      * special-casing it. A mutant that drops that append broadcasts whatever the uninitialised stack
-     * slot happens to hold -- and it SURVIVED both gates, because that garbage never occurred in any
+     * slot happens to hold, and it SURVIVED both gates, because that garbage never occurred in any
      * test string. Which garbage it is cannot be predicted, so the corpus stops depending on it:
      * every code unit from 1 to 65535 appears in a string that is asked with an empty set, and the
      * answer must always be the string's length.
@@ -460,7 +460,7 @@ int main(void)
         for (k = 0; k < 20; ++k) set[k] = (wchar_t)(L'M' + k);
         set[20] = 0;
         /* The filler must not be in the set, and the first version of this corpus got that wrong: it
-         * filled with 'z', and the set runs U+004D..U+0060 which includes 'Z' -- so case-insensitively
+         * filled with 'z', and the set runs U+004D..U+0060 which includes 'Z', so case-insensitively
          * every single character of the string was already a match, every answer was 0, and every
          * answer therefore lay in the FIRST window. probes/windiag.c printed it: ours 0, live 0, for
          * every planted position. The mutant this corpus was written to catch survived it untouched.
@@ -534,12 +534,12 @@ int main(void)
     /* 16. The scalar pool loop at the edge of a slot.
      *
      * A pool slot is eight words wide, so for a set member with EIGHT partners the entry just past its
-     * members is the first word of the next slot -- probes/pooltail.c measured fifteen code units for
+     * members is the first word of the next slot, probes/pooltail.c measured fifteen code units for
      * which that neighbour is NOT accepted by the set, U+02B9's being U+02BA. A mutant walking one
      * member too far is therefore a genuine false-match bug.
      *
      * Corpus 7 plants every member of every dispatch class, and corpus 9 mixes a sentinel member in to
-     * force the scalar path -- but never both at once, so the scalar POOL loop never ran with a
+     * force the scalar path, but never both at once, so the scalar POOL loop never ran with a
      * high-count member. A set of {a member with 5..8 partners, a sentinel} does exactly that, and the
      * string sweeps the member's neighbourhood so the out-of-slot value is among the characters tried.
      */

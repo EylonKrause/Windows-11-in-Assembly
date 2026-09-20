@@ -26,10 +26,10 @@
 ;     000ED738  movabs r9, 0x8101010101010100
 ;     000ED742  test r9, r10 / je 0x1800ED71A
 ;
-; and the copy is the same trick with a store bolted on -- load eight, test for a zero byte, store
+; and the copy is the same trick with a store bolted on, load eight, test for a zero byte, store
 ; eight (0x0ED7C2..0x0ED7F1). Eight bytes per iteration through a four-instruction dependent chain
 ; is about one byte per cycle, which is exactly what 0.200 ns/byte says. There is no AVX anywhere in
-; either routine -- and, as the benchmark went on to show, that is not purely an oversight.
+; either routine, and, as the benchmark went on to show, that is not purely an oversight.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
@@ -39,7 +39,7 @@
 ;     rather than read off one of them.
 ;   * NULL FAULTS, both arguments. Undefined in the standard is still SOME behaviour in the shipped
 ;     binary, and this one raises. So NULL is not in the corpora and this implementation is free to
-;     fault too -- it does, at the same first touch. (It is also why the short path may not adjust
+;     fault too; it does, at the same first touch. (It is also why the short path may not adjust
 ;     rsp without unwind data: a fault there is a REACHABLE state, not a hypothetical one.)
 ;   * An empty source writes exactly one terminator and nothing else. Probed with a destination
 ;     pre-filled with 0xAA past its terminator: byte [3] became 00 and every byte beyond it was
@@ -63,7 +63,7 @@
 ;                                   second one. (wia_wcslen, change 001, for the wide form.)
 ;   then ONE pass over src, copying as it scans.
 ;
-; The single pass matters. The obvious decomposition -- strlen(src) then memcpy -- touches the
+; The single pass matters. The obvious decomposition (strlen(src) then memcpy) touches the
 ; source twice, and while both passes would be fast it is strictly more work than reading each block
 ; once, testing it for a terminator, and storing it.
 ;
@@ -84,7 +84,7 @@
 ;
 ; while the large rows were already 3.7x to 7.6x. The first diagnosis was that the overhead was the
 ; Two function calls and the vzeroupper, so a fast path was written that inlined both calls and the
-; tail ladder and used only VEX-128 instructions -- a routine that never writes a 256-bit register
+; tail ladder and used only VEX-128 instructions; a routine that never writes a 256-bit register
 ; never dirties the upper state and so needs no VZEROUPPER at all, which is a real saving and not
 ; merely a skipped instruction. It made no difference: 7.71 -> 7.96 ns, inside the noise. The
 ; diagnosis was wrong and the fix built on it was worthless.
@@ -97,10 +97,10 @@
 ; in about three cycles while the vector version is still waiting on its first mask. VECTORISING A
 ; Four-byte copy is not slow because of overhead around it; simd is the wrong instrument at that
 ; Size, and no amount of trimming the approach fixes it. Microsoft's choice of SWAR is not simply an
-; oversight -- it is the right call for short strings and the wrong one past about a hundred bytes.
+; oversight; it is the right call for short strings and the wrong one past about a hundred bytes.
 ;
 ; So the short path below does not vectorise at all. It is the same SWAR has-zero test, applied to
-; one aligned qword of each string, finished with the overlapping-store ladder -- and it is a LEAF
+; one aligned qword of each string, finished with the overlapping-store ladder, and it is a LEAF
 ; with no prologue, no saved registers and no stack adjustment, using only volatile registers. rcx
 ; and rdx are deliberately never written, so when either string runs past its first qword the path
 ; TAIL-JUMPS to the vector version and arrives with rsp and both arguments exactly as a call would
@@ -130,13 +130,13 @@ c_high_w  DQ 8000800080008000h
 
 .code
 
-; -- the SWAR has-zero test, the same one the shipped code uses. --
+; the SWAR has-zero test, the same one the shipped code uses. --
 ; In:  Q = a qword of string data (restored on exit).
-; Out: T is nonzero iff Q contains a zero unit, with bit (8i+7) -- or (16i+15) for the word form --
+; Out: T is nonzero iff Q contains a zero unit, with bit (8i+7), or (16i+15) for the word form --
 ;      set for each zero unit i.
 ; The TEXTBOOK formulation, deliberately, and not the one ucrtbase uses. ucrtbase's
 ; `(~x ^ (x + 0x7efefefefefefeff)) & 0x8101010101010100` is a chain of three rather than five and was
-; tried here -- but it is a FILTER, not an answer: it never misses a zero, yet it also fires on bytes
+; tried here, but it is a FILTER, not an answer: it never misses a zero, yet it also fires on bytes
 ; that merely have the high bit set, and its flag for byte 0 is not where a TZCNT would look. That is
 ; why the shipped code, on a hit, drops into the byte-by-byte ladder at 0x0ED747 to find out which
 ; byte actually ended the string. Buying two cycles at the price of a second, differently-wrong index
@@ -151,7 +151,7 @@ HASZERO MACRO Q, T, ONES, HIGHS
         and       T, qword ptr [HIGHS]
 ENDM
 
-; -- copy exactly L bytes (1..16) from S to D. Scratch: rax, and T (T/Td/Tw/Tb = 64/32/16/8-bit). --
+; copy exactly L bytes (1..16) from S to D. Scratch: rax, and T (T/Td/Tw/Tb = 64/32/16/8-bit). --
 ; Every store lands inside [D, D+L) and every load inside [S, S+L); the overlapping pair is what
 ; makes a variable length exact without a byte loop and without one byte too many.
 LADDER MACRO S, D, L, T, Td, Tw, Tb, done
@@ -189,7 +189,7 @@ l1:     movzx     Td, byte ptr [S]
 ENDM
 
 ; ---------------------------------------------------------------------------------------------
-; cpz_tail -- copy exactly edx bytes (1..32) from rsi to rdi. The VECTOR path's tail.
+; cpz_tail, copy exactly edx bytes (1..32) from rsi to rdi. The VECTOR path's tail.
 ;
 ; a leaf with no prologue and no unwind data on purpose: an internal `call` from inside a proc frame
 ; would push eight bytes the parent's unwind info does not describe, and an exception taken there
@@ -246,7 +246,7 @@ cpz_tail ENDP
 
 
 ; =============================================================================================
-; wia_strcat -- the SHORT path. A LEAF: no prologue, no saved registers, no stack adjustment, no
+; wia_strcat, the SHORT path. A LEAF: no prologue, no saved registers, no stack adjustment, no
 ; unwind data, and no vector instruction of any kind.
 ;
 ; It finds the destination's terminator inside ONE aligned qword, then copies the source with a
@@ -369,7 +369,7 @@ sl_tail:
 wia_strcat_long ENDP
 
 ; =============================================================================================
-; wia_wcscat -- the same two-path shape. The short path's SWAR test is for a zero WORD, the same
+; wia_wcscat; the same two-path shape. The short path's SWAR test is for a zero WORD, the same
 ; has-zero trick with the constants widened from per-byte to per-word; the flag for zero word i
 ; then lands at bit 16i+15, so the index recovers with a shift of 4 rather than 3.
 ; =============================================================================================

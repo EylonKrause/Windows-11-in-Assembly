@@ -1,7 +1,7 @@
 // changes/150-strcpy-s/correctness.c
 // Bit-exact fuzz of wia_strcpy_s vs live ucrtbase!strcpy_s + oracle. Every trial compares THREE
 // things: the errno return, the number of invalid-parameter-handler invocations, and every byte of a
-// canary-filled destination buffer -- the last one is what pins the ERANGE path, which writes `size`
+// canary-filled destination buffer; the last one is what pins the ERANGE path, which writes `size`
 // bytes of src before emptying dst.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

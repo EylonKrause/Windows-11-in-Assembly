@@ -2,13 +2,13 @@
 // Gate 1: wia_pathfindnextcomponenta must be indistinguishable from shlwapi!PathFindNextComponentA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// This function writes nothing, so the whole contract is the RETURNED POINTER -- compared as an
+// This function writes nothing, so the whole contract is the RETURNED POINTER, compared as an
 // offset, with NULL distinguished from "a pointer to the terminator". Those two are easy to
 // conflate and the export uses both: an empty string gives NULL, a string with no separator gives
 // the terminator.
 //
 // The runs are enumerated on purpose. The doubled-separator rule advances exactly one more, never
-// the whole run, so "skip the separators" -- the obvious implementation -- is correct on one and
+// the whole run, so "skip the separators" (the obvious implementation) is correct on one and
 // two backslashes and wrong from three onward. A corpus that only ever puts single separators
 // between components cannot see that, which is why the alphabet below is mostly separators and the
 // lengths run to 9.
@@ -150,7 +150,7 @@ int main(void){
 
     // ---- NOACCESS page guard: the scan must stop at the terminator ----------------------------------
     // Including the case where a SEPARATOR is the last character before it, because the rule then
-    // reads one byte further -- that byte is the terminator, and it must not read past it.
+    // reads one byte further; that byte is the terminator, and it must not read past it.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

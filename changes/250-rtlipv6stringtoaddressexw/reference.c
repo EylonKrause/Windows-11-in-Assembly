@@ -5,7 +5,7 @@
  * What it deliberately does not model: the IPv6 address grammar. It calls the live
  * RtlIpv6StringToAddressW for that, which is the right split three times over:
  *
- *   * it is what the shipped function does -- the call at RVA 0x0C318E targets 0x0C33F0, which is
+ *   * it is what the shipped function does; the call at RVA 0x0C318E targets 0x0C33F0, which is
  *     that export's own RVA, so the oracle and the subject are structured the same way;
  *   * the address body is change 166, which has its own four gates and its own 65536-unit sweeps,
  *     and re-deriving an eight-group hex grammar with "::" compression and an embedded IPv4 tail
@@ -20,18 +20,18 @@
  *   2.  an optional leading '[';
  *   3.  the address, by the W parser, which also reports where it stopped;
  *   4.  on any later failure the address stays written and *ScopeId / *Port are not touched;
- *   5.  an optional "%<scope>", decimal, ASCII '0'-'9' only -- swept over all 65536 units, exactly
+ *   5.  an optional "%<scope>", decimal, ASCII '0'-'9' only, swept over all 65536 units, exactly
  *       ten are accepted and none is >= 0x80;
  *   6.  a '%' with no digit after it is an error;
  *   7.  scope <= 4294967295, refused at 4294967296;
  *   8.  an optional ']', which is an error without a '[';
- *   9.  and only then an optional ':<port>' -- so "::1:80" is an address, not a port;
+ *   9.  and only then an optional ':<port>', so "::1:80" is an address, not a port;
  *   10. the port's base: "0x"/"0X" -> 16, a leading '0' -> 8, otherwise 10;
  *   11. an empty port body is ZERO: "[::1]:" and "[::1]:0x" both give 0;
- *   12. port digits are ASCII only too, at every base -- 10 units decimal, 22 hex;
+ *   12. port digits are ASCII only too, at every base, 10 units decimal, 22 hex;
  *   13. port <= 65535, refused at 65536, and *Port is stored in NETWORK order;
  *   14. The whole string must be consumed, and a '[' must have been closed. This is the one rule
- *       with no counterpart in the W form, which has a Terminator out-parameter instead -- and it
+ *       with no counterpart in the W form, which has a Terminator out-parameter instead, and it
  *       is why "::0x1" and "::1.2.3.0x5" succeed there and fail here.
  */
 #define WIN32_LEAN_AND_MEAN

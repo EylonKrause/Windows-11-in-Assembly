@@ -1,7 +1,7 @@
 // live-substitution/live_subst_iszero.c
 // LIVE-RUN PROOF for change 266 (ntdll!RtlIsZeroMemory).
 //
-// a predicate has only two answers, which makes a careless corpus very easy to pass -- the lesson
+// a predicate has only two answers, which makes a careless corpus very easy to pass, the lesson
 // change 259 wrote down. An implementation that always answered "not zero" would agree with the
 // shipped export on nearly every random buffer, so this corpus is built to produce both answers in
 // quantity and the run REPORTS the split, failing if either side is thin.
@@ -12,12 +12,12 @@
 // remainder loop, or the overlapping final vector, while looking thorough.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
 // shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

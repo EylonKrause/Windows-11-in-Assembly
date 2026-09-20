@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!StrPBrkA: a pointer to the first character of pszStr that IS in pszSet, or
 ; NULL if none is. The live export costs 23808.12 ns on 4000 characters against 2374.10 ns for
-; StrPBrkW over the same character count -- 10.03x the wide cost for HALF the bytes, the MBCS-walk
+; StrPBrkW over the same character count, 10.03x the wide cost for HALF the bytes, the MBCS-walk
 ; signature this project has now seen across the whole narrow shlwapi family.
 ;
 ; This is change 214's core with one different ending, and the two were written together: the set
@@ -14,10 +14,10 @@
 ; ---- what the probe settled (probes/span.c) ---------------------------------------------------------
 ;   * BYTE-WISE, and so are its two siblings. Every byte value 0x01..0xFF was placed where a lead byte
 ;     would swallow the character after it: 0 of 254 misbehave for StrCSpnA, StrPBrkA and StrSpnA
-;     alike. The SET string is byte-wise too -- 0 of 252 values cannot be a member -- so any byte can
+;     alike. The SET string is byte-wise too (0 of 252 values cannot be a member) so any byte can
 ;     belong to the set and a 256-bit membership test reproduces all of it exactly.
-;   * For THIS export both degenerate sets happen to agree -- StrPBrkA("abc", NULL) and
-;     StrPBrkA("abc", "") are both NULL -- unlike its sibling StrCSpnA, where a NULL set returns 0
+;   * For THIS export both degenerate sets happen to agree, StrPBrkA("abc", NULL) and
+;     StrPBrkA("abc", "") are both NULL, unlike its sibling StrCSpnA, where a NULL set returns 0
 ;     and an EMPTY set returns strlen. The distinction is still measured rather than assumed,
 ;     because the two functions share a core and it would be easy to carry the wrong rule across.
 ;   * NULL subject -> NULL. Empty subject -> NULL. Duplicates in the set are harmless. No length cap.
@@ -25,18 +25,18 @@
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
 ; terminator is never a member. One mask of "set member OR terminator" therefore finds the stop for
-; the whole family in a single scan -- and because a NUL can never be a member, one test of the byte
+; the whole family in a single scan, and because a NUL can never be a member, one test of the byte
 ; At the stop separates the two outcomes: a NUL means no member exists and the answer is NULL,
 ; anything else is the member itself.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT bitmap in the caller's shadow space -- which is 32 bytes, exactly the
+; The set becomes a 256-BIT bitmap in the caller's shadow space, which is 32 bytes, exactly the
 ; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
 ; character sets bit b of that region: byte b>>3, bit b&7.
 ;
 ; Membership for 32 characters at once is then the standard two-table vpshufb test, and the bitmap's
 ; natural layout is exactly what it wants:
-;     idx   = (v >> 3) & 15      -- which bitmap byte, within a 16-byte half
+;     idx   = (v >> 3) & 15, which bitmap byte, within a 16-byte half
 ;     rows  = vpshufb(tabL, idx) or vpshufb(tabH, idx), selected by v's BIT 7 (i.e. v >= 128,
 ;             i.e. bitmap byte >= 16) using vpblendvb, which keys on exactly that bit
 ;     bits  = vpshufb(POW2, v & 7)
@@ -96,8 +96,8 @@ wia_strpbrka PROC
         xor       r8d, r8d
 pb_bld:
         ; `bts dword ptr [r11], eax` expresses this in ONE instruction and was the first cut, but a
-        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded -- it is a
-        ; read-modify-write whose address depends on the offset -- and the set-13 class paid for it.
+        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded; it is a
+        ; read-modify-write whose address depends on the offset, and the set-13 class paid for it.
         ; Splitting it into an explicit byte index and a table-driven bit does the same work in
         ; simple ops.
         movzx     eax, byte ptr [rdx + r8]

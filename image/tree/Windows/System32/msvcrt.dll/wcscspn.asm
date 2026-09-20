@@ -6,19 +6,19 @@
 ; size_t wia_wcscspn(const wchar_t* s, const wchar_t* set)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements ucrtbase!wcscspn: length of the initial run of characters that appear in NEITHER `set`
-; nor {NUL} -- the complement span. The live one is the naive O(n*m) scalar loop, 403 ns for 254
+; nor {NUL}; the complement span. The live one is the naive O(n*m) scalar loop, 403 ns for 254
 ; characters against a 3-character set, while its narrow sibling `strcspn` manages 139 ns with a
 ; 256-bit set bitmap that cannot be built for 65536 wide values. Same "wide half left scalar" split
 ; as changes 148/149.
 ;
 ; Contract: a probe confirmed this export and shlwapi!StrCSpnW (change 136) agree on every edge case
-; that could distinguish them -- empty set -> the whole string length, empty string, no match, and a
+; that could distinguish them, empty set -> the whole string length, empty string, no match, and a
 ; set member with a zero low byte. Only the return type differs (size_t vs int), and both exits
 ; already leave a zero-extended value in rax.
 ;
 ; The complement of change 156, with one real difference: there the terminator needed no special case
 ; because a NUL can never be a member of a NUL-terminated set, so it stopped the span for free. Here
-; the span continues *while* characters are outside the set, so the NUL would NOT stop it -- it must
+; the span continues *while* characters are outside the set, so the NUL would NOT stop it; it must
 ; be compared explicitly and OR-ed into the stop mask.
 ;
 ; ---- why the set is hoisted into registers ------------------------------------------------------
@@ -30,14 +30,14 @@
 ;
 ; So the first three set members are broadcast ONCE, before the block loop, into ymm2/ymm4/ymm5, and
 ; the block loop is straight-line. When the set is shorter the spare registers get a DUPLICATE of
-; member 0 -- comparing against the same character twice is harmless because the results are OR-ed,
+; member 0, comparing against the same character twice is harmless because the results are OR-ed,
 ; and `a OR a == a`. An empty set fills all three with zero, which merely duplicates the terminator
 ; compare that seeds the accumulator, and that is exactly right for `wcscspn` with an empty set:
 ; scan to the terminator. Sets longer than three still walk the remainder from memory, but that tail
 ; costs two uops per block when it is empty, which is the common case.
 ;
 ; Only ymm0-ymm5 are usable (xmm6-xmm15 are non-volatile under Win64), and data, accumulator and the
-; three members take five of them -- so ymm3 doubles as the compare scratch and is re-zeroed at the
+; three members take five of them, so ymm3 doubles as the compare scratch and is re-zeroed at the
 ; top of each block. That `vpxor` is a zeroing idiom: renamed, not executed.
 ;
 ; Page-safe: masked aligned prologue (shifting zeros into the stop mask means "no stop", which merely

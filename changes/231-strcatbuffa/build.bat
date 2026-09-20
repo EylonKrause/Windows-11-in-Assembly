@@ -1,8 +1,8 @@
 @echo off
-REM changes/231-strcatbuffa/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/231-strcatbuffa/build.bat: assemble, gate on correctness, then benchmark.
 Rem /EHa is for the correctness harness only: the shipped export faults when the caller lies
 REM about cch (probes/scb2.c), so the harness must catch that to compare it. The implementation
-REM itself has NO wrapper -- see impl.asm.
+REM itself has NO wrapper, see impl.asm.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1
 set H=%~dp0

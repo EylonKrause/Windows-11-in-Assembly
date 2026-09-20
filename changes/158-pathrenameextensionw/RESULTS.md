@@ -77,7 +77,7 @@ code.
 
 Changes [159](../159-pathcchrenameextension/) and [160](../160-pathcchaddextension/), the
 `kernelbase` functions that do this job, both turned out to reject an extension whose body exceeds
-255 characters with `E_INVALIDARG` -- a rule neither contract recorded and neither oracle modelled.
+255 characters with `E_INVALIDARG`, a rule neither contract recorded and neither oracle modelled.
 Since 158 is the same job in `shlwapi`, it was asked the same question rather than assumed to be
 different, which is how the rule was found in 160 in the first place.
 

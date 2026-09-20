@@ -2,11 +2,11 @@
  *
  * TWO independent oracles, because this change has two independently-checkable halves.
  *
- *   ref_skiproot_len()      -- a C transcription of the root parser read out of
+ *   ref_skiproot_len(), a C transcription of the root parser read out of
  *                              kernelbase!PathCchSkipRoot (RVA 0x02B2F0). It shares no code with
  *                              impl.asm, so a disagreement is a bug in one of them and not in a
  *                              shared misreading.
- *   ref_pathissamerootw()   -- the envelope only, using the live PathSkipRootW and the live
+ *   ref_pathissamerootw(), the envelope only, using the live PathSkipRootW and the live
  *                              PathCommonPrefixW. That isolates the three lines of arithmetic this
  *                              change adds on top; anything wrong in the root parser or in change
  *                              167's walk shows up instead in the comparison against the live

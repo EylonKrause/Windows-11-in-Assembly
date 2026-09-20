@@ -11,11 +11,11 @@
 //   * the haystack is NUL-terminated and an EMBEDDED NUL ends the search;
 //   * past the terminator the string behaves as an endless run of NULs, and those NULs are never
 //     Loaded: with 'W' after the terminator, {q,shy,shy} is found and {q,w} is not. 3320 code units
-//     match a NUL, so a needle whose TAIL matches a NUL can match ACROSS the end -- and that is the
+//     match a NUL, so a needle whose TAIL matches a NUL can match ACROSS the end, and that is the
 //     only shape in which the candidate bound is observable at all;
 //   * a needle LONGER than the whole string can therefore match;
 //   * a match may START only at a real character: the terminator is not a candidate position;
-//   * an EMPTY needle returns NULL -- the opposite of C strstr.
+//   * an EMPTY needle returns NULL, the opposite of C strstr.
 //
 // The sub-cases below are not a guess at what might matter. Change 283's harness passed a build with
 // a wrong candidate bound, and passed mutants that dropped the empty-needle refusal and moved the
@@ -23,12 +23,12 @@
 // here closes one of those holes, and each has an assertion that fails if the draw stops producing
 // it:
 //
-//   * cur_nultail -- a needle whose tail matches a NUL, over a string whose last character matches
+//   * cur_nultail, a needle whose tail matches a NUL, over a string whose last character matches
 //     the needle's first, so the match exists only by running past the terminator;
-//   * cur_mid -- a needle whose first character has a REAL partner count above four (U+004B has
+//   * cur_mid; a needle whose first character has a REAL partner count above four (U+004B has
 //     five), matched through the HIGHEST member of its set. U+00AD reaches the WIDE path through a
 //     255 sentinel instead, which leaves the threshold itself untested;
-//   * cur_nulhay -- a haystack holding a NUL-matching code unit, so that an EMPTY needle has
+//   * cur_nulhay; a haystack holding a NUL-matching code unit, so that an EMPTY needle has
 //     something to find; without it the unguarded path finds nothing and agrees for the wrong reason.
 //
 // And one that is specific to a FORWARD search: cur_two plants a SECOND match above the first, so

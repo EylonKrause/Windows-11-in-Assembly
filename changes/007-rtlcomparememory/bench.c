@@ -1,4 +1,4 @@
-// changes/007-rtlcomparememory/bench.c -- equal buffers (worst case), vs live ntdll RtlCompareMemory.
+// changes/007-rtlcomparememory/bench.c: equal buffers (worst case), vs live ntdll RtlCompareMemory.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

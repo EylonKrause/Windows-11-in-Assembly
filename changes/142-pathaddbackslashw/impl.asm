@@ -7,9 +7,9 @@
 ; Contract (probed against the live export):
 ;   - already ends with '\'  -> unchanged, returns a pointer to the terminator;
 ;   - a FORWARD slash does not count ("a/" becomes "a/\");
-;   - the EMPTY string is left alone -- nothing is appended, and psz is returned;
+;   - the EMPTY string is left alone; nothing is appended, and psz is returned;
 ;   - MAX_PATH guard: it appends only while the result still fits in 259 characters. Measured at the
-;     boundary -- length 258 appends (giving 259), length 259 returns **NULL** and changes nothing.
+;     boundary, length 258 appends (giving 259), length 259 returns **NULL** and changes nothing.
 ;     Note this differs again from its neighbours: change 140 silently does nothing past the limit,
 ;     change 141 has no limit at all, and this one reports failure by returning NULL;
 ;   - otherwise appends '\' + NUL and returns a pointer to the new terminator.
@@ -54,7 +54,7 @@ ab_len:
         cmp       word ptr [r11 + r8*2 - 2], 5Ch
         jne       ab_append
         ; Already ends with a backslash. The MAX_PATH test still applies and is checked FIRST: the
-        ; rule is "does the RESULT, terminator included, fit in 260 characters?" -- so a path that
+        ; rule is "does the RESULT, terminator included, fit in 260 characters?", so a path that
         ; already ends with '\' still fails once len >= 260, even though nothing would be written.
         cmp       r8, 260
         jae       ab_null

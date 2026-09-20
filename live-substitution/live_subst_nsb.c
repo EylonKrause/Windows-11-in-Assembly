@@ -7,12 +7,12 @@
 // the same reason changes 249 and 250 patched each half of their pair on its own.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
-// shipped export disagreeing with itself -- and that is the discipline this avoids.
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
+// shipped export disagreeing with itself, and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports before any patch exists.
 //   (2) Patch only when idle: single-threaded, and none of these is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

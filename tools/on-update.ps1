@@ -6,12 +6,12 @@
 #   2. If none of them changed, write one line to the history and stop. This is the normal case:
 #      most updates replace dozens of DLLs without touching ntdll / ucrtbase / shlwapi /
 #      kernelbase / crypt32 / msvcrt / iphlpapi / rpcrt4 / combase, and re-running a multi-hour
-#      sweep for those would be waste. (The list lives in revalidate.ps1 -- $WatchedDlls.)
+#      sweep for those would be waste. (The list lives in revalidate.ps1, $WatchedDlls.)
 #   3. If any DID change, re-prove every change against the new binaries and write a report. The
 #      correctness harnesses compare against the LIVE export, so this is a real answer, not a
 #      heuristic.
 #   4. On failure, leave a loud marker file the next interactive session will see.
-#   5. Roll the baseline forward only when everything still passes -- so a broken update stays
+#   5. Roll the baseline forward only when everything still passes, so a broken update stays
 #      flagged on every subsequent run instead of being silently accepted.
 #
 # It deliberately does NOT modify anything under System32. See the header of revalidate.ps1 for

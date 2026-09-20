@@ -1,7 +1,7 @@
 // changes/234-pathfindnextcomponenta/bench.c
 // Gate 2: time wia_pathfindnextcomponenta against the live shlwapi!PathFindNextComponentA.
 // Read-only, so there is nothing to restore between iterations and no per-iteration memcpy for
-// either side to pay -- unlike the in-place path helpers, these ratios are not compressed by a
+// either side to pay, unlike the in-place path helpers, these ratios are not compressed by a
 // shared setup cost.
 // Lengths are COMPUTED, never hardcoded.
 //

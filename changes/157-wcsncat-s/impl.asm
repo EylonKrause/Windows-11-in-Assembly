@@ -4,10 +4,10 @@
 ;
 ; The wide twin of change 156, closing the bounded string family (150-157). ucrtbase!wcsncat_s is a
 ; bounded wcslen over dst followed by the same two-counter scalar loop, one wide character per
-; iteration -- 65 ns to append 254 wide characters.
+; iteration, 65 ns to append 254 wide characters.
 ;
 ; Contract: identical to strncat_s in wchar_t units, all eight paths, including the three that differ
-; from wcsncpy_s -- `count == 0` with a NULL src writes nothing and skips the dst walk entirely, the
+; from wcsncpy_s, `count == 0` with a NULL src writes nothing and skips the dst walk entirely, the
 ; same call with a VALID src still runs the walk and can still report an unterminated destination,
 ; and an unterminated dst writes only dst[0].
 ;
@@ -18,7 +18,7 @@
 ; `count` is NOT doubled up front, because `_TRUNCATE` is (size_t)-1 and doubling would wrap the
 ; sentinel to -2. The _TRUNCATE branch is taken first, on the original value; only then is a real
 ; `count` doubled, and a carry out of that shift is treated exactly like "count exceeds the space
-; available", which it does -- a count of 2^63 or more wide characters cannot be satisfied by any
+; available", which it does, a count of 2^63 or more wide characters cannot be satisfied by any
 ; buffer. That turns an overflow check into a branch the code already needed.
 ;
 ; Everything else is 156 with `vpcmpeqb` -> `vpcmpeqw`. Since `vpcmpeqw` sets both bytes of a matching
@@ -156,7 +156,7 @@ wc_c0_dst:
         jz        wc_einval
         test      r8, r8
         jnz       wc_walk                           ; src non-NULL: the ordinary dst walk
-        ; a NULL source with count == 0 Still validates the destination -- the narrow sibling 156
+        ; a NULL source with count == 0 Still validates the destination, the narrow sibling 156
         ; had the identical defect and the identical fix. Returning 0 here is right only when the
         ; destination is ALREADY a valid string within `size`: with dst = L"A" and size = 1 there
         ; is no terminator in dst[0..size), and the shipped export returns EINVAL, sets dst[0] = 0
@@ -182,7 +182,7 @@ wc_walk:
         or        rdx, rax
         ; A TWO-BYTE test before any vector load: the caller's `dst[0] = 0` leaves a narrow store
         ; that a 32-byte load over the same bytes cannot forward from (~24 cycles on Zen3), while a
-        ; 2-byte load forwards cleanly -- and an empty dst means L = 0, so the walk is not needed.
+        ; 2-byte load forwards cleanly, and an empty dst means L = 0, so the walk is not needed.
         cmp       word ptr [rcx], 0
         jne       wc_walk_vector
         xor       eax, eax                          ; L = 0; size >= 1 wchar, so this always fits

@@ -9,7 +9,7 @@
 # The shape is easy to write by accident and invisible to every other gate. A function with a vector
 # fast path and a scalar fallback is bit-exact either way and looks fine on a benchmark built from
 # the input the fast path handles; on the input it does NOT handle, each scalar character pays for
-# the vector probe again -- a load, a test and the bound comparisons -- and the function can end up
+# the vector probe again (a load, a test and the bound comparisons) and the function can end up
 # slower than the shipped code it replaces while its published table still says otherwise.
 #
 # It has now been found three times in one day:
@@ -29,7 +29,7 @@
 # ADVANCE (`inc r`, `add r, 1`, `add r, 2`) with no label in between.
 #
 # "Immediately before" is the whole of the precision. A scalar path that is already a RUN closes its
-# own inner loop first -- `dec edx / jnz inner` -- and that is the CORRECT shape; the first version
+# own inner loop first (`dec edx / jnz inner`) and that is the CORRECT shape; the first version
 # of this screen did not distinguish the two and reported forty-four changes, which is the same as
 # reporting nothing.
 #
@@ -37,10 +37,10 @@
 # rather than printed:
 #
 #   PAGE-SAFETY  the step exists precisely to avoid a 32-byte load crossing a page boundary, so
-#                returning to the vector path after one character IS the point -- it happens at most
+#                returning to the vector path after one character IS the point, it happens at most
 #                sixteen times per 4096 bytes. Recognised by a `and ..., 4095` / `cmp ..., 4064`
 #                guard near the loop head or the jump.
-#   Set-build    the walk is over a delimiter set -- strspn, strpbrk, strtok and their siblings --
+#   Set-build    the walk is over a delimiter set, strspn, strpbrk, strtok and their siblings --
 #                one VPBROADCAST per set character into an accumulating mask. The step advances the
 #                set, not the subject string.
 #

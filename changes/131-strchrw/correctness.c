@@ -41,7 +41,7 @@ int main(void){
         chk(buf,(wchar_t)0xFFFF,"0xFFFF"); chk(buf,(wchar_t)0x8000,"0x8000 miss");
     }
     // page guard: place the string so its terminator sits at the very end of a committed page,
-    // with the next page NOACCESS -- any over-read faults.
+    // with the next page NOACCESS, any over-read faults.
     SYSTEM_INFO si; GetSystemInfo(&si);
     char* mem=(char*)VirtualAlloc(0, si.dwPageSize*2, MEM_RESERVE, PAGE_NOACCESS);
     VirtualAlloc(mem, si.dwPageSize, MEM_COMMIT, PAGE_READWRITE);

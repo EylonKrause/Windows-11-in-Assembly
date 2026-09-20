@@ -1,7 +1,7 @@
 /* changes/254-findstringordinal/probes/errors.c
  *
  * The refusal contract. FindStringOrdinal is a Win32 API, so unlike RtlFindUnicodeSubstring it does
- * not merely compute -- it VALIDATES, sets a last-error, and returns -1. Every one of those refusals
+ * not merely compute; it VALIDATES, sets a last-error, and returns -1. Every one of those refusals
  * is observable and has to be reproduced exactly, and the disassembly shows several that no
  * documentation would lead you to guess:
  *

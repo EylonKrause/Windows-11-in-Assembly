@@ -1,5 +1,5 @@
 @echo off
-REM changes/186-wtoi/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/186-wtoi/build.bat: assemble, gate on correctness, then benchmark.
 REM One implementation covers both _wtoi and _wtol (same export address in ucrtbase).
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

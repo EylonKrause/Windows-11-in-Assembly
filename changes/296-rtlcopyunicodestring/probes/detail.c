@@ -5,7 +5,7 @@
  * bytes. That number decides between LANDS and PARKED, so it has to be looked at rather than
  * trusted: a systematic alignment class is one thing, and a noisy tail of 32 samples is another.
  *
- * This prints the whole per-offset table -- our ns, ntdll's ns, and the ratio -- so the shape is
+ * This prints the whole per-offset table (our ns, ntdll's ns, and the ratio) so the shape is
  * visible. If the low ratios cluster on particular offsets mod 16 or mod 32, they are real and
  * they are ours. If they scatter, or if they coincide with ntdll getting unusually FAST rather
  * than us getting slow, they are the comparand moving.

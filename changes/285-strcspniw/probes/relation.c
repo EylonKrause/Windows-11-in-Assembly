@@ -6,14 +6,14 @@
  *
  *     str {a,b,ZERO width SPACE,c},  set {soft hyphen}   ->  4   (no match at all)
  *
- * Change 281 measured the soft hyphen and the zero width space as matching each other -- they are two
+ * Change 281 measured the soft hyphen and the zero width space as matching each other; they are two
  * of the 3237 ignorables, which form the largest set in that relation, and change 283's corpus 4
  * asserts exactly that pair and passes against the live StrRStrIW. So either StrCSpnIW uses a
  * DIFFERENT relation, or the ignorables behave differently on the set side.
  *
  * The same probe also showed the intransitive triple working precisely as change 281 has it: a set of
  * {D7A2} accepts both D7B0 and D7B1, while a set of {D7B0} rejects D7B1. So this is not simply an
- * ordinal comparison either -- change 281's first contract probe concluded "ordinal upcase table,
+ * ordinal comparison either, change 281's first contract probe concluded "ordinal upcase table,
  * exactly" and was wrong, caught by 8 mismatches in 140561 cases, so that guess gets no credit here.
  *
  * So the relation is EXTRACTED rather than guessed. StrCSpnIW over a ONE-CHARACTER string is a direct

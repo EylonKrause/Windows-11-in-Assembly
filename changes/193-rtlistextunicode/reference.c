@@ -3,7 +3,7 @@
 //
 // This contract could NOT be derived black-box. Three rounds of probing (probes/itu.c, itu2.c,
 // itu3.c) settled the cap, CONTROLS, ODD_LENGTH, NULL_BYTES and the ILLEGAL/SIGNATURE behaviour,
-// but ASCII16 and STATISTICS resisted every predicate tried -- ASCII16 was set for 200 units of
+// but ASCII16 and STATISTICS resisted every predicate tried, ASCII16 was set for 200 units of
 // 'a' yet not for 200 units of a..z rotating, and STATISTICS was not the classic zero-byte-parity
 // rule. The shipped code answered both: dumpbin /disasm ntdll.dll, RVA 0x000D3A10.
 //
@@ -26,7 +26,7 @@
 //
 //   after the loop, one more crlf test using the last unit's own bytes, then:
 //     if last_hi != 0 { zc = zero; if (last_hi == 0x1A) crlf++; } else zc = zero - 1;
-//   (the last HIGH byte -- the loop-exit block overwrites the prev_lo slot with the prev_hi one.
+//   (the last HIGH byte, the loop-exit block overwrites the prev_lo slot with the prev_hi one.
 //    Reading it as the low byte cost 84090 mismatches of 3 000 000, all in NULL_BYTES.)
 //
 //   ASCII16          iff lo_var < 0x7F and hi_var == 0
@@ -48,7 +48,7 @@
 //   BOOL: (f & 0xB08) == 8 -> TRUE
 //         f & 0x00F0 -> FALSE ; f & 0x0F00 -> FALSE ; f & 0xF00F -> TRUE ; else FALSE
 //
-// SCOPE -- stated because it is a real limit, not a caveat for form's sake: ntdll also has a DBCS
+// SCOPE, stated because it is a real limit, not a caveat for form's sake: ntdll also has a DBCS
 // lead-byte pass that can lower the STATISTICS multiplier from 3 to 2 or 1 and set
 // IS_TEXT_UNICODE_DBCS_LEADBYTE (0x400). It is gated on an ntdll-internal code-page table AND on
 // the caller explicitly passing bit 0x400, and on a single-byte ANSI code page it never runs. This

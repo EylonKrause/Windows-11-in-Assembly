@@ -16,7 +16,7 @@
  * can share one set. So this deduplicates by content and writes each DISTINCT large set once.
  *
  * The implementation turns each distinct large set into an 8 KB membership bitmap at init, so the
- * fallback path is one load and one BT per code unit -- a scalar loop, but a scalar loop at about a
+ * fallback path is one load and one BT per code unit, a scalar loop, but a scalar loop at about a
  * nanosecond per character against the shipped export's forty-three.
  *
  * Writes foldsets.c (small sets, by needle) and foldbig.c (distinct large sets + the index).

@@ -4,8 +4,8 @@
  *
  * A coverage map over ntdll's export table says: 1038 Rtl* exports, of which 294 fall in the
  * string / memory / bit / number / time families this project targets, of which 204 are not covered
- * by any change. Most of those 204 are not candidates at all -- hash tables, timers, memory
- * streams, environment blocks, security descriptors -- but several are exactly the shape this
+ * by any change. Most of those 204 are not candidates at all, hash tables, timers, memory
+ * streams, environment blocks, security descriptors, but several are exactly the shape this
  * project is good at, and one group stands out:
  *
  *     The repository covers the bitmap readers and not one bitmap writer.

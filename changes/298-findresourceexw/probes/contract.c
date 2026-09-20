@@ -1,4 +1,4 @@
-/* probes/contract.c -- PROVE the shipped behaviour. Nothing here is assumed from MSDN.
+/* probes/contract.c: PROVE the shipped behaviour. Nothing here is assumed from MSDN.
  *
  * The disassembly of kernelbase!FindResourceExW says:
  *    norm(x): x < 0x10000            -> x

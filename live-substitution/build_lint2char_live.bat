@@ -3,7 +3,7 @@ REM ===========================================================================
 Rem  live-run proof for change 280 (ntdll!RtlLargeIntegerToChar).
 REM
 REM  Every case compares the NTSTATUS AND a hash of the whole 640-byte
-REM  destination -- on REFUSING calls too, because probes/contract.c measured
+REM  destination, on REFUSING calls too, because probes/contract.c measured
 REM  that a refusal leaves the buffer completely untouched.
 REM
 Rem  five paths are under test: base 10 above 2^32, which peels eight digits at
@@ -11,7 +11,7 @@ REM  a time through the one 64-bit reciprocal probes/div64.c proves over the
 REM  whole domain; base 10 below 2^32, which never enters that peel; the
 REM  single-digit decimal path; bases 2, 8 and 16, which emit several digits per
 Rem  store and run to sixty-four characters in binary; and the zero-padded field
-REM  WIDTH a negative length asks for -- the path change 100 gets wrong on every
+REM  WIDTH a negative length asks for, the path change 100 gets wrong on every
 REM  single case, and the only place this change touches an XMM register.
 REM
 REM  The corpus draws the base from the five legal ones AND the illegal ones, the

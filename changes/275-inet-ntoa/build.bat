@@ -1,8 +1,8 @@
 @echo off
-REM changes/275-inet-ntoa/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/275-inet-ntoa/build.bat: assemble, gate on correctness, benchmark.
 REM
-REM  tls.c owns the per-thread buffer. Unlike change 274's BSTR allocator -- private to oleaut32 and
-REM  fatal if a foreign block reaches it -- thread-local storage is something an implementation can
+REM  tls.c owns the per-thread buffer. Unlike change 274's BSTR allocator, private to oleaut32 and
+REM  fatal if a foreign block reaches it, thread-local storage is something an implementation can
 REM  have its own of, which is why this change exists and that one is parked.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

@@ -1,7 +1,7 @@
 @echo off
-REM changes/242-pathcchappendex/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/242-pathcchappendex/build.bat: assemble, gate on correctness, then benchmark.
 REM The oracle is this change's join composed with change 243's canonicalisation model, so both
-REM reference.c files are compiled -- to DISTINCT object names, because they share a file name and the
+REM reference.c files are compiled, to DISTINCT object names, because they share a file name and the
 REM second would otherwise overwrite the first.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

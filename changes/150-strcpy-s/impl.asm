@@ -3,7 +3,7 @@
 ;
 ; Reimplements ucrtbase!strcpy_s. The live one is the textbook UCRT scalar loop
 ;     while ((*p++ = *src++) != 0 && --available > 0) {}
-; i.e. one byte per iteration with a bound check -- 65 ns for 254 bytes, while ucrtbase's own plain
+; i.e. one byte per iteration with a bound check, 65 ns for 254 bytes, while ucrtbase's own plain
 ; strcpy does the same string in 16 ns. This is an AVX2 bounded NUL scan followed by an exact-length
 ; copy.
 ;
@@ -16,7 +16,7 @@
 ;                                  (size = 5, src = "abcdefghij" leaves 00 62 63 64 65) so it is
 ;                                  reproduced byte for byte rather than short-circuited.
 ;   - the handler is invoked through ucrtbase's own exported `_invalid_parameter_noinfo`, so the error
-;     paths are indistinguishable from the live ones -- including the default handler's __fastfail
+;     paths are indistinguishable from the live ones, including the default handler's __fastfail
 ;     when the process installed none. All five handler arguments are NULL in the live release CRT,
 ;     which is exactly what that export passes.
 ;
@@ -24,7 +24,7 @@
 ; it never crosses a page the caller did not give us, and it stops after the block holding index
 ; size-1. Every byte the copy then reads has already been touched by the scan, so the copy cannot
 ; fault where the live scalar loop would not.
-; Writes: exactly n bytes, never n rounded up -- the head/tail pair overlaps INSIDE [0, n), so nothing
+; Writes: exactly n bytes, never n rounded up, the head/tail pair overlaps INSIDE [0, n), so nothing
 ; past the last byte the live function writes is disturbed.
 ;
 ; ISA: AVX2. Validated on Zen3.

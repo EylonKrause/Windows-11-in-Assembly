@@ -7,7 +7,7 @@
 ;   [Win64: rcx, rdx, r8d -> rax (returns dst)]
 ;
 ; Reimplements shlwapi!StrCpyNW: copy at most cchMax-1 wide characters from src to dst and
-; terminate. shlwapi's is a scalar character-at-a-time loop -- 108 ns to copy a 254-char
+; terminate. shlwapi's is a scalar character-at-a-time loop, 108 ns to copy a 254-char
 ; path, i.e. ~4.7 GB/s.
 ;
 ; Contract (derived in probes/scn.c, fuzz-confirmed bit-exact against the live export over
@@ -21,21 +21,21 @@
 ;   - returns dst always.
 ;
 ; Method: one fused scan-and-copy pass. Each iteration loads 32 bytes of src, tests for a
-; terminator with vpcmpeqw, and -- only if the block is terminator-free and the remaining
-; budget is at least 16 characters -- stores all 32 bytes to dst. The moment a terminator is
+; terminator with vpcmpeqw, and, only if the block is terminator-free and the remaining
+; budget is at least 16 characters, stores all 32 bytes to dst. The moment a terminator is
 ; in range, or the budget drops below 16, the scalar tail finishes the job. So the string is
 ; traversed ONCE; there is no separate wcslen pass.
 ;
 ; Page safety:
 ;   * The 32-byte source load is issued only when (src & 4095) <= 4064, which proves the read
-;     stays inside src's own page -- a page that must be mapped, because the characters we
+;     stays inside src's own page; a page that must be mapped, because the characters we
 ;     have already copied came from it. Within 32 bytes of a page end the code copies a
 ;     single character and re-tests, so it slides across the boundary scalar-wise and then
 ;     resumes vector speed, rather than degrading to scalar for the whole string.
 ;   * The 32-byte destination store is issued only while the remaining budget is >= 16
 ;     characters, so it can never write beyond cchMax-1 characters of dst.
 ;
-; ISA: AVX2. No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2. No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_strcpynw PROC

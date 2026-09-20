@@ -3,7 +3,7 @@
  * Is RtlCompareUnicodeStrings a distinct target, and is it linguistic?
  *
  * The uncovered survey ranks it at 0.076 ns/byte comparing equal strings and 0.102 with the
- * case-insensitive flag set -- the best per-byte cost left in ntdll that is not already landed. But
+ * case-insensitive flag set; the best per-byte cost left in ntdll that is not already landed. But
  * two things have to be settled before any contract work starts, and this project has been caught
  * by both before:
  *
@@ -15,7 +15,7 @@
  *      earlier targets were convertible at all: discovery/lstrcmp_is_linguistic.c and
  *      strcmpn_is_linguistic.c both ABANDONED their targets on the answer. A comparison that
  *      consults a locale, or that treats one character as equal to a sequence of others, cannot be
- *      reproduced by a byte loop -- change 236 nearly shipped as a second StrStrA for exactly that
+ *      reproduced by a byte loop, change 236 nearly shipped as a second StrStrA for exactly that
  *      reason, and only an enumeration of all 65536 ordered pairs showed the conflation there was
  *      strictly pairwise.
  *

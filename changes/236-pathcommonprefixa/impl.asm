@@ -4,7 +4,7 @@
 ; Reimplements shlwapi!PathCommonPrefixA: how much of two paths is a common PATH prefix, cut back
 ; to a component boundary, copied into an optional buffer.
 ;
-; 2387 ns for 254 characters -- 9.40 ns PER BYTE, about 27 cycles a byte, and the worst per-byte
+; 2387 ns for 254 characters, 9.40 ns PER BYTE, about 27 cycles a byte, and the worst per-byte
 ; cost left anywhere in shlwapi. The cost is flat and linear from 16 to 2048 characters
 ; (10.99 / 9.63 / 8.96 / 9.32 / 8.86 / 8.21 / 8.07 / 8.57 ns per byte), so it is a per-character
 ; loop with a very expensive body. PathIsPrefixA sits beside it at 9.20 ns/byte.
@@ -28,7 +28,7 @@
 ;
 ;   * EXPANSION: "x\<v>\z" against "x\<w1><w2>\z" for all 256 x 256 x 256 combinations --
 ;     16 387 064 cases, ZERO expansions. One character never matches two.
-;   * IGNORABLES: "x\z\q" against "x\<v>z\q" for every byte value -- ZERO. No byte matches nothing.
+;   * IGNORABLES: "x\z\q" against "x\<v>z\q" for every byte value, ZERO. No byte matches nothing.
 ;   * The StrStrA shape itself: a run of N copies of 0x5E against one 0x88. N = 1 matches (the
 ;     legitimate pairwise equivalence); N = 2..8 do not. The conflation is strictly pairwise here.
 ;
@@ -37,7 +37,7 @@
 ;       0x61..0x7A, 0xE0..0xF6, 0xF8..0xFE   ->   -0x20
 ;       0x88 -> 0x5E     0x9A -> 0x8A     0x9C -> 0x8C     0x9E -> 0x8E     0xFF -> 0x9F
 ;
-; Three ranges and five singletons, computed in-register with vpsubb/vpminub/vpcmpeqb -- never with
+; Three ranges and five singletons, computed in-register with vpsubb/vpminub/vpcmpeqb, never with
 ; a case-mapping API, which would get 0x88 wrong and would drag in a code page.
 ;
 ; THE CUT, isolated in probes/pcpa3.c. The truncation depends only on the common prefix, so
@@ -45,17 +45,17 @@
 ; and the rule can be ENUMERATED. Over all 9841 strings of {a, backslash, colon} to length 8:
 ;
 ;       9147 are "the last separator, dropped"
-;        567 KEEP the separator -- every one of them has its last separator at INDEX 2
-;        127 collapse to 0     -- every one of them has its last separator at index 1 behind a
+;        567 KEEP the separator; every one of them has its last separator at INDEX 2
+;        127 collapse to 0; every one of them has its last separator at index 1 behind a
 ;                                 leading doubled separator
 ;
 ; and the counts are closed forms, which is how we know the rules are complete rather than
 ; approximate: 9*(1+2+4+8+16+32) = 567 and 1+2+4+8+16+32+64 = 127. The index-2 rule is POSITIONAL,
-; not semantic -- "aa\" and "::\" keep their separator exactly as "C:\" does, because the shipped
+; not semantic, "aa\" and "::\" keep their separator exactly as "C:\" does, because the shipped
 ; code tests the OFFSET and never looks for a drive letter.
 ;
 ; Two shapes skip the cut entirely: both paths ending together, and one ending exactly where the
-; other continues with a separator -- unless that whole prefix is a lone separator, which is why
+; other continues with a separator, unless that whole prefix is a lone separator, which is why
 ; pcp("a","a\") is 1 but pcp("\","\\") is 0.
 ;
 ; a defect in the shipped export, reproduced on purpose. a common prefix of exactly 2 is reported
@@ -66,16 +66,16 @@
 ; Two characters and a terminator are written and three is returned. It does not invent a backslash
 ; (the fourth byte of a poison fill is untouched) and it does not read past the terminator (a
 ; 2-character string whose NUL is the last readable byte before a PAGE_NOACCESS page does not
-; fault) -- the count simply exceeds the string. A caller who trusts the return walks one character
+; fault), the count simply exceeds the string. A caller who trusts the return walks one character
 ; past the terminator of the buffer it was handed. This project's contract is to be
 ; indistinguishable from the shipped function, so it is reproduced exactly rather than fixed.
 ;
-; NULL in either path writes nothing at all, not even a terminator -- the opposite of the
+; NULL in either path writes nothing at all, not even a terminator, the opposite of the
 ; no-common-prefix case, which does write one. Only a poison fill separates those two.
 ;
 ; a second defect, and the one that got past six probes. When the result reaches MAX_PATH the copy
 ; is refused and only a bare terminator is written, while the count is returned unchanged. The
-; threshold is exact: 259 writes 259 characters and a terminator -- 260 bytes, exactly MAX_PATH --
+; threshold is exact: 259 writes 259 characters and a terminator, 260 bytes, exactly MAX_PATH --
 ; and 260 writes nothing but the terminator. probes/pcpa6.c validated the model over 3.65 million
 ; pairs with 0 mismatches and still missed this, because its longest sweep ran to 250 characters.
 ; correctness.c goes to 600 and caught it immediately. An exhaustive corpus is only exhaustive over
@@ -86,20 +86,20 @@
 ;
 ; METHOD. One forward pass, 32 bytes at a time. The RAW bytes are compared first, because two paths
 ; that agree usually agree exactly, and that costs two compares and two extractions per block. The
-; fold -- 22 instructions per vector, 44 for the pair -- is computed only on a block where the raw
+; fold (22 instructions per vector, 44 for the pair) is computed only on a block where the raw
 ; bytes differ, so a common prefix that is byte-identical never pays for it, and one that differs
 ; only in case pays it per block instead of per character. The index of the last separator is
 ; carried forward in a register as the scan goes, so the cut needs no second pass.
 ;
 ; Page safety: a 32-byte load is issued only when both cursors satisfy (cursor & 4095) <= 4064,
 ; proving each read stays inside its own page. Within 32 bytes of either page end it steps ONE byte
-; and retries -- and that single byte is folded by the SAME instruction sequence at 128-bit width,
+; and retries, and that single byte is folded by the SAME instruction sequence at 128-bit width,
 ; so the fold rule exists exactly once in this file and the scalar and vector paths cannot drift.
 ; probes/pcpa.c confirms the shipped export does not overread either: 398 of 398 guard-page cases
 ; were clean with each path at the guard in turn.
 ;
-; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi). Every CPU with AVX2 has BMI2 -- Haswell and Excavator
-; introduced them together -- so this does not narrow the target. No AVX-512.
+; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi). Every CPU with AVX2 has BMI2, Haswell and Excavator
+; introduced them together, so this does not narrow the target. No AVX-512.
 
 ; ---- the fold, as one macro used at both widths ------------------------------------------------
 ; Clobbers T1, T2, T3; folds V in place. V and the temporaries must be distinct.
@@ -286,7 +286,7 @@ no_fixup:
 
         ; The MAX_PATH bound, and it is on the result rather than on the inputs: 900-character paths
         ; whose common prefix is 15 copy normally, while identical 260-character paths do not. A
-        ; result of 259 writes 259 characters and a terminator -- exactly MAX_PATH bytes -- and a
+        ; result of 259 writes 259 characters and a terminator (exactly MAX_PATH bytes) and a
         ; result of 260 writes only a bare terminator. The COUNT is returned unchanged either way,
         ; so a caller that trusts it is handed a number with no string behind it.
         cmp       r10, 260
@@ -297,7 +297,7 @@ in_bounds:
 
         ; The copy is bounded by the string, which is what makes the fixup observable: when the
         ; count is 3 only because of it and a has only two characters, two are written and three
-        ; is returned. Reading a[2] is always in bounds here -- a count of 3 requires at least two
+        ; is returned. Reading a[2] is always in bounds here, a count of 3 requires at least two
         ; characters of common prefix, so a[2] is a real byte or the terminator.
         mov       r11, r10
         cmp       r11, 3

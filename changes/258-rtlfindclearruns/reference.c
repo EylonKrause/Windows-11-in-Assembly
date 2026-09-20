@@ -14,7 +14,7 @@
  *     rather than a comparison mentioning the start index: the tie-break is not a secondary key, it
  *     is the order the runs were found in, and stability is exactly that.
  *
- *   * Unsorted returns the first runs found and stops when the array is full -- but the order they
+ *   * Unsorted returns the first runs found and stops when the array is full, but the order they
  *     Are found in is not left to right. ntdll scans a byte at a time and, within a byte, emits
  *     first the run carried in from earlier bytes, then the runs strictly inside the byte LONGEST
  *     FIRST (ties to the lowest position); the run at the top of the byte is not emitted there at

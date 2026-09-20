@@ -1,7 +1,7 @@
 @echo off
-REM changes/297-windowscomparestringordinal/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/297-windowscomparestringordinal/build.bat: assemble, gate on correctness, then benchmark.
 REM The correctness gate is hard: the bench is never built if it fails.
-REM runtimeobject.lib is here for RoOriginateErrorW -- the shipped export originates a WinRT error
+REM runtimeobject.lib is here for RoOriginateErrorW, the shipped export originates a WinRT error
 REM on its E_INVALIDARG path and correctness.c compares the IRestrictedErrorInfo it leaves behind.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

@@ -10,17 +10,17 @@
 //  1. Length == 0, or Length odd  ->  STATUS_INVALID_PARAMETER, and *Value is written with 0.
 //     (shipped: `test dx,dx / je` and `test dl,1 / jne` both jump to `mov esi,0C000000Dh` which then
 //      falls into the COMMON `mov [r14],eax` with eax still 0. Probed with four distinct sentinels --
-//      0xDEADBEEF, 0, 0xFFFFFFFF, 0x55555555 -- because with a sentinel of 0 "wrote 0" and "did not
+//      0xDEADBEEF, 0, 0xFFFFFFFF, 0x55555555, because with a sentinel of 0 "wrote 0" and "did not
 //      write" are the same observation. This is the FIRST divergence from the ANSI sibling
 //      RtlCharToInteger (change 129), which leaves *Value untouched on failure.)
 //
-//  2. Accepted bases are 0, 2, 8, 10, 16 and nothing else -- probed over 25 bases including the five
+//  2. Accepted bases are 0, 2, 8, 10, 16 and nothing else, probed over 25 bases including the five
 //     that alias onto low bits under a `bt` (0x80000002 etc). An invalid base is the same
 //     INVALID_PARAMETER + *Value = 0.
 //
 //  3. Leading skip: `while (c <= 0x20) skip` with an UNSIGNED 16-bit compare, bounded by Length.
-//     So U+0000..U+0020 are ALL whitespace -- an embedded NUL in leading position is SKIPPED, not a
-//     terminator -- and U+0080..U+FFFF are NOT. This is the SECOND divergence from 129, whose ANSI
+//     So U+0000..U+0020 are ALL whitespace; an embedded NUL in leading position is SKIPPED, not a
+//     terminator, and U+0080..U+FFFF are NOT. This is the SECOND divergence from 129, whose ANSI
 //     sibling uses a SIGNED char compare and therefore also skips 0x80-0xFF. Probed over every
 //     c in 0x0000..0x0030 plus 0x7F, 0x80, 0xA0, 0xFF, 0x100, 0x2000, 0x3000, 0xFEFF, 0xFFFE, 0xFFFF.
 //
@@ -28,7 +28,7 @@
 //     "- 42" -> 0, "--5" -> 0. The sign is remembered from the first non-whitespace character, so
 //     "-0xFF" (base 0) -> 0xFFFFFF01.
 //
-//  5. Base 0 infers 0x / 0o / 0b -- LOWERCASE only ("0X10" -> 0, "0B101" -> 0) -- and a bare leading
+//  5. Base 0 infers 0x / 0o / 0b (LOWERCASE only ("0X10" -> 0, "0B101" -> 0)) and a bare leading
 //     '0' means DECIMAL, not octal ("0777" -> 777). A prefix is only looked for when at least one
 //     character follows the '0'; a '0' that is the last character ends the parse at 0.
 //
@@ -41,18 +41,18 @@
 //     Probed at the exact boundary in bases 10, 16, 8 and 2.
 //
 //  8. The string is COUNTED, not terminated: Length bounds every read (proved against a PAGE_NOACCESS
-//     page), MaximumLength is ignored, and a NUL inside Length is an ordinary non-digit -- it stops
+//     page), MaximumLength is ignored, and a NUL inside Length is an ordinary non-digit, it stops
 //     the digit loop exactly as any other non-digit would ("4 NUL 2" -> 4), while in leading position
 //     it is whitespace (rule 3).
 //
-//  9. On success *Value is always written and STATUS_SUCCESS (0) returned -- including "no digits at
+//  9. On success *Value is always written and STATUS_SUCCESS (0) returned, including "no digits at
 //     all", which is SUCCESS with 0.
 //
 // NOT MODELLED (deliberately, and recorded in RESULTS.md): the shipped export wraps its body in an
 // SEH handler, so a NULL or otherwise unreadable Value/Buffer comes back as STATUS_ACCESS_VIOLATION
 // (0xC0000005) RETURNED rather than raised. That is a caller bug in both implementations, it is
 // excluded from every corpus here by construction, and matching it would mean hanging a
-// language-specific handler on a leaf function and paying for it on every call -- the same call
+// language-specific handler on a leaf function and paying for it on every call, the same call
 // change 280 made for the same reason.
 
 #include <stddef.h>                 /* wchar_t only; this file uses nothing else */

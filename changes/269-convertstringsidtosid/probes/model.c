@@ -3,7 +3,7 @@
  * The model is validated before a line of assembly is written.
  *
  * reference.c states the grammar the three probes measured. This file checks that statement against
- * the live export over a corpus built to reach every clause of it -- because a model that is merely
+ * the live export over a corpus built to reach every clause of it, because a model that is merely
  * *consistent with* the probe table is not the same as a model that agrees with the export, and the
  * difference only shows up on inputs nobody hand-wrote.
  *
@@ -11,7 +11,7 @@
  * failure, and on success the SID's whole byte image and its length.
  *
  * The corpus is generated rather than listed, from the parts the grammar has: a prefix, a revision,
- * an authority, a count, and a per-field NUMBER FORM -- decimal, hex, leading zeros, over-long,
+ * an authority, a count, and a per-field NUMBER FORM, decimal, hex, leading zeros, over-long,
  * empty, signed, and with a trailing letter. Enumerating the cross product is what reaches the
  * combinations a hand-written list does not: a hex authority with a saturating sub-authority and a
  * trailing separator is not a case anyone writes down.

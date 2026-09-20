@@ -2,7 +2,7 @@
 // Oracle for shlwapi!PathRemoveExtensionA. Not fast; just obviously right.
 //
 // The contract, measured in probes/rmext.c against the live export:
-//   * byte-wise on this code page -- 0 of 252 byte values act as a DBCS lead byte;
+//   * byte-wise on this code page, 0 of 252 byte values act as a DBCS lead byte;
 //   * the extension is the last '.' after the last STOPPER, where a stopper is a BACKSLASH **or a
 //     SPACE**; '/' and ':' do NOT stop the search. 0 mismatches over 335923 enumerated strings,
 //     against 46158 for the rule change 140 originally shipped with;

@@ -2,24 +2,24 @@
 // LIVE-RUN PROOF for change 254 (kernelbase!FindStringOrdinal).
 //
 // The export is hot-patched in a sacrificial child so that every subsequent call BY NAME runs our
-// assembly, and both observables -- the returned index and GetLastError() -- are required to match
+// assembly, and both observables (the returned index and GetLastError()) are required to match
 // what the shipped export produced for the same corpus BEFORE the patch existed.
 //
 // The last error is not a detail here. This function sets it to zero on entry, to 87 on a bad
 // parameter and to 1004 on bad flags, and our implementation writes gs:[0x68] directly rather than
-// calling SetLastError -- which is what the shipped code does too (its `mov ecx, 0x3ec / call
+// calling SetLastError, which is what the shipped code does too (its `mov ecx, 0x3ec / call
 // 0x178A8` at 0x0A215E is RtlSetLastWin32Error, whose whole body is that store). Writing a TEB field
 // by hand is exactly the kind of thing that works in a unit test and fails in a real process, so it
 // is proved here, in-process, against the real export.
 //
 // The corpus is regenerated from the case index on every pass. That is not tidiness: change 252's
 // harness carried PRNG state across its three passes, so the three passes built three DIFFERENT
-// corpora, and the post-restore check reported 14285 differences with our counter at ZERO -- the
+// corpora, and the post-restore check reported 14285 differences with our counter at ZERO, the
 // shipped export disagreeing with itself. Same discipline here.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of kernelbase -- never a live system process, never the file on disk.
+//       copy-on-write copy of kernelbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this routine is used by neither the loader nor
 //       the heap.

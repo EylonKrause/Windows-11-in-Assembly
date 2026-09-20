@@ -247,7 +247,7 @@ Two fixes, and both were mutation-tested against that same deliberately broken b
 - `wia_abi_call4` in `tools/abi-check/abi_probe.asm` arms the sentinels **around the individual
   call** instead, where nothing can restore them. This change's driver uses it, and with the
   mutation reintroduced the gate now reports
-  `ABI: FAILED 258-rtlfindclearruns -- clobbers 1 non-volatile register(s): r15`.
+  `ABI: FAILED 258-rtlfindclearruns, clobbers 1 non-volatile register(s): r15`.
 - `tools/abi-audit.py` covered only `xmm6`–`xmm15`; it now covers the eight non-volatile **GPRs**
   too, across all **529** `.asm` files in the tree at once, and reports the same mutation as
   `changes\258-rtlfindclearruns\impl.asm r15`. That is the net for every change still using the

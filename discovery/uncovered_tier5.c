@@ -1,6 +1,6 @@
 /* discovery/uncovered_tier5.c
  *
- * TIER 5 -- shaped ntdll exports that tools/uncovered-exports.py still lists and nothing has timed.
+ * TIER 5, shaped ntdll exports that tools/uncovered-exports.py still lists and nothing has timed.
  *
  * Tiers 1-4 worked down the FAN-IN ranking: the functions the most loaded modules import. That
  * surface was worked until the remaining leaders were ruled out on evidence (GetSystemTimeAsFileTime
@@ -8,8 +8,8 @@
  * was that it is exhausted of easy wins.
  *
  * This is a different axis: not "who calls it most" but "what SHAPE is it". Every function below is
- * a counted string, a byte-size calculation or a bitmap operation -- the shapes this repository
- * already has kernels for -- and every one is absent from README.md and from image/tree.
+ * a counted string, a byte-size calculation or a bitmap operation, the shapes this repository
+ * already has kernels for, and every one is absent from README.md and from image/tree.
  *
  * The rule this file exists to obey is discovery/README.md's: a candidate becomes a target only
  * after it is timed, and most of that directory is a record of functions that looked slow and were

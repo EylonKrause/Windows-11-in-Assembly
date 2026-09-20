@@ -7,14 +7,14 @@
  *
  *   * This change implements one of five flag paths, and that is a measured scope rather than a
  *     convenience. MAP_FOLDDIGITS is the only strictly 1:1 flag; MAP_FOLDCZONE, MAP_PRECOMPOSED,
- *     MAP_COMPOSITE and MAP_EXPAND_LIGATURES all turn one input unit into several -- up to eighteen for
- *     one MAP_FOLDCZONE input -- so they are not per-character tables and are separate problems. This
+ *     MAP_COMPOSITE and MAP_EXPAND_LIGATURES all turn one input unit into several, up to eighteen for
+ *     one MAP_FOLDCZONE input, so they are not per-character tables and are separate problems. This
  *     function therefore DECLINES anything but MAP_FOLDDIGITS, with ERROR_INVALID_FLAGS, and the
  *     correctness gate asserts that declining rather than leaving it to the corpus;
  *   * cchSrc > 0 is a count of code units; cchSrc == -1 means NUL-terminated and includes the
  *     TERMINATOR, so "abc" produces 4;
  *   * cchDest == 0 is a LENGTH QUERY: the required count is returned and nothing is written;
- *   * a cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes nothing -- measured:
+ *   * a cchDest too small returns 0 with ERROR_INSUFFICIENT_BUFFER and writes nothing, measured:
  *     the first destination word was still its sentinel afterwards;
  *   * cchSrc == 0 returns 0 with ERROR_INVALID_PARAMETER. probes/contract.c first reported
  *     ERROR_INSUFFICIENT_BUFFER for this, and that was a MEASUREMENT BUG rather than a fact: the probe
@@ -23,14 +23,14 @@
  *     probe now resets too;
  *   * a FORWARD, ONE-UNIT-AT-A-TIME loop is observable when the buffers overlap. dest == src is
  *     refused, but every other overlap is accepted, and probes/overlap.c shows the export's output
- *     matching a naive forward loop exactly at every offset -- it reads units it has already
+ *     matching a naive forward loop exactly at every offset; it reads units it has already
  *     overwritten rather than buffering. That is reproducible, so this model's plain forward loop is
  *     already right, and impl.asm detects overlap and drops its unroll for those inputs;
  *   * a NULL source returns 0 with ERROR_INVALID_PARAMETER;
  *   * a NULL destination is refused only when cchDest is non-zero, and the refusal order is
  *     observable. This model originally had neither right: it rejected a NULL destination after the
  *     too-small-buffer test, and it inherited that ordering from impl.asm rather than from the export,
- *     so the three-way comparison could not see the error -- both sides shared the assumption. A
+ *     so the three-way comparison could not see the error, both sides shared the assumption. A
  *     mutation survivor (mutant #10, the deleted NULL-destination refusal, which passed 66,410 cases)
  *     sent probes/nulldest.c to ask the export, and the measured order is:
  *
@@ -61,7 +61,7 @@ int ref_foldstringw_digits(DWORD flags, const wchar_t* src, int cchSrc,
 {
     int n, i;
 
-    /* The order is measured, not chosen -- probes/nulldest.c, and see the block comment above. The
+    /* The order is measured, not chosen, probes/nulldest.c, and see the block comment above. The
        flag test is FIFTH: a declined flag together with a bad pointer reports the pointer error. */
     if (!src)                       { SetLastError(ERROR_INVALID_PARAMETER); return 0; }
     if (dest == src)                { SetLastError(ERROR_INVALID_PARAMETER); return 0; }

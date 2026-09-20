@@ -1,5 +1,5 @@
 @echo off
-REM changes/283-strrstriw/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/283-strrstriw/build.bat: assemble, gate on correctness, benchmark.
 REM
 REM The match relation, its generated tables and the init that checks them against the live export
 REM all come from change 281 unchanged. This change is the backward, range-bounded search over the

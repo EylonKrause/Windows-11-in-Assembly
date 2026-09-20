@@ -9,8 +9,8 @@
 ;   * 8 groups of lowercase hex, no leading zeros, ':' separated;
 ;   * the longest run of >= 2 zero groups is compressed to "::" (leftmost on a tie);
 ;   * IPv4-embedded forms print the last 4 bytes as dotted decimal: ISATAP (group[5]==0x5efe,
-;     always), mapped (group[5]==0xffff) and compatible (group[5]==0) -- the last two only
-;     when group[6] != 0 -- all with group[0..4]==0.
+;     always), mapped (group[5]==0xffff) and compatible (group[5]==0), the last two only
+;     when group[6] != 0, all with group[0..4]==0.
 ; Returns a pointer to the terminating NUL. Algorithm validated bit-exact vs the live export
 ; over 3,000,000 addresses; ntdll's is scalar (~130 ns). ISA: baseline x64. Validated on Zen3.
 
@@ -171,13 +171,13 @@ finish:
         mov       byte ptr [r8], 0
         ; The shipped export writes a second terminator, at the end of the field.
         ;
-        ; RtlIpv6AddressToStringA always stores a zero at destination byte 45 -- the end of the
-        ; 46-character maximum an IPv6 address can render to -- as well as the one after the
+        ; RtlIpv6AddressToStringA always stores a zero at destination byte 45, the end of the
+        ; 46-character maximum an IPv6 address can render to, as well as the one after the
         ; text. probes/tail.c asks the export at six address shapes and finds exactly TWO zeros
         ; every time: one at the returned offset and one at 45, which never moves.
         ;
         ; This implementation wrote only the first, and live substitution caught it on ALL 20000
-        ; cases with the same text and the same returned pointer -- the identical defect its
+        ; cases with the same text and the same returned pointer, the identical defect its
         ; IPv4 sibling 059 had, found by the identical means.
         mov       byte ptr [rbx + 45], 0
         mov       rax, r8                             ; -> terminating NUL

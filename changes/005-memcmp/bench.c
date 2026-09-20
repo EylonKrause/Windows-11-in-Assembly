@@ -1,4 +1,4 @@
-// changes/005-memcmp/bench.c -- equal buffers (worst case), vs live ucrtbase memcmp.
+// changes/005-memcmp/bench.c: equal buffers (worst case), vs live ucrtbase memcmp.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

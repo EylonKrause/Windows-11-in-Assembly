@@ -10,7 +10,7 @@
 //   * that on failure the output qword is left exactly as the caller had it (sentinel);
 //   * 24 guard bytes on each side of the FILETIME, to prove nothing is written past the logical
 //     end in either direction;
-//   * TEB->LastErrorValue and TEB->LastStatusValue after the call -- so "the last error is not
+//   * TEB->LastErrorValue and TEB->LastStatusValue after the call, so "the last error is not
 //     touched on success" and "87 / STATUS_INVALID_PARAMETER on failure" are gated, not assumed.
 //     Both TEB offsets are re-derived at startup through GetLastError / RtlGetLastNtStatus and the
 //     test refuses to run if either does not agree.
@@ -20,13 +20,13 @@
 //      each also checked against a running day counter that owes nothing to any closed form;
 //   2. the full Month x Day grid including invalid values, for every year from 1600 to 30828;
 //   3. every field's range edges, both ends, plus 0x7FFF / 0x8000 / 0xFFFF CSHORT wraparound;
-//   4. all 65536 values of wDayOfWeek on one valid date -- the field the live export ignores;
+//   4. all 65536 values of wDayOfWeek on one valid date, the field the live export ignores;
 //   5. the structure at every byte alignment 0..63;
 //   6. the structure ending exactly at a page boundary with the next page PAGE_NOACCESS, and
 //      starting exactly at a page boundary with the PREVIOUS page PAGE_NOACCESS;
 //   7. round-trip: live FileTimeToSystemTime over the domain, converted back, must reproduce the
 //      instant exactly;
-//   8. two randomized fuzz sets with a FIXED seed -- one plausible, one with all eight fields drawn
+//   8. two randomized fuzz sets with a FIXED seed, one plausible, one with all eight fields drawn
 //      from the full unconstrained 16-bit range.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

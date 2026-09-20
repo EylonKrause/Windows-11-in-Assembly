@@ -5,7 +5,7 @@
 ; changes/206-stringfromguid2/impl.asm
 ; int wia_StringFromGUID2(const GUID* rguid, wchar_t* lpsz, int cchMax)   [rcx, rdx, r8d -> eax]
 ;
-; Reimplements combase!StringFromGUID2 -- 11.32 ns per call, and the most widely used GUID formatter
+; Reimplements combase!StringFromGUID2, 11.32 ns per call, and the most widely used GUID formatter
 ; in COM. Same braced output as change 202's iphlpapi!ConvertGuidToStringW, and the probe proved it
 ; is not merely "the same format" but the same bytes: 200 000 random GUIDs rendered through both live
 ; exports differ in 0 characters. So change 202's renderer is reused verbatim.
@@ -16,7 +16,7 @@
 ;   * cchMax <= 38  -> return 0 and leave the buffer COMPLETELY UNTOUCHED. There is no truncating
 ;     path at all, which makes this simpler than change 202: every length below the exact fit is a
 ;     flat refusal;
-;   * cchMax is SIGNED. -1 and -1000 both return 0, so the compare has to be signed -- an unsigned
+;   * cchMax is SIGNED. -1 and -1000 both return 0, so the compare has to be signed, an unsigned
 ;     compare would treat a negative count as enormous and render into the caller's buffer;
 ;   * because the length is checked first, a NULL buffer with cchMax 0 returns 0 without faulting.
 ;     That falls out of the ordering rather than needing its own test.

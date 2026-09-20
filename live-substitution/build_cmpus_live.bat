@@ -7,8 +7,8 @@ REM  DIFFERENCE of the two characters, so an implementation returning -1/0/1
 REM  would satisfy every caller that writes "< 0" and every check that only
 REM  looked at the sign.
 REM
-REM  The corpus is built to produce all three answers -- equal, decided by a
-REM  character, decided by the LENGTHS -- and to put a character at or above
+REM  The corpus is built to produce all three answers, equal, decided by a
+REM  character, decided by the LENGTHS, and to put a character at or above
 REM  0x80 in one case in four, because our case-insensitive path folds ASCII
 REM  in-vector and goes through the upcase table otherwise. A pure-ASCII corpus
 REM  would leave the table path untested while looking thorough.

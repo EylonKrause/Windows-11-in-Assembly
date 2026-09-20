@@ -6,13 +6,13 @@
 ; ULONG wia_findclearruns(RTL_BITMAP* bm, RTL_BITMAP_RUN* arr, ULONG cap, BOOLEAN sorted)
 ;   [Win64: rcx, rdx, r8d, r9b -> eax]
 ;
-; ntdll!RtlFindClearRuns -- the function change 255's target turned out to be a wrapper around:
+; ntdll!RtlFindClearRuns, the function change 255's target turned out to be a wrapper around:
 ; RtlFindLongestRunClear (RVA 0x0E3240) is nine instructions around FindClearRuns(bm, buf, 1, TRUE).
 ;
 ; The same call measured eighty times apart depending on one BOOLEAN (discovery/ntdll_bitmap.c):
 ;
-;       RtlFindClearRuns 64, UNSORTED, sparse       144.83 ns   -- stops when the array fills
-;       RtlFindClearRuns  1, SORTED,   sparse     13457.57 ns   -- must examine everything
+;       RtlFindClearRuns 64, UNSORTED, sparse       144.83 ns, stops when the array fills
+;       RtlFindClearRuns  1, SORTED,   sparse     13457.57 ns, must examine everything
 ;       RtlFindClearRuns 64, SORTED,   sparse     14399.10 ns
 ;
 ; The unsorted form returns as soon as it has enough runs, which on a bitmap with a clear run every
@@ -24,9 +24,9 @@
 ; THE CONTRACT, probed rather than assumed (probes/contract.c, probes/enumorder.c):
 ;
 ;   * An entry is (StartingIndex, NumberOfBits), two ULONGs, eight bytes.
-;   * Sorted returns the longest runs, by length descending, ties to the earlier run -- which is not
+;   * Sorted returns the longest runs, by length descending, ties to the earlier run, which is not
 ;     a secondary sort key but the order the runs were found in, so the rule is a STABLE sort.
-;   * UNSORTED returns the FIRST runs found and stops as soon as the array is full -- but "first"
+;   * UNSORTED returns the FIRST runs found and stops as soon as the array is full, but "first"
 ;     Is not left to right. See below; that is the whole difficulty of this change.
 ;   * The return value is the number of entries written. No clear bits gives 0; an entirely clear
 ;     bitmap gives one run (0, SizeOfBitMap); SizeOfBitMap = 0 gives 0.
@@ -34,7 +34,7 @@
 ;     declared 1020 reports (1018,2).
 ;
 ;   * And SizeOfRunArray = 0 With a run present crashes the shipped export. With no clear bits at
-;     all it returns 0 quite happily, so a zero capacity is not rejected -- it is simply not
+;     all it returns 0 quite happily, so a zero capacity is not rejected; it is simply not
 ;     survived once there is something to report. The probe faulted there with an access violation.
 ;     That case is excluded from every corpus, the way NULL is excluded from change 253's, and this
 ;     implementation simply returns 0 rather than reproducing a crash.
@@ -47,15 +47,15 @@
 ;
 ;   1. the run CARRIED IN from earlier bytes, plus this byte's trailing zeros, is now complete --
 ;      emitted FIRST;
-;   2. the run at the TOP of the byte becomes the new carry -- not emitted here;
+;   2. the run at the TOP of the byte becomes the new carry, not emitted here;
 ;   3. both are masked off and the runs strictly inside the byte are emitted by repeatedly taking
 ;      The longest one, ties to the lowest position.
 ;
 ; Step 3 means a byte's interior runs come out LONGEST FIRST. On a sixteen-bit bitmap with runs at
 ; 1 (one bit), 3 (two bits) and 6 (ten bits) the shipped export with room for one run returns (3,2),
 ; NOT (1,1), and with room for three returns (3,2) (1,1) (6,10). probes/enumorder.c reproduces that
-; order exactly over 1,567,328 cases -- every 16-bit bitmap at seven capacities, every 16-bit bitmap
-; at every SizeOfBitMap 1..16, and 60,000 random bitmaps -- with zero disagreements.
+; order exactly over 1,567,328 cases, every 16-bit bitmap at seven capacities, every 16-bit bitmap
+; at every SizeOfBitMap 1..16, and 60,000 random bitmaps, with zero disagreements.
 ;
 ; And it does not touch the sorted form. Sorted output is a stable sort of the found order by
 ; descending length, so the found order can only show through between runs of EQUAL length, and for
@@ -67,39 +67,39 @@
 ; ------------------------------------------------------------------------------------------------
 ; So there are two scans.
 ;
-; SORTED -- sixty-four bits at a time, exactly as change 255 does, with the out-of-range bits forced
+; SORTED, sixty-four bits at a time, exactly as change 255 does, with the out-of-range bits forced
 ; to ONE so they terminate a clear run rather than extend it. Per word:
 ;
-;   A. the run ENDING at the word's low end -- the carry plus TZCNT(w) -- which is complete, because
+;   A. the run ENDING at the word's low end (the carry plus TZCNT(w)) which is complete, because
 ;      the bit that stopped it is in this word. Emitted.
 ;   B. the runs wholly INSIDE the word, enumerated one at a time.
-;   C. the run at the word's high end -- LZCNT(w) -- which is NOT complete and becomes the carry.
+;   C. the run at the word's high end (LZCNT(w)) which is NOT complete and becomes the carry.
 ;
 ; B is where the work went. 255 needed only the longest run in a word, which the `x &= x >> 1` trick
 ; finds in (longest+1) steps however many runs there are. Here every run may matter, so they have to
-; be walked -- and on a bitmap with a run every two bits that is sixteen thousand of them. Three
+; be walked, and on a bitmap with a run every two bits that is sixteen thousand of them. Three
 ; things keep that affordable, and all three were measured rather than assumed:
 ;
 ;   * The runs that cannot matter are never visited. Once the array is full, only a run longer than
-;     the shortest one kept can change anything, and the shortest kept only ever rises -- so a run
+;     the shortest one kept can change anything, and the shortest kept only ever rises, so a run
 ;     rejected once is rejected for good. `x &= x >> k` leaves a bit wherever k+1 ones began, so
-;     DOUBLING k marks every run of the wanted length in ceil(log2 L) steps -- six for a run of
-;     sixty-four where the linear form takes sixty-four -- and the lowest marked bit is the START of
+;     DOUBLING k marks every run of the wanted length in ceil(log2 L) steps, six for a run of
+;     sixty-four where the linear form takes sixty-four, and the lowest marked bit is the START of
 ;     the first run that qualifies, so the scan jumps straight to it. Everything below it is dropped
 ;     from the word in two instructions. On the sparse bitmap the array fills with runs of two
 ;     almost immediately and every word after that is rejected outright.
 ;   * a run is stripped from the mask in three cycles, not eleven. Adding the lowest set bit carries
-;     THROUGH the run -- its ones vanish and one appears just past its end -- so ANDing with the
+;     THROUGH the run (its ones vanish and one appears just past its end) so ANDing with the
 ;     mask again is the mask without that run. The obvious form (tzcnt, shift down, invert, tzcnt,
 ;     shift away) is six dependent operations, and this loop is latency-bound, not issue-bound.
 ;   * The insertion walks down from the end. Finding the place from the front and then shifting
 ;     costs a pass over the array for a run that belongs at the BACK, and most runs belong at the
 ;     back. That one change was worth 1.4x at SizeOfRunArray = 16.
 ;
-; UNSORTED -- byte at a time, because the order is defined byte at a time and there is no way round
-; it. But not ntdll's byte at a time: One 8-BYTE table load gives the whole byte at once -- its
+; UNSORTED, byte at a time, because the order is defined byte at a time and there is no way round
+; it. But not ntdll's byte at a time: One 8-BYTE table load gives the whole byte at once, its
 ; trailing zeros, its leading zeros, and its interior runs already in the order they must be emitted
-; -- where the shipped code does two table lookups, a mask and then a shift-until-it-fits loop for
+; where the shipped code does two table lookups, a mask and then a shift-until-it-fits loop for
 ; every interior run. And a block of 0x00 or 0xFF is recognised and skipped whole, at 64 bits AND at
 ; 32: allocation bitmaps are uniform over a ULONG far more often than over a pair, and the 32-bit
 ; rung alone took the alternating-ULONG shape from 1.02x to 3.43x.
@@ -112,15 +112,15 @@ PUBLIC wia_findclearruns
 ; ------------------------------------------------------------------------------------------------
 ; The byte table for the unsorted scan. One QWORD per byte value:
 ;
-;       byte 0   trailing zeros -- the clear run at the BOTTOM of the byte
-;       byte 1   leading zeros  -- the clear run at the TOP, which becomes the carry
+;       byte 0   trailing zeros, the clear run at the BOTTOM of the byte
+;       byte 1   leading zeros, the clear run at the TOP, which becomes the carry
 ;       byte 2   how many runs lie strictly INSIDE the byte, 0..3 (three is the most that fit)
 ;       byte 3   the first interior run to emit, as (position << 4) | length
 ;       byte 4   the second
 ;       byte 5   the third
 ;
 ; in ntdll's emission order: longest first, ties to the lowest position. Entry 00h is never read --
-; an all-clear byte only extends the carry -- and entry FFh is all zeros, which costs nothing.
+; an all-clear byte only extends the carry, and entry FFh is all zeros, which costs nothing.
 .const
 ALIGN 16
 fcr_bytetab LABEL QWORD
@@ -191,16 +191,16 @@ fcr_bytetab LABEL QWORD
 
 .code
 
-; -- SORTED: put one run in its place. start in r10d, length in r11d. --
+; SORTED: put one run in its place. start in r10d, length in r11d. --
 ; Inlined rather than called: it is used at four sites and the registers it needs are exactly the
 ; scratch set, so a call would have to spill the loop state it was called from.
 ; Uses rax and r9; updates r14d (the count) and the array at rdi.
 ;
-; It walks down from the end, and that is not a detail -- it was worth 1.4x on its own. The first
+; It walks down from the end, and that is not a detail; it was worth 1.4x on its own. The first
 ; version found the insertion point by scanning down from the front and then shifted, which costs a
 ; pass over the whole array for a run that belongs at the BACK. Most runs belong at the back: on
 ; 0xA5A5A5A5 two thirds of them are single bits that lose to everything already kept. Walking down
-; from the end compares once and stops, and it is only a long run -- the rare case -- that walks far.
+; from the end compares once and stops, and it is only a long run (the rare case) that walks far.
 EMIT MACRO
         LOCAL   walk, put, done
         test      r11d, r11d
@@ -229,7 +229,7 @@ put:    mov       dword ptr [rdi + rax*8], r10d
 done:
 ENDM
 
-; -- UNSORTED: append one run, and stop the scan dead the moment the array is full. --
+; UNSORTED: append one run, and stop the scan dead the moment the array is full. --
 APPEND MACRO st, ln
         mov       eax, r14d
         mov       dword ptr [rdi + rax*8], st
@@ -356,7 +356,7 @@ fcr_have:
 fcr_a_base:
         ; ---- B and C are prepared BEFORE A is emitted, because EMIT needs every scratch
         ;      register and w is not wanted afterwards. The enumeration's working mask lives in
-        ;      r12 -- free from here on, it held the SortByLength flag -- so a run costs no
+        ;      r12 (free from here on, it held the SortByLength flag) so a run costs no
         ;      memory traffic at all: on the sparse bitmap that is twenty-four runs per word.
         mov       r12, rdx
         not       r12                         ; ones where w had clear bits
@@ -380,10 +380,10 @@ fcr_enum:
         jb        fcr_enum_low                ; still room: every run counts, take them in order
 
         ; The array is full, so the only runs left that can change the answer are longer than the
-        ; shortest one kept -- and the minimum only ever rises, so a run rejected now stays
+        ; shortest one kept, and the minimum only ever rises, so a run rejected now stays
         ; rejected. This does not walk the word looking for one: it MARKS them all at once.
         ; `x &= x >> k` leaves a bit wherever k+1 ones began, so doubling k up to the length
-        ; wanted marks every long-enough run in ceil(log2 L) steps rather than L of them -- six
+        ; wanted marks every long-enough run in ceil(log2 L) steps rather than L of them, six
         ; for a run of sixty-four, where the linear form would take sixty-four.
         mov       eax, r13d
         dec       eax
@@ -407,7 +407,7 @@ fcr_rm_done:
         jz        fcr_next                    ; not one run here can beat the minimum: SKIP
         ; And the lowest marked bit is the run's start, not merely a bit inside it: a run [s,e) of
         ; length L or more marks s, s+1 ... e-L and nothing below s, and no shorter run marks
-        ; anything at all. So there is no backtracking to do -- which is worth saying because the
+        ; anything at all. So there is no backtracking to do, which is worth saying because the
         ; first version did backtrack, with an invert, a BZHI and an LZCNT on the critical path.
         tzcnt     rcx, rax
         shrx      r12, r12, rcx               ; every run BELOW it is shorter than the minimum,
@@ -415,7 +415,7 @@ fcr_rm_done:
 
 fcr_enum_low:
         ; Take the lowest run. Written this way for its latency and not its instruction count: the
-        ; obvious form -- tzcnt, shift down, invert, tzcnt, shift the run away -- is a chain of six
+        ; obvious form (tzcnt, shift down, invert, tzcnt, shift the run away) is a chain of six
         ; dependent operations, about eleven cycles, and the loop can do nothing else while it
         ; waits. Adding the lowest set bit to the mask carries THROUGH the run: the ones from the
         ; run vanish and a single one appears just past its end, so ANDing with the mask again
@@ -451,7 +451,7 @@ fcr_next:
         jmp       fcr_loop
 
 fcr_tailcarry:
-        ; a run still open when the bitmap ends is complete -- it is ended by the end
+        ; a run still open when the bitmap ends is complete; it is ended by the end
         test      ebx, ebx
         jz        fcr_fin
         mov       r11d, ebx
@@ -460,7 +460,7 @@ fcr_tailcarry:
         jmp       fcr_fin
 
 ; =============================================================================================
-; UNSORTED: byte at a time, because the ORDER is defined byte at a time -- but eight bytes at a
+; UNSORTED: byte at a time, because the ORDER is defined byte at a time, but eight bytes at a
 ; time whenever they are all 0x00 or all 0xFF, which is most of a real bitmap.
 ; =============================================================================================
 fcru_setup:
@@ -487,7 +487,7 @@ fcru_loop:
         je        fcru_allset8
         test      r9, r9
         jz        fcru_allclear8
-        ; mixed over eight bytes, but a bitmap is often uniform over FOUR -- a 32-bit allocation
+        ; mixed over eight bytes, but a bitmap is often uniform over FOUR, a 32-bit allocation
         ; granularity puts whole ULONGs of ones and zeros next to each other, and that costs eight
         ; byte steps here if only the 64-bit rung is tried
 fcru_try32:
@@ -552,7 +552,7 @@ fcru_b_zero:
         add       ebx, 8
         jmp       fcru_b_next
 
-; -- a whole block of ones: the carry, if any, is a complete run and nothing else happens --
+; a whole block of ones: the carry, if any, is a complete run and nothing else happens --
 SKIPSET MACRO bits
         LOCAL   none
         test      ebx, ebx

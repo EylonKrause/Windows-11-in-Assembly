@@ -7,7 +7,7 @@
  * is the ambiguity change 279 removed for RtlIntegerToChar by marking change 097 SUPERSEDED, and it
  * is still live for the rest.
  *
- * Four of the ten are not duplicates at all -- the crypt32 groups are four FORMATS of one export
+ * Four of the ten are not duplicates at all; the crypt32 groups are four FORMATS of one export
  * (base64, hexraw, hexfmt, base64header) and the one-asm-per-export model simply cannot express
  * them. The other six are genuine supersessions, and this file settles them the way 279 and 280
  * settled theirs: by MEASURING, not by trusting the newer row's headline number.
@@ -81,7 +81,7 @@ static void mix(unsigned long long v)
 /* THE CORPUS IS BUILT ONCE, OUTSIDE THE TIMED REGION.
  *
  * The first version of this file generated each bitmap inside the loop it was timing, and every
- * side -- live ntdll included -- came out at about 92 ns, because what was being measured was the
+ * side (live ntdll included) came out at about 92 ns, because what was being measured was the
  * pseudo-random fill, not the export. The hashes were still valid (they are what settles
  * correctness) but the nanoseconds were meaningless and would have been reported as if they were
  * not. 256 bitmaps are prepared up front and the timed loop only calls. */
@@ -96,7 +96,7 @@ static wchar_t wbuf[128];
  *
  * Change 052 keeps its two-digit table in a C file as an uninitialised array plus a wia_dec2_init()
  * that fills it; its own correctness.c calls that on the first line of main. The first version of
- * this harness did not, and 052 duly produced the RIGHT Length with an ALL-ZERO buffer -- which
+ * this harness did not, and 052 duly produced the RIGHT Length with an ALL-ZERO buffer, which
  * looks exactly like a formatting defect and was very nearly reported as one. It is the mirror of
  * the bug this whole audit is about: there, a gate failed to ask a question; here, a harness asked
  * a question it had not set up properly. Both produce a confident wrong answer.

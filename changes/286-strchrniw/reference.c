@@ -5,13 +5,13 @@
  *     PWSTR StrChrNIW(PCWSTR start, WCHAR match, UINT cchMax)
  *
  *   * It takes a count, not an end pointer, and that had to be settled rather than read off a header:
- *     discovery/charclass_strcmp_2026.c timed it as (start, start+511, char) -- reusing StrRChrIW's
- *     three-argument typedef and labelling it "range form" -- which does not fault, so it produced a
+ *     discovery/charclass_strcmp_2026.c timed it as (start, start+511, char), reusing StrRChrIW's
+ *     three-argument typedef and labelling it "range form", which does not fault, so it produced a
  *     number that was not this function's cost. Called that way the export returns NULL; called as
  *     (start, char, count) it returns the right pointer;
  *   * the count is the number of characters EXAMINED: indices 0 .. cchMax-1. A count of 2 does not
  *     reach index 2, a count of 3 does, and a count of 0 gives NULL;
- *   * the relation is change 281's -- the intransitive triple holds, it is symmetric, the 3237-member
+ *   * the relation is change 281's; the intransitive triple holds, it is symmetric, the 3237-member
  *     ignorable set works, and U+200B matches only itself;
  *   * The terminator stops the scan and is never a match. This is where it differs from changes 283 and
  *     284: there a needle character that matches a NUL matched the terminator itself. Here searching for

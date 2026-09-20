@@ -2,7 +2,7 @@
 // The correctness oracle: the obvious scalar PathRemoveBackslashW. Not fast; just correct.
 // Contract derived in probes/prb.c and fuzz-confirmed against the live export
 // (2,000,000 cases, 0 mismatches):
-//   The return is always psz + max(n-1,0) -- a pointer to the last character, not the
+//   The return is always psz + max(n-1,0), a pointer to the last character, not the
 //   terminator. One trailing backslash is removed unless the RESULT would be a bare root:
 //       m==0, or (m==1 && psz[0]=='\'), or (m==2 && psz[1]==':' && drive_letter(psz[0]))
 //   A forward slash is NOT a separator here.

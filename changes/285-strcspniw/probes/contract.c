@@ -5,14 +5,14 @@
  *     int StrCSpnIW(PCWSTR pszStr, PCWSTR pszSet)
  *
  * It returns a COUNT, not a pointer: the number of leading characters of pszStr that are NOT in
- * pszSet -- equivalently the index of the first character that IS. That makes it a different shape
+ * pszSet, equivalently the index of the first character that IS. That makes it a different shape
  * from changes 283 and 284, which searched for a SEQUENCE. Here every character of the string is
  * tested against a SET, and change 281 established that the relation behind this family is a
  * TOLERANCE relation: symmetric, but INTRANSITIVE, with 168 triples and therefore no equivalence
  * classes at all.
  *
  * That has a consequence which has to be checked rather than assumed. "c is in the set S" can only
- * mean "there exists s in S with match(s, c)" -- the union of the match sets of the members. With no
+ * mean "there exists s in S with match(s, c)", the union of the match sets of the members. With no
  * classes, that union is not itself a class and cannot be collapsed. A set of k characters can
  * therefore accept far more than k code units, and whether the export really behaves that way is the
  * first question below.
@@ -22,18 +22,18 @@
  * answer and was wrong because the two exports genuinely differ. So:
  *
  *   1. is it per character over change 281's relation, and is the set really a UNION?
- *   2. what comes back when nothing matches -- the length?
+ *   2. what comes back when nothing matches, the length?
  *   3. the empty set, the empty string, and NULL arguments;
  *   4. THE VIRTUAL NUL. Changes 283 and 284 both found that past the terminator the string behaves
  *      as an endless run of NULs which are never loaded, and that 3320 code units match a NUL. Here
- *      that would mean a set containing such a code unit stops at the terminator -- indistinguishable
+ *      that would mean a set containing such a code unit stops at the terminator, indistinguishable
  *      from "no match", since both give the length. But an EMBEDDED NUL is distinguishable, and so is
  *      a set whose member matches a NUL when the string is empty;
  *   5. does an embedded NUL end the scan?
  *   6. the intransitive triple, on the SET side this time: if the set is {X} and the string holds Y
  *      with match(X,Y), and Z with match(X,Z) but not match(Y,Z), all of X's partners must count;
  *   7. and the direction: the relation is symmetric, so match(set, str) and match(str, set) should
- *      agree -- but change 281 stores everything indexed by NEEDLE, so if the export were asymmetric
+ *      agree, but change 281 stores everything indexed by NEEDLE, so if the export were asymmetric
  *      the tables would have to be consulted the other way round. Worth one measurement.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -96,7 +96,7 @@ int main(void)
 
     printf("\n-- 5. THE VIRTUAL NUL: does a NUL-matching set member stop at the terminator?\n");
     {
-        /* With no other match this is indistinguishable from "no match" -- both give the length.
+        /* With no other match this is indistinguishable from "no match", both give the length.
            An EMBEDDED NUL is distinguishable, and so is the empty string. */
         for (k = 0; k < 64; ++k) s[k] = L'W';
         s[0] = L'a'; s[1] = L'b'; s[2] = L'c'; s[3] = 0;          /* 'W' after the terminator */

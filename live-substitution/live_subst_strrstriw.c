@@ -7,13 +7,13 @@
 //
 // The contract this harness has to respect, all measured by probes/bounds.c:
 //
-//   * `end` bounds only where a match may START, exclusively -- a match beginning below `end` is
+//   * `end` bounds only where a match may START, exclusively; a match beginning below `end` is
 //     returned even though it runs past it;
 //   * The haystack is nul-terminated and the terminator beats `end`: a NUL at index 4 hides a match
 //     at 9 however far `end` reaches;
 //   * and the export reads to the terminator regardless of `end`. With no terminator it faults. So
 //     every haystack here is terminated, and the guard-page cases put that terminator as the last
-//     readable code unit -- which is the only placement that tests where the scan really stops.
+//     readable code unit, which is the only placement that tests where the scan really stops.
 //
 // And the needles are drawn to reach both filter paths. The vector filter keys on the needle's
 // FIRST character; a first character with more than four partners bypasses the filter entirely and
@@ -95,7 +95,7 @@ static unsigned wide_needle;
  *
  *   cur_nultail  a needle whose TAIL matches a NUL, over a string whose last character matches the
  *                needle's first. The live export matches such a needle ACROSS the terminator, so
- *                this is the only shape in which the candidate clamp is observable -- the gate
+ *                this is the only shape in which the candidate clamp is observable, the gate
  *                passed a build that clamped by the needle length, which is wrong.
  *   cur_mid      a needle whose first character has between five and eight partners, matched through
  *                a LATER member of its set. The WIDE dispatch was previously driven only by the

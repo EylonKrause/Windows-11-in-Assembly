@@ -1,5 +1,5 @@
 // changes/159-pathcchrenameextension/reference.c
-// Corrected 2026-09-15: the extension rule inherited from change 132 was incomplete -- a space
+// Corrected 2026-09-15: the extension rule inherited from change 132 was incomplete, a space
 // stops the backward scan exactly as a backslash does. This oracle and the implementation were
 // wrong together on 46158 of 335923 enumerated strings; see discovery/extension_space_audit2.c.
 // Oracle for kernelbase!PathCchRenameExtension, built entirely from probe evidence: the rejected

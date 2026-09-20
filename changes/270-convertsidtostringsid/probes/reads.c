@@ -17,7 +17,7 @@
  *   2. What is checked first? With a bad revision and a bad count, which error comes back tells you
  *      the order. More usefully: does a bad revision stop it before it reads the count byte at all?
  *      A SID consisting of ONE readable byte, with everything after it on a no-access page, answers
- *      that -- if the call refuses cleanly, the revision is checked before anything else is touched.
+ *      that, if the call refuses cleanly, the revision is checked before anything else is touched.
  *
  *   3. Does success touch the last error? a caller that calls this and then reports GetLastError on
  *      an unrelated failure sees whatever this left behind. It is cheap to measure and cheap to

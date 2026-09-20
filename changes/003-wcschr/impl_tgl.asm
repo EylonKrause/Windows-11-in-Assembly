@@ -11,8 +11,8 @@
 ; the 3-wchar class measures 0.87x against ucrtbase, while the same binary still wins 2.0x overall.
 ; Two costs in the parent's shape are paid on the shortest possible input and bought nothing there:
 ;
-;   * `vzeroupper` on every return path. It is mandatory once a ymm has been written -- without it
-;     the caller's later SSE code pays an AVX/SSE transition penalty -- and on a string that ends
+;   * `vzeroupper` on every return path. It is mandatory once a ymm has been written, without it
+;     the caller's later SSE code pays an AVX/SSE transition penalty, and on a string that ends
 ;     after three characters it is a meaningful fraction of the whole call.
 ;   * a ymm-width `vpbroadcastw` in the dependency chain ahead of the first compare.
 ;
@@ -21,12 +21,12 @@
 ; `vzeroupper`. Eight wchars is already more than the short strings this class is about, so the
 ; first probe gives up nothing that matters and returns with two instructions fewer of overhead.
 ; The 256-bit path is still there, entered only once the string is known to be longer than the first
-; block -- which is exactly the case where the wider compare pays for itself.
+; block, which is exactly the case where the wider compare pays for itself.
 ;
 ; The parent is left untouched. Its 0.87x here is a fact about Willow Cove, not a defect in code
 ; that was measured, correctly, on a machine with different AVX transition costs.
 ;
-; PAGE SAFETY -- the property that constrains the whole design
+; PAGE SAFETY, the property that constrains the whole design
 ; ------------------------------------------------------------
 ; A 16-byte load from a 16-aligned address, and a 32-byte load from a 32-aligned address, cannot
 ; cross a page boundary, so neither can touch a page the string does not already occupy. Every load
@@ -38,9 +38,9 @@
 ; boundary before the 256-bit loop starts. Jumping straight to a 32-byte load from a 16-aligned
 ; address would be the bug this comment exists to prevent.
 ;
-; ISA: AVX2 + BMI1 (tzcnt) -- the same instruction set as the parent. The difference is encoding
+; ISA: AVX2 + BMI1 (tzcnt); the same instruction set as the parent. The difference is encoding
 ; width on the fast path, not a new ISA requirement. Validated on bench #3 (Intel i9-11900H,
-; Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 ;
 ; ABI: xmm0-xmm4 / ymm0-ymm4 only; all volatile under Win64, nothing to spill.
 

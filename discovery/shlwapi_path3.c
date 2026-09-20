@@ -120,7 +120,7 @@ int main(void){
     printf("  EARLY  \"%s\"  (%d bytes; colon at 1, backslash at 2)\n", EARLY_A, (int)strlen(EARLY_A));
     printf("  FULL   a bare name of %d characters, no separator anywhere\n\n", FULL_N);
 
-    /* ========== 1. PREDICATES -- read-only, return a BOOL or an int ============================ */
+    /* ========== 1. PREDICATES, read-only, return a BOOL or an int ============================ */
     printf("=== 1. predicates (read-only) ===\n");
     printf("(ns/byte is against the FULL subject. A big gap means the EARLY number -- the one every\n");
     printf(" previous survey reported -- was measuring an early exit, not the function.)\n");

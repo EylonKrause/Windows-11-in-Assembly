@@ -3,7 +3,7 @@
 //
 // This harness exists because the repository already claimed this export was covered, and the claim
 // Was too strong. live_subst_ws2.c patches ntdll!RtlIpv4StringToAddressA (change 114), calls
-// ws2_32!inet_addr, and shows the counter moving on every input -- which proves inet_addr DELEGATES
+// ws2_32!inet_addr, and shows the counter moving on every input, which proves inet_addr DELEGATES
 // to it, and it does, on all 22 of its subjects. What it does not prove is the headline above it:
 // "inet_addr does not parse an address at all". changes/273-inet-addr/probes/grammar.c asks both
 // functions the same ten questions and they disagree on six:
@@ -15,7 +15,7 @@
 //     "1.2.3.4x"   inet_addr refuses      Rtl 04030201
 //
 // So inet_addr calls RtlIpv4StringToAddressA and then, when that refuses, parses the string ITSELF
-// with a far more permissive grammar -- four forms, three bases, a wrapping accumulator and a
+// with a far more permissive grammar, four forms, three bases, a wrapping accumulator and a
 // whitespace terminator. The delegation is real; the coverage was not. The other harness's counter
 // could never have caught that, because patching change 114 with a bit-exact replacement leaves the
 // composite answer unchanged whichever branch inet_addr takes.

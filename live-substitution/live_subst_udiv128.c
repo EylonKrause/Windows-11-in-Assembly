@@ -1,12 +1,12 @@
 // live-substitution/live_subst_udiv128.c
-// LIVE-RUN PROOF for change 204 -- ntdll!RtlUdiv128.
+// LIVE-RUN PROOF for change 204, ntdll!RtlUdiv128.
 //
 // The shipped routine is a 64-iteration restoring shift-subtract long division that costs a flat
 // ~69 ns whatever the operands. Ours issues ONE hardware `div` wherever the quotient is
 // representable, and reproduces the loop where it is not.
 //
 // What must be proved live is the boundary. `div` raises #de when the quotient will not fit in 64
-// bits, and that happens on exactly DividendHigh >= Divisor -- so the compare that selects the fast
+// bits, and that happens on exactly DividendHigh >= Divisor, so the compare that selects the fast
 // path has zero slack. An off-by-one there is not a wrong answer, it is a crash. The corpus below is
 // therefore weighted hard onto DividendHigh == Divisor and its immediate neighbours, and onto
 // Divisor == 0, which must return all-ones rather than faulting.
@@ -63,7 +63,7 @@ static int patch_off(patch_t* p){
 static int failures = 0;
 #define OK(cond,msg) do{ if(!(cond)){ printf("  FAIL: %s\n",(msg)); ++failures; } }while(0)
 
-/* The reference is the shipped loop, transcribed -- the specification for the region where the
+/* The reference is the shipped loop, transcribed, the specification for the region where the
    quotient is not representable, which has no closed form. */
 static u64 ref_loop(u64 hi, u64 lo, u64 d, u64* rem){
     u64 r = hi, q = lo;

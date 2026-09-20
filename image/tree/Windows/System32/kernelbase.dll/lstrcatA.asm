@@ -16,11 +16,11 @@
 ;
 ; That last line is why this function matters more than its throughput suggests. lstrcat is a length
 ; scan of the destination followed by a copy of the source, so appending sixty-four bytes to a
-; four-thousand-byte buffer costs almost as much as copying the whole buffer -- the accidental
+; four-thousand-byte buffer costs almost as much as copying the whole buffer, the accidental
 ; quadratic that appears whenever a caller appends in a loop. Making the SCAN fast is most of the
 ; win, and the scan is exactly change 225's problem.
 ;
-; Two halves, both already solved in this repository -- and neither inherited by name. Every rule
+; Two halves, both already solved in this repository, and neither inherited by name. Every rule
 ; below was re-measured against lstrcatA itself in probes/cata.c, because inheriting a sibling's
 ; rule is how eight landed changes shipped wrong earlier in this session.
 ;
@@ -32,18 +32,18 @@
 ;     only changes once per 4096 bytes.
 ;
 ; Three structural changes went in when this change was unparked, and together they moved the geomean
-; from 3.60x to 4.15-4.52x and the shortest row from 0.88-1.04x -- a coin flip against the gate -- to
+; from 3.60x to 4.15-4.52x and the shortest row from 0.88-1.04x (a coin flip against the gate) to
 ; 1.15-1.37x over twelve runs. None of them touches a rule; each is documented where it lives:
 ;
 ;   1. an EMPTY DESTINATION is answered by one byte load and one branch instead of the whole scan,
 ;      with the append's page clamp computed UNDER that load rather than before or after it;
 ;   2. the copy leads with a SINGLE 32-byte chunk and only then enters the 64-byte pair loop, which
-;      also stopped the pair loop recomputing the clamp every 32 bytes -- "4000 onto empty" went
+;      also stopped the pair loop recomputing the clamp every 32 bytes, "4000 onto empty" went
 ;      1.54x -> 2.92x and "4000 onto 4000" 2.97x -> 4.31x on that alone;
 ;   3. the 1..32-byte tail is two overlapping moves instead of a 16/8/4/2/1 ladder, which removed
 ;      four conditional branches from the shortest call in the benchmark.
 ;
-; The fault paths, measured -- and there are three pointers here, not two, because lstrcat reads the
+; The fault paths, measured, and there are three pointers here, not two, because lstrcat reads the
 ; destination before it writes it:
 ;
 ;   * an UNTERMINATED DESTINATION at a NOACCESS page returns NULL rather than faulting, 80 of 80;
@@ -53,18 +53,18 @@
 ;   * a NULL source returns NULL and leaves the destination alone; a NULL destination returns NULL.
 ;
 ; And no early exit on an empty source. Appending "" leaves the buffer byte-for-byte identical, which
-; looks like "it writes nothing" -- but writing a 0 over a 0 is indistinguishable from not writing.
+; looks like "it writes nothing", but writing a 0 over a 0 is indistinguishable from not writing.
 ; probes/cata.c settled it with a PAGE_READONLY destination: `lstrcatA(readonly, "")` returns NULL,
 ; so the shipped function DOES perform the store. This implementation performs it too, by falling
 ; into the copy with a one-byte length rather than branching around it.
 ;
-; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured -- and
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 (measured) and
 ; probes/cata.c sweeps all 255 non-NUL byte values in both strings (510 placements, 0 disagreements)
 ; and every destination length 0..120 against every source length 0..120.
 ;
-; Rejected experiment, recorded so it is not tried again. The two scans are independent -- finding
+; Rejected experiment, recorded so it is not tried again. The two scans are independent, finding
 ; the end of the destination and finding the end of the source do not need each other, only the
-; store needs both -- so issuing the source block before the destination is resolved lets two
+; store needs both, so issuing the source block before the destination is resolved lets two
 ; ~15-cycle load/compare/movmsk/tzcnt chains overlap instead of running back to back. For a short
 ; append that serialisation looked like the whole runtime.
 ;
@@ -78,11 +78,11 @@
 ;      geomean            4.561x       4.419x
 ;
 ; A long destination makes the speculative source mask stale, so every append onto a long buffer --
-; exactly the shape this function is for -- pays for a load it cannot use. The short end did not
+; exactly the shape this function is for, pays for a load it cannot use. The short end did not
 ; clear the gate either way. Left serial. (Those absolute times are from the OLD benchmark, whose
 ; restore landed on the buffer the next call read; the ratio column is what to compare against.)
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_lstrcata_core PROC
@@ -91,8 +91,8 @@ wia_lstrcata_core PROC
         vpxor     ymm1, ymm1, ymm1               ; the terminator
 
         ; ---- An empty destination is the one case the scan cannot help with, and it is common:
-        ;      appending to a buffer a caller has just initialised. The whole scan -- align down,
-        ;      load, compare, movmsk, shift by the misalignment, tzcnt -- exists to discover that the
+        ;      appending to a buffer a caller has just initialised. The whole scan, align down,
+        ;      load, compare, movmsk, shift by the misalignment, tzcnt, exists to discover that the
         ;      terminator is at offset zero. One byte load and one branch answer it instead.
         ;
         ;      The page clamp is computed HERE rather than after the branch, because both halves of
@@ -230,14 +230,14 @@ cp_64_nul:                                       ; the terminator is somewhere i
 
         ; ---- the last 1..32 bytes, terminator included. exactly that many: the destination is
         ;      terminated, not padded. An empty source lands here with a length of one and stores
-        ;      the terminator, which is what the shipped function does -- see the PAGE_READONLY
+        ;      the terminator, which is what the shipped function does, see the PAGE_READONLY
         ;      measurement in probes/cata.c.
         ; Overlapping pairs, not a descending ladder. The ladder this replaced walked 16/8/4/2/1 with
-        ; a conditional branch at every rung, so a nine-byte tail -- eight characters and a
-        ; terminator, the commonest one in the benchmark -- executed five conditional branches to move
+        ; a conditional branch at every rung, so a nine-byte tail, eight characters and a
+        ; terminator, the commonest one in the benchmark, executed five conditional branches to move
         ; two chunks. Each rung is individually cheap, but they are four more entries competing for
         ; branch-predictor state on a call that takes about twenty cycles in total, and that showed:
-        ; the wide sibling's shortest row alternated run to run between 4.24 ns and 4.90 ns -- a clean
+        ; the wide sibling's shortest row alternated run to run between 4.24 ns and 4.90 ns, a clean
         ; three-cycle step, same executable, same data, decided at process start. Two overlapping
         ; moves cover any width in the range with one branch and no loop.
         ;

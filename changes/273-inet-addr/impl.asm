@@ -2,13 +2,13 @@
 ;   unsigned long wia_inet_addr(const char* s)      [Win64: rcx -> eax, in NETWORK byte order]
 ;
 ; ws2_32!inet_addr, the LENIENT IPv4 parser. discovery/sid_inet_bstr.c measured it at 24.98 ns and
-; flagged it as the one that takes "1.2", "0x7f.1" and octal -- all of which RtlIpv4StringToAddressA
+; flagged it as the one that takes "1.2", "0x7f.1" and octal, all of which RtlIpv4StringToAddressA
 ; (change 114, already converted) REFUSES. probes/grammar.c confirmed the two disagree on six of ten
 ; hand-picked inputs, so this is not change 114 behind a wrapper and could not have been.
 ;
 ; --------------------------------------------------------------------------------------------------
-; The grammar is the documented one. Four forms -- a.b.c.d, a.b.c (16-bit tail), a.b (24-bit tail),
-; a (32 bits) -- and each part is decimal, octal after a leading `0`, or hexadecimal after `0x`. The
+; The grammar is the documented one. Four forms, a.b.c.d, a.b.c (16-bit tail), a.b (24-bit tail),
+; a (32 bits), and each part is decimal, octal after a leading `0`, or hexadecimal after `0x`. The
 ; base is decided PER PART, so `1.0x2.03.4` is legal, and the result comes back byte-swapped.
 ;
 ; Three things are not what the source everyone quotes does, and each was measured:
@@ -17,30 +17,30 @@
 ;      bits and wraps; a digit is refused only when the wrapped result is strictly less than the
 ;      value before it:
 ;
-;          0x112345678   accepted, 0x12345678   -- the textbook check `acc > (MAX-d)/16` REFUSES it
-;          0x212345678   refused                -- 0x12345678 < 0x21234567, so it went down
-;          0x7FFFFFFF0   accepted, 0xFFFFFFF0   -- overflows 32 bits and is accepted anyway
-;          12345678901   accepted, 0xDFDC1C35   -- wrapped, and larger than 1234567890
-;          99999999999   refused                -- wrapped to something smaller
+;          0x112345678   accepted, 0x12345678, the textbook check `acc > (MAX-d)/16` REFUSES it
+;          0x212345678   refused, 0x12345678 < 0x21234567, so it went down
+;          0x7FFFFFFF0   accepted, 0xFFFFFFF0, overflows 32 bits and is accepted anyway
+;          12345678901   accepted, 0xDFDC1C35, wrapped, and larger than 1234567890
+;          99999999999   refused, wrapped to something smaller
 ;
 ;      probes/accum.c swept all sixteen leading hexadecimal digits at nine and ten digits: accepted
 ;      if and only if the leading digit is 0 or 1, which is what this test predicts and no other
 ;      does. An implementation with the "correct" overflow check is wrong on inputs anyone could
 ;      type. It is `cmp edx, eax / jb fail` below, and it is one instruction.
 ;
-;   2. Whitespace ends the address and everything after it is ignored -- once a digit has been
+;   2. Whitespace ends the address and everything after it is ignored, once a digit has been
 ;      consumed. Any of 09 0A 0B 0C 0D 20 does it and the rest is never looked at: "1.2.3.4 junk" is
 ;      1.2.3.4, and "1 junk" is 0.0.0.1. LEADING whitespace is refused. probes/bytes.c swept every
 ;      byte in twelve positions to get that set rather than guessing at "isspace".
 ;
-;   3. The single byte 0x20 is an address. `" "` -- one space and the terminator, nothing else --
+;   3. The single byte 0x20 is an address. `" "`, one space and the terminator, nothing else --
 ;      comes back as 0.0.0.0. Two spaces do not, a tab does not, `" 1"` does not, `""` does not.
 ;      probes/lonespace.c asked from every side and no model of the grammar explains it. It is ONE
 ;      input out of all possible inputs and it is reproduced here, because bit-exactness is the
 ;      standard and a gate comparing against the live export would otherwise report it forever.
 ;
 ; And one ambiguity that is built in: INADDR_NONE is 0xFFFFFFFF, which is also the value of
-; 255.255.255.255, so a refusal and that one address are indistinguishable -- here, in the live
+; 255.255.255.255, so a refusal and that one address are indistinguishable, here, in the live
 ; export, and to every caller. The last error is not set either way (probes/grammar.c).
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ PUBLIC wia_inet_ctab                        ; so correctness.c can check the tab
 
 .const
 ALIGN 16
-; Bit 4 set means "a hexadecimal digit", and then the low nibble is its value -- so one load answers
+; Bit 4 set means "a hexadecimal digit", and then the low nibble is its value, so one load answers
 ; every base by comparing that nibble against 8, 10 or 16. Bit 5 set means "one of the six bytes
 ; that end an address".
 CTAB    LABEL BYTE
@@ -101,7 +101,7 @@ wia_inet_addr PROC FRAME
         lea       r8, CTAB
 
         ; The one special case, tested a byte at a time. a word-sized compare would read two bytes
-        ; of a one-byte string, which faults when it ends a page -- and correctness.c puts strings
+        ; of a one-byte string, which faults when it ends a page, and correctness.c puts strings
         ; against a guard page precisely to catch that.
         cmp       byte ptr [rsi], 20h
         jne       parse

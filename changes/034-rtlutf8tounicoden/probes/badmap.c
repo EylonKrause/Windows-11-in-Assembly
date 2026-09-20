@@ -1,7 +1,7 @@
-/* badmap.c -- the full written/unwritten map for one subject, and the smallest failing n.
+/* badmap.c: the full written/unwritten map for one subject, and the smallest failing n.
  *
  * onebad.c narrowed it to: a single byte the blocks cannot decode (a continuation, C0/C1, or
- * F5..FF -- exactly the classes the dispatcher sends to the scalar window) makes every unit from
+ * F5..FF, exactly the classes the dispatcher sends to the scalar window) makes every unit from
  * 64 + (k & ~7) onward go unwritten while the returned count stays correct. This prints the map
  * so the boundary is visible rather than inferred, and finds the smallest n that fails.
  */

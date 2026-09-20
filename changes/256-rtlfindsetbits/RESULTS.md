@@ -190,7 +190,7 @@ one cycle per 64-bit word — and beating it is what the vector filter is for. I
 (`wia_abi_call4`), the mechanism change 258 added after demonstrating that the whole-thunk form can
 be masked by a thunk that saves the same register. Mutation-tested: with `push r15` and its matching
 `pop` deleted from `impl.asm`, the gate reports
-`ABI: FAILED 256-rtlfindsetbits -- clobbers 1 non-volatile register(s): r15`. The static scan
+`ABI: FAILED 256-rtlfindsetbits, clobbers 1 non-volatile register(s): r15`. The static scan
 (`tools/abi-audit.py`, 530 `.asm` files) reports the same mutation independently.
 
 ## Gate 4 — live substitution: PASS

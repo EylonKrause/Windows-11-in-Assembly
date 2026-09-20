@@ -79,7 +79,7 @@ int main(void)
         }
     }
 
-    /* a hit in the SAME block as the terminator, on both sides of it -- the case that needs the two
+    /* a hit in the SAME block as the terminator, on both sides of it; the case that needs the two
        masks kept apart rather than merged */
     for (int align = 0; align < 16 && fails < 20; ++align)
         for (int len = 1; len <= 140 && fails < 20; ++len)

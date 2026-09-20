@@ -2,8 +2,8 @@
  *
  * The table is a size *and class* sweep, and six of the ten classes are mixed-width on purpose.
  *
- * discovery/utf8_width_mixtures.c is the reason.  Change 034 -- the same transformation one layer
- * down -- published 3.96x over six classes, five of which are HOMOGENEOUS (every character the
+ * discovery/utf8_width_mixtures.c is the reason.  Change 034, the same transformation one layer
+ * down, published 3.96x over six classes, five of which are HOMOGENEOUS (every character the
  * same width) and the sixth of which was "ASCII alternating with two-byte", the one mixture it had
  * a kernel for.  Asked about eight mixtures it had no kernel for, the same assembly ran 0.34x to
  * 0.63x.  A table that only contains the input a fast path was written for cannot say whether the
@@ -11,7 +11,7 @@
  *
  * So the classes here are:
  *
- *   ASCII, 2-byte, 3-byte, 4-byte       the runs -- Latin, Greek/Cyrillic/Hebrew, CJK, emoji
+ *   ASCII, 2-byte, 3-byte, 4-byte       the runs, Latin, Greek/Cyrillic/Hebrew, CJK, emoji
  *   ASCII+2, ASCII+3, ASCII+4           prose: text with accents, with CJK, with emoji
  *   2+3, 1+2+3+4                        the genuinely heterogeneous cases
  *   malformed                           random bytes, which is what a server gets fed

@@ -1,4 +1,4 @@
-/* i2u_check.c -- do 052 and 053 actually write the terminator their headers describe?
+/* i2u_check.c: do 052 and 053 actually write the terminator their headers describe?
  * descterm.c showed the exports need MaximumLength >= Length+2 and write a WCHAR NUL at
  * [Length/2]. 052's header already states the size rule. A stated rule is not an implemented
  * one, so this compares OURS against the live export over the whole interesting range,

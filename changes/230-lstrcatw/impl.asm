@@ -13,12 +13,12 @@
 ; is a length scan of the destination followed by a copy of the source and the wide scan runs at
 ; SSE2 speed. That is the accidental quadratic a caller hits appending in a loop.
 ;
-; CONTRACT, measured in probes/catw.c. Nothing inherited -- not from change 228 (the narrow sibling)
+; CONTRACT, measured in probes/catw.c. Nothing inherited, not from change 228 (the narrow sibling)
 ; and not from change 229 (the wide copy):
 ;
 ;   * it returns the destination; the result is terminated, not padded;
 ;   * THREE pointers can fail, not two, because lstrcat READS the destination before writing it. An
-;     unterminated DESTINATION at a NOACCESS page returns NULL rather than faulting, 80 of 80 -- a
+;     unterminated DESTINATION at a NOACCESS page returns NULL rather than faulting, 80 of 80, a
 ;     failure lstrcpy does not have at all;
 ;   * an unterminated SOURCE returns NULL with exactly the readable prefix transferred, 80 of 80;
 ;   * a destination too small returns NULL;
@@ -36,7 +36,7 @@
 ; STRUCTURE. Two halves, each already solved in this repository and each re-derived here:
 ;
 ;   * The scan uses the page clamp rather than change 225's align-down trick, because this
-;     Function accepts an odd-aligned destination -- probes/catw.c drives one. Aligning down to 32
+;     Function accepts an odd-aligned destination, probes/catw.c drives one. Aligning down to 32
 ;     and comparing 16-bit lanes would put the lane boundaries out of step with the string's
 ;     characters, and every comparison would be against halves of two adjacent characters. Clamping
 ;     to the page instead keeps the lanes aligned to the pointer, whatever its parity.
@@ -48,18 +48,18 @@
 ; Both clamps are hoisted out of their 64-byte loops: they change once per 4096 bytes.
 ;
 ; Two changes went in when this one was unparked, and neither touches a rule. Together they moved the
-; shortest row from 0.86-1.12x -- a coin flip against the gate, failing about one run in three -- to
+; shortest row from 0.86-1.12x (a coin flip against the gate, failing about one run in three) to
 ; 1.09-1.29x over twelve consecutive runs, with the geomean at 5.90-6.41x:
 ;
 ;   1. the empty-destination shortcut now computes the append's page clamp UNDER its load instead of
-;      after it -- and the ORDER of those two is the whole gain; putting the clamp first cost 0.2 ns
+;      after it, and the ORDER of those two is the whole gain; putting the clamp first cost 0.2 ns
 ;      on every short row, which is measured and recorded at the shortcut itself;
 ;   2. the 2..32-byte tail is two overlapping moves instead of a 16/8/4/2 ladder, which removed four
 ;      conditional branches from the shortest call in the benchmark. That ladder was the source of a
-;      clean three-cycle step -- 4.24 ns on some runs and 4.90 on others, same executable, same data,
-;      decided at process start -- and collapsing it removed the slow mode as well as the average.
+;      clean three-cycle step, 4.24 ns on some runs and 4.90 on others, same executable, same data,
+;      decided at process start, and collapsing it removed the slow mode as well as the average.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_lstrcatw_core PROC
@@ -68,11 +68,11 @@ wia_lstrcatw_core PROC
 
         ; ================= 1. find the end of the destination =================
         ; An empty destination is the one case the scan cannot help with. Appending to a buffer that
-        ; a caller has just initialised is common, and the whole scan -- page clamp, 32-byte load,
-        ; compare, movmsk, tzcnt -- exists to discover that the terminator is at offset zero. One
+        ; a caller has just initialised is common, and the whole scan, page clamp, 32-byte load,
+        ; compare, movmsk, tzcnt, exists to discover that the terminator is at offset zero. One
         ; load and one branch answer it instead, and the branch costs the non-empty path two uops.
         ;
-        ; The append's page clamp is computed here, under that load -- and the order of these two is
+        ; The append's page clamp is computed here, under that load, and the order of these two is
         ; the whole point. Both halves of the clamp are pure ALU on the pointers the caller passed and
         ; neither depends on the load, so they can hide inside its latency; but the first attempt at
         ; this put the ten clamp instructions BEFORE a `cmp word ptr [rcx], 0`, which delayed the
@@ -216,12 +216,12 @@ cp_64_nul:
         ;      two-byte count and stores the terminator, which is what the shipped function does --
         ;      see the PAGE_READONLY measurement in probes/catw.c.
         ; Overlapping pairs, not a descending ladder. The ladder this replaced walked 16/8/4/2 with a
-        ; conditional branch at every rung, so the commonest tail in the benchmark -- eighteen bytes,
-        ; eight characters and a terminator -- executed SIX conditional branches to move two chunks.
+        ; conditional branch at every rung, so the commonest tail in the benchmark, eighteen bytes,
+        ; eight characters and a terminator, executed SIX conditional branches to move two chunks.
         ; Each rung is individually cheap and the branches are individually predictable, but they are
         ; five more entries competing for branch-predictor state on a call that takes about twenty
         ; cycles in total, and that showed: the row alternated run to run between 4.24 ns and 4.90 ns
-        ; -- a clean three-cycle step, the same executable, the same data, decided at process start.
+        ; a clean three-cycle step, the same executable, the same data, decided at process start.
         ; Two overlapping moves cover any width in that range with ONE branch and no loop.
         ;
         ; The overlap is page-safe. rax is at most the clamp r9d computed above, and every one of

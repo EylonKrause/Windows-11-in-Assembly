@@ -7,10 +7,10 @@
  * and image/tree has fifteen .asm files for them. The missing one is this.
  *
  * And it was missed on purpose, for a reason that no longer holds. Change 122 landed
- * RtlIpv6StringToAddressExA and its README row says, in as many words, "`ExW` scoped out -- Unicode
+ * RtlIpv6StringToAddressExA and its README row says, in as many words, "`ExW` scoped out, Unicode
  * digits". Change 166 then landed RtlIpv6StringToAddressW and settled exactly that question: swept
  * over all 65536 units, the digit set the live wide parser folds is exactly seventeen contiguous
- * Blocks of ten -- the frozen Unicode 3.0 Nd list -- and 166 implements it. So the blocker is gone,
+ * Blocks of ten (the frozen Unicode 3.0 Nd list) and 166 implements it. So the blocker is gone,
  * and what is left is 166's core plus 122's envelope.
  *
  * The disassembly says the composition is real (ntdll!RtlIpv6StringToAddressExW, rva 0xC3120):
@@ -25,7 +25,7 @@
  *     000C31B4  cmp bx, r8w (0x80) / jae error
  *                                       <== The scope is ascii-only. a unit >= 0x80 is rejected
  *                                       outright, before any digit test.
- *     000C31C4  call 0x127AF0           f(ch, 4) -- mask 4 is C1_DIGIT
+ *     000C31C4  call 0x127AF0           f(ch, 4), mask 4 is C1_DIGIT
  *     000C31E3  cmp ax, 0x5d            ']'
  *     000C31FE  cmp ax, 0x3a            ':' -> the port
  *     000C3211..0C323A                  base detection: "0x"/"0X" -> 16, a leading '0' -> 8,
@@ -44,7 +44,7 @@
  *   1. Which units are digits in the scope position? Swept over all 65536, not sampled.
  *   2. Which units are digits in the port position, at each of the three bases? Also swept over all
  *      65536. If this comes back as change 166's seventeen blocks, that is an INDEPENDENT
- *      confirmation of a measured constant through a different export -- which is the only honest
+ *      confirmation of a measured constant through a different export, which is the only honest
  *      way for change 250 to carry that table, since 166's own ud_val is private to its PROC and
  *      cannot be called.
  *   3. Does a Unicode digit in the port obey the same 0x/0/decimal base rule as an ASCII one? A
@@ -60,7 +60,7 @@
 typedef LONG NTSTATUS_;
 typedef NTSTATUS_ (NTAPI *FEXW)(const wchar_t*, void*, ULONG*, USHORT*);
 typedef NTSTATUS_ (NTAPI *FEXA)(const char*, void*, ULONG*, USHORT*);
-/* RtlIpv6StringToAddressW takes the terminator second and the address third -- not the other way
+/* RtlIpv6StringToAddressW takes the terminator second and the address third, not the other way
    round. The first version of this probe had them swapped and section 8 duly reported all fifteen
    addresses differing, with the "address" full of stack pointer bytes. */
 typedef NTSTATUS_ (NTAPI *FW)(const wchar_t*, const wchar_t**, void*);

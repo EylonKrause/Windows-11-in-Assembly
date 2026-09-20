@@ -6,7 +6,7 @@
  *   * the DESTINATION SCAN, which is O(strlen(dst)) and is paid even when nothing much is appended;
  *   * the SOURCE COPY, which is O(strlen(src)).
  * A table of "append n bytes to an empty string" measures only the second and would make the first
- * invisible -- and the first is the half real code suffers from, because appending in a loop
+ * invisible, and the first is the half real code suffers from, because appending in a loop
  * rescans the whole destination every time. Change 152 called that "the quadratic-strcat pattern
  * real code actually hits" and it is the row that matters most here too.
  *

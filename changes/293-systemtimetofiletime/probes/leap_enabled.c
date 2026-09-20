@@ -4,7 +4,7 @@
 // ntdll!RtlpTimeFieldsToTimeEx takes its leap-second-aware body when PEB->LeapSecondData is
 // non-NULL with Enabled != 0 (true on this machine) and then branches on PEB->LeapSecondFlags
 // bit 0, SixtySecondEnabled, which is 0 for this process. So the whole leap-second feature is
-// inert here -- but the flag is PER PROCESS, and a process that opts in (manifest, or
+// inert here, but the flag is PER PROCESS, and a process that opts in (manifest, or
 // NtSetInformationProcess(ProcessLeapSecondInfo)) would get different behaviour from the same
 // export. Before deciding whether impl.asm needs a guard for that, find out WHAT actually
 // changes: is it only wSecond == 60, or does any already-valid input move?

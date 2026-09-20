@@ -10,7 +10,7 @@
  * its bench undid an in-place edit with a memcpy of the whole path and the restore REPLACED the
  * measurement. It is not the same thing here: the reset is two stores to the string header
  * (Length = 0), not a copy of the buffer, and it is identical on both sides. Without it the
- * destination fills up and every call after the first few is a refusal -- the row would silently
+ * destination fills up and every call after the first few is a refusal; the row would silently
  * stop measuring the copy at all.
  *
  * The refusal path gets its own rows, because it is the cheap answer this function is expected to

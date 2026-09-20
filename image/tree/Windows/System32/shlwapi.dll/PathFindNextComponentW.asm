@@ -6,34 +6,34 @@
 ; PWSTR wia_pathfindnextcomponentw(PCWSTR psz)   [Win64: rcx -> rax]
 ;
 ; Reimplements shlwapi!PathFindNextComponentW: return the part of the path that follows the
-; first backslash. shlwapi's is a scalar scan -- 61 ns for a 254-char path.
+; first backslash. shlwapi's is a scalar scan, 61 ns for a 254-char path.
 ;
 ; Contract (derived in probes/pfnc.c, fuzz-confirmed bit-exact against the live export over
 ; 2,000,000 cases):
 ;   * An EMPTY string returns NULL. That is the only NULL.
 ;   * Find the FIRST backslash. If the character after it is ALSO a backslash, advance exactly
-;     ONE more -- and only one. "a\\b" and "a\\\b" both return index 3, which is 'b' in the
+;     ONE more, and only one. "a\\b" and "a\\\b" both return index 3, which is 'b' in the
 ;     first case and a third backslash in the second. It is not "skip the whole run".
 ;   * Return one past that backslash.
-;   * If there is NO backslash anywhere, return a pointer to the TERMINATOR -- not NULL.
+;   * If there is NO backslash anywhere, return a pointer to the TERMINATOR, not NULL.
 ;     ("abc" returns +3, "C:dir" returns +5.)
 ;   * The separator is exactly U+005C. Swept over all 65535 code units, exactly one acts as a
 ;     separator: a forward slash does not. ("a/b" returns +3, the terminator.) That is the
 ;     sixth separator convention catalogued in this DLL, after changes 132, 138, 161, 167
 ;     and 171.
 ;
-; Method: ONE pass finds the backslash and the terminator together -- two vpcmpeqw results
+; Method: ONE pass finds the backslash and the terminator together, two vpcmpeqw results
 ; OR-ed into a single mask, so whichever comes first is located by a single tzcnt, and the
 ; found word is then re-read to decide which it was.
 ;
-; Page safety: every load is guarded so that it stays inside the cursor's own page -- a page
+; Page safety: every load is guarded so that it stays inside the cursor's own page, a page
 ; that must be mapped, since the characters already scanned came from it. The first probe is a
 ; NARROW 16-byte load, which also lets it store-forward from a caller's recent narrow write
 ; where a 32-byte load cannot (the hazard change 164 records and change 172 had to fix).
 ; Within 32 bytes of a page end the code tests one character and retries, creeping across the
 ; boundary rather than degrading to scalar for the rest of the string.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

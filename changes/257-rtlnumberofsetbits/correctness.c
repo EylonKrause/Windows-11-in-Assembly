@@ -8,7 +8,7 @@
  * one of them:
  *
  *   1. EXHAUSTIVE over every 16-bit bitmap at every declared size. Nothing sampled.
- *   2. every (start, length) over a small bitmap -- 130 x 130 -- so the refusal predicate, the
+ *   2. every (start, length) over a small bitmap (130 x 130) so the refusal predicate, the
  *      single-word case, and the head/tail split are all covered by construction.
  *   3. The vector seam: lengths that straddle the 32-byte body, so the transition from the vpshufb
  *      loop to the scalar remainder to the masked tail is crossed at every offset.

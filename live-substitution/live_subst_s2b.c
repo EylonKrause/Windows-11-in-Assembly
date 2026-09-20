@@ -1,6 +1,6 @@
 // live-substitution/live_subst_s2b.c
 //
-// Live-run proof for CryptStringToBinaryA and CryptStringToBinaryW -- the decode half of the
+// Live-run proof for CryptStringToBinaryA and CryptStringToBinaryW, the decode half of the
 // crypt32 pair, EIGHT changes behind TWO exports:
 //
 //   CRYPT_STRING_BASE64        082 (A)  084 (W)
@@ -12,7 +12,7 @@
 // the formats this project does not implement.
 //
 // The decoder has three output parameters and that is why it gets its own harness. Besides the
-// BOOL it writes *pcbBinary, *pdwSkip and *pdwFlags -- the number of bytes produced, how many
+// BOOL it writes *pcbBinary, *pdwSkip and *pdwFlags, the number of bytes produced, how many
 // characters of header it stepped over, and which format it decided the input actually was. The
 // last two are pure bookkeeping that a decoder can get wrong while producing perfectly correct
 // bytes, and BASE64_ANY exists precisely to make *pdwFlags meaningful. All three are compared,
@@ -22,7 +22,7 @@
 // without reimplementing them in the harness. Random binary is run through the LIVE
 // CryptBinaryToString for the matching format and the result handed back to the decoder, so every
 // well-formed case is well-formed by construction. Then it is damaged on purpose: a character
-// replaced, the string truncated, the padding removed, a stray CR inserted -- because a decoder's
+// replaced, the string truncated, the padding removed, a stray CR inserted, because a decoder's
 // interesting behaviour is what it refuses and how far it got before refusing.
 //
 // cchString == 0 MEANS "NUL-TERMINATED" for these exports, and a third of the cases pass 0 rather
@@ -30,7 +30,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       crypt32 -- never a live system process, never the file on disk.
+//       crypt32, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle. The encoder is never patched, so building the corpus is unaffected.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -209,7 +209,7 @@ static void run_all(ans_t* out){
 /* Malformed input is declared out of scope by the changes themselves, and this harness counts it
  * separately rather than failing on it. Change 082's header: "Scope: valid base64; malformed-input
  * quirks out of scope (RESULTS.md)", and its RESULTS repeats it. The first run of this file drove a
- * fifth of the corpus damaged on purpose and reported 688 divergences -- every one of them a
+ * fifth of the corpus damaged on purpose and reported 688 divergences, every one of them a
  * damaged case. That is the harness asking a question the implementations decline to answer, the
  * same error its sibling made by routing CRYPT_STRING_NOCRLF to formats that never claimed it.
  *

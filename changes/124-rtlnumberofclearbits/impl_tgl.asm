@@ -2,7 +2,7 @@
 ; ULONG wia_numclearbits(const RTL_BITMAP* bm)   [Win64: rcx -> eax]
 ;
 ; Tiger Lake / Willow Cove variant of change 124, and the exact counterpart of
-; changes/023-rtlnumberofsetbits-tgl -- same cause, same fix, complementary answer.
+; changes/023-rtlnumberofsetbits-tgl, same cause, same fix, complementary answer.
 ;
 ; Why a variant and not an edit
 ; -----------------------------
@@ -12,7 +12,7 @@
 ; chain out of the whole loop. On Zen 3 that still beats ntdll everywhere; here the 1 Mb class
 ; measures 0.81x.
 ;
-; This part has AVX512VPOPCNTDQ. `vpopcntq zmm` population-counts eight qwords -- 512 bits -- per
+; This part has AVX512VPOPCNTDQ. `vpopcntq zmm` population-counts eight qwords (512 bits) per
 ; instruction, and two accumulators break the chain. ntdll cannot use it: one binary ships to every
 ; x86-64 Windows machine and most of them have no AVX-512 at all, so its bulk path is stuck at what
 ; POPCNT can do. That asymmetry is the whole win, and it exists only on hardware like this.
@@ -20,7 +20,7 @@
 ; The subtraction is unchanged and stays where it was: the vector path computes the SET count, and
 ; the single `n - set` at the end converts it. Clear-counting directly (complement each word, then
 ; popcount) would be wrong at the final partial word, where the bits past SizeOfBitMap must not be
-; counted -- complementing turns those don't-care zeros into ones. The parent already gets this
+; counted, complementing turns those don't-care zeros into ones. The parent already gets this
 ; right by masking the last word and counting SET bits; changing that would be changing the
 ; arithmetic, which is not what this variant is for.
 ;
@@ -38,7 +38,7 @@
 ;
 ; RTL_BITMAP = { ULONG SizeOfBitMap @0; PULONG Buffer @8 }.
 ; ISA: AVX512F + AVX512VPOPCNTDQ, plus POPCNT for the tail. Validated on bench #3
-; (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 ;
 ; ABI: zmm0-zmm3 only; xmm0-xmm5 are volatile under Win64, so nothing needs a spill.
 

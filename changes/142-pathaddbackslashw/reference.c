@@ -1,7 +1,7 @@
 // changes/142-pathaddbackslashw/reference.c
 // Oracle for shlwapi!PathAddBackslashW (semantics probed against the live export).
 // The MAX_PATH rule is "does the RESULT, terminator included, fit in 260 characters?" and it is applied
-// BEFORE the already-ends-with-backslash shortcut -- so a long path that already ends with '\' still
+// BEFORE the already-ends-with-backslash shortcut, so a long path that already ends with '\' still
 // returns NULL, even though nothing would be written. That asymmetry (>=260 vs >=259) is why the two
 // thresholds differ.
 #include <wchar.h>

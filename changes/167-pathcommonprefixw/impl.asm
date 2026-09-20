@@ -5,8 +5,8 @@
 ; shlwapi!PathCommonPrefixW (the body is kernelbase!PathCommonPrefixW at RVA 0x0CBD10).
 ;
 ; This change was parked, and the reason it was parked was a wrong guess. It reached 99.3 % from
-; black-box probing -- 784 of 116281 exhaustive pairs resisted every rule that could be fitted from
-; outside -- and its RESULTS.md concluded:
+; black-box probing, 784 of 116281 exhaustive pairs resisted every rule that could be fitted from
+; outside, and its RESULTS.md concluded:
 ;
 ;     "Reproducing PathCommonPrefixW bit-exactly requires reproducing that root parser first"
 ;     "Next step if resumed: derive PathSkipRootW first ... it very likely underlies
@@ -47,19 +47,19 @@
 ;              where is_term(c) is (c == 0 || c == '\')
 ;
 ; The equivalence is worth stating because it is not obvious. Everything before k matched, and '\'
-; upcases to itself, so p1[j] == '\' exactly when p2[j] == '\' for j < k -- which is why a single
+; upcases to itself, so p1[j] == '\' exactly when p2[j] == '\' for j < k, which is why a single
 ; backward scan of p1 finds a boundary valid for both. And the two component terminators need not be
 ; the SAME terminator: a NUL in one against a '\' in the other ends both components at the same
 ; length, so it matches. That is exactly the case that makes "\a" vs "\a\" return 3.
 ;
 ; Why the shipped one is slow, and where the win is: it calls a comparison routine once per
 ; COMPONENT, on top of two scalar scans per component. discovery measured 698 ns to compare a
-; 254-character path with itself -- 2.75 ns per character, the slowest of every shlwapi export this
+; 254-character path with itself, 2.75 ns per character, the slowest of every shlwapi export this
 ; project had not yet converted. This walks both strings 16 characters at a time.
 ;
 ; The fold is not ASCII, and this change's own go/no-go is what established it: over all 65534
 ; code-unit pairs the matching is exactly RtlUpcaseUnicodeChar, while a plain ASCII fold differs in
-; 947 cases. So the vector loop compares RAW units -- which is exact whenever they are equal -- and
+; 947 cases. So the vector loop compares RAW units (which is exact whenever they are equal) and
 ; consults change 210's OS-built wia_upcase[65536] only at the first position where they are not.
 ; Case differences are rare in real paths, so that fallback is off the hot path in practice and
 ; bit-exact in principle.
@@ -80,11 +80,11 @@ MAXP    EQU 104h                ; 260
 ; moves (vmovdqa) would care, and there are none here.
 ALIGN 16
 ; The ASCII half of the fold, as a vector. RtlUpcaseUnicodeChar agrees with "subtract 0x20 from
-; 'a'..'z'" on every unit below 0x80 and differs above it -- 947 units, which is exactly why this
+; 'a'..'z'" on every unit below 0x80 and differs above it, 947 units, which is exactly why this
 ; change could not just use an ASCII fold. But it can use one as a FILTER: applying it to a block
 ; can produce a false MISMATCH (two non-ASCII units that really do fold together), which the
 ; per-character path then resolves exactly against the table, and it can never produce a false MATCH
-; -- if the ASCII fold maps two different units together they must be 'c' and 'c'-32 for some ASCII
+; if the ASCII fold maps two different units together they must be 'c' and 'c'-32 for some ASCII
 ; letter, and the real fold maps those together too.
 c_a     DW 16 DUP(0061h)        ; 'a'
 c_25    DW 16 DUP(0019h)        ; 25, for an unsigned "is it a lowercase letter" via vpminuw
@@ -169,8 +169,8 @@ pc_scan:
         ; ---- the raw compare failed somewhere in this block. Fold the ASCII letters and try again
         ;      BEFORE dropping to one character at a time.
         ;
-        ; This costs the identical rows nothing -- it is only reached once the raw compare has
-        ; already failed -- and it is what makes a path that differs from its partner only in case
+        ; This costs the identical rows nothing; it is only reached once the raw compare has
+        ; already failed, and it is what makes a path that differs from its partner only in case
         ; advance sixteen characters per block instead of one. Without it that row measured 903 ns
         ; against the shipped 2205: still better, but by 2.44x where every other row was above 6x,
         ; and it was this implementation's own worst case rather than the shipped one's.
@@ -234,7 +234,7 @@ pc_t1:
         cmp       ecx, BS
         jne       pc_back                     ; p2 stopped mid-component
 pc_here:
-        ; both ended a component here -- and they need not be the same terminator: a NUL against a
+        ; both ended a component here, and they need not be the same terminator: a NUL against a
         ; '\' gives two components of equal length, which is a match. This is "\a" vs "\a\" -> 3.
         mov       rbx, rsi
         jmp       pc_have

@@ -4,8 +4,8 @@
 //
 //   108 atoi   109 _atoi64   110 strtol   111 strtoul   112 _strtoi64   113 _strtoui64
 //
-// Three observables, not one. The four `strtoX` entries write an `endptr` -- the first character
-// they did not consume -- and set `errno` to ERANGE on overflow. A parser can return the right
+// Three observables, not one. The four `strtoX` entries write an `endptr`, the first character
+// they did not consume, and set `errno` to ERANGE on overflow. A parser can return the right
 // number, stop in the wrong place, and say nothing about the overflow, and a gate that compared
 // only the value would pass all three mistakes. The endptr is compared as an OFFSET from the
 // subject (the same logical answer has a different address in every run), and `errno` is seeded
@@ -14,11 +14,11 @@
 //
 // The corpus is built around where integer parsers go wrong, which is not the middle of the range:
 //   * every base from 0 to 36, and base 0's auto-detection of "0x" and a leading "0";
-//   * "0x" with NO hex digit after it -- the documented "no conversion" case, where *endptr must be
+//   * "0x" with NO hex digit after it; the documented "no conversion" case, where *endptr must be
 //     the ORIGINAL pointer and the value 0;
 //   * the saturation boundaries exactly: LONG_MAX/MIN, ULONG_MAX, LLONG_MAX/MIN, ULLONG_MAX, and
 //     one past each, which is where ERANGE appears and the value stops moving;
-//   * a '-' in front of an UNSIGNED parse, which negates modulo 2^N rather than failing -- change
+//   * a '-' in front of an UNSIGNED parse, which negates modulo 2^N rather than failing, change
 //     189's finding, and invisible to any corpus of positive numbers;
 //   * leading whitespace from the C-locale set {09 0A 0B 0C 0D 20}, signs, and empty input.
 //
@@ -27,7 +27,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ucrtbase -- never a live system process, never the file on disk.
+//       ucrtbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle, and emit nothing while patched.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -58,7 +58,7 @@ static volatile LONG iph_calls;
  * ucrt's strtol reports it through _invalid_parameter and the default handler raised
  * STATUS_STACK_BUFFER_OVERRUN (0xC0000409) before a single line of output was flushed.
  *
- * Installing a handler turns that from a crash into a measurable path -- and the base is then
+ * Installing a handler turns that from a crash into a measurable path, and the base is then
  * worth driving deliberately, because "what does it do with base 1" is a contract question like
  * any other. The handler count is compared alongside the value, so an implementation that skipped
  * the validation would return the right number without having reported it. */

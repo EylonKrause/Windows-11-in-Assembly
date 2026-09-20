@@ -4,7 +4,7 @@
 // IPv4), lifted to UTF-16, plus the one rule the wide export has and the ANSI one cannot:
 //
 //   * the STRUCTURE scan is ASCII-only and compares the FULL 16-bit unit, so a unit above 255 is
-//     "not a hex digit, not '.', not ':'" and stops the scan -- there is no low-byte aliasing
+//     "not a hex digit, not '.', not ':'" and stops the scan; there is no low-byte aliasing
 //     (U+0141 is not 'A', U+013A is not ':');
 //   * but the VALUE is a re-parse of the token from its start by a number helper that runs past
 //     where the scan stopped: it honours a "0x"/"0X" prefix, accepts ASCII hex plus the 17 Unicode

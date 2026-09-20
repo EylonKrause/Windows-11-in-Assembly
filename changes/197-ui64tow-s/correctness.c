@@ -1,11 +1,11 @@
 // changes/197-ui64tow-s/correctness.c
-// Gate 1: wia_ui64tow_s must be indistinguishable from ucrtbase!_ui64tow_s -- the return value, the
+// Gate 1: wia_ui64tow_s must be indistinguishable from ucrtbase!_ui64tow_s, the return value, the
 // whole buffer (the ERANGE path leaves reversed leftovers, so the tail matters), errno, and the
 // invalid-parameter handler hit count.
 //
 // Built /MD on purpose: errno and the handler must be UCRTBASE's, the same ones our assembly
 // writes through. With the static CRT the exe carries its own copies and the comparison is
-// meaningless -- and the live export would __fastfail.
+// meaningless, and the live export would __fastfail.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

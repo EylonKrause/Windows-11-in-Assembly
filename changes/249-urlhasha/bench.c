@@ -1,15 +1,15 @@
 // changes/249-urlhasha/bench.c
 // Gate 2: time wia_urlhasha against the live shlwapi!UrlHashA.
 //
-// The case mix. UrlHashA's cost is the product of two lengths and nothing else -- there is no
-// locale, no code page, no grammar and no allocation anywhere in it -- so the rows separate the two:
+// The case mix. UrlHashA's cost is the product of two lengths and nothing else; there is no
+// locale, no code page, no grammar and no allocation anywhere in it, so the rows separate the two:
 //
 //   * The url length drives the length scan (change 225's, a 32-byte AVX2 compare against the
 //     shipped byte loop) and the number of source bytes the hash consumes;
 //   * The digest size selects change 244's kernel. That is not a smooth curve and the rows are
 //     placed where it steps: cbHash 1..4 take a LEAF path with exactly cbHash lanes and no saved
 //     registers, cbHash >= 5 takes ceil(cbHash/12) passes of a twelve-lane kernel. So 4, 5, 12, 13
-//     and 16 are all rows -- 5 and 13 are the first case of each new pass, where a naive
+//     and 16 are all rows, 5 and 13 are the first case of each new pass, where a naive
 //     "always twelve lanes" shape did its worst.
 //
 // And one row that is not about speed at all. "16 url, 1 digest" exists because change 244 measured
@@ -19,7 +19,7 @@
 // inheritance rather than assuming it.
 //
 // No restore is needed anywhere here. The digest is a separate buffer that is never read back and
-// the URL is never modified -- correctness.c asserts that last part by comparing the whole buffer --
+// the URL is never modified, correctness.c asserts that last part by comparing the whole buffer --
 // so unlike changes 228, 230, 238 and 245 there is no memcpy to charge to either side and no
 // store-to-load hazard to place. The digests still ROTATE across eight page-aligned slots, because a
 // digest written by one call and overwritten by the next is exactly the dependency that made an

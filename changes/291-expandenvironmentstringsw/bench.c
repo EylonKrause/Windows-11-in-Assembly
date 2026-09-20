@@ -5,7 +5,7 @@
  * discovery/shlwapi_url_str.c once timed UrlEscape on a subject that escaped nothing, and so
  * published the speed of a scan that copied its input out unchanged. The identical mistake is
  * available here and is much easier to make, because the subject this function is USUALLY given --
- * a path with no '%' in it -- is exactly the one where all of the win lives. So the sweep has three
+ * a path with no '%' in it, is exactly the one where all of the win lives. So the sweep has three
  * families, not one:
  *
  *   nothing to expand    the common case and the one discovery/desktop_startup_top.c measured:
@@ -104,7 +104,7 @@ int main(void)
     for (i = 0; i < 8; ++i) wcscat(eight, L"%WIA_B_V%;");
     add("8 vars", eight, 1024);
 
-    /* a long literal with one variable at each end -- the shape a real config string has */
+    /* a long literal with one variable at each end; the shape a real config string has */
     mixed[0] = 0;
     wcscat(mixed, L"%SystemRoot%\\");
     {

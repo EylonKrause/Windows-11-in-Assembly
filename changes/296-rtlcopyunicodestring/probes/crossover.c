@@ -3,21 +3,21 @@
  * THROWAWAY, and the one that chose the threshold.
  *
  * Why an end-to-end bench could not choose it. bench.c gets its buffers from malloc, so
- * (dst - src) mod 32 is whatever that executable's heap happened to produce -- and that single
+ * (dst - src) mod 32 is whatever that executable's heap happened to produce, and that single
  * bit decides whether the 32-byte vector loop runs at ~95 GB/s or ~60. Rebuilding with a
  * different threshold relinks the executable, moves the heap, and changes the answer for size
  * classes that do not even reach the new threshold: across six builds the 128-wchar class, which
  * runs identical code in five of them, read 5.00, 6.14, 6.30, 6.34, 6.66 and 7.41 ns. That is not
  * a measurement of a threshold.
  *
- * So measure the thing directly. For every destination offset k (in WCHARS -- a PWSTR is at least
+ * So measure the thing directly. For every destination offset k (in WCHARS; a PWSTR is at least
  * 2-aligned and no real UNICODE_STRING is odd) against a page-aligned source, time all three
  * At that same offset and form the ratio there:
  *      [V] the AVX2 vector loop     (threshold forced above the length)
  *      [E] rep movsb                (threshold forced to 64)
  *      [N] the live ntdll export
  * then report the worst, median and best of ratio(k) over k. Comparing our worst offset against
- * ntdll's best -- which an earlier version of this file did -- is not a comparison: ntdll's own
+ * ntdll's best (which an earlier version of this file did) is not a comparison: ntdll's own
  * spread across these offsets is itself nearly 3x, so that metric mostly measures ntdll.
  *
  * The worst column is the one that decides. The speed gate is a promise about every caller, not

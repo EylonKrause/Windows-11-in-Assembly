@@ -5,8 +5,8 @@
  * compared against floor(u/d) at every u it can meet, not because a formula says it should work.
  *
  * First attempt and why it was thrown away. The first run of this probe verified each magic only
- * over the operand set the surrounding algorithm can actually present -- 36 525 distinct values for
- * /11758980, 366 for /2141 -- and happily returned magics that are WRONG a little way outside it.
+ * over the operand set the surrounding algorithm can actually present, 36 525 distinct values for
+ * /11758980, 366 for /2141, and happily returned magics that are WRONG a little way outside it.
  * /11758980 came back as (u*1461)>>34, whose error term 1461*11758980 - 2^34 = 596 makes it exact
  * only up to u < 28 825 619, against an operand that is a 32-bit quantity. It was verified, it was
  * complete for this caller, and it was a trap for the next reader. Every search below is therefore

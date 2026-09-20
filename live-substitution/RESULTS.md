@@ -135,7 +135,7 @@ with a NULL remainder pointer.
 ### 205 - the output must be untouched on failure
 
 `UuidFromStringA` leaves the caller's GUID alone on every error, so this harness pre-poisons the GUID
-and compares all sixteen bytes on **every** case, failing ones included -- a return-value-only check
+and compares all sixteen bytes on **every** case, failing ones included, a return-value-only check
 would pass an implementation that scribbled a partial parse before noticing a bad digit. The corpus
 also forces the two contract traps: a braced string must be REJECTED (the opposite of ntdll's parser),
 and a NULL pointer must SUCCEED with the nil UUID. Under the live patch, of 200 000 cases **141 233**
@@ -144,8 +144,8 @@ parsed, **58 767** were rejected and **5 406** were the NULL pointer.
 ### 208 - proving a saturating narrow against the real export
 
 The wide parser narrows its 36 UTF-16 cells to bytes with `vpackuswb` before parsing, which is only
-sound because `0100h-7FFFh` clamp to `0FFh`, `8000h-FFFFh` are negative and clamp to `00h` -- both
-invalid in the hex table -- and nothing but `002Dh` can become `'-'`. So its corpus injects characters
+sound because `0100h-7FFFh` clamp to `0FFh`, `8000h-FFFFh` are negative and clamp to `00h`, both
+invalid in the hex table, and nothing but `002Dh` can become `'-'`. So its corpus injects characters
 above `0xFF`, including U+0130 and U+FF21 (a truncating narrow would read those as `'0'` and `'!'`)
 and U+802D and U+FF2D (a careless one could turn those into a separator). Under the live patch, of
 200 000 cases **108 210** parsed, **91 790** were rejected, and **21 482** carried a character above
@@ -156,7 +156,7 @@ and U+802D and U+FF2D (a careless one could turn those into a separator). Under 
 `StringFromGUID2` has **no truncating path**: `cchMax <= 38` returns 0 and leaves the buffer alone,
 where `ConvertGuidToStringW` (202/203) writes a truncated prefix for 1..38. Since 206 reuses 202's
 renderer, that is the one place the two could silently diverge, so every case here compares the whole
-buffer from a poisoned baseline -- refusals included -- and the corpus straddles the boundary and runs
+buffer from a poisoned baseline (refusals included) and the corpus straddles the boundary and runs
 negative lengths, which must refuse rather than be read as enormous. Under the live patch, of 200 000
 cases **106 693** rendered, **93 307** refused, and **20 121** of those refusals were negative.
 
@@ -189,8 +189,8 @@ rather than citing it: a fifth of the 120 000 cases is an **unterminated source 
 PAGE_NOACCESS page**, with the bound swept across the character the shipped loop reads one PAST the
 last one it copies.
 
-The narrow implementation also has two write paths the wide one does not -- a **paired 64-byte loop**
-and a **clamped short path** that vectorises copies the bound cuts to fewer than 32 characters -- so
+The narrow implementation also has two write paths the wide one does not, a **paired 64-byte loop**
+and a **clamped short path** that vectorises copies the bound cuts to fewer than 32 characters, so
 the run reports how many cases reached each. Of 120 000: **71 811** ordinary, **12 120** truncating,
 **12 069** with `n == 0`, **24 000** against the guard page, **64 261** through the paired loop and
 **21 737** through the clamped short path.
@@ -198,20 +198,20 @@ the run reports how many cases reached each. Of 120 000: **71 811** ordinary, **
 ### 207 - proving a PARTIAL write, in bulk
 
 `IIDFromString` writes into the caller's GUID as it parses, so a malformed string leaves a partially
-filled GUID that must match byte for byte -- and its HRESULT is two-valued, `E_INVALIDARG` for a
+filled GUID that must match byte for byte, and its HRESULT is two-valued, `E_INVALIDARG` for a
 structural rejection and `CO_E_IIDSTRING` for a content one, so returning "an error" is not good
 enough. The corpus corrupts one character at a time across all 38 positions, which stops the parser at
 each different field boundary, and every case compares all sixteen bytes from a poison fill. Under the
 live patch, of 200 000 cases **70 429** parsed, **48 093** returned `CO_E_IIDSTRING` *with partial
-writes*, and **81 478** returned `E_INVALIDARG` -- so the partial-write path ran in bulk against the
+writes*, and **81 478** returned `E_INVALIDARG`, so the partial-write path ran in bulk against the
 real export, not only in the unit test.
 
 ### 212 - why this one's live corpus is EXHAUSTIVE and not sampled
 
 Every other entry above validates against a random corpus, and for every other entry that is enough.
 `PathFindFileNameA` is the exception, because **its separator rule is not local**: a colon sets the
-answer only when it is the SOLE colon in its run -- the stretch between two backslash/slash
-characters -- so no bounded window of characters decides the answer.
+answer only when it is the SOLE colon in its run, the stretch between two backslash/slash
+characters, so no bounded window of characters decides the answer.
 
 A random path corpus would therefore **validate a wrong implementation**. `probes/rule.c` measured
 exactly that: the plausible simpler rule, which drops the run condition, agrees with the live export
@@ -219,7 +219,7 @@ on every ordinary path and differs on **76 672 of the 349 525** strings over
 {a, backslash, slash, colon} of length 0..9.
 
 So the live run enumerates that alphabet as well: **21 845** strings of length 0..7, of which
-**11 457 hold two or more colons** -- the shapes that separate the real rule from the plausible one --
+**11 457 hold two or more colons**, the shapes that separate the real rule from the plausible one --
 plus 4 000 long real-shaped paths through the block-skipping path.
 
 ### 213 - a corpus held INSIDE the contract domain, and made to miss on purpose
@@ -228,7 +228,7 @@ Two deliberate choices here, both forced by measurement.
 
 **The bounds stay in the domain.** `probes/srca.c` established that the shipped `StrRChrA` walks
 FORWARD with `CharNextA`, which does not advance past a terminator, so an `pszEnd` placed beyond the
-string's NUL makes it spin forever -- measured twice, once at the cost of a 300-second timeout. Every
+string's NUL makes it spin forever, measured twice, once at the cost of a 300-second timeout. Every
 bounded case keeps `pszEnd` within `[pszStart, pszStart+strlen]`. That is not the harness being
 lenient: outside that range the shipped function produces no result at all, so there is nothing for
 ours to be identical to, and a live-patch harness that wandered outside it would hang rather than
@@ -236,7 +236,7 @@ report anything.
 
 **A third of the corpus is forced to MISS.** Planting the target at 1-in-8 per character means a long
 string almost always contains it, and the first run of this block produced only **406** misses in
-8 000 -- while the miss is the case that scans the whole string, and so the one that exercises page
+8 000, while the miss is the case that scans the whole string, and so the one that exercises page
 safety and the terminator search. With a third forced, the split is **5 030** hits to **2 970**
 misses, across **3 893** unbounded (forward path) and **4 107** bounded (backward path) cases.
 
@@ -253,7 +253,7 @@ The second thing it has to reach is the distinction a reimplementation is most l
 every case is run a second time with a NULL set.
 
 Of 8 000 cases: **6 499** carried a high-byte set member, **6 167** found a member, **1 833** scanned
-to the terminator, **738** had an empty set -- 16 000 calls into our code in total.
+to the terminator, **738** had an empty set, 16 000 calls into our code in total.
 
 ### 215 and 216 - one core, two opposite corpora
 
@@ -264,14 +264,14 @@ tables and an ASCII-only corpus cannot tell a swapped blend from a correct one. 
 
 `StrSpnA` needs **the opposite corpus**, and this is the part that is easy to get wrong. Random sets
 over the full byte range almost never contain the subject's *first* character, so a span corpus built
-like 214's would return **0** nearly every time -- passing cleanly while proving nothing about the
+like 214's would return **0** nearly every time, passing cleanly while proving nothing about the
 scan at all. So 216's sets are drawn from the subject's own alphabet, and two thirds of cases use a
 set that covers the subject entirely: that is the case which runs to the terminator, and therefore
 the one that tests the inverted mask's ability to stop there with no NUL compare of its own. Of
 8 000 cases, **6 101** spanned the whole string, **1 899** stopped early and **7 306** had a
 high-byte alphabet.
 
-Every case of both, like 214's, is also run a second time with a NULL set -- the degenerate rule that
+Every case of both, like 214's, is also run a second time with a NULL set, the degenerate rule that
 differs across the three functions sharing this core (NULL/EMPTY give 0/strlen for `StrCSpnA`,
 NULL/NULL for `StrPBrkA`, 0/0 for `StrSpnA`).
 
@@ -284,13 +284,13 @@ Change 132 (`PathFindExtensionW`) had been landed for weeks, passing a correctne
 advertised "600k path fuzz". While probing its narrow sibling for change 217, the rule turned out to
 be incomplete: **a space stops the backward scan exactly as a backslash does**, so `"a.b "` yields the
 terminator rather than the dot. 132 disagreed with the live export on **295 513 of 2 015 539**
-enumerated strings. Its fuzz alphabet was `{a, b, '.', backslash, '/', ':', '.', 'c'}` -- no space --
+enumerated strings. Its fuzz alphabet was `{a, b, '.', backslash, '/', ':', '.', 'c'}`, no space --
 so its oracle, its implementation and its corpus were all wrong together, and 132 had never been
 driven live at all.
 
 Both halves are now proved here, together, against a corpus that is **exhaustive rather than
 sampled**: all 55 987 strings over `{a, '.', backslash, '/', ':', space}` of length 0..6, of which
-**36 456 contain a space** -- precisely the shapes a random corpus could not reach. 55 987 calls into
+**36 456 contain a space**, precisely the shapes a random corpus could not reach. 55 987 calls into
 our code for each export, identical results, both prologues restored byte-for-byte.
 
 ### 218 - the entry where comparing the whole buffer is the only thing that works
@@ -306,7 +306,7 @@ implementation that moved first and terminated once returns the same BOOL and le
 on every single input. So every case poisons the buffer, runs both, and compares all 700 bytes.
 
 The corpus also has to make the MOVE happen at every alignment, because the source and destination
-overlap -- which is what made a short-copy idiom borrowed from change 211 wrong here. Leading and
+overlap, which is what made a short-copy idiom borrowed from change 211 wrong here. Leading and
 trailing runs are planted deliberately, and **a fifth of the corpus is forced to trim nothing**:
 drawing the two runs independently makes a genuine no-op one case in 36, and the first run produced
 only about 160 of them, while the no-op is precisely the case that must write nothing at all.
@@ -319,8 +319,8 @@ high-byte set member.
 
 This entry needs all three disciplines this file has accumulated, for three different reasons.
 
-**Exhaustive**, because the separator rule is the non-local one change 212 derived -- a colon
-separates only when it is the SOLE colon in its run -- so a sampled corpus would validate a wrong
+**Exhaustive**, because the separator rule is the non-local one change 212 derived, a colon
+separates only when it is the SOLE colon in its run, so a sampled corpus would validate a wrong
 implementation, as it nearly did for 212.
 
 **Whole-buffer**, because the export leaves the bytes past the new terminator untouched: stripping
@@ -342,7 +342,7 @@ Two corpus choices, both for stated reasons.
 compare would get exactly those wrong while passing every ASCII test. Of 8 000 cases, **4 022** used a
 high-byte target.
 
-**A third forced to MISS**, because the miss is the full scan -- the case that runs the whole loop and
+**A third forced to MISS**, because the miss is the full scan, the case that runs the whole loop and
 has to stop at the terminator rather than reading past it. Left to chance, a target planted at
 1-in-10 per character means a long string almost always contains it. The split came out **5 188**
 hits to **2 812** full scans.
@@ -360,8 +360,8 @@ would have left a stale `'c'` at index 4. Both orders produce the same STRING on
 `PathRemoveBlanksA` returns nothing at all, so the buffer is the only observable there is.
 
 Of 8 000 cases: **4 227** stripped both ends (the move *and* the cut), **783** leading only, **790**
-trailing only, **1 874** stripped **nothing** -- a fifth of the corpus forces that, since it is the
-case which must write nothing at all -- and **326** were entirely blanks. Blanks are planted in the
+trailing only, **1 874** stripped **nothing**; a fifth of the corpus forces that, since it is the
+case which must write nothing at all, and **326** were entirely blanks. Blanks are planted in the
 middle too, where they must survive.
 
 ### 222 - the corpus shaped by a bug that was fixed hours earlier
@@ -1250,7 +1250,7 @@ fills a caller's counted-string descriptor have it too? That reasoning is what f
 defect (change 160, by asking its sibling on suspicion) and what the 2026-09-15 space-rule sweep
 used to find seven changes after the first, so it gets asked every time now.
 
-Three candidates, all covered by the ORIGINAL `live_subst.c` -- whose comparison has **both** of the
+Three candidates, all covered by the ORIGINAL `live_subst.c`, whose comparison has **both** of the
 blind spots the converter gates had, plus a third:
 
 ```c
@@ -1261,7 +1261,7 @@ long rs = sys(&du,&us,FALSE), rr = ref_upcasestr(&dr,&us,0);   // patched vs REF
 
 That third line is the worst of them: after the patch, `sys` *is* our code, so the comparison is
 ours against our own oracle. An implementation and an oracle that are wrong together look right.
-**Being "live covered" is binary and says nothing about what the corpus asks** -- which is why
+**Being "live covered" is binary and says nothing about what the corpus asks**, which is why
 `tools/live-coverage.py` says so in its own header.
 
 [`probes/descterm.c`](probes/descterm.c) asks all three directly:

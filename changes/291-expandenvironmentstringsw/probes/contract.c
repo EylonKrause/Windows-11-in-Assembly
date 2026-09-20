@@ -9,7 +9,7 @@
  *     * is an unmatched '%' copied through literally?
  *     * is '%%' an escape, or two literal percent signs?
  *     * is a '%VAR%' whose VAR does not exist removed, or copied through?
- *     * nSize == 0 / lpDst == NULL -- the measuring call.
+ *     * nSize == 0 / lpDst == NULL, the measuring call.
  *
  * Every destination is filled with the sentinel 0xBEEF first and the number of cells that stopped
  * being the sentinel is reported, so "what was written" is a measurement and not an inference from
@@ -18,7 +18,7 @@
  *
  * The last block reads ntdll's own table of virtual environment variable names, at RVA 0x173AC0 in
  * 10.0.26100.9278, because RtlQueryEnvironmentVariable consults it BEFORE it walks the process
- * environment block -- four names that are not in the block at all and still expand.
+ * environment block, four names that are not in the block at all and still expand.
  *
  * Build:  cl /nologo /O2 probes\contract.c /Fe:contract.exe
  */

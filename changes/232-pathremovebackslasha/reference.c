@@ -3,18 +3,18 @@
 //
 // Every rule re-derived against the NARROW export in probes/prba.c, not inherited from change 171:
 //
-//   * the return is always psz + max(n-1, 0) -- the last character, not the terminator;
+//   * the return is always psz + max(n-1, 0), the last character, not the terminator;
 //   * one trailing backslash is removed unless the remainder would be a bare root:
 //         m == 0, or (m == 1 and psz[0] == BACKSLASH), or (m == 2 and psz[1] == ':' and a letter)
 //   * exactly ONE byte value is ever removed: 0x5C. Sweeping all 255 non-NUL values as the trailing
-//     character, only the backslash goes -- a forward slash is not a separator;
+//     character, only the backslash goes; a forward slash is not a separator;
 //   * NULL returns NULL;
 //   * 0 mismatches over all 19531 strings of {a, BACKSLASH, /, :, C} to length 6.
 //
 // The drive-letter set is ASCII only, and that is where the narrow form differs from the wide one.
 // Change 171 pinned the wide set by an exhaustive 65535-code-unit sweep and found the ASCII letters
 // PLUS the Latin-1 letters. Sweeping all 255 byte values here gives exactly 0x41..0x5A and
-// 0x61..0x7A -- 52 values in two runs, nothing above 0x7A. Inheriting the wide set would have
+// 0x61..0x7A, 52 values in two runs, nothing above 0x7A. Inheriting the wide set would have
 // produced a function that wrongly protects 78 byte values.
 
 static int drive_letter(unsigned char c){

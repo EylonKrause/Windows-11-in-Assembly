@@ -4,9 +4,9 @@ Rem  live-run proof for change 268 (ntdll!RtlUnicodeStringToUTF8String and
 REM  ntdll!RtlUTF8StringToUnicodeString).
 REM
 REM  both exports are patched at once. The whole point of 268 is that the two
-REM  directions do four things differently -- what a failing call leaves in the
+REM  directions do four things differently, what a failing call leaves in the
 REM  buffer, whether STATUS_SOME_NOT_MAPPED survives, which of two failure codes
-REM  a shortfall gets, and how much room the terminator needs -- so a proof that
+REM  a shortfall gets, and how much room the terminator needs, so a proof that
 REM  patched only one of them would be a proof about half a change.
 REM
 REM  Every case compares the NTSTATUS, Length, MaximumLength AND a hash of the

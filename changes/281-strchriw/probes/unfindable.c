@@ -3,7 +3,7 @@
  * Are there code units StrChrIW cannot find even when they are present?
  *
  * The rebuilt gate reported 66 mismatches in 206096, and in every one of them ours agreed with live
- * -- both returned NULL -- and the scalar MODEL was the odd one out, claiming a match. The needles
+ * (both returned NULL) and the scalar MODEL was the odd one out, claiming a match. The needles
  * were U+D7B0..U+D7BE, Hangul jamo extended.
  *
  * The model says a match exists because the table says the needle and the haystack character share

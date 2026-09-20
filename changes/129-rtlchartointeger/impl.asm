@@ -1,11 +1,11 @@
 ; changes/129-rtlchartointeger/impl.asm
 ; NTSTATUS wia_char2int(PCSZ String, ULONG Base, PULONG Value)   [Win64: rcx, edx, r8 -> eax]
 ;
-; Reimplements ntdll!RtlCharToInteger -- the parse-side complement of the landed 097 RtlIntegerToChar.
+; Reimplements ntdll!RtlCharToInteger, the parse-side complement of the landed 097 RtlIntegerToChar.
 ; Contract (reverse-engineered and validated bit-exact vs the live export):
-;   1. skip while (signed char)*s <= ' '  -- a SIGNED compare, so it skips 0x01-0x20 AND 0x80-0xFF;
+;   1. skip while (signed char)*s <= ' ', a SIGNED compare, so it skips 0x01-0x20 AND 0x80-0xFF;
 ;   2. one optional '+' or '-' (whitespace is skipped only BEFORE the sign: "- 42" yields 0);
-;   3. Base == 0 auto-detects "0x"/"0b"/"0o" -- LOWERCASE only ("0X10" parses as decimal 0) -- and a
+;   3. Base == 0 auto-detects "0x"/"0b"/"0o" (LOWERCASE only ("0X10" parses as decimal 0)) and a
 ;      bare leading '0' means DECIMAL, not octal ("0777" -> 777);
 ;   4. Base outside {0,2,8,10,16} -> STATUS_INVALID_PARAMETER and *Value is left UNTOUCHED;
 ;   5. digits accumulate mod 2^32 with NO overflow detection ("4294967296" -> 0);
@@ -53,12 +53,12 @@ wia_char2int PROC
         ;       00 30 37 37 37  -> 777 (base 0, and still DECIMAL, not octal)
         ;
         ; So: if byte 0 is NUL, step over it, then run the ordinary skip/sign/parse from byte 1. It is
-        ; almost certainly an off-by-one in the shipped code's end test -- the leading skip uses a SIGNED
-        ; compare against ' ', and 00 satisfies it -- but the shape is crisp and total, and a drop-in has
+        ; almost certainly an off-by-one in the shipped code's end test, the leading skip uses a SIGNED
+        ; compare against ' ', and 00 satisfies it, but the shape is crisp and total, and a drop-in has
         ; to reproduce it.
         ;
         ; Why the correctness gate passed for years without this. Its no-digit cases are string literals
-        ; ("" and "abc"), so what follows the terminator is whatever the linker put there -- and it
+        ; ("" and "abc"), so what follows the terminator is whatever the linker put there, and it
         ; happened to yield 0 for all sixteen bases, which is exactly what this implementation returned.
         ; The corpus could not express a controlled byte after the NUL, so it could not see the rule. It
         ; took the live-substitution gate, whose case buffer is a REUSED static array holding the
@@ -80,7 +80,7 @@ c_skip:
 c_sign:
         ; al still holds the character at [rcx] on entry here, and the base-0 path below needs exactly
         ; that byte. The first version reloaded it (`cmp byte ptr [rcx], '0'`), which costs a second L1
-        ; access in the latency chain of the two rows that were still regressing -- "0777" and "0X10",
+        ; access in the latency chain of the two rows that were still regressing, "0777" and "0X10",
         ; both base 0 with a leading '0'. Reloading is only necessary when a sign was actually consumed
         ; and rcx moved, so the reload moved into that branch. The no-sign path (every row in the bench
         ; but two) reaches the comparison with the byte already in a register, and the instruction count
@@ -130,8 +130,8 @@ c_b8:   mov       edx, 8
 c_valid:
         ; ---- Validating a caller-supplied base.
         ;
-        ; Only a base the CALLER passed can be wrong -- the auto-detect block above jumps straight to
-        ; c_go with a base it chose itself -- so this ladder now sits on one path instead of two, and it
+        ; Only a base the CALLER passed can be wrong, the auto-detect block above jumps straight to
+        ; c_go with a base it chose itself, so this ladder now sits on one path instead of two, and it
         ; is shaped for what that path actually does.
         ;
         ; It used to be four compares in the order 10, 16, 8, 2, which charged an INVALID base all four
@@ -152,7 +152,7 @@ c_valid:
         jnc       c_bad
 c_go:
         xor       eax, eax                        ; value (mod 2^32, no overflow check)
-        ; (per-base specialised loops for 10/16 were tried and measured SLOWER -- the dispatch
+        ; (per-base specialised loops for 10/16 were tried and measured SLOWER, the dispatch
         ;  branches cost more than the shortened multiply chain saves. Kept the single loop.)
 ALIGN 16
 c_loop:
@@ -166,13 +166,13 @@ c_loop:
         ; ---- For base <= 10 a letter can never be a digit, so do not decode one.
         ;
         ; Below this point the byte is not '0'-'9', and the only remaining way it could be a digit is as
-        ; a letter -- which requires a digit value of at least 10, so it is impossible for base 2, 8 and
+        ; a letter, which requires a digit value of at least 10, so it is impossible for base 2, 8 and
         ; 10. Those three bases can stop right here, and the case fold, the range check and the compare
         ; against the base underneath are all dead work for them.
         ;
         ; every decimal parse reaches this point exactly once, on its terminating NUL, so this shortcut
         ; pays on every base-10 and base-8 row rather than only on the awkward ones. It was measured
-        ; because two rows would not come up to parity -- "0777" and "0X10", base 0 with a leading '0' --
+        ; because two rows would not come up to parity, "0777" and "0X10", base 0 with a leading '0' --
         ; and in both of those the character that ends the parse is decoded as a letter, given a digit
         ; value of 33 for 'X' or rejected outright for the NUL, and then thrown away.
         ;

@@ -1,6 +1,6 @@
 /* discovery/ntdll_rtl_uncovered2.c
  *
- * A SECOND SWEEP of uncovered ntdll Rtl* exports -- the ones the first sweep never measured.
+ * A SECOND SWEEP of uncovered ntdll Rtl* exports, the ones the first sweep never measured.
  *
  * discovery/ntdll_rtl_uncovered.c took the exports whose names suggest string work and ranked them
  * by cost per byte. Everything it found worth doing is now landed (changes 263 and 264 came out of
@@ -9,12 +9,12 @@
  * sweep did not list at all.
  *
  * What is deliberately not here. Anything whose name says locale or encoding, anything that
- * allocates as its main job, and the hash-table and memory-zone families -- the same exclusions the
+ * allocates as its main job, and the hash-table and memory-zone families, the same exclusions the
  * first sweep made, for the same reasons.
  *
  * METHOD, and the mistakes this file is written to avoid:
  *   * Run it on an idle machine. Every row is a min-of-N, robust to a slow sample but not to load.
- *   * Every row prints what it actually did -- the return value and, where there is one, the output
+ *   * Every row prints what it actually did; the return value and, where there is one, the output
  *     it produced. A survey row whose subject does not do the work its label claims is this
  *     project's most expensive recurring mistake: a subject whose escapable characters sat in the
  *     wrong URL segment made an earlier survey measure a no-op for a whole commit.

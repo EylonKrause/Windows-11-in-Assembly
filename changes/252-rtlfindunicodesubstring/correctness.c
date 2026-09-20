@@ -6,18 +6,18 @@
  *
  * The structure of this file is a response to how change 248 Failed. There, 1,085,965 enumerated
  * cases passed in silence while the vectorised path was broken, because a six-character string
- * never reaches the vector path at all -- the enumeration proved the scalar tail and nothing else.
+ * never reaches the vector path at all, the enumeration proved the scalar tail and nothing else.
  * So the corpora here are split by which path they reach, and each section says which:
  *
- *   1. EXHAUSTIVE, short             -- reaches only the scalar tail (n-m < 15)
- *   2. The vector-loop boundary      -- every n-m from 0 to 40, which is where the loop turns on
- *   3. RANDOMISED, long              -- reaches the vector loop, with planted and absent needles
- *   4. The fold, at the hard pairs   -- non-ASCII partners no ASCII fold brings together, and
+ *   1. EXHAUSTIVE, short, reaches only the scalar tail (n-m < 15)
+ *   2. The vector-loop boundary; every n-m from 0 to 40, which is where the loop turns on
+ *   3. RANDOMISED, long, reaches the vector loop, with planted and absent needles
+ *   4. The fold, at the hard pairs, non-ASCII partners no ASCII fold brings together, and
  *                                      pairs the NT ordinal table deliberately does NOT merge
  *                                      (U+017F, U+0130/U+0131, U+00DF all upcase to themselves --
  *                                      the ordinal table is much narrower than Unicode case
  *                                      folding, and a fold that merged them would be wrong)
- *   5. A GUARD PAGE                  -- proves the "no clamp is needed" claim by making an
+ *   5. A GUARD PAGE, proves the "no clamp is needed" claim by making an
  *                                      over-read FAULT rather than merely disagree
  */
 #define WIN32_LEAN_AND_MEAN
@@ -94,7 +94,7 @@ int main(void)
         }
     }
 
-    /* ---- 1. Exhaustive over a four-letter alphabet. Scalar tail only -- see the header. ---- */
+    /* ---- 1. Exhaustive over a four-letter alphabet. Scalar tail only, see the header. ---- */
     {
         static const wchar_t A[4] = { L'a', L'A', L'b', L'B' };
         int hl, nl;

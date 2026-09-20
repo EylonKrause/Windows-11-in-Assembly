@@ -4,13 +4,13 @@
  * BOOL, GetLastError(), what happened to the output pointer, LocalSize, LocalFlags, and every byte
  * of the returned block. Every block is freed.
  *
- * The count is swept 0..255 rather than sampled -- change 067's lesson learned the expensive way:
+ * The count is swept 0..255 rather than sampled, change 067's lesson learned the expensive way:
  * its corpus drew the count as `(seed>>8)%16` and therefore never expressed a count above 15, which
  * is a refusal the implementation did not have.
  *
  * The guard-page sweep is against the live export only, and it has to be: a scalar model cannot
  * fault on demand. A SID that is not fully readable is a REFUSAL when its sub-authority array runs
- * off the end and a FAULT when only its six identifier-authority bytes do -- change 067's rule,
+ * off the end and a FAULT when only its six identifier-authority bytes do, change 067's rule,
  * inherited here because it is the same formatter underneath.
  *
  * The one thing this gate checks that change 270's does not is that the narrowing does not clip.

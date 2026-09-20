@@ -4,12 +4,12 @@
 // Three-way: our assembly + wrapper vs the scalar oracle vs the LIVE export on this PC.
 //
 // The interesting parts of this contract are the ones a casual implementation gets wrong:
-//   * a count of -1 means NUL-terminated, but ANY other count is EXACT -- so an embedded NUL is an
+//   * a count of -1 means NUL-terminated, but ANY other count is EXACT, so an embedded NUL is an
 //     ordinary character and the comparison must NOT stop at it. There is a dedicated section;
 //   * case-insensitive orders by the UPCASED values, so "a" vs "B" is LESS where the raw code units
 //     say GREATER. The sweep below covers every code unit against its own upcase partner;
 //   * the vector path folds ASCII only and falls back to the 64K table when a chunk holds anything
-//     above 0x7F -- so the corpus deliberately mixes ASCII and non-ASCII, and places the non-ASCII
+//     above 0x7F, so the corpus deliberately mixes ASCII and non-ASCII, and places the non-ASCII
 //     character at every offset within a chunk, which is where a mis-placed guard would show.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

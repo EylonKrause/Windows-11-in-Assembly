@@ -36,7 +36,7 @@ static u64 model_sat(u64 hi, u64 lo, u64 d, u64* rem){
 /* candidate model B: the TRUE wrapped quotient via two divisions, exact 128/64 long division.
    q_true = (hi:lo)/d, and we keep the low 64 bits; r_true = (hi:lo) mod d. */
 static u64 model_wrap(u64 hi, u64 lo, u64 d, u64* rem){
-    /* software long division, 128 bits, exact -- used only as a model here */
+    /* software long division, 128 bits, exact, used only as a model here */
     u64 q = 0, r = 0;
     for (int i = 127; i >= 0; --i) {
         u64 bit = (i >= 64) ? ((hi >> (i - 64)) & 1) : ((lo >> i) & 1);

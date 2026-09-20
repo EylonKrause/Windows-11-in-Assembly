@@ -1,6 +1,6 @@
 // changes/141-pathremoveblanksw/reference.c
 // Oracle for shlwapi!PathRemoveBlanksW. Only SPACE is stripped (not tab), there is no MAX_PATH guard,
-// and the order is MOVE FIRST then terminate -- the reverse of StrTrimW (change 139). That ordering is
+// and the order is MOVE FIRST then terminate; the reverse of StrTrimW (change 139). That ordering is
 // observable in the bytes past the new terminator, so it is reproduced rather than approximated.
 #include <wchar.h>
 void ref_pathremoveblanksw(wchar_t* p){

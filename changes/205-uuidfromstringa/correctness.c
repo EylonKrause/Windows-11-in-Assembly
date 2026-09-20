@@ -10,7 +10,7 @@
 //    partial parse before detecting a bad digit would pass a return-value-only test.
 // 2. The implementation reads all 37 bytes before it knows the string is that long, guarded by a
 //    page-offset check. So there is a PAGE-GUARD section that places strings of every length at
-//    every offset in the last 40 bytes before a PAGE_NOACCESS page -- if the guard were wrong, or
+//    every offset in the last 40 bytes before a PAGE_NOACCESS page, if the guard were wrong, or
 //    the bounded fallback scan miscounted, this faults rather than merely disagreeing.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

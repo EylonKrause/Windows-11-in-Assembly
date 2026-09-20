@@ -6,9 +6,9 @@
 // front of it, a terminator the length does not include, and an identity as a block the caller
 // will hand to SysFreeString. So every case compares
 //
-//     NULL-ness      -- a NULL BSTR and a zero-length BSTR both answer 0 to SysStringLen, so the
+//     NULL-ness, a NULL BSTR and a zero-length BSTR both answer 0 to SysStringLen, so the
 //                       empty-string corner is invisible to any check that only asks for a length
-//     the PREFIX at [-4]  -- the byte count, read directly rather than through SysStringByteLen
+//     the PREFIX at [-4], the byte count, read directly rather than through SysStringByteLen
 //     SysStringLen / SysStringByteLen
 //     every byte of the string AND its terminator
 //

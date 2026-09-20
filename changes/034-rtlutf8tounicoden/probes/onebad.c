@@ -1,4 +1,4 @@
-/* onebad.c -- one malformed byte at offset k in an otherwise-ASCII buffer.
+/* onebad.c: one malformed byte at offset k in an otherwise-ASCII buffer.
  *
  * badscan.c showed the stop index depends on the spacing of the malformed bytes (16->72,
  * 32->88, 33->96) and that pure ASCII is clean. A single bad byte at a swept offset isolates

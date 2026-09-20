@@ -1,8 +1,8 @@
 // changes/170-strcatbuffw/correctness.c
 // Gate 1: wia_strcatbuffw must be indistinguishable from shlwapi!StrCatBuffW.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// The whole destination buffer is compared, so any write past the terminator -- or any write
-// at all in the no-room case -- is caught.
+// The whole destination buffer is compared, so any write past the terminator, or any write
+// at all in the no-room case, is caught.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

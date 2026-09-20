@@ -166,7 +166,7 @@ of thing that gets explained rather than measured.
 registers, no unwind data — so it must not touch a non-volatile register at all, and its driver
 arms the sentinels **per call** (`wia_abi_call4`). Mutation-tested: adding a single `mov r15, 1`
 makes the gate report
-`ABI: FAILED 259-rtlarebitsset -- clobbers 1 non-volatile register(s): r15`, and the static scan
+`ABI: FAILED 259-rtlarebitsset, clobbers 1 non-volatile register(s): r15`, and the static scan
 (`tools/abi-audit.py`) flags the same file independently.
 
 ## Gate 4 — live substitution: PASS

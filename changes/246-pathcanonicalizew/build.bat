@@ -5,7 +5,7 @@ set H=%~dp0
 set C=%H%..
 cd /d "%H%"
 Rem  This change is a wrapper around change 243, so 243's assembly and 243's oracle are compiled
-REM  ALONGSIDE rather than copied -- the same arrangement change 242 uses for the same reason.
+REM  ALONGSIDE rather than copied, the same arrangement change 242 uses for the same reason.
 ml64 /nologo /c impl.asm >nul || goto :err
 ml64 /nologo /c /Fopccx243.obj "%C%\243-pathcchcanonicalizeex\impl.asm" >nul || goto :err
 cl /nologo /O2 /c /Foref243.obj "%C%\243-pathcchcanonicalizeex\reference.c" >nul || goto :err

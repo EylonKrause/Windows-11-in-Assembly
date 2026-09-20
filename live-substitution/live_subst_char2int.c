@@ -6,7 +6,7 @@
 // hard, not around "some strings":
 //
 //   * The refusal must not write the caller's ulong. An invalid base returns STATUS_INVALID_PARAMETER
-//     and leaves *Value exactly as it was -- measured, and the single most likely thing for a
+//     and leaves *Value exactly as it was, measured, and the single most likely thing for a
 //     replacement to get wrong, because zeroing the output first is the natural way to write the code.
 //     Every case therefore pre-poisons *Value with a sentinel and compares the WORD as well as the
 //     status. A harness that only read the NTSTATUS would pass an implementation that helpfully zeroed
@@ -14,8 +14,8 @@
 //
 //   * Bases on both sides of 16. The landing edit validates a caller-supplied base with a range test
 //     (`cmp edx,16 / ja`) plus a bitmask over bits 2, 8 and 16, replacing a four-compare ladder. That
-//     splits the invalid bases into two populations -- above 16, refused by the range test, and below 16
-//     but not in the set, refused by the mask -- and a corpus drawing only base 36 would exercise one of
+//     splits the invalid bases into two populations, above 16, refused by the range test, and below 16
+//     but not in the set, refused by the mask, and a corpus drawing only base 36 would exercise one of
 //     them. Both are drawn deliberately, including 0xFFFFFFFF.
 //
 //   * The three prefixes are lowercase only, and the landing edit replaced three compares with one
@@ -37,7 +37,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) SACRIFICIAL CHILD: standalone, single-threaded, patching only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither loader nor heap.
 //   (3) REVERSIBLE: the original bytes are restored, VERIFIED byte-for-byte, and the corpus re-run.
@@ -107,7 +107,7 @@ static unsigned rnd(void) { rs ^= rs << 13; rs ^= rs >> 7; rs ^= rs << 17; retur
 /* the legal bases, and the two populations of illegal one that the range test and the mask separate */
 static const ULONG LEGAL[]    = { 0, 2, 8, 10, 16 };
 static const ULONG ILL_LOW[]  = { 1, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15 };   /* refused by the mask */
-/* Refused by the range test -- and the last four matter more than they look. impl.asm validates with
+/* Refused by the range test, and the last four matter more than they look. impl.asm validates with
    a range test plus `bt r10d, edx`, and BT takes its bit index MODULO 32, so 0x80000002 indexes bit 2,
    a set bit in the mask. Only the unsigned range test keeps it out. Mutation mutant #22 made that test
    signed and survived both gates, because the largest base here was 0xFFFFFFFF, whose low five bits are

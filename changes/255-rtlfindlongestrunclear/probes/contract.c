@@ -1,10 +1,10 @@
 /* changes/255-rtlfindlongestrunclear/probes/contract.c
  *
- * ntdll!RtlFindLongestRunClear -- the contract, and the three things that decide the implementation.
+ * ntdll!RtlFindLongestRunClear, the contract, and the three things that decide the implementation.
  *
  * Why this target. discovery/ntdll_bitmap.c measured it at ~1.03 ns/byte on a 64 Kbit bitmap, and
  * the crucial observation is that the cost is not per-run: eight clear runs cost 8423 ns and two
- * hundred cost 8689, so the ~1 ns/byte is the scan itself -- roughly one bit per cycle over 65536
+ * hundred cost 8689, so the ~1 ns/byte is the scan itself, roughly one bit per cycle over 65536
  * bits. That is twice the per-byte cost of change 252's target and the most expensive thing left in
  * ntdll. RVA 0x0E3240 is nine instructions around RtlFindClearRuns(bitmap, buf, 1, TRUE), so the
  * cost is entirely in FindClearRuns with SortByLength set.
@@ -12,13 +12,13 @@
  * The three questions that shape the code:
  *
  *   1. Which run wins a tie? The sparse survey bitmap (0xA5A5A5A5) has sixteen thousand clear runs
- *      of length two and it reported "len=2 at 3" -- the FIRST of them, since 0xA5 is 1010 0101 and
+ *      of length two and it reported "len=2 at 3"; the FIRST of them, since 0xA5 is 1010 0101 and
  *      LSB-first its clear runs are bit 1 (length 1), bits 3-4 (length 2), bit 6 (length 1). If the
  *      LAST tie won instead, an implementation that updates its best on ">" would be wrong
  *      everywhere and would still pass any test whose bitmap had a unique longest run.
  *
  *   2. What happens with no clear bits at all, and what is written to *StartingIndex then? The
- *      wrapper does `and dword ptr [rbx], 0` on the failure path, which reads as "writes 0" -- but
+ *      wrapper does `and dword ptr [rbx], 0` on the failure path, which reads as "writes 0", but
  *      that is one reading of one instruction and it is worth ten lines to be sure.
  *
  *   3. Are the bits past SizeOfBitMap counted? a bitmap whose size is not a multiple of 32 has
@@ -117,7 +117,7 @@ int main(void)
         ULONG len;
         printf("3. ARE THE BITS PAST SizeOfBitMap COUNTED?\n");
         setall(0xFFFFFFFFu);
-        /* declare 40 bits, and clear bits 36..63 -- 4 of which are inside the declared size */
+        /* declare 40 bits, and clear bits 36..63, 4 of which are inside the declared size */
         for (i = 36; i < 64; ++i) clearbit(i);
         len = run(40, &ix);
         printf("   size=40, bits 36..63 clear -> len=%lu at %lu\n", len, ix);

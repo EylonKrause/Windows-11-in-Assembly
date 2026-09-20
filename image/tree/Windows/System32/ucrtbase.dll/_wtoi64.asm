@@ -5,27 +5,27 @@
 ; changes/187-wtoi64/impl.asm
 ; __int64 wia_wtoi64(const wchar_t* s)    [rcx -> rax]
 ;
-; Reimplements ucrtbase!_wtoi64 -- the 64-bit wide parser, and the second function unblocked by
+; Reimplements ucrtbase!_wtoi64, the 64-bit wide parser, and the second function unblocked by
 ; change 186's sweeps (this whole family was scoped out in changes/109-atoi64/RESULTS.md on the
 ; assumption that it needed "the CRT's full Unicode digit table"; it needs 18 range tests).
 ;
 ; Contract (probes/wtoi64.c, fuzz-confirmed bit-exact against the live export over 2,000,000
 ; cases, 0 mismatches, first candidate):
-;   * whitespace / digits / sign: identical to change 186 -- 26 whitespace code units, 18
+;   * whitespace / digits / sign: identical to change 186, 26 whitespace code units, 18
 ;     contiguous blocks of ten, U+002D / U+002B only, none of it locale-sensitive;
 ;   * overflow SATURATES at _I64_MAX (positive) / _I64_MIN (negative);
 ;   * a magnitude of exactly 2^63 IS accepted on the negative side, so -9223372036854775808 comes
-;     back exact rather than clamped -- which is why the magnitude is accumulated UNSIGNED and
+;     back exact rather than clamped, which is why the magnitude is accumulated UNSIGNED and
 ;     only negated at the end.
 ;   * The 64-bit result behaviour was re-measured rather than inherited from change 109: byte and
 ;     wide forms in this CRT have diverged before.
 ;
 ; Method: change 109's saturating body with change 186's classifier. Two guards keep the unsigned
 ; magnitude from ever wrapping: a pre-multiply test against floor((2^64-1)/10) and a post-multiply
-; test against 2^63. Either one saturates and stops consuming digits -- further digits cannot
+; test against 2^63. Either one saturates and stops consuming digits, further digits cannot
 ; change a clamped result.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

@@ -11,7 +11,7 @@
 ;     memcpy    4001 bytes     12.56 ns  318.47 bytes/ns
 ;
 ; The wide form is not a byte loop, but 10 bytes/ns is a 16-byte SSE2 loop. It is also EXPENSIVE AT
-; SHORT LENGTHS -- 16.51 ns for 64 characters -- which is what separates this from change 228:
+; SHORT LENGTHS (16.51 ns for 64 characters) which is what separates this from change 228:
 ; lstrcatA had to be parked because its ~8 ns of fixed cost loses to a byte loop below 32 bytes,
 ; whereas the wide export charges more than that before it starts.
 ;
@@ -26,7 +26,7 @@
 ;     its last writable character;
 ;   * element-wise: all 65535 non-zero code unit values copied verbatim, surrogates included.
 ;
-; The split character -- the question the narrow form could not ask, and the one that shapes this
+; The split character; the question the narrow form could not ask, and the one that shapes this
 ; code. If a destination has an ODD number of writable bytes, the last character cannot be stored
 ; whole. probes/cpyw.c measured it at every odd width from 1 to 11 bytes:
 ;
@@ -36,7 +36,7 @@
 ;     ...
 ;
 ; Whole characters only. It never leaves half a character behind. So the page clamp is computed in
-; bytes and then rounded down to an even count -- `and r9d, -2` -- which is the one line that makes
+; bytes and then rounded down to an even count (`and r9d, -2`) which is the one line that makes
 ; an odd-aligned destination behave. Without it a byte-granular tail would write one byte into the
 ; last character and the buffer would differ from the shipped function's.
 ;
@@ -45,34 +45,34 @@
 ;   n = min(bytes left in the SOURCE's page, bytes left in the DESTINATION's page), rounded to even
 ;
 ; so a chunk can never fault halfway, and the fault therefore lands on the first character of the
-; next page with everything before it already written -- exactly where the shipped loop stops. The
+; next page with everything before it already written, exactly where the shipped loop stops. The
 ; clamp is hoisted out of the 64-byte loop because it only changes once per 4096 bytes.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_lstrcpyw_core PROC
         mov       r8, rcx                        ; the return value: the destination
         vpxor     xmm1, xmm1, xmm1               ; the terminator. VEX-128 zeroes all of ymm1, so
                                                  ;   the wide paths below still get their zero
-                                                 ;   vector -- and this entry, if it returns from
+                                                 ;   vector, and this entry, if it returns from
                                                  ;   the short path, has never touched the upper
                                                  ;   half and therefore owes NO vzeroupper.
 
 ; -------------------------------------------------------------------------------------------------
 ; Short strings first, which is where this change loses on Tiger Lake.
 ;
-; On bench #3 the parent is 3.056x overall and wins from 16 characters up -- 1.47x, 2.16x, 4.96x,
-; 7.34x, 10.28x -- but `4 chars` is 0.96x and `8 chars` is 0.88x, and those two park it. The gap is
+; On bench #3 the parent is 3.056x overall and wins from 16 characters up, 1.47x, 2.16x, 4.96x,
+; 7.34x, 10.28x, but `4 chars` is 0.96x and `8 chars` is 0.88x, and those two park it. The gap is
 ; 0.2 ns and 0.7 ns, which is not a throughput problem: it is everything the general path does
-; BEFORE it looks at a single character. cp_loop computes a two-page clamp -- twelve instructions of
-; address arithmetic, two ANDs, two subtracts and a CMOV -- to decide how much it may touch, and
+; BEFORE it looks at a single character. cp_loop computes a two-page clamp, twelve instructions of
+; address arithmetic, two ANDs, two subtracts and a CMOV, to decide how much it may touch, and
 ; then cp_done pays a VZEROUPPER on the way out. For a four-character string that is the entire
 ; cost of the call.
 ;
 ; So the common case is answered before any of it. ONE test covers both pointers: OR can only set
 ; bits, so (src|dst) & 4095 <= 4080 implies each of them is at least 16 bytes from the end of its
-; own page -- conservative, four instructions, and no branchy per-pointer arithmetic. A string of
+; own page, conservative, four instructions, and no branchy per-pointer arithmetic. A string of
 ; eight characters or fewer is then one 16-byte load, one compare, and one masked store of exactly
 ; the characters that exist, terminator included. No tail cascade, no clamp, no vzeroupper.
 ;
@@ -81,7 +81,7 @@ wia_lstrcpyw_core PROC
 ; Thirty-two bytes, in two VEX-128 halves, and the split is the point. a first draft probed one
 ; 16-byte register: `4 chars` went 0.96x -> 1.17x and `8 chars` stayed WORSE at 0.93x, because
 ; EIGHT characters plus the terminator is NINE, which is 18 bytes and does not fit in sixteen. The
-; obvious repair is a 32-byte ymm probe, and it would owe a VZEROUPPER on every return -- paid on
+; obvious repair is a 32-byte ymm probe, and it would owe a VZEROUPPER on every return, paid on
 ; exactly the short strings this path exists to make cheap. Two 128-bit halves cover the same 16
 ; characters, never touch the upper half of any register, and so owe nothing.
         mov       eax, edx
@@ -99,7 +99,7 @@ wia_lstrcpyw_core PROC
         vpmovmskb eax, xmm3
         test      eax, eax
         jz        cp_loop                        ; more than fifteen characters: the general path
-        ; the first eight are all string, so they store whole -- and the destination must hold at
+        ; the first eight are all string, so they store whole, and the destination must hold at
         ; least nine characters for us to be here at all, so sixteen bytes are always in range
         vmovdqu   xmmword ptr [rcx], xmm0
         tzcnt     eax, eax
@@ -135,15 +135,15 @@ cp_loop:
         cmp       r9d, r10d
         cmova     r9d, r10d                      ; the smaller of the two
         and       r9d, -2                        ; ROUND DOWN TO WHOLE CHARACTERS. Half a character
-                                                 ;   is never stored -- measured, see the header.
+                                                 ;   is never stored, measured, see the header.
 
         ; ---- 64 bytes = 32 characters at a time, for as long as the clamp lasts. The clamp is
         ;      computed above and only decremented here: it changes once per 4096 bytes.
 ; The hot loop is aligned explicitly, because this file put thirty instructions in front of it.
 ; The parent has no ALIGN anywhere: its loops landed where they landed, and on bench #1 that was
 ; fine. Adding the short path above moved every label after it, and the interleaved A/B showed the
-; wide rows losing a quarter of their speed -- 1024 chars 7.54x-7.85x on the parent against
-; 5.59x-5.82x here, in the same session, alternating runs -- while the loop itself was untouched.
+; wide rows losing a quarter of their speed, 1024 chars 7.54x-7.85x on the parent against
+; 5.59x-5.82x here, in the same session, alternating runs, while the loop itself was untouched.
 ; A loop's alignment is not a property of the loop; it is a property of everything before it.
 ; ALIGN 16, not 32: this segment's own alignment is 16 and MASM rejects a stricter request.
 ALIGN 16
@@ -234,7 +234,7 @@ cp_done:
         ; ---- within 32 bytes of a page end on one side or the other: one CHARACTER at a time,
         ;      exactly as the shipped function does, until the clamp lets a wide chunk back in.
         ;      r9d is 0..30 and even here. Zero means fewer than two bytes are in range on one
-        ;      side, so the store below is the one that faults -- which is the shipped behaviour,
+        ;      side, so the store below is the one that faults, which is the shipped behaviour,
         ;      and the pointers still advance, so this cannot spin.
 cp_words:
         movzx     r11d, word ptr [rdx]

@@ -1,4 +1,4 @@
-/* PathCommonPrefixW round 2 -- the two questions that decide feasibility.
+/* PathCommonPrefixW round 2, the two questions that decide feasibility.
    A. WHAT KIND of case-insensitivity? If it is collation-based (like StrChrIW, which the
       project scoped out), we cannot reproduce it bit-exactly and must abandon. If it is the
       plain ASCII fold, or CharUpperW, or RtlUpcaseUnicodeChar, we can.

@@ -65,7 +65,7 @@ static void fail(const char* which, const wchar_t* a, const wchar_t* m, size_t c
     printf("      ours %08lX \"%ls\"\n", (unsigned long)ho, ho ? L"" : oursb);
 }
 
-/* `keep` is how much of the buffer the test itself seeded -- for Append that is the base and its
+/* `keep` is how much of the buffer the test itself seeded, for Append that is the base and its
    terminator, which are legitimately not poison. Everything past max(cch, keep) must be untouched, and
    the canary past the buffer must be intact whatever cch says. */
 static int guard_ok(size_t cch, size_t keep)

@@ -25,8 +25,8 @@ ml64 /nologo /c /Founes.obj "%C%\245-urlunescapew\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fopcan.obj "%C%\246-pathcanonicalizew\impl.asm" >nul || goto :err
 ml64 /nologo /c /Foaddx.obj "%C%\247-pathaddextensionw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Founea.obj "%C%\248-urlunescapea\impl.asm" >nul || goto :err
-REM  249 (UrlHashA) is an envelope over TWO changes already linked here -- 225 for the length,
-REM  including its SEH wrapper, and 244 for the hash -- so only its own six instructions are new.
+REM  249 (UrlHashA) is an envelope over TWO changes already linked here, 225 for the length,
+REM  including its SEH wrapper, and 244 for the hash, so only its own six instructions are new.
 ml64 /nologo /c /Fouh.obj "%C%\249-urlhasha\impl.asm" >nul || goto :err
 REM  167 (PathCommonPrefixW) folds case with change 210's OS-built RtlUpcaseUnicodeChar table,
 REM  which this harness already compiles for change 210.
@@ -37,7 +37,7 @@ REM  251 (PathIsSameRootW) is the root skip plus change 167's walk; it also expo
 REM  parser as wia_pathskiprootw, which this harness patches on its own first.
 ml64 /nologo /c /Fopsr.obj "%C%\251-pathissamerootw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Fowcl.obj "%C%\001-wcslen\impl.asm" >nul || goto :err
-REM  247's append point is change 132's rule, so 132's assembly is linked in too -- the same
+REM  247's append point is change 132's rule, so 132's assembly is linked in too, the same
 REM  arrangement 246 has with 243.
 ml64 /nologo /c /Fopfe132.obj "%C%\132-pathfindextensionw\impl.asm" >nul || goto :err
 ml64 /nologo /c /Foprfs.obj "%C%\240-pathcchremovefilespec\impl.asm" >nul || goto :err

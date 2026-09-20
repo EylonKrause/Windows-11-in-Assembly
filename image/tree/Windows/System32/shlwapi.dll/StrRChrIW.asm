@@ -5,13 +5,13 @@
 ; changes/282-strrchriw/impl.asm
 ;   PCWSTR wia_strrchriw(PCWSTR start, PCWSTR end, WCHAR c)   [Win64: rcx, rdx, r8w -> rax]
 ;
-; shlwapi!StrRChrIW -- the case-insensitive character search, BACKWARDS over a range.
+; shlwapi!StrRChrIW, the case-insensitive character search, BACKWARDS over a range.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER.
 ;
 ; discovery/charclass_strcmp_2026.c measured the shipped export at 24263.40 ns to search 511 code
-; units -- 47 ns per character, the same per-character collation call change 281 found in StrChrIW.
+; units, 47 ns per character, the same per-character collation call change 281 found in StrChrIW.
 ; This is the largest single row left in that family.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -19,8 +19,8 @@
 ;
 ; Change 281 characterised shlwapi's case-insensitive match relation and generated it from the live
 ; export: locale-invariant (en-US, de-DE, TURKISH, invariant), decided one character at a time,
-; Symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2 while U+D7B0 does
-; not match U+D7B1, 168 intransitive triples -- so it has no classes and is stored per needle.
+; Symmetric but not transitive, U+D7B0 matches U+D7A2 and U+D7B1 matches U+D7A2 while U+D7B0 does
+; not match U+D7B1, 168 intransitive triples, so it has no classes and is stored per needle.
 ; 10553170 matching pairs; 56825 needles match only themselves; the largest set is 3237.
 ;
 ; This change links those tables unchanged. The dispatch is identical: a needle with no partners
@@ -28,26 +28,26 @@
 ; share eleven bitmaps.
 ;
 ; --------------------------------------------------------------------------------------------------
-; 3. The shape, measured by probes/contract.c and probes/bounds.c -- it is not StrChrIW's.
+; 3. The shape, measured by probes/contract.c and probes/bounds.c; it is not StrChrIW's.
 ;
 ;   * the signature is (start, end, wMatch) with the end exclusive: over "abcXYZabc", an end of
 ;     start+6 returns index 0 while start+7 returns index 6.
 ;   * it returns the LAST match, not the first.
-;   * It has no terminator. "abcd\0fghijk" with end = start+11 finds 'J' at index 9 -- the embedded
-;     NUL is just another character -- and an end pointer past a guard page FAULTS rather than
+;   * It has no terminator. "abcd\0fghijk" with end = start+11 finds 'J' at index 9, the embedded
+;     NUL is just another character, and an end pointer past a guard page FAULTS rather than
 ;     stopping. The range is taken literally, and that is what makes this the simpler function of
 ;     the two: there is nothing to search for except the needle.
 ;   * an empty range (end == start) finds nothing; a NULL start returns NULL rather than faulting.
 ;   * probes/contract.c also settled that its sibling StrChrNIW takes a COUNT, not an end pointer,
 ;     which discovery/charclass_strcmp_2026.c had called as a pointer and got a plausible answer
-;     from. both readings return NULL on that call, so it never distinguished them -- the same trap
+;     from. both readings return NULL on that call, so it never distinguished them, the same trap
 ;     as change 273's all-ones hex digits.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 4. PAGE SAFETY, and why it is easier here than in change 281. The range is explicit, so nothing is
 ; hunted for: every 32-byte block that is loaded overlaps [start, end), and because the caller
-; guarantees that range is readable -- the export faults when it is not, which probes/bounds.c
-; confirmed -- the aligned block containing any readable byte lies in the same page as that byte. A
+; guarantees that range is readable; the export faults when it is not, which probes/bounds.c
+; confirmed, the aligned block containing any readable byte lies in the same page as that byte. A
 ; 32-byte aligned load can never cross a page boundary, so no load can reach an unmapped page. The
 ; two edge blocks are masked: the top block discards bytes at or after `end`, the bottom block
 ; discards bytes before `start`, and when the range fits in one block both masks apply.

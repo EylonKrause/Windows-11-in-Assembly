@@ -10,13 +10,13 @@
  *   * every LENGTH 0..600, which crosses the four-character scalar peel and every 16-character
  *     vector block boundary several times over. A corpus of round numbers walks past all of them.
  *   * every ALIGNMENT 0..63 at each of those lengths, because the first vector block is loaded
- *     ALIGNED DOWN and the bits before the string are shifted out -- so the scan is wrong at
+ *     ALIGNED DOWN and the bits before the string are shifted out, so the scan is wrong at
  *     exactly the offsets nobody picks.
  *   * a string ending exactly at a guard page, at every length 0..200. An aligned-down 32-byte load
  *     never crosses a page boundary, and that claim is either true or this test faults.
  *   * EMBEDDED NULs, because SysAllocString stops at the first one (probes/contract.c: a seven
  *     character source with NULs at 2 and 5 comes back with length 2) while SysAllocStringLen does
- *     not -- so a scan that returned the wrong stopping point would still produce a valid BSTR.
+ *     not, so a scan that returned the wrong stopping point would still produce a valid BSTR.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

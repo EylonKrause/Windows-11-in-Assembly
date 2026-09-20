@@ -3,7 +3,7 @@ REM ===========================================================================
 Rem  live-run proof for change 282 (shlwapi!StrRChrIW).
 REM
 Rem  The shipped export costs 47 ns per character -- the same per-character
-REM  collation call change 281 found in StrChrIW -- and it scans FORWARD even
+REM  collation call change 281 found in StrChrIW, and it scans FORWARD even
 REM  though it returns the LAST match, so a hit at the end of the range costs it
 REM  as much as a miss.
 REM

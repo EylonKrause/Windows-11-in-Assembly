@@ -6,7 +6,7 @@
  * happens to the BYTES on a failing call, and the first draft of this change assumed the two
  * directions behave the same way there, because they are documented as mirror images. The
  * correctness gate disagreed: status, Length and MaximumLength all matched live on every one of
- * 84434 cases, and 32784 of them still failed -- the only field left is the buffer.
+ * 84434 cases, and 32784 of them still failed; the only field left is the buffer.
  *
  * So this file asks the question directly. A destination is poisoned with a recognisable fill, the
  * live export is called with a capacity too small for the result, and every byte that is no longer
@@ -16,7 +16,7 @@
  *
  *   UTF-16 -> UTF-8 : a failing call PARTIALLY FILLS the buffer with as much as fit. That is the
  *                     N-form's own behaviour showing through, so the wrapper can hand the caller's
- *                     buffer straight to the N-form and let it write what it can -- one pass.
+ *                     buffer straight to the N-form and let it write what it can, one pass.
  *   UTF-8 -> UTF-16 : a failing call writes nothing. The destination comes back untouched, which
  *                     means the shipped code decides it will not fit BEFORE it converts anything --
  *                     it sizes first. A wrapper that converts straight into the caller's buffer

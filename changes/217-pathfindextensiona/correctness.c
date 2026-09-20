@@ -5,7 +5,7 @@
 //
 // The corpus is exhaustive, and this function is why.
 //
-// Probing it is what caught the missing SPACE rule in change 132 -- landed code that had been
+// Probing it is what caught the missing SPACE rule in change 132, landed code that had been
 // passing its own "600k path fuzz" for weeks while disagreeing with the live PathFindExtensionW on
 // 295513 of 2015539 enumerated strings. Its fuzz alphabet had no space in it, so its oracle, its
 // implementation and its corpus were all wrong together, and a test that shares its blind spot with
@@ -13,7 +13,7 @@
 //
 // A bigger random alphabet is not the lesson. The lesson is that a rule over a small alphabet should
 // be PROVED over that alphabet rather than sampled from it, so the first section below enumerates
-// every string over {a, '.', backslash, '/', ':', space} of length 0..7 -- 335923 of them -- and the
+// every string over {a, '.', backslash, '/', ':', space} of length 0..7 (335923 of them) and the
 // second adds a tab and a high byte, because the rule is 0x20 specifically and not whitespace in
 // general.
 #define WIN32_LEAN_AND_MEAN

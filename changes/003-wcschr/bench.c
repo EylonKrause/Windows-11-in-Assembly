@@ -1,4 +1,4 @@
-// changes/003-wcschr/bench.c -- wia_wcschr vs live ucrtbase wcschr, target absent (full scan to terminator).
+// changes/003-wcschr/bench.c: wia_wcschr vs live ucrtbase wcschr, target absent (full scan to terminator).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

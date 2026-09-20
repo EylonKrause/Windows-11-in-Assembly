@@ -7,11 +7,11 @@
 //     ordinary characters and the scan does NOT stop at one;
 //   * compare min(c1,c2) characters; if those are equal the SHORTER string is LESS and equal lengths
 //     are EQUAL. A count of 0 is legal on either side;
-//   * case-SENSITIVE is exactly a code-unit compare -- 0 differences over 300 000 random pairs;
+//   * case-SENSITIVE is exactly a code-unit compare, 0 differences over 300 000 random pairs;
 //   * case-INSENSITIVE compares the UPCASED values, and the fold is exactly ntdll's
 //     RtlUpcaseUnicodeChar: 65534 code units with 0 mismatches, and ordering by the upcased pair
 //     matched over 400 000 random pairs ("a" vs "B" is LESS, where the raw code units say GREATER);
-//   * none of it moves with the thread locale -- checked against en-US, tr-TR, lt-LT, az-Latn-AZ and
+//   * none of it moves with the thread locale, checked against en-US, tr-TR, lt-LT, az-Latn-AZ and
 //     el-GR, where U+0130 and U+0131 still do not fold to i and I.
 #include <windows.h>
 

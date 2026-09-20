@@ -2,7 +2,7 @@
  *
  * Does STATUS_SOME_NOT_MAPPED survive the wrapper?
  *
- * The N-forms return 0x00000107 STATUS_SOME_NOT_MAPPED -- a SUCCESS code -- when they had to
+ * The N-forms return 0x00000107 STATUS_SOME_NOT_MAPPED (a SUCCESS code) when they had to
  * substitute U+FFFD for something they could not convert: a lone surrogate going out, malformed
  * UTF-8 coming in. The first draft of this change assumed the wrappers pass that through, and said
  * so in its header. probes/failwrite.c then printed a malformed UTF-8 string coming back through
@@ -12,7 +12,7 @@
  * An assumption that survived into a header comment is exactly the kind of thing that later gets
  * quoted as if it had been measured, so it is measured here instead: both directions, both the
  * caller's-buffer and the allocating forms, with input chosen so that the substitution definitely
- * happens -- and the N-form called on the same input alongside, so that what the wrapper did to the
+ * happens, and the N-form called on the same input alongside, so that what the wrapper did to the
  * status is visible rather than inferred.
  */
 #define WIN32_LEAN_AND_MEAN

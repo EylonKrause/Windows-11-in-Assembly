@@ -16,7 +16,7 @@
  *   * The fold calls the live OS function per character rather than reading our table, so a wrong
  *     or uninitialised table in impl.asm cannot be mirrored here either. That second point is not
  *     hypothetical: change 065 was accused of a formatting bug for an entire session because its
- *     two-digit table had never been built, and the failure was silent -- correct status, correct
+ *     two-digit table had never been built, and the failure was silent, correct status, correct
  *     size, truncated output. An oracle that reads the same table would have agreed with the bug.
  *
  * It is O(n*m) with a function call per character, so it is far slower than the shipped code. That

@@ -10,16 +10,16 @@
  *   * `-> u8` and `-> u16` : a generous destination, which is what a caller that sized its buffer
  *     from the worst case has. One pass in both directions.
  *   * `-> u16 tight`       : two-byte sequences into a destination with room for the result and
- *     its terminator and not a byte more. This CANNOT take the one-pass path -- the bound that
- *     proves a conversion cannot fail is 2N + 2 and this destination is half of it -- so it sizes
+ *     its terminator and not a byte more. This CANNOT take the one-pass path, the bound that
+ *     proves a conversion cannot fail is 2N + 2 and this destination is half of it, so it sizes
  *     first and converts second, exactly like the shipped code. If this change is going to lose
  *     anywhere it is here, and the row is in the table rather than left out of it. It has to be
  *     MULTI-BYTE input: with ASCII the result is exactly 2N bytes, which is the bound itself, so
  *     no sufficient destination is ever below it and an ASCII "tight" row measures the fast path
  *     while looking like it measures the slow one.
  *   * `-> u8 30000`        : the same thing in the other direction. Three bytes per character of a
- *     30000-character source might not fit the Length field, and that possibility -- not the
- *     destination -- is what forces this direction to measure before it converts.
+ *     30000-character source might not fit the Length field, and that possibility, not the
+ *     destination, is what forces this direction to measure before it converts.
  *   * `alloc ->`           : AllocateDestinationString, which needs the size before the buffer
  *     exists and therefore always takes two passes in both implementations. The heap call is
  *     inside the timed region on both sides, and every block is freed by the paired export, so the

@@ -1,4 +1,4 @@
-// changes/006-crc32/bench.c -- wia_crc32 (PCLMUL) vs live ntdll!RtlComputeCrc32.
+// changes/006-crc32/bench.c: wia_crc32 (PCLMUL) vs live ntdll!RtlComputeCrc32.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

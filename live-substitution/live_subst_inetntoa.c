@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 275 (ws2_32!inet_ntoa).
 //
 // The answer is copied before the next call, and that is not a detail. inet_ntoa returns a pointer
-// into a PER-THREAD buffer that the next call overwrites -- probes/contract.c measured it: the same
+// into a PER-THREAD buffer that the next call overwrites, probes/contract.c measured it: the same
 // pointer every time from one thread, a different one per thread. A harness that recorded the
 // pointer and compared it later would be comparing a string against whatever the most recent call
 // left there, and would pass no matter what either implementation did.
@@ -82,7 +82,7 @@ static int failures = 0;
 static F_NTOA live;
 static char expected[NCASE][16];
 
-/* the case is a pure function of its index -- change 252's harness carried PRNG state across its
+/* the case is a pure function of its index, change 252's harness carried PRNG state across its
    passes and reported 14285 differences with its patch counter at ZERO */
 static unsigned long addr_of(long i)
 {

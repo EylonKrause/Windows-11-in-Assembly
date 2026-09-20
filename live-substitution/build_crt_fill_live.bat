@@ -4,7 +4,7 @@ Rem  live-run proof for changes 182-185 (_strset_s, _wcsset_s, _strnset_s, _wcsn
 Rem  /md is required: with the default static CRT this exe would carry its own
 REM  invalid-parameter handler state, so the live exports and our assembly (which
 REM  calls ucrtbase's _invalid_parameter_noinfo) would consult two different
-REM  handlers -- the static one is unset, so the live export __fastfails the
+REM  handlers; the static one is unset, so the live export __fastfails the
 REM  process (exit code 9, no output). Changes 150, 178 and 182 record the trap.
 REM  Sacrificial single-threaded child; no system process is touched, nothing on
 REM  disk is modified.

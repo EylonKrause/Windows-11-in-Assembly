@@ -6,7 +6,7 @@
  *
  * A backward search is not a forward search run in reverse when it comes to timing: the LAST match
  * is the one returned, so a match near the END is the cheap case and a match near the START is the
- * expensive one -- the opposite of change 281. Both are rows here, because a bench that only
+ * expensive one; the opposite of change 281. Both are rows here, because a bench that only
  * planted matches at the end would measure the early-exit and report it as the function.
  *
  * The four needle shapes come from change 281's relation and take genuinely different paths: one

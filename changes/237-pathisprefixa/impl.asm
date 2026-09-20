@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!PathIsPrefixA: is path a a whole-component prefix of path b?
 ;
-; 9.20 ns per byte at 254 characters against 2.46 for the wide form -- 3.7x the wide cost for half
+; 9.20 ns per byte at 254 characters against 2.46 for the wide form, 3.7x the wide cost for half
 ; the bytes. That is within a hair of PathCommonPrefixA's 9.40, and the two numbers being that close
 ; is what suggested the relationship this change is built on.
 ;
@@ -13,7 +13,7 @@
 ;
 ; over 87 067 561 pairs from an alphabet carrying a case pair AND the 0x5E/0x88 conflation, and
 ; probes/pipa2.c over a further 29 822 521: ZERO disagreements in either. It also holds across the
-; length range that defeated change 236's probes -- lengths 250 to 600, 0 disagreements -- which it
+; length range that defeated change 236's probes (lengths 250 to 600, 0 disagreements) which it
 ; must, because change 236's MAX_PATH rule refuses the COPY and never touches the COUNT, and this
 ; function has no buffer to copy into.
 ;
@@ -21,10 +21,10 @@
 ; the file below is that code with the copy removed and one bounded length test added. The fold was
 ; nevertheless RE-DERIVED for this export rather than inherited: probes/pipa.c enumerated all 64 516
 ; ordered byte pairs and found 376 equivalent, which is the 254-value diagonal plus 122 folded
-; pairs -- exactly change 236's 61 two-member classes counted as ordered pairs. Assuming it would
+; pairs, exactly change 236's 61 two-member classes counted as ordered pairs. Assuming it would
 ; have been the same kind of mistake the SPACE-rule bug was.
 ;
-; The length-two defect is not incidental here -- it is visible in the answer. PathCommonPrefixA
+; The length-two defect is not incidental here; it is visible in the answer. PathCommonPrefixA
 ; REPORTS 3 for a common prefix of exactly 2, and composing that with the rule above produces two
 ; results that read like nonsense and are exactly what the shipped export does. probes/pipa2.c
 ; predicted both, then measured both, and the counts are closed forms:
@@ -37,7 +37,7 @@
 ;   * a longer path can be a prefix of a shorter one. PathIsPrefixA("xy\","xy") is TRUE: the scan
 ;     stops at k = 2 with b exhausted and a continuing with a separator, which is the whole-component
 ;     shape, so the count is 2, the fixup reports 3, and strlen(a) is 3. Over the same corpus there
-;     are 16 such pairs -- and 4*4 = 16 is exactly "a of length 3 ending in a separator, b its first
+;     are 16 such pairs, and 4*4 = 16 is exactly "a of length 3 ending in a separator, b its first
 ;     two characters".
 ;
 ; Both are reproduced. A realistic path corpus contains neither, which is why they are enumerated.
@@ -45,7 +45,7 @@
 ; The length test, and why it is not strlen. The answer is "n == strlen(a)", but computing strlen(a)
 ; outright would both cost a second pass and, in one case, read past a caller's terminator: when the
 ; fixup has reported 3 for a two-character path, a[3] is one byte beyond the NUL. So the test walks
-; only from k to n -- at most ONE byte, and only when the fixup fired -- and stops at the terminator:
+; only from k to n (at most ONE byte, and only when the fixup fired) and stops at the terminator:
 ;
 ;       i = k;  while (i < n && a[i]) ++i;
 ;       if (i < n) FALSE;                  a ended before n, so strlen(a) < n
@@ -53,7 +53,7 @@
 ;
 ; When n < k, a[n] is a character inside the common prefix and is necessarily non-zero, so the test
 ; returns FALSE without a single extra load. When n == k, a[k] was already read by the decision tree.
-; When n > k -- only the fixup -- the loop's own terminator check is what keeps a[n] in bounds.
+; When n > k (only the fixup) the loop's own terminator check is what keeps a[n] in bounds.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (bzhi), as change 236. No AVX-512.
 

@@ -74,7 +74,7 @@ int main(void){
         if (g) { TIME(200000, sink ^= (uint64_t)g(BIGA, BIGB, 4000)); bar("StrCmpNW  4000 wchar", _ns, 8000); }
     }
     {
-        /* short strings too -- that is where a per-call setup cost shows */
+        /* short strings too; that is where a per-call setup cost shows */
         static const wchar_t A[] = L"Program Files", B[] = L"PROGRAM FILES";
         FN_W_W f = (FN_W_W)GetProcAddress(hs, "StrCmpIW");
         if (f) { TIME(500000, sink ^= (uint64_t)f(A, B)); bar("StrCmpIW  13 wchar", _ns, 26); }

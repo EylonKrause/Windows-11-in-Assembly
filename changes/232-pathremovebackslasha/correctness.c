@@ -2,8 +2,8 @@
 // Gate 1: wia_pathremovebackslasha must be indistinguishable from shlwapi!PathRemoveBackslashA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// The return value is part of the contract and is easy to get wrong. It is psz + max(n-1, 0) -- a
-// pointer to the LAST CHARACTER, not to the terminator and not to the start -- and it is returned
+// The return value is part of the contract and is easy to get wrong. It is psz + max(n-1, 0), a
+// pointer to the LAST CHARACTER, not to the terminator and not to the start, and it is returned
 // whether or not anything was stripped. Every case here compares the returned OFFSET as well as the
 // whole buffer.
 //

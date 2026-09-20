@@ -14,7 +14,7 @@
        RemoveBackslashEx has none at all and accepts SIZE_MAX;
      * that ceiling applies only on the path that writes;
      * the ERROR CODE differs between the two functions for the same condition;
-     * the protected prefix is the structural prefix only -- the server and share are not protected,
+     * the protected prefix is the structural prefix only; the server and share are not protected,
        unlike 240's root and unlike PathCchSkipRoot's;
      * NULL FAULTS in both of these, where 240 returns E_INVALIDARG. These oracles therefore read the
        pointer too, so the harness can assert that all three fault together. */
@@ -37,7 +37,7 @@ static int is_drive_letter(wchar_t c)
     return 0;
 }
 
-/* The structural prefix -- what RemoveBackslashEx refuses to cut into. Measured as that function's own
+/* The structural prefix, what RemoveBackslashEx refuses to cut into. Measured as that function's own
    FIXED POINT in probes/pcabsx3.c: 0 disagreements over 97 656 strings. Note there is NO server/share
    scan: "\\" protects two characters and the server that follows is fair game, which is exactly where
    this parts company with change 240. */

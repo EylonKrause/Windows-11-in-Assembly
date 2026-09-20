@@ -21,14 +21,14 @@
  *     00049964  cmp ax, r9w
  *
  * A pointer to a table loaded into rcx and a helper called with it is the shape of
- * RtlUpcaseUnicodeChar, not of `call qword ptr [rax+0xF0]` -- which is what StrCmpLogicalW does and
+ * RtlUpcaseUnicodeChar, not of `call qword ptr [rax+0xF0]`, which is what StrCmpLogicalW does and
  * why it is unreachable. But the shape is evidence, not proof: a table can be a SORT table too. So
  * this asks the export directly, over every one of the 65536 code units.
  *
  * And it also settles the shape of the search itself, which decides how much there is to win: the
  * loop above is a naive O(n*m) scan that makes two function calls per character comparison in the
  * insensitive case. discovery/ntdll_rtl_uncovered.c measures it at 0.755 ns/byte case-sensitive and
- * 1.181 case-insensitive -- 6.0 and 9.4 microseconds to scan a 4000-character string for an
+ * 1.181 case-insensitive, 6.0 and 9.4 microseconds to scan a 4000-character string for an
  * eight-character needle that is not there.
  */
 #define WIN32_LEAN_AND_MEAN

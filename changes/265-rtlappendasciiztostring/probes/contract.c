@@ -5,8 +5,8 @@
  *     NTSTATUS RtlAppendAsciizToString(PSTRING dest, PCSZ src)
  *
  * discovery/ntdll_rtl_uncovered2.c found it at **0.056 ns/byte**, four and a half times the per-byte
- * cost of its own siblings measured in the same run -- RtlCopyString and
- * RtlAppendUnicodeStringToString both sit at 0.012 -- which is the signature of a function that
+ * cost of its own siblings measured in the same run, RtlCopyString and
+ * RtlAppendUnicodeStringToString both sit at 0.012, which is the signature of a function that
  * makes a real `call` into strlen and then copies a byte at a time.
  *
  * Change 101 Already landed the wide analogue, RtlAppendUnicodeToString, and its contract is
@@ -24,8 +24,8 @@
  *   * a zero-length source, and a dest with no room at all
  *   * a source longer than a USHORT can describe
  *
- * Every case prints the whole destination buffer state -- status, Length, MaximumLength and the
- * bytes -- against a poison fill, because "unchanged on failure" is a claim about bytes that no
+ * Every case prints the whole destination buffer state, status, Length, MaximumLength and the
+ * bytes, against a poison fill, because "unchanged on failure" is a claim about bytes that no
  * return value can make for you.
  */
 #define WIN32_LEAN_AND_MEAN

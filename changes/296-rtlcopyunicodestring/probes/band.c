@@ -1,7 +1,7 @@
 /* changes/296-rtlcopyunicodestring/probes/band.c
  *
  * THROWAWAY. twoaxes.c established that `rep movsb` collapses when the source and destination
- * share a page phase -- (dst - src) mod 4096 near zero -- and is 2x-2.4x faster than the live
+ * share a page phase ((dst - src) mod 4096 near zero) and is 2x-2.4x faster than the live
  * export when they do not. If that band is narrow and sharp, the ERMS arm can simply step around
  * it with a three-instruction test, and the implementation gets the best of both. If it is broad
  * or ragged, it cannot, and the honest answer is that the arm has an irreducible bad regime.

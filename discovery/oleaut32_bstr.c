@@ -16,7 +16,7 @@
  *   matter how big the total looks.
  *
  *   THE LOCALE. Every VarXxxFromStr takes an LCID. This repository has ruled out lstrcmpA/iA,
- *   StrCmpNW/NIW and StrChrIW for exactly that reason -- the cost is the locale object, not the
+ *   StrCmpNW/NIW and StrChrIW for exactly that reason; the cost is the locale object, not the
  *   loop, and a baked-in table cannot be honest across locales. The rows here are timed at
  *   LOCALE_INVARIANT, which is the best case for us, so a row that is still slow there is slow
  *   because of the machinery rather than the data.
@@ -27,7 +27,7 @@
  *
  * METHOD, and the mistakes this file is written to avoid:
  *   * Run it on an idle machine. Every row is a min-of-N, robust to a slow sample, not to load.
- *   * Every row prints what it actually did -- the returned value or length. a survey row whose
+ *   * Every row prints what it actually did, the returned value or length. a survey row whose
  *     subject does not do the work its label claims is this project's most expensive recurring
  *     mistake, and it is invisible until the row is made to state itself.
  *   * Every BSTR is freed. a survey that leaks a BSTR per iteration measures the allocator warming

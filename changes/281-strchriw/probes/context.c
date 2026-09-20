@@ -13,7 +13,7 @@
  *     StrChrIW(L"힢", U+D7B0)                ->  (tested below)
  *
  * If the first matches and the second does not, the match at that position was not about U+D7A2 at
- * all -- it was about U+D7A2 and what follows it. a collation-based search can do that: Hangul jamo
+ * all; it was about U+D7A2 and what follows it. a collation-based search can do that: Hangul jamo
  * combine, and CompareStringW can consider a needle equal to a sequence.
  *
  * This is the question that decides whether change 281 can exist:

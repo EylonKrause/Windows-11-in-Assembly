@@ -33,7 +33,7 @@ NTSTATUS ref_lint2char(const LARGE_INTEGER* pv, ULONG base, LONG length, char* o
     char scratch[80];
     int n = 0, width, i;
 
-    /* the base is validated BEFORE the value pointer is dereferenced -- probes/contract.c measured
+    /* the base is validated BEFORE the value pointer is dereferenced, probes/contract.c measured
        that order by putting the LARGE_INTEGER on a NOACCESS page */
     if (base == 0) base = 10;
     if (base != 2 && base != 8 && base != 10 && base != 16) return ST_INVALID;

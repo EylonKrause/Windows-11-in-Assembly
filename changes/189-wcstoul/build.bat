@@ -1,5 +1,5 @@
 @echo off
-REM changes/189-wcstoul/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/189-wcstoul/build.bat: assemble, gate on correctness, then benchmark.
 Rem /md is required: errno and the invalid-parameter handler must be UCRTBASE's -- the same ones
 REM our assembly writes through via its exported _errno / _invalid_parameter_noinfo. With the
 REM static CRT the exe carries its own copies and every error comparison is meaningless.

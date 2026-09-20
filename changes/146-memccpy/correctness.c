@@ -1,6 +1,6 @@
 // changes/146-memccpy/correctness.c
 // Bit-exact fuzz of wia_memccpy vs live ucrtbase!_memccpy + oracle: the returned pointer AND the whole
-// destination buffer -- the latter is what pins "exactly index+1 bytes are written", i.e. that nothing
+// destination buffer; the latter is what pins "exactly index+1 bytes are written", i.e. that nothing
 // past the delimiter is touched even though a vector copy would naturally write a whole block.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -8,13 +8,13 @@
  *     U+D7B0 matches U+D7A2.  U+D7B1 matches U+D7A2.  U+D7B0 does NOT match U+D7B1.
  *
  * The relation is symmetric but not transitive. It is a tolerance relation, not an equivalence
- * relation, so it has NO CLASSES -- 168 intransitive triples -- and the earlier version of this
+ * relation, so it has NO CLASSES (168 intransitive triples) and the earlier version of this
  * file, which grouped code units into classes, was wrong in a way the gate caught: 66 mismatches in
  * 206096, every one of them a case where ours agreed with live and only the class model disagreed.
  *
  * What is well defined is the match set of a fixed needle, and that is all the implementation ever
- * needs. probes/gentable3.c enumerated it for all 65535 needles -- scan, record, resume past the
- * hit, repeat -- and split it by size:
+ * needs. probes/gentable3.c enumerated it for all 65535 needles, scan, record, resume past the
+ * hit, repeat, and split it by size:
  *
  *     10549933 matching pairs in total
  *     56825 needles match only THEMSELVES              -> nothing to store
@@ -25,13 +25,13 @@
  *
  * Three shapes come out of it, matching the three paths in impl.asm:
  *
- *   n[c] == 0     c matches only itself -- one broadcast, one compare per 16 code units
- *   n[c] <= 4     the members are in the pool -- four broadcasts, four compares
- *   n[c] <= 8     too many for the register budget, few enough to compare inline -- scalar
+ *   n[c] == 0     c matches only itself, one broadcast, one compare per 16 code units
+ *   n[c] <= 4     the members are in the pool, four broadcasts, four compares
+ *   n[c] <= 8     too many for the register budget, few enough to compare inline, scalar
  *   n[c] == 255   a bitmap: one load and one BT per code unit
  *
  * FOUR is the register budget, not a guess: Win64 makes xmm6-xmm15 non-volatile, so a leaf that
- * saves nothing has six YMM registers -- one for the data, four for members, one scratch.
+ * saves nothing has six YMM registers, one for the data, four for members, one scratch.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -146,10 +146,10 @@ int wia_sci_init(void)
     /* 2b. The column this relation was extracted without.
      *
      * probes/gentable3.c searched a haystack holding every code unit 1..65535. It could not hold a
-     * NUL, because StrChrIW stops at the terminator -- so what matches code unit zero was
+     * NUL, because StrChrIW stops at the terminator, so what matches code unit zero was
      * unreachable by construction, and the tables above say nothing about it. That is the same
      * failure as changes 097 and 100 and as this change's own probes/contract.c: a corpus that
-     * could not express the case. The difference is where it sat -- in the EXTRACTION METHOD rather
+     * could not express the case. The difference is where it sat, in the EXTRACTION METHOD rather
      * than in a test.
      *
      * Change 282's StrRChrIW has no terminator, so it can be asked, and its gate found the gap
@@ -157,7 +157,7 @@ int wia_sci_init(void)
      * missed. changes/282-strrchriw/probes/nulchar.c then asked every needle and wrote foldnul.c:
      * 3238 of them match a NUL, exactly the 3237 ignorables plus NUL itself, and symmetrically.
      *
-     * All 3238 share one bitmap, so the fix is one bit -- but that is a property of this data, not
+     * All 3238 share one bitmap, so the fix is one bit, but that is a property of this data, not
      * a law, so it is CHECKED: every needle sharing a bitmap that gains bit 0 must itself be in the
      * list, and no needle outside the bitmap path may be in it. */
     {

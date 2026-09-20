@@ -4,7 +4,7 @@
  *
  * Why this function. discovery/shlwapi_url_str.c timed it at 1.57 ns per character for the wide form
  * on a 1000-character URL. That is not the transform: the same string through URL_UNESCAPE_INPLACE --
- * which is the unescape state machine and nothing else -- costs 529 ns of the 1575, and a memcpy of
+ * which is the unescape state machine and nothing else, costs 529 ns of the 1575, and a memcpy of
  * the same buffer costs 0.2 ns. Two thirds of the measured time is scaffolding around the loop.
  *
  * The disassembly says what the scaffolding is, and this probe's job is to pin what it must
@@ -23,12 +23,12 @@
  *
  * so the shipped function stages the whole input through a temporary, unescapes it there, measures
  * the result and copies it out. That is what makes the five walks, and it is also what makes
- * overlapping pszUrl and pszUnescaped well-defined -- which an implementation writing straight to the
+ * overlapping pszUrl and pszUnescaped well-defined, which an implementation writing straight to the
  * destination would not reproduce. Hence the overlap section below.
  *
  * What has to be settled, and every one of these is a decision an implementation has to get right:
  *
- *   1. Which characters are hex. Exhaustively -- all 65536 code units in the first position of an
+ *   1. Which characters are hex. Exhaustively, all 65536 code units in the first position of an
  *      escape and all 65536 in the second. A table-driven test would be indistinguishable from a
  *      locale one over any small corpus, and kernelbase does have a character table at RVA 0x2A2B70;
  *      if the accepted set is exactly the 22 ASCII hex digits then no locale is involved and the
@@ -42,7 +42,7 @@
  *      write speculatively and discover the overflow afterwards.
  *   5. The flags. Three matter: Inplace (0x00100000), DONT_UNESCAPE_EXTRA_INFO (0x02000000) and
  *      AS_UTF8 (0x00040000). The first two are cheap to reproduce; the third calls
- *      MultiByteToWideChar and is the one to DELEGATE rather than re-derive -- hand-rolling UTF-8
+ *      MultiByteToWideChar and is the one to DELEGATE rather than re-derive, hand-rolling UTF-8
  *      here is precisely the change-239 failure mode.
  *   6. OVERLAP, for the reason given above.
  *
@@ -84,7 +84,7 @@ int main(void)
     DWORD cch;
     HRESULT hr;
 
-    /* ============ 1. Which characters are hex -- exhaustively, both positions ============ */
+    /* ============ 1. Which characters are hex, exhaustively, both positions ============ */
     {
         int first[65536], second[65536];
         int nf = 0, ns = 0;
@@ -316,7 +316,7 @@ int main(void)
         printf("\n");
     }
 
-    /* ============ 10. URL_UNESCAPE_AS_UTF8 -- the flag to DELEGATE ============ */
+    /* ============ 10. URL_UNESCAPE_AS_UTF8, the flag to DELEGATE ============ */
     {
         printf("10. URL_UNESCAPE_AS_UTF8 (the one flag this change will delegate rather than\n"
                "    re-derive -- hand-rolling UTF-8 here is the change-239 failure mode)\n");

@@ -16,7 +16,7 @@
 ; day lands last), giving a branch-free y/m/d with no month table and no leap-year conditionals.
 ;
 ; Scope: Time >= 0 (the whole representable domain: 1601-01-01 .. year ~30828). Negative Time is not
-; matched -- ntdll produces internally-overflowed garbage there (e.g. year 29878, non-monotonic
+; matched, ntdll produces internally-overflowed garbage there (e.g. year 29878, non-monotonic
 ; Weekday) for instants that TIME_FIELDS cannot represent; see RESULTS.md.
 ;
 ; ISA: BMI2 (mulx). Validated on Zen3.

@@ -9,7 +9,7 @@
  *
  * which is the same as "hay is a member of the class of needle". probes/classsize.c measured that
  * distribution over the whole ordinal table: 64563 distinct classes, 63590 of them singletons, 973
- * of size two, and nothing larger. So the membership test is exactly two comparisons -- which a
+ * of size two, and nothing larger. So the membership test is exactly two comparisons, which a
  * vector unit can do, and a fold cannot, because there is no arithmetic that brings U+00E0 and
  * U+00C0 together without also bringing unrelated units together. See impl.asm's header for what
  * that replaced and what it measured.
@@ -21,7 +21,7 @@
  * The "at most two" property is an assumption about a table this code does not own, so it is
  * RETURNED rather than trusted: wia_casemate_init() reports the largest class it actually saw, and
  * correctness.c fails the build if it is not 2. A future Windows that merged a third unit into a
- * class would otherwise silently produce a search that misses matches -- exactly the kind of quiet
+ * class would otherwise silently produce a search that misses matches, exactly the kind of quiet
  * wrongness this project has been bitten by before.
  */
 #define WIN32_LEAN_AND_MEAN

@@ -10,7 +10,7 @@
  *
  * The rows are what a count-bounded character search costs:
  *
- *   * a MISS over 511 code units with the count covering all of them -- the worst case;
+ *   * a MISS over 511 code units with the count covering all of them, the worst case;
  *   * a hit near the START, which is where such a search usually stops;
  *   * a hit near the END;
  *   * a SMALL count over a long string, which is the whole point of this export over StrChrIW: the

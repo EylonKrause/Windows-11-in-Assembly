@@ -8,7 +8,7 @@
  * two and report it as the function.
  *
  * discovery/rtl_integer_char.c measured the shipped export at 32.14 ns for ten decimal digits,
- * 18.66 for eight hexadecimal, 20.35 for eleven octal, 40.27 for thirty-two binary -- and 10.16 ns
+ * 18.66 for eight hexadecimal, 20.35 for eleven octal, 40.27 for thirty-two binary, and 10.16 ns
  * for a SINGLE decimal digit, which is the row that says how much of the cost is fixed. All five are
  * here.
  *

@@ -6,12 +6,12 @@
 ; void wia_pathremoveargsa(PSTR psz)   [Win64: rcx]
 ;
 ; Reimplements shlwapi!PathRemoveArgsA: cut a command line's arguments off a path. shlwapi's is a
-; scalar MBCS-aware walk -- 69.96 ns against 24.63 ns for PathRemoveArgsW on the same character
+; scalar MBCS-aware walk, 69.96 ns against 24.63 ns for PathRemoveArgsW on the same character
 ; count (discovery/shlwapi_narrow2.c), 2.84x the wide cost for HALF the bytes.
 ;
 ; The contract is not "cut at the first space". Change 175 derived it for the wide form and it has
 ; three behaviours, two of them surprising. Every one was re-derived here against the NARROW export
-; in probes/pra.c -- exhaustively over {a, ' ', '"', TAB} to length 9, 349523 strings, 0 mismatches:
+; in probes/pra.c, exhaustively over {a, ' ', '"', TAB} to length 9, 349523 strings, 0 mismatches:
 ;
 ;   1. Find the first 0x20 OUTSIDE double quotes; each '"' toggles the state. probes/pra.c swept
 ;      all 255 non-NUL byte values: Exactly one splits (0x20) and exactly one is trimmed (0x20).
@@ -21,14 +21,14 @@
 ;      not at 2 and 3. The second write lands PAST the terminator, where no string comparison can
 ;      see it, which is why every test here compares the whole buffer.
 ;   3. If there is no unquoted space: trim trailing spaces, terminating at the first byte of the
-;      trailing run. This ignores quoting entirely -- '"'+' ' IS cut, even though that space is
+;      trailing run. This ignores quoting entirely, '"'+' ' IS cut, even though that space is
 ;      inside an unclosed quote, while '"'+' '+'a' is not.
 ;
 ; There is no MAX_PATH guard: lengths 250..270 all act (probes/pra.c section 6).
 ;
 ; The quote state is the interesting part, because it makes behaviour 1 look inherently sequential:
 ; whether a space splits depends on the parity of every '"' before it. It is not sequential. The
-; parity-of-all-preceding-bits of a bitmask is a CARRY-LESS MULTIPLY by all-ones -- bit k of
+; parity-of-all-preceding-bits of a bitmask is a CARRY-LESS MULTIPLY by all-ones, bit k of
 ; clmul(q, ~0) is the XOR of q over [k-63, k], which for k < 64 is exactly the inclusive prefix XOR.
 ; Shift that left by one for the EXCLUSIVE prefix (a quote toggles the state of what follows it, not
 ; of itself) and XOR in the carry from previous blocks, and the whole 32-byte block resolves at
@@ -37,16 +37,16 @@
 ; That is the same trick JSON parsers use to find string boundaries, and it is why this function
 ; needs no per-character state machine at all.
 ;
-; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252 -- measured, not
-; assumed -- and probes/pra.c sweeps all 255 non-NUL byte values at SEVEN positions the rule
+; Byte-wise is correct here: GetCPInfo reports zero dbcs lead bytes for acp 1252, measured, not
+; assumed, and probes/pra.c sweeps all 255 non-NUL byte values at SEVEN positions the rule
 ; consults, with 0 disagreements. That is the stronger screen adopted after StrStrA.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the bytes already scanned came
+; stays inside the cursor's own page, necessarily mapped, since the bytes already scanned came
 ; from it. Within 32 bytes of a page end it steps one byte and retries, carrying the quote state by
 ; hand. The backward trailing-space walk only ever moves toward the start of the string.
 ;
-; Isa: AVX2 + BMI1 (tzcnt) + POPCNT + pclmulqdq -- popcnt is its own cpuid bit, not part of BMI1.
+; Isa: AVX2 + BMI1 (tzcnt) + POPCNT + pclmulqdq, popcnt is its own cpuid bit, not part of BMI1.
 ; No AVX-512, no GFNI: runs on Zen 3 and Zen 4 alike.
 
 .const

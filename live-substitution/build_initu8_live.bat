@@ -5,7 +5,7 @@ REM
 REM  The implementation is change 095's, reached through a linker ALIAS:
 REM  probes/equiv.c proved RtlInitUTF8String identical to RtlInitString over
 REM  125883 cases, every ordered byte pair included. This run is what turns that
-REM  into a claim about THIS export -- the patch goes on RtlInitUTF8String at
+REM  into a claim about THIS export; the patch goes on RtlInitUTF8String at
 REM  its own address, and every answer is compared against what the shipped code
 REM  at that address produced before the patch existed.
 REM

@@ -8,8 +8,8 @@
 ; --------------------------------------------------------------------------------------------------
 ; 1. This change supersedes change 100, which is wrong on every negative length.
 ;
-; 100 landed this export at 1.43x. Like change 097 before it -- which change 279 replaced for the
-; same reason -- its capacity test is an UNSIGNED compare, so a negative length reads as the largest
+; 100 landed this export at 1.43x. Like change 097 before it, which change 279 replaced for the
+; same reason; its capacity test is an UNSIGNED compare, so a negative length reads as the largest
 ; possible room and it writes the digits left-justified with a terminator where the export writes a
 ; ZERO-PADDED FIELD. Swept against live over every negative length -1..-60 in five bases it differs
 ; in 123000 of 123000 cases, while all 125050 positive-length cases are correct. Its corpus never
@@ -19,12 +19,12 @@
 ;     change 100, same call:        31 32 33 34 35 36 37 38 39 ... 00   the digits, then a terminator
 ;
 ; --------------------------------------------------------------------------------------------------
-; 2. The contract, measured by probes/contract.c -- it is change 279's, not a new one.
+; 2. The contract, measured by probes/contract.c; it is change 279's, not a new one.
 ;
 ;   * bases 0, 2, 8, 10, 16 only; 0 means 10; everything else STATUS_INVALID_PARAMETER.
 ;   * The base is validated before the value pointer is dereferenced. The probe put the
 ;     LARGE_INTEGER on a NOACCESS page and called with base 7: it returned C000000D rather than
-;     faulting. With a good base and no room it FAULTED -- so the value is read after the base is
+;     faulting. With a good base and no room it FAULTED, so the value is read after the base is
 ;     checked and before the room is known. This implementation reads it in exactly that window.
 ;   * UNSIGNED, despite PLARGE_INTEGER being signed: 0x8000000000000000 prints as
 ;     9223372036854775808 and -1 as 18446744073709551615.
@@ -35,7 +35,7 @@
 ;   * a negative length is a zero-padded field width, honoured literally, no terminator:
 ;         -19 -> "1234567890123456789"      -22 -> "0001234567890123456789"
 ;         -96 into a 96-byte buffer succeeds; -97 runs off the end.
-;   * INT_MIN is the one negative length that refuses -- it cannot be negated.
+;   * INT_MIN is the one negative length that refuses, it cannot be negated.
 ;   * a refusal leaves the buffer completely untouched.
 ;   * the longest answers are 64 binary, 22 octal, 20 decimal and 16 hexadecimal digits.
 ;
@@ -50,11 +50,11 @@
 ;
 ;     q1 = v / 10^8, r1 = v - q1*10^8      the low eight digits
 ;     q2 = q1 / 10^8, r2 = q1 - q2*10^8    the next eight
-;     q2 < 1845                            the top four -- 4 + 8 + 8 = 20, the longest answer
+;     q2 < 1845                            the top four, 4 + 8 + 8 = 20, the longest answer
 ;
 ; probes/div64.c proves the one 64-bit constant over the whole domain without running 2^64 cases.
 ; Both sides of the identity are monotone and the right side steps only at multiples of 10^8, so
-; agreement at every step is agreement everywhere -- and it checks every ONE of the 184467440737
+; agreement at every step is agreement everywhere, and it checks every ONE of the 184467440737
 ; steps, on both sides, in 20.6 seconds. It also computes the Granlund-Montgomery round-up
 ; criterion in exact arithmetic as an independent second opinion: e = M*d - 2^90 = 875776, which is
 ; <= 2^26, so the identity is sufficient by that argument too. Two arguments, one exhaustive and one
@@ -63,14 +63,14 @@
 ; --------------------------------------------------------------------------------------------------
 ; 4. The power-of-two bases emit several digits per store, as change 279's do: a byte is two
 ;    hexadecimal digits, six bits are two octal digits, and a byte is eight binary digits that go out
-;    as ONE 8-byte store -- so sixty-four binary digits are eight stores, not sixty-four iterations.
+;    as ONE 8-byte store, so sixty-four binary digits are eight stores, not sixty-four iterations.
 ;    Their digit counts are arithmetic, not a table: BSR, then >>2 for hex and (n*0AAABh)>>17 for
 ;    octal, proved by div64.c over all 64 bit lengths.
 ;
 ; 5. The zero padding is written first, not last. Change 279 padded after the digits, which meant
 ;    holding the buffer pointer to the very end and left no register for the digit tables. Filling
 ;    the field before the digits are written frees that register, so this is a leaf with no frame,
-;    No pushes and no calls -- the same shape as 279 despite doing strictly more work.
+;    No pushes and no calls, the same shape as 279 despite doing strictly more work.
 ;
 ; ISA: baseline x64, plus SSE2 (also baseline on x64) for the field fill. No YMM is touched on any
 ; path, so there is no upper state to clear and no VZEROUPPER anywhere.
@@ -152,7 +152,7 @@ ALIGN 16
 ; The threshold is indexed by the bit length, not by the digit count, and that is the point.
 ;
 ; The obvious form of this is `digits = GTAB[idx] + (v >= POW10[GTAB[idx]])`, which is what change
-; 279 does -- and it costs two dependent loads: the power of ten cannot be fetched until the digit
+; 279 does, and it costs two dependent loads: the power of ten cannot be fetched until the digit
 ; estimate has arrived. Storing 10^GTAB[idx] directly against the same index makes the two loads
 ; INDEPENDENT, so they issue together and the chain is BSR -> load -> compare instead of
 ; BSR -> load -> load -> compare. It is the same arithmetic with five cycles taken out of it.
@@ -204,7 +204,7 @@ M64OFF  EQU     M64   - TB
 
 .code
 
-; The register budget. Everything is volatile -- nothing is saved, there is no frame, there are no
+; The register budget. Everything is volatile; nothing is saved, there is no frame, there are no
 ; calls, and the padding is written BEFORE the digits precisely so that the buffer pointer dies
 ; early and its register can carry the tables:
 ;
@@ -258,8 +258,8 @@ p2_oct:
 
 d_base10:
         mov       r10, qword ptr [rcx]
-        ; a single digit pays for nothing. Everything below -- the bsr, the table load, the
-        ; threshold compare -- exists to tell nine from ten, and a value under ten already knows.
+        ; a single digit pays for nothing. Everything below, the bsr, the table load, the
+        ; threshold compare, exists to tell nine from ten, and a value under ten already knows.
         ; This is not a benchmark special case: it is the two rows on which the change being
         ; SUPERSEDED was faster, and they were faster for exactly this reason. Change 100 formats a
         ; small number with a loop that exits immediately and reads no table at all; a replacement
@@ -281,14 +281,14 @@ d_base10:
         ; Setting the count to one and falling into the general machinery was measured and it was
         ; NOT enough: the value then walks the room rule, the dispatch and three more comparisons in
         ; the decimal writer only to rediscover that it has one digit. Seven taken branches to store
-        ; one byte. That left "7" and "0" at 0.80x of change 100 -- which formats a small number
-        ; with a loop that exits immediately -- while every other row was at or above parity, and a
+        ; one byte. That left "7" and "0" at 0.80x of change 100, which formats a small number
+        ; with a loop that exits immediately, while every other row was at or above parity, and a
         ; supersession that made the most common case slower is a regression however good its
         ; twenty-digit row looks.
         ;
         ; The whole operation for a positive length is: one character, and a terminator if there is
-        ; room for one. Anything else -- a length of zero, or a negative one, which is a padded
-        ; field -- is rare here and goes back to the general rule.
+        ; room for one. Anything else; a length of zero, or a negative one, which is a padded
+        ; field, is rare here and goes back to the general rule.
         ;
         ; The second CMP is not redundant. ADD writes the flags, so the terminator test cannot read
         ; the ones the room test left behind; the first draft of this block did exactly that.
@@ -335,7 +335,7 @@ pos_len:
         ;      Sixteen at a time with the two ends OVERLAPPING, so no count from 16 to 31 needs a
         ;      loop; below 16 the ends overlap as immediates, so no count needs one at all. Change
         ;      279's first attempt wrote this a byte at a time and PARKED on the one row that
-        ;      measured it -- 182 ns against the export's 115.
+        ;      measured it, 182 ns against the export's 115.
 do_fill:
         mov       rax, r9
         cmp       ecx, 16
@@ -415,7 +415,7 @@ b2_one:
         jnz       b2_one
         jmp       done
 
-; ---- base 16: TWO digits per store -- one byte is exactly two hexadecimal characters
+; ---- base 16: TWO digits per store; one byte is exactly two hexadecimal characters
 w_hex:
         cmp       r11d, 2
         jb        h_last
@@ -435,7 +435,7 @@ h_last:
         mov       byte ptr [r8], cl
         jmp       done
 
-; ---- base 8: TWO digits per store -- six bits are exactly two octal characters
+; ---- base 8: TWO digits per store, six bits are exactly two octal characters
 w_oct:
         cmp       r11d, 2
         jb        o_last

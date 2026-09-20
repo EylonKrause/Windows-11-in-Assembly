@@ -11,7 +11,7 @@
  *   none     no hole at all: the scan runs to the end of the bitmap and answers zero
  *   near     the hole is in the first word: nothing to scan, and all that is left is the prologue
  *
- * Both directions get all three, because they are separate code with separate costs -- the shipped
+ * Both directions get all three, because they are separate code with separate costs, the shipped
  * backward form reads through a 64-bit `bt` and a downward loop, the forward one through a 32-bit
  * loop, and the survey measured them at 0.100 and 0.053 ns/byte on the same bitmap.
  *
@@ -19,7 +19,7 @@
  * function must walk to the end of the run. The `long run` rows make that walk the dominant cost,
  * which is a different loop from the one that found the run.
  *
- * Every row prints what it returned -- the length and the start -- because a scan that answered
+ * Every row prints what it returned (the length and the start) because a scan that answered
  * from the wrong place would still produce a plausible time.
  *
  * ------------------------------------------------------------------------------------------------
@@ -34,7 +34,7 @@
  *
  * The empty call is eighty per cent of the measurement. What is actually being compared on a
  * two-word bitmap is 0.60 ns against 0.64 ns, and the remaining 2.32 ns is the same constant on
- * both sides -- so the ratio is dragged to 1.00x however fast the code is, and the quantisation of
+ * both sides, so the ratio is dragged to 1.00x however fast the code is, and the quantisation of
  * a 2.9 ns measurement then decides which side "wins" from run to run. Three genuine structural
  * fixes to the forward scan each moved the long rows and left those two at 1.00x, which is what
  * sent me to measure the floor instead of writing more assembly.
@@ -43,7 +43,7 @@
  * consecutive values so the compiler cannot hoist the call and the predictor is not fed one single
  * address. Both sides get exactly the same treatment, the seven FromIndex values all produce the
  * same answer on that row's bitmap (they are all outside the run), and the ns column for those
- * rows is the cost of SIXTEEN calls -- their labels say so. `bytes` is scaled to match so the GB/s
+ * rows is the cost of SIXTEEN calls; their labels say so. `bytes` is scaled to match so the GB/s
  * column stays honest.
  */
 #include "bench.h"

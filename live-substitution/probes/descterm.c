@@ -1,7 +1,7 @@
-/* probes/descterm.c -- the structural follow-up to the converter finding.
+/* probes/descterm.c: the structural follow-up to the converter finding.
  *
  * live_subst_ntconv2.c found five ntdll converters writing a NUL terminator at [Length] and
- * therefore needing one element MORE than the conversion itself -- a rule none of them had, in
+ * therefore needing one element MORE than the conversion itself; a rule none of them had, in
  * either the implementation or the oracle. The obvious next question is whether any OTHER landed
  * change that fills a caller's counted-string descriptor has the same rule and the same gap.
  *
@@ -12,14 +12,14 @@
  *     for(int i=0;i<du.Length/2 && !bad;i++) ...        <- comparison bounded by Length
  *
  * and which, worse, compares the patched export against the REFERENCE rather than against the
- * shipped export -- so an implementation and an oracle that are wrong together look right.
+ * shipped export, so an implementation and an oracle that are wrong together look right.
  * Being "live covered" is binary; it says nothing about what the corpus asks.
  *
- *   015 RtlUpcaseUnicodeString   -- the twin of 017 RtlDowncaseUnicodeString, which does NOT
+ *   015 RtlUpcaseUnicodeString; the twin of 017 RtlDowncaseUnicodeString, which does NOT
  *                                   terminate. Twins are not evidence: 018 and 020 are twins and
  *                                   have opposite failure disciplines.
  *   052 RtlIntegerToUnicodeString
- *   053 RtlInt64ToUnicodeString  -- integer formatters filling a UNICODE_STRING, the classic
+ *   053 RtlInt64ToUnicodeString, integer formatters filling a UNICODE_STRING, the classic
  *                                   place for a terminator.
  *
  * This asks each of them directly, walking MaximumLength across the boundary and printing every

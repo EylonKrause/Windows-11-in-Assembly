@@ -2,7 +2,7 @@
 ; HRESULT wia_pathcchrenameext(PWSTR pszPath, size_t cchPath, PCWSTR pszExt)
 ;   [Win64: rcx, rdx, r8 -> eax]
 ;
-; Reimplements kernelbase!PathCchRenameExtension -- 91 ns for a ~90-character path. Unlike its
+; Reimplements kernelbase!PathCchRenameExtension, 91 ns for a ~90-character path. Unlike its
 ; shlwapi cousin (change 158) this one validates everything, and it has TWO different failure modes
 ; that a careless reading would merge.
 ;
@@ -16,32 +16,32 @@
 ;   4. the extension contains a space, a backslash, or a dot anywhere but position 0
 ;                                      -> E_INVALIDARG, buffer untouched. A full 65536-character
 ;      sweep says those are the only three rejected: '/' is allowed, so ".a/b" succeeds;
-;   4b. the extension BODY -- what follows the one permitted leading dot -- is longer than 255
+;   4b. the extension BODY (what follows the one permitted leading dot) is longer than 255
 ;      characters                      -> E_INVALIDARG, buffer untouched. This beats both size
 ;      failures below: a 257-character extension with cch at its minimum still answers 80070057.
 ;      With a leading dot the boundary is a total of 257, without one 256; both are a body of 256,
 ;      so it is the body that is limited. It moves with neither the path length nor cch.
 ;      probes/extlen.c walks it, probes/extlen2.c pins it, and change 160 has the same rule;
 ;   5. the result does not fit in **limit = min(cch - 1, 259)** -> the buffer is left holding
-;      exactly `limit` characters of the result plus a terminator -- a PARTIAL WRITE on failure,
-;      the opposite of change 158, which leaves the buffer untouched -- and the return is
+;      exactly `limit` characters of the result plus a terminator, a PARTIAL WRITE on failure,
+;      the opposite of change 158, which leaves the buffer untouched, and the return is
 ;         STRSAFE_E_INSUFFICIENT_BUFFER (0x8007007A)  when cch - 1 <  259, and
 ;         ERROR_FILENAME_EXCED_RANGE   (0x800700CE)  when cch - 1 >= 259.
 ;      The tie at exactly 259 goes to 0x800700CE: probes/which.c gets 800700CE for cch-1 = 259 and
 ;      8007007A for cch-1 = 258. Probed: a 6-character path with ".obj" and cch = 8 comes back as
 ;      "C:\a\f."; cch = 9 as "C:\a\f.o"; cch = 11 succeeds. And a 255-character path renamed to
 ;      ".obj" is 259 and succeeds while a 256-character one is 260 and returns 0x800700CE even
-;      with cch = 300 -- so item 3's 259 is a limit on the INPUT and this is a SECOND one on the
+;      with cch = 300, so item 3's 259 is a limit on the INPUT and this is a SECOND one on the
 ;      RESULT. Change 160, the sibling, documented 0x800700CE from the start; this one did not,
 ;      and live substitution found it on 355 of 12000 cases;
 ;   6. otherwise S_OK.
 ;
-; A leading dot on the extension is optional -- "obj" and ".obj" give the same result -- and both ""
+; A leading dot on the extension is optional ("obj" and ".obj" give the same result) and both ""
 ; and "." mean "remove the extension", so a lone dot does NOT leave a trailing one.
 ;
 ; The extension position is found with the block scan from change 132, whose rule is validated
 ; bit-exact: the last '.' after the last BACKSLASH, with '/' and ':' NOT terminating the search.
-; Probing confirms this export agrees -- "a.b/c" renames to "a.obj".
+; Probing confirms this export agrees, "a.b/c" renames to "a.obj".
 ;
 ; Everything the routine needs is three bounded scans (the path's length, the extension's length and
 ; validity, and the extension position), each a 32-byte AVX2 pass with aligned loads, so none can
@@ -54,8 +54,8 @@
 ; The extension position here is the one change 132 derived, and that rule was INCOMPLETE: a SPACE
 ; stops the backward scan exactly as a backslash does. 132 shipped without it and was wrong on 295513
 ; of 2015539 enumerated strings; 140, 143 and 144 inherited it and were corrected in the same
-; session; and a second, STRUCTURAL sweep -- every landed oracle that computes an extension position,
-; whether or not it cites 132 -- found this change carrying it too.
+; session; and a second, STRUCTURAL sweep, every landed oracle that computes an extension position,
+; whether or not it cites 132, found this change carrying it too.
 ;
 ; discovery/extension_space_audit2.c measured the live export against both rules over every string in
 ; {a, '.', backslash, '[', ']', space} of length 0..7:
@@ -199,8 +199,8 @@ pc_eblock:
         add       rcx, r11                          ; total byte length of the extension body
         shr       rcx, 1
         mov       r14, rcx                          ; extension body length, in characters
-        ; The extension has a length limit of its own: the body -- what is left after the one
-        ; permitted leading dot -- may be at most 255 characters. 256 or more is E_INVALIDARG, and
+        ; The extension has a length limit of its own: the body, what is left after the one
+        ; permitted leading dot, may be at most 255 characters. 256 or more is E_INVALIDARG, and
         ; it BEATS both size failures: probes/extlen2.c drives a 257-character extension with cch
         ; at its minimum and still gets 80070057 rather than 8007007A.
         ;
@@ -210,7 +210,7 @@ pc_eblock:
         ; lengths 6, 100 and 250 and for cch 20, 1000 and minimal, so it depends on neither.
         ;
         ; Nothing in this change's contract recorded it, and the live harness could not have found
-        ; it -- its longest extension is 24 characters. It turned up while probing the MAX_PATH
+        ; it; its longest extension is 24 characters. It turned up while probing the MAX_PATH
         ; result limit, from a single line of an unrelated probe that answered 80070057 where
         ; 800700CE was expected. Change 160 had exactly the same rule and exactly the same gap.
         cmp       r14, 255
@@ -310,14 +310,14 @@ pc_xhave:
         ;
         ; The tie goes to 0x800700CE: probes/which.c drives cch-1 = 259 exactly and gets 800700CE,
         ; while cch-1 = 258 gets 8007007A, so the test is >= and not >. The contract at the top of
-        ; this file had the 259 limit recorded against the INPUT length only -- which is also real,
-        ; and checked far above -- and said nothing about the RESULT. A 255-character path renamed
+        ; this file had the 259 limit recorded against the INPUT length only, which is also real,
+        ; and checked far above, and said nothing about the RESULT. A 255-character path renamed
         ; to ".obj" is 259 and succeeds; a 256-character one is 260 and fails with 800700CE even
         ; when cch is 300. Change 160, the sibling function, documented this code all along; 159
         ; has the same rule and nobody had looked.
         ;
         ; Found by live substitution on 355 of 12000 cases, every one of them with an input length
-        ; of 258 or 259 -- inside the documented input limit, which is why the change's own gate,
+        ; of 258 or 259, inside the documented input limit, which is why the change's own gate,
         ; whose corpus stops well short of MAX_PATH, never produced a result that crossed it.
         ;
         ; eax carries the prospective failure code from here and is cleared only if the result

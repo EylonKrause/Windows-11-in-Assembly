@@ -8,7 +8,7 @@
  * (length, alignment) pair malloc happened to hand out reports a number the caller will not get:
  *
  *   * the WIDTH-AGNOSTIC BLOCK reads 64 bytes and consumes a variable number of them, so where the
- *     tail falls relative to 64 moves with the source alignment AND with the class -- a block of
+ *     tail falls relative to 64 moves with the source alignment AND with the class, a block of
  *     three-byte sequences consumes 63 bytes, a block of ASCII consumes all 64;
  *   * change 296 lost two size classes to (dst - src) mod 4096 near zero, where a load stalls
  *     behind an in-flight store that shares its low twelve address bits, and it hits a 64-byte loop
@@ -17,8 +17,8 @@
  *     exactly the shape that produces one inexplicably bad row.
  *
  * So: two axes, measured separately, on the classes that use the new block.
- *   axis 1 -- source alignment 0..63, destination fixed 64-byte aligned.
- *   axis 2 -- (dst - src) mod 4096 swept across the danger zone, source fixed.
+ *   axis 1, source alignment 0..63, destination fixed 64-byte aligned.
+ *   axis 2, (dst - src) mod 4096 swept across the danger zone, source fixed.
  * The worst pair of each axis is what bench_tgl.c is then set to use, so the published table is the
  * gate and not the best case.
  *

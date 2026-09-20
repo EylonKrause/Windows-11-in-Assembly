@@ -2,14 +2,14 @@
 // Gate 2: time wia_pathaddextensionw against the live shlwapi!PathAddExtensionW.
 //
 // The first three rows are the point. a disassembly fan-out built a C prototype of this function
-// before it was written and measured 1.34x to 5.74x on change 132's size classes -- but also a
+// before it was written and measured 1.34x to 5.74x on change 132's size classes, but also a
 // Reproducible regression at an empty path (0.87-0.94x) and marginal rows at two to six characters,
 // because the shipped function answers a short path from its first characters while a vectorised one
 // still pays a full setup. That is exactly the shape change 244 had to solve, and the only way to know
 // whether it bites here is to put those rows in the table rather than start at sixteen characters.
 //
 // The restore is one store, on a rotated buffer. This function appends in place, so the buffer must be
-// undone between calls -- but it only ever writes from the append point onward, so putting the
+// undone between calls, but it only ever writes from the append point onward, so putting the
 // terminator back at that point is the whole restore. One store, and it lands on the buffer the
 // PREVIOUS call dirtied rather than the one the next call is about to read: a wide load overlapping a
 // just-retired narrow store cannot use store-to-load forwarding, and that single fact is what parked

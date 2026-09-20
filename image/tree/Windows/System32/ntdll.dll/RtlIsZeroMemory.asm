@@ -5,19 +5,19 @@
 ; changes/266-rtliszeromemory/impl.asm
 ;   BOOLEAN wia_iszeromemory(const VOID* Buffer, SIZE_T Length)   [Win64: rcx, rdx -> al]
 ;
-; ntdll!RtlIsZeroMemory. discovery/ntdll_bitmap3.c measured it at 1618 ns for 64 KB -- 0.025
-; ns/byte, about 40 GB/s -- where change 259 measured a VPTEST scan of the same shape at 125 GB/s.
+; ntdll!RtlIsZeroMemory. discovery/ntdll_bitmap3.c measured it at 1618 ns for 64 KB, 0.025
+; ns/byte, about 40 GB/s, where change 259 measured a VPTEST scan of the same shape at 125 GB/s.
 ;
 ; ------------------------------------------------------------------------------------------------
 ; THE CONTRACT, probed rather than assumed (probes/contract.c):
 ;
 ;   * TRUE iff every one of the Length bytes is zero.
-;   * Length zero is TRUE, and the pointer is not read at all -- a NULL buffer with a zero length
+;   * Length zero is TRUE, and the pointer is not read at all, a NULL buffer with a zero length
 ;     answers TRUE rather than faulting.
 ;   * The length is respected exactly. a byte set one past the end is not seen, at any length from
 ;     0 to 80, and a byte set at the LAST position is always seen. Nothing is rounded up.
 ;   * It does not read past the length. Asked at every length from 0 to 300 with the buffer ending
-;     exactly at an inaccessible page, the shipped export never faults -- so neither may this.
+;     exactly at an inaccessible page, the shipped export never faults, so neither may this.
 ;   * It stops at the first non-zero byte. One megabyte with the non-zero byte first costs 1.55 ns
 ;     and with it last costs 51424 ns: the early exit is part of the behaviour, not an accident of
 ;     the buffer, and an implementation that OR-ed the whole buffer together before testing would
@@ -28,7 +28,7 @@
 ;
 ; VPTEST ymm, ymm sets ZF iff every bit of the register is zero, which is the entire question for
 ; thirty-two bytes at a time. Four loads are OR-ed together and tested ONCE, so the loop is four
-; loads, three ORs and one branch per 128 bytes -- but the early exit is still bounded by 128 bytes,
+; loads, three ORs and one branch per 128 bytes, but the early exit is still bounded by 128 bytes,
 ; which is what keeps the "non-zero at the front" case at the floor. Change 259 rejected an
 ; accumulator across the whole range for exactly this reason; four vectors is the compromise that
 ; keeps both properties.
@@ -41,12 +41,12 @@
 ;     been read already, which costs one redundant test and never touches a byte the caller did not
 ;     offer;
 ;   * a range SHORTER than 32 bytes never touches a vector register at all, and is read by a ladder
-;     of overlapping pairs -- the first k bytes and the last k, for k = 8, 4, 2, 1. Every read is
+;     of overlapping pairs; the first k bytes and the last k, for k = 8, 4, 2, 1. Every read is
 ;     strictly inside the range.
 ;
 ; That second one is also a speed decision, not only a safety one: a function that has executed a
 ; VEX instruction must VZEROUPPER before it returns, and change 259 measured that instruction as a
-; visible part of a call that only has a few bytes to look at -- its short rows sat at 0.75x-0.93x
+; visible part of a call that only has a few bytes to look at, its short rows sat at 0.75x-0.93x
 ; until the vector path was made unreachable for them.
 ;
 ; ISA: AVX2.
@@ -67,8 +67,8 @@ wia_iszeromemory PROC
         lea       r8, [rcx + rdx]                ; one past the end, for the overlapping finish
 
         ; The first thirty-two bytes, tested alone, before any block loop. The contract has an early
-        ; exit -- the shipped export answers a 1 MB buffer in 1.55 ns when the non-zero byte is
-        ; first -- and a loop that ORs four vectors together reads 128 bytes before it can say
+        ; exit; the shipped export answers a 1 MB buffer in 1.55 ns when the non-zero byte is
+        ; first, and a loop that ORs four vectors together reads 128 bytes before it can say
         ; anything. That measured 0.90x on exactly that row: slower than the shipped code at the one
         ; thing it is fastest at. The cost of having it is one redundant 32-byte load per call,
         ; which on a megabyte is three thousandths of a percent.
@@ -126,7 +126,7 @@ ret_false_v:
 ; ---- fewer than 32 bytes: a ladder of overlapping reads, no vector register touched ----
 ;
 ; Each rung must cover the whole range, and the first draft of this ladder did not. It used one
-; overlapping pair -- the first 8 bytes and the last 8 -- for every length from 8 to 31, and a pair
+; overlapping pair (the first 8 bytes and the last 8) for every length from 8 to 31, and a pair
 ; of k-byte reads only covers a range of n bytes when 2k >= n. At n = 17 byte 8 is in neither half,
 ; and the corpus that walks a single non-zero byte through every position of every length found it
 ; at once: 250 mismatches, all of them lengths 17 to 31, all of them ours saying "zero" about a

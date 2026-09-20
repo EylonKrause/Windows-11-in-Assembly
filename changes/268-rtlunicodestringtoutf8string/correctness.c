@@ -4,21 +4,21 @@
  *
  * There is no separate oracle here, and that is deliberate rather than a shortcut: the conversion
  * itself is changes 016 and 034, each already gated bit-exact against its own live N-form over its
- * own corpora. What is new in THIS change is the wrapper -- the capacity arithmetic, the
- * terminator, the Length, and which of two failure statuses comes back -- so the corpora below are
+ * own corpora. What is new in THIS change is the wrapper, the capacity arithmetic, the
+ * terminator, the Length, and which of two failure statuses comes back, so the corpora below are
  * built to exercise exactly that, and they compare against the live wrapper, which is the only
  * thing that can confirm it.
  *
  * What is compared, on every case: the NTSTATUS, Length, MaximumLength, and the whole destination
  * buffer against a poison fill. The buffer matters because on failure the destination is partially
- * WRITTEN -- "abc" into MaximumLength 2 leaves an 'a' behind -- and an implementation that tidied
+ * WRITTEN ("abc" into MaximumLength 2 leaves an 'a' behind) and an implementation that tidied
  * that up, or wrote one byte more, would pass any test that only read the status.
  *
  *   1. every source length 0..40 against every capacity 0..48, both directions. This is the table
  *      probes/statuses.c drew by hand, enumerated: it pins the terminator rule, the two different
  *      failure codes, and the partial write, at every relationship between the two sizes.
  *   2. MULTI-BYTE output, where the byte count and the character count are different numbers, at
- *      every capacity -- two-, three- and four-byte sequences, and a surrogate pair.
+ *      every capacity, two-, three- and four-byte sequences, and a surrogate pair.
  *   3. Invalid input: lone surrogates going out, malformed UTF-8 coming in. Both are replaced, and
  *      the call still succeeds with STATUS_SOME_NOT_MAPPED.
  *   4. The allocating path, whose block must be the right size and must be freeable by the paired
@@ -179,7 +179,7 @@ static void allocW(const char* s, int blen, const char* where)
 /* ---------------------------------------------------------------------------------------------
  * The ushort boundary, where the result is too big for the Length field and the answer is neither
  * of the two shortfall codes but STATUS_INVALID_PARAMETER_2 (probes/limits.c). Nothing in the
- * small corpora above can reach it -- a 40-character source cannot produce 65535 bytes -- and it
+ * small corpora above can reach it (a 40-character source cannot produce 65535 bytes) and it
  * is the one case where getting it wrong on the ALLOCATING path allocates a wrapped, far too small
  * block and converts a large string into it.
  * ------------------------------------------------------------------------------------------- */

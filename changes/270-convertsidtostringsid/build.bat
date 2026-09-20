@@ -1,9 +1,9 @@
 @echo off
-REM changes/270-convertsidtostringsid/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/270-convertsidtostringsid/build.bat: assemble, gate on correctness, benchmark.
 REM
 Rem  this change links change 067 Rather than copying it. probes/contract.c established that
 REM  advapi32!ConvertSidToStringSidW and ntdll!RtlConvertSidToUnicodeString produce the same text for
-REM  every shape of SID and refuse the same ones, so the formatter here IS change 067 -- the same way
+REM  every shape of SID and refuse the same ones, so the formatter here IS change 067, the same way
 REM  change 268 links 016 and 034. Pasting a formatter in would create a second copy that a future
 REM  correction would silently leave behind.
 setlocal

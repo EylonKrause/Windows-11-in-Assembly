@@ -2,18 +2,18 @@
 // The correctness oracle for rpcrt4!UuidFromStringW. Not fast; just obviously right.
 //
 // Contract, identical to change 205's narrow form in every respect and confirmed as such:
-// probes/ufs.c drove both live exports over 200 000 generated strings -- valid, corrupted and
-// truncated -- and found 0 return-value differences and 0 output differences.
+// probes/ufs.c drove both live exports over 200 000 generated strings, valid, corrupted and
+// truncated, and found 0 return-value differences and 0 output differences.
 //   * exactly 36 characters, UNBRACED: 8 hex, '-', 4 hex, '-', 4 hex, '-', 4 hex, '-', 12 hex, then
 //     a NUL at [36]. Hex is case-insensitive;
-//   * a BRACED string is REJECTED with 1705 (RPC_S_INVALID_STRING_UUID) -- the opposite of change
+//   * a BRACED string is REJECTED with 1705 (RPC_S_INVALID_STRING_UUID), the opposite of change
 //     118's ntdll!RtlGUIDFromString, which requires the braces;
 //   * StringUuid == NULL is SUCCESS: return 0 and write the nil UUID (16 zero bytes);
 //   * every other malformed input -> 1705 with the output GUID NOT TOUCHED.
 //
 // Note on width: hexval takes an `unsigned`, not a char. Truncating a UTF-16 cell to a byte would
 // accept U+0130 as '0' and U+FF21 as '!', which is exactly the bug the implementation's saturating
-// vpackuswb narrowing is designed to avoid -- so the oracle must not make that mistake either.
+// vpackuswb narrowing is designed to avoid, so the oracle must not make that mistake either.
 #include <windows.h>
 
 #define RPC_OK       0
@@ -45,7 +45,7 @@ long ref_uuidfromstringw(wchar_t* s, GUID* out)
         return RPC_OK;
     }
 
-    /* exactly 36 characters -- walked, so a shorter string is never read past */
+    /* exactly 36 characters, walked, so a shorter string is never read past */
     {
         int n = 0;
         while (n < 37 && s[n]) ++n;

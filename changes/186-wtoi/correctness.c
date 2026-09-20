@@ -1,5 +1,5 @@
 // changes/186-wtoi/correctness.c
-// Gate 1: wia_wtoi must be indistinguishable from ucrtbase!_wtoi -- and from ucrtbase!_wtol,
+// Gate 1: wia_wtoi must be indistinguishable from ucrtbase!_wtoi, and from ucrtbase!_wtol,
 // which resolves to the same code address, so both names are checked against the same assembly.
 // Three-way: our ASM vs the scalar oracle vs the LIVE exports on this PC.
 #define WIN32_LEAN_AND_MEAN

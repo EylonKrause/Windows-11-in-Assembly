@@ -2,7 +2,7 @@
 // Gate 2: time wia_pathissamerootw against the live shlwapi!PathIsSameRootW.
 //
 // The row this change exists for is "254, same root": discovery measured the shipped export at
-// 603.60 ns on a 254-character path -- 5.73 ns per character, the THIRD-HIGHEST per-byte cost of
+// 603.60 ns on a 254-character path, 5.73 ns per character, the THIRD-HIGHEST per-byte cost of
 // every shlwapi export this project had not converted.
 //
 // And that cost is not the root skip. The root skip is bounded work on a handful of characters --
@@ -11,19 +11,19 @@
 // component, which is exactly what change 167 replaced. So the rows vary how far the two paths
 // AGREE, because that is the only thing either implementation actually walks:
 //
-//   * "same root" rows at 8, 32, 128 and 254 characters -- identical paths, so the walk runs to the
+//   * "same root" rows at 8, 32, 128 and 254 characters, identical paths, so the walk runs to the
 //     end. These pay for everything.
-//   * "different root" -- the walk stops at once and the answer is FALSE. If a vector prologue cost
+//   * "different root"; the walk stops at once and the answer is FALSE. If a vector prologue cost
 //     anything, this is the row that would show it.
-//   * "same root, diverge at 8" -- the roots match, the paths do not, and the answer is still TRUE.
+//   * "same root, diverge at 8"; the roots match, the paths do not, and the answer is still TRUE.
 //     That is the case the function is actually FOR, and it is the one where the shipped code does
 //     the least work, so it is the hardest row to beat.
-//   * "UNC" and "extended prefix" -- the two root forms that are not a drive letter, so the root
+//   * "UNC" and "extended prefix"; the two root forms that are not a drive letter, so the root
 //     parser's own branches are represented rather than assumed.
-//   * "no root" -- a relative path, where PathSkipRootW returns NULL and neither implementation
+//   * "no root"; a relative path, where PathSkipRootW returns NULL and neither implementation
 //     walks anything at all.
 //
-// Nothing to restore: both inputs are read-only and there is no output buffer -- the observable is a
+// Nothing to restore: both inputs are read-only and there is no output buffer; the observable is a
 // BOOL. There is therefore no rotation and no 4K-aliasing trap of the kind that made change 250's
 // table report a regression that was not there.
 #define WIN32_LEAN_AND_MEAN

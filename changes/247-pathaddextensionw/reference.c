@@ -13,7 +13,7 @@
  *   * The default extension is L".exe", not the empty string. `"" + NULL` comes back as ".exe". The
  *     disassembly pointed at a static string and its bytes are 2E 00 65 00 78 00 65 00 00 00.
  *   * The append point is exactly PathFindExtensionW'S, over 55 987 enumerated strings on the
- *     alphabet ". \ space a b :" to length 6, with zero disagreements -- including that the appended
+ *     alphabet ". \ space a b :" to length 6, with zero disagreements, including that the appended
  *     text lands exactly at that pointer.
  *   * If the path already has an extension the function returns FALSE and writes nothing.
  *   * The bound is on the result: n + extlen <= 259 appends, >= 260 refuses, where n is the number of
@@ -21,10 +21,10 @@
  *     0..5; the boundary tracks the SUM, not either operand.
  *   * a refusal writes nothing at all. a 300-character path comes back byte-for-byte unchanged, with
  *     the poison past its terminator intact.
- *   * An empty extension returns TRUE and writes nothing -- not even the terminator already there.
+ *   * An empty extension returns TRUE and writes nothing, not even the terminator already there.
  *   * An extension without a leading dot is appended verbatim: "file" + "zzz" -> "filezzz".
  *   * pszPath NULL returns FALSE, with or without an extension.
- *   * An unterminated extension at a guard page faults -- lstrlenW does not swallow it, so an
+ *   * An unterminated extension at a guard page faults, lstrlenW does not swallow it, so an
  *     implementation must not swallow it either.
  */
 #include <windows.h>

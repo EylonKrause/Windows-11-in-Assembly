@@ -6,7 +6,7 @@
 ; HRESULT wia_urlhasha(const char* pszUrl, BYTE* pbHash, DWORD cbHash)
 ;   [Win64: rcx, rdx, r8d -> eax]
 ;
-; Reimplements shlwapi/kernelbase!UrlHashA -- and, because of what the wide form turns out to be,
+; Reimplements shlwapi/kernelbase!UrlHashA, and, because of what the wide form turns out to be,
 ; shlwapi/kernelbase!UrlHashW along with it.
 ;
 ; This is an envelope, not an algorithm, and saying so is the point of the change. The shipped
@@ -14,31 +14,31 @@
 ;
 ;     0012F768  test rcx, rcx / je    pszUrl NULL -> 0x80070057
 ;     0012F76D  test rdx, rdx / je    pbHash NULL -> 0x80070057
-;     0012F772  call 0x4C150          = lstrlenA -- the one with an SEH HANDLER
+;     0012F772  call 0x4C150          = lstrlenA, the one with an SEH HANDLER
 ;     0012F782  call 0x0C0A10         the hash worker, (pszUrl, len, pbHash, cbHash)
 ;     0012F787  xor eax, eax          S_OK, UNCONDITIONALLY: the worker's result is discarded
 ;
 ; and the worker at 0x0C0A10 is HashData's body. discovery/README.md called it "byte-identical to
 ; the export at 0xBB750", which is very slightly overstated and was corrected by diffing the two
 ; instruction streams for this change: the worker is that body MINUS the export's own two NULL
-; checks and MINUS its trailing `xor eax, eax` -- it returns nothing, and UrlHashA supplies the
+; checks and MINUS its trailing `xor eax, eax`; it returns nothing, and UrlHashA supplies the
 ; S_OK. Everything else matches instruction for instruction, and both reach the SAME permutation
 ; table: `lea rsi,[rip+0x1E55C4]` at 0x0C0A45 and `lea rsi,[rip+0x1EA874]` at 0x0BB795 both resolve
 ; to RVA 0x2A6010, which is the table change 244 reproduced as its c_tab.
 ;
 ; So this change is a composition of two landed ones, and it is built that way rather than rewritten:
 ;
-;     change 225  wia_lstrlena   the length -- including its fault swallow, which is not incidental
+;     change 225  wia_lstrlena   the length, including its fault swallow, which is not incidental
 ;     change 244  wia_hashdata   the hash
 ;
 ; and the only new code is the six instructions between them. probes/urlhash.c proved the claim
-; before any of this was written -- UrlHashA(url, h, cb) is bit-identical to
+; before any of this was written, UrlHashA(url, h, cb) is bit-identical to
 ; HashData(url, strlen(url), h, cb) over every tested shape, 369 cases with zero disagreements. If
 ; that had failed, this change would not exist.
 ;
 ; Why compose rather than re-derive, in a function this small. Change 244's kernel is not a
 ; transcription of an algorithm; it is a measured shape with three separate correctness conditions
-; that took a probe each -- the seed wraps at 256, the source is consumed last byte first (all 65536
+; that took a probe each; the seed wraps at 256, the source is consumed last byte first (all 65536
 ; two-byte sources agree with that and only the 256 palindromes agree with the other), and the
 ; grouped twelve-lane form is wrong on all 1641 OVERLAPPING placements of source against digest,
 ; because the shipped inner loop re-reads the source byte for every lane. Re-deriving any of that
@@ -47,15 +47,15 @@
 ; part is the entire function.
 ;
 ; One patch, two exports. kernelbase!UrlHashW (rva 0x12F7B0) is not a second hash: it is a
-; wide-to-narrow converter -- a 65-byte inline string builder at [rsp+0x20] with its capacity 0x41
-; written at [rsp+0x70], the conversion at 0x4AF18 -- that then does `call 0x12F750`, which IS
+; wide-to-narrow converter, a 65-byte inline string builder at [rsp+0x20] with its capacity 0x41
+; written at [rsp+0x70], the conversion at 0x4AF18; that then does `call 0x12F750`, which IS
 ; UrlHashA. The probe confirms it from outside: 165 wide/narrow pairs, zero disagreements. So
 ; patching the narrow export speeds up the wide one too, and the live-substitution harness
 ; demonstrates exactly that rather than asserting it.
 ;
 ; The fault swallow is why change 225 Is called and not its core. lstrlenA is SEH-wrapped, so an
 ; unterminated url running into a PAGE_NOACCESS page makes UrlHashA return S_OK with the identity
-; SEED in the digest -- measured here at every tail from 1 to 8 bytes. wia_lstrlena is change 225's
+; SEED in the digest, measured here at every tail from 1 to 8 bytes. wia_lstrlena is change 225's
 ; SEH wrapper and already reproduces that, so this envelope inherits it instead of growing a second
 ; __try. That also means this file needs no seh.c of its own and stays pure assembly.
 

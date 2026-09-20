@@ -2,14 +2,14 @@
  *
  * Two questions the implementation cannot be written without.
  *
- * probes/foldtable.c took the fold relation straight from StrChrIW -- 59321 classes over 65535 code
- * units, largest class 3237 -- and probes/locale.c proved it locale-invariant. So the relation is a
+ * probes/foldtable.c took the fold relation straight from StrChrIW, 59321 classes over 65535 code
+ * units, largest class 3237, and probes/locale.c proved it locale-invariant. So the relation is a
  * fixed object this project can own. Two things still have to be measured before any assembly:
  *
  * 1. The class size distribution, because it decides the shape of the inner loop.
  *
  *    The needle is fixed for a whole call, so the fast path can compare each haystack character
- *    against the MEMBERS of the needle's class -- k vector compares per sixteen characters, no table
+ *    against the MEMBERS of the needle's class, k vector compares per sixteen characters, no table
  *    access at all. That works only if k is small. One class has 3237 members and obviously cannot
  *    be done that way; the question is whether it is the only one, and what the largest of the rest
  *    is. That number is the width of the member table and the width of the vector path.

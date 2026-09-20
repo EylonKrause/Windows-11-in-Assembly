@@ -13,7 +13,7 @@
  *
  * so a count above 15 was never generated once. The live export refuses every count above 15 with
  * STATUS_INVALID_SID; the implementation under test did not, and would have formatted all 200
- * sub-authorities of a SID whose count byte said 200 -- reading 1028 bytes out of a 68-byte
+ * sub-authorities of a SID whose count byte said 200, reading 1028 bytes out of a 68-byte
  * structure and writing about 2500 bytes into a 400-byte stack temporary. A SID like that takes one
  * call to ConvertStringSidToSidW to produce, which accepts 254 of them. That is a stack overrun in
  * a landed change, and the only reason no test saw it is that the corpus could not express it.
@@ -26,7 +26,7 @@
  * The other three things this gate does that the old one did not
  *
  *   * It compares the whole destination, not the string up to Length. Change 268's whole-buffer
- *     comparison found change 016 storing sixteen bytes and advancing by fewer -- 154 mismatches,
+ *     comparison found change 016 storing sixteen bytes and advancing by fewer, 154 mismatches,
  *     every one a single 00 past the end of the string, invisible to any check that stops at the
  *     produced length. The destination here is poison-filled before every call, and all of it is
  *     compared, on failing calls too: STATUS_BUFFER_OVERFLOW must leave it untouched.
@@ -209,7 +209,7 @@ int main(void)
     printf("== CORRECTNESS: RtlConvertSidToUnicodeString ==\n");
     if (check_tables()) return 1;
 
-    /* 1. The count, exhaustively 0..255 -- the sweep the old corpus could not express */
+    /* 1. The count, exhaustively 0..255; the sweep the old corpus could not express */
     {
         long before = cases;
         for (i = 0; i < 256; ++i) sub[i] = 4000000000u + i;

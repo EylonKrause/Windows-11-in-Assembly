@@ -1,5 +1,5 @@
 @echo off
-REM changes/274-sysallocstring/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/274-sysallocstring/build.bat: assemble, gate on correctness, benchmark.
 REM
 Rem  the allocation is called, not reimplemented. probes/contract.c established that a BSTR block
 Rem  made by hand terminates the process when SysFreeString touches it, so oleaut32.lib is linked

@@ -1,12 +1,12 @@
 // live-substitution/live_subst_wparse.c
-// Live-run proof for the wide integer parser family -- changes 186 (_wtoi / _wtol), 187 (_wtoi64),
+// Live-run proof for the wide integer parser family, changes 186 (_wtoi / _wtol), 187 (_wtoi64),
 // 188 (wcstol), 189 (wcstoul), 190 (_wcstoi64 / wcstoll) and 191 (_wcstoui64 / wcstoull).
 // Six implementations, EIGHT exported names.
 //
 // This family was scoped out of the repo in changes/109-atoi64/RESULTS.md on the assumption that
 // a bit-exact reimplementation would need "the CRT's full Unicode digit table". Change 186's
-// sweeps replaced that assumption with a measurement -- 18 contiguous blocks of ten, 26 whitespace
-// units, locale-independent across eight locales -- so what is being proved live here is not just
+// sweeps replaced that assumption with a measurement, 18 contiguous blocks of ten, 26 whitespace
+// units, locale-independent across eight locales, so what is being proved live here is not just
 // "our assembly is fast" but "the derived character tables are the ones ucrtbase actually uses,
 // under substitution, on real inputs".
 //
@@ -15,12 +15,12 @@
 // introduced by a NON-ASCII zero, and both overflow edges. Every case compares the return value
 // AND *endptr AND errno.
 //
-// Built /MD so errno and the invalid-parameter handler are ucrtbase's -- the same ones our
+// Built /MD so errno and the invalid-parameter handler are ucrtbase's, the same ones our
 // assembly writes through. With the static CRT the comparison would be meaningless.
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ucrtbase -- never a live system process, never the file on disk.
+//       copy-on-write copy of ucrtbase, never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
 //   (1) Validate first against the live export over a fuzz corpus before any patch.
 //   (2) Patch only when idle: single-threaded, and none of these is used by the loader/heap.
@@ -142,8 +142,8 @@ static int NAME(TYPE (__cdecl *sys)(const wchar_t*, wchar_t**, int)){           
     int bad=0; wchar_t b[48]; int len; reseed(SEED);                                       \
     for(int t=0;t<ROUNDS;++t){                                                             \
         gen(b,&len);                                                                       \
-        /* 1 in 12 cases uses an INVALID base, so the EINVAL path -- handler + errno +      \
-           *endptr = nptr -- is proven live too, not just the parse. */                    \
+        /* 1 in 12 cases uses an INVALID base, so the EINVAL path, handler + errno +      \
+           *endptr = nptr, is proven live too, not just the parse. */                    \
         unsigned bpick = rnd();                                                            \
         int base = (bpick%12==0) ? (int)((bpick/12)%40) - 2 : BASES[bpick%9];               \
         wchar_t *e1=0,*e2=0;                                                               \

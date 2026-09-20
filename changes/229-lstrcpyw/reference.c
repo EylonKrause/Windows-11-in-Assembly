@@ -10,7 +10,7 @@
 //   * Whole characters only at a page edge: with an odd number of writable bytes it writes
 //     floor(n/2)*2 of them and never half a character.
 //
-// The fault paths are not modelled here -- an oracle that walked off a guard page would take the
+// The fault paths are not modelled here; an oracle that walked off a guard page would take the
 // test process down. correctness.c compares our implementation against the live export for those.
 
 #include <wchar.h>

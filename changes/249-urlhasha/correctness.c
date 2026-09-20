@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours, an independent oracle (reference.c, whose permutation table is recovered at
  * runtime from the live HashData export rather than carried as a constant), and the LIVE
- * shlwapi!UrlHashA -- compared on the HRESULT and on the whole buffer against a poison fill.
+ * shlwapi!UrlHashA, compared on the HRESULT and on the whole buffer against a poison fill.
  *
  * The whole buffer, not the first cbHash bytes, for two reasons measured before this was written:
  * cbHash is not validated anywhere in the shipped envelope, so "writes nothing past cbHash" is a
@@ -16,7 +16,7 @@
  * hashing the wrong thing.
  *
  * AND A FIFTH: UrlHashW is compared against UrlHashA on the same ASCII text, because the wide
- * export is a converter that CALLS the narrow one -- so a patch on the narrow one is a patch on
+ * export is a converter that CALLS the narrow one, so a patch on the narrow one is a patch on
  * both, and the live-substitution harness relies on that being true.
  */
 #define WIN32_LEAN_AND_MEAN

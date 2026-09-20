@@ -9,7 +9,7 @@
  *     S-0x0-0-1a      live: accepted                     model: ERROR_INVALID_SID
  *
  * "18" is decimal in `S-1-5-18` and hexadecimal in `S-0x0-0-18`. The `0x` seen in one field changes
- * how a LATER field is read, which is not a grammar at all -- it is a parser carrying state across
+ * how a LATER field is read, which is not a grammar at all; it is a parser carrying state across
  * fields, and nothing in the documentation or in any of the four earlier probes hinted at it.
  *
  * This file establishes exactly how far that state carries: which field can set it, whether it can

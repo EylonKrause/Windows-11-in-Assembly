@@ -4,7 +4,7 @@
  *
  * Length and MaximumLength are USHORTs. A UNICODE_STRING can be 65534 bytes long; converted to
  * UTF-8 that is up to three bytes per character, and a UTF8_STRING converted the other way is two
- * bytes of UTF-16 per input byte -- either way the result can exceed 65535 and there is nowhere to
+ * bytes of UTF-16 per input byte, either way the result can exceed 65535 and there is nowhere to
  * put it. The interesting question is what the shipped code DOES about that, because there are at
  * least three plausible answers (refuse with a status, truncate the field, or write a wrapped
  * value) and they are not distinguishable by reasoning.
@@ -63,7 +63,7 @@ static void out3(int n)
  * The source itself is length-limited, which is the trap this function exists to avoid: a
  * UNICODE_STRING holds at most 32767 characters, because Length counts BYTES in a USHORT. A first
  * version of this probe built `want`/2 two-byte characters, which at want = 65535 is 32768
- * characters, whose Length field wrapped to 0 -- and the rows then read as if ntdll had accepted a
+ * characters, whose Length field wrapped to 0, and the rows then read as if ntdll had accepted a
  * 65535-byte result, when in fact it had been handed an EMPTY string. So the character count is
  * pinned at the maximum and the byte count is raised by upgrading characters: 32767 characters of
  * ASCII are 32767 bytes, each one promoted to U+00E9 adds one byte and each to U+20AC adds two.

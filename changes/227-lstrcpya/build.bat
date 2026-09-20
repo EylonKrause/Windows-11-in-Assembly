@@ -1,5 +1,5 @@
 @echo off
-REM changes/227-lstrcpya/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/227-lstrcpya/build.bat: assemble, gate on correctness, then benchmark.
 REM /EHa is required: the wrapper in seh.c converts an access violation into NULL, which is the
 REM measured behaviour of the shipped export (see probes/cpya.c).
 setlocal

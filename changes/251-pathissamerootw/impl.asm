@@ -1,7 +1,7 @@
 ; changes/251-pathissamerootw/impl.asm
 ; BOOL wia_pathissamerootw(PCWSTR pszPath1, PCWSTR pszPath2)   [Win64: rcx, rdx -> eax]
 ;
-; shlwapi!PathIsSameRootW -- 5.73 ns per character in discovery's survey, the THIRD-HIGHEST per-byte
+; shlwapi!PathIsSameRootW, 5.73 ns per character in discovery's survey, the THIRD-HIGHEST per-byte
 ; cost of every shlwapi export this project had not converted, behind only HashData (which became
 ; change 244) and PathCommonPrefixW (which became change 167).
 ;
@@ -16,7 +16,7 @@
 ;     PathIsSameRootW(a, b) = a && b && PathSkipRootW(a) != NULL
 ;                          && (PathSkipRootW(a) - a) <= PathCommonPrefixW(a, b, NULL) + 1
 ;
-; so the only thing standing between this function and change 167 was the ROOT SKIP -- which is what
+; so the only thing standing between this function and change 167 was the ROOT SKIP, which is what
 ; parked change 163 too, and which change 167's own RESULTS.md predicted would "unblock all three of
 ; the slowest remaining shlwapi functions". That prediction was wrong about PathIsPrefixW (change
 ; 177 needed no root parser at all) and right about this one.
@@ -38,13 +38,13 @@
 ;     p[0] a letter and p[1] == ':'      -> 3 if p[2] is a separator, else 2
 ;     otherwise                          -> E_INVALIDARG
 ;
-;   the UNC walk from i -- this is 0x2B47C literally, two wcschr calls and a cmove:
+;   the UNC walk from i; this is 0x2B47C literally, two wcschr calls and a cmove:
 ;     consume the server; if no separator follows it, stop there;
 ;     consume that separator even if the server was empty;
 ;     consume the share; if the share was EMPTY stop BEFORE its separator, otherwise consume it.
 ;
 ;   the extended branch (0x2B4CD), in order:
-;     p[3] must be a separator, or nothing matches                 -- the prefix is FOUR characters
+;     p[3] must be a separator, or nothing matches; the prefix is FOUR characters
 ;     p[3..7] caselessly "\UNC\"         -> the UNC walk from 8
 ;     p[4] a letter and p[5] == ':'      -> 7 if p[6] is a separator, else 6
 ;     "Volume{" + 8-4-4-4-12 hex + "}"   -> 48, or 49 if p[48] is a separator
@@ -52,16 +52,16 @@
 ;
 ; Three things that look like special cases and are not:
 ;   * "\\.\" Is not a prefix. "\\.\PhysicalDrive0" is 18 because it is the ordinary unc walk with
-;     server "." -- only '?' at index 2 is special.
+;     server ".", only '?' at index 2 is special.
 ;   * The empty-share rule is why leading backslash runs look non-monotonic: "\"->1, "\\"->2,
 ;     "\\\"->3, "\\\\"->3, and 3 for every longer run. Change 163 recorded that as "no single rule
 ;     fits"; it is one rule, and it is the `cmove` at 0x2B4C4.
 ;   * "\\?aa:" Is an error even though a drive sits at index 4. The model said 6 until the sweep
-;     said otherwise -- 24 of 210720 cases, all this shape -- because the prefix is the four
+;     said otherwise (24 of 210720 cases, all this shape) because the prefix is the four
 ;     characters "\\?\", trailing separator included.
 ;
-; The root parser is deliberately SCALAR. It reads a bounded prefix -- the shipped one measures
-; 5.16 ns on a 250-character path against 5.21 ns on a short one, i.e. FLAT -- so there is nothing
+; The root parser is deliberately SCALAR. It reads a bounded prefix, the shipped one measures
+; 5.16 ns on a 250-character path against 5.21 ns on a short one, i.e. FLAT, so there is nothing
 ; in it to vectorise, and every character this change actually walks is walked by change 167.
 
 OPTION PROC:PRIVATE
@@ -79,7 +79,7 @@ QM      EQU 3Fh                         ; '?'
 ; the GUID shape: 8-4-4-4-12 hex digits, hyphen-separated
 c_seg   DB 8, 4, 4, 4, 12
 ; the volume prefix, lower-cased, compared six letters at a time with the case bit forced. The
-; BRACE is compared exactly and not through that fold, because '[' | 0x20 is '{' -- folding it would
+; BRACE is compared exactly and not through that fold, because '[' | 0x20 is '{', folding it would
 ; accept "Volume[" as a volume name.
 cv_lit  DB 'volume'
 

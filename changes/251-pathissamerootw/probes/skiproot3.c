@@ -10,7 +10,7 @@
  *       s[3..7] against "\UNC\"; on a match, the UNC walk from index 8.
  *
  * What is not settled is what happens when that "\unc\" compare fails. Empirically "\\?\c:" is 6,
- * "\\?\a" is an error, and "\\?\Volume{...}\" is 49 -- so it is neither "always the drive rule" nor
+ * "\\?\a" is an error, and "\\?\Volume{...}\" is 49, so it is neither "always the drive rule" nor
  * "fall back to the plain UNC walk". This dumps the family so the rule can be read.
  */
 #define WIN32_LEAN_AND_MEAN

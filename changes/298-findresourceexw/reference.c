@@ -46,7 +46,7 @@
  *  * hModule == NULL means this process's own image, not kernel32.
  *  * An invalid hModule (0x30000) does NOT fault: it returns NULL / 1812.
  *  * The type is looked up before the name, so a missing name in a module whose
- *    type table is large still reports 1813 in some cases -- whatever ntdll
+ *    type table is large still reports 1813 in some cases, whatever ntdll
  *    returns is forwarded verbatim, so the reference does not model it.
  */
 #define WIN32_LEAN_AND_MEAN

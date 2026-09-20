@@ -3,8 +3,8 @@
 // Contract derived in probes/pud.c and fuzz-confirmed against the live export
 // (2,000,000 cases, 0 mismatches). The decoration goes only when ALL of these hold:
 //   (a) it is in the LAST component (after the last backslash);
-//   (b) its ']' is the character immediately before the extension -- the LAST '.' after the
-//       last backslash OR SPACE (see the correction note) -- or
+//   (b) its ']' is the character immediately before the extension, the LAST '.' after the
+//       last backslash OR SPACE (see the correction note), or
 //       immediately before the end of the string when the component has no '.';
 //   (c) the contents are decimal digits, possibly NONE ("file[].txt" -> "file.txt");
 //   (d) the '[' is not the component's first character ("[1].txt" is left alone).

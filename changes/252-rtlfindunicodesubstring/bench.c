@@ -2,7 +2,7 @@
  *
  * OURS vs the LIVE ntdll!RtlFindUnicodeSubstring on this machine.
  *
- * Every row states what it actually did before the table is printed -- the haystack length, the
+ * Every row states what it actually did before the table is printed, the haystack length, the
  * needle length, the mode, and the offset all three agreed on. This project has twice measured a
  * no-op and believed it: a survey subject whose escapable characters sat in the wrong URL segment,
  * and a formatter whose digit table had never been built. A search benchmark is especially easy to
@@ -12,7 +12,7 @@
  * The rows are chosen to include the cases this implementation is worst at, not only the ones it
  * is best at:
  *   * tiny inputs, where the vector loop can never run and the only question is whether the setup
- *     was skipped (it is -- see the `cmp r14d, 15` bypass in impl.asm);
+ *     was skipped (it is, see the `cmp r14d, 15` bypass in impl.asm);
  *   * a TWO-LETTER alphabet, where the two-anchor filter admits one position in four instead of
  *     one in a few hundred;
  *   * a run of one character with a needle whose first and last characters are both that
@@ -20,7 +20,7 @@
  *     to the scalar verifier; it measured 0.91x-1.17x, i.e. it crossed the 0.97x gate at random
  *     from run to run, which is what forced impl.asm to CHOOSE its far anchor instead of assuming
  *     it. The row is kept so the fix stays measured;
- *   * an all-non-ASCII haystack -- Cyrillic here, but it stands for Greek, Hebrew and Japanese
+ *   * an all-non-ASCII haystack, Cyrillic here, but it stands for Greek, Hebrew and Japanese
  *     equally. This row is the reason the insensitive filter was rewritten: the first version
  *     folded to ASCII and had to treat every non-ASCII unit as a candidate, which made this row
  *     2.33x while the ASCII rows were 16x. It is kept, and kept in this position, so that the

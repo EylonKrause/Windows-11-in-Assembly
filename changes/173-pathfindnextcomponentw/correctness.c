@@ -59,7 +59,7 @@ int main(void){
         }
     }
 
-    // every code unit as the middle character -- pins the separator set to exactly U+005C
+    // every code unit as the middle character, pins the separator set to exactly U+005C
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=(wchar_t)c; s[2]=L'b'; s[3]=0;
         CHECK(one(s), "separator-set sweep");
@@ -102,7 +102,7 @@ int main(void){
     }
 
     // page guard: string ending exactly at a PAGE_NOACCESS boundary, with and without a
-    // separator -- the no-separator case forces a scan all the way to the page edge.
+    // separator, the no-separator case forces a scan all the way to the page edge.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
         SIZE_T pg = si.dwPageSize;

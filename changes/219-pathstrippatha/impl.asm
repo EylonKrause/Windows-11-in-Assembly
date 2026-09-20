@@ -3,19 +3,19 @@
 ;
 ; Reimplements shlwapi!PathStripPathA: remove the directory portion of a path IN PLACE, leaving only
 ; the last component. The live export costs 151.00 ns on a 55-character path against 30.99 ns for
-; PathStripPathW on the SAME path -- 4.87x the wide cost for HALF the bytes, the MBCS-walk signature
+; PathStripPathW on the SAME path, 4.87x the wide cost for HALF the bytes, the MBCS-walk signature
 ; the whole narrow shlwapi family has shown.
 ;
 ; This is change 212 Plus a move, and the equivalence was verified rather than assumed, on both
 ; halves at once (probes/strip.c): over every string in {a, backslash, slash, colon} up to length 8
-; -- 87381 of them -- and again over {a, backslash, slash, colon, SPACE} up to length 8 -- 488281, of
-; which 400900 contain a space -- the buffer left by the live PathStripPathA is byte for byte what
+; 87381 of them, and again over {a, backslash, slash, colon, SPACE} up to length 8, 488281, of
+; which 400900 contain a space; the buffer left by the live PathStripPathA is byte for byte what
 ; you get by copying the live PathFindFileNameA answer to the front. ZERO mismatches, and zero for
 ; PathStripPathW against the same model.
 ;
 ; The space was checked deliberately. Change 132 shipped a PathFindExtension rule missing exactly
 ; that character and was wrong on 295513 of 2015539 strings, and changes 140, 143 and 144 inherited
-; it. PathFindFileName's rule came through the same widening clean, and so does this one -- but it
+; it. PathFindFileName's rule came through the same widening clean, and so does this one, but it
 ; was measured, for the narrow form AND for the landed wide one.
 ;
 ; ---- the first question was not "is it slow" --------------------------------------------------------
@@ -25,32 +25,32 @@
 ; in exactly that position: ZERO of 255 behave as a lead byte (GetACP() is 1252, which has none). A
 ; vector scan can reproduce this exactly.
 ;
-; The live one also leaves the bytes PAST the new terminator untouched -- stripping "C:\dir\file.txt"
-; leaves "file.txt\0" followed by the stale tail "le.txt\0" -- so the move is a plain forward copy
+; The live one also leaves the bytes PAST the new terminator untouched, stripping "C:\dir\file.txt"
+; leaves "file.txt\0" followed by the stale tail "le.txt\0", so the move is a plain forward copy
 ; with no zero fill, and the correctness harness compares the whole buffer to prove it.
 ;
 ; The copy is forward and the destination is strictly below the source, so overlap is safe as long as
 ; each block is loaded before it is stored: the store then lands entirely behind the next block's
 ; read. The usual head/tail overlapping-pair trick would NOT be safe here, and change 218 proved that
-; the hard way -- it borrowed the pair from change 211, whose source and destination are different
+; the hard way; it borrowed the pair from change 211, whose source and destination are different
 ; buffers, and re-read bytes it had already moved. The remainder below therefore walks DOWN
 ; 16/8/4/2/1 instead of overlapping.
 ;
 ; ---- the rule, and why it was re-derived rather than inherited --------------------------------------
-; Change 161 did not guess the WIDE rule either -- an earlier attempt abandoned the function after four
+; Change 161 did not guess the WIDE rule either, an earlier attempt abandoned the function after four
 ; hypotheses failed, because the colon depends on RIGHT context. The narrow form gets the same
 ; treatment, because this project keeps getting punished for assuming an A form matches its W: change
 ; 203 inherited 202's contract exactly, change 205's REJECTED the braces ntdll's parser requires, and
 ; lstrcmpA turned out to be linguistic where the name suggested otherwise.
 ;
-; probes/rule.c enumerated every string over {a, backslash, slash, colon} of length 0..9 -- 349525 of
-; them -- and compared the live NARROW export against two models:
+; probes/rule.c enumerated every string over {a, backslash, slash, colon} of length 0..9, 349525 of
+; them, and compared the live NARROW export against two models:
 ;
 ;     mismatches vs the 161 (wide) rule : 0
 ;     mismatches vs a simpler rule      : 76672
 ;
 ; plus 2396745 strings over {a, backslash, slash, colon, dot, space, z, 0xE9}: 0 mismatches. So the
-; narrow form carries the wide rule exactly, run condition included -- and the simpler rule that every
+; narrow form carries the wide rule exactly, run condition included, and the simpler rule that every
 ; spot check in probes/pffa.c was consistent with is wrong on 76672 strings. Spot checks would never
 ; have found it; only the enumeration did.
 ;
@@ -58,7 +58,7 @@
 ;   * '\' and '/' are always separators. One sets the answer to i+1 when the next character is
 ;     neither NUL nor '\' nor '/'  (a following ':' is fine).
 ;   * ':' sets the answer to i+1 under the same next-character test, but only when it is the sole
-;     colon in its RUN -- the stretch between two backslash/slash characters. So ":a" gives 1 and
+;     colon in its RUN; the stretch between two backslash/slash characters. So ":a" gives 1 and
 ;     "a:a" gives 2, while ":a:" and "a::a" both give 0, and ":\:a" gives 3 because the backslash
 ;     starts a fresh run in which that colon is alone.
 ;   * the answer is the last position that set, or the start of the string.
@@ -66,7 +66,7 @@
 ; ---- method ----------------------------------------------------------------------------------------
 ; One forward pass finds the component, then a forward move brings it to the front.
 ; Per 32-byte block the masks for '\', '/', ':' and NUL are OR-ed into a single
-; "interesting positions" mask; a block with none -- the common case inside a long component -- is
+; "interesting positions" mask; a block with none (the common case inside a long component) is
 ; skipped whole, and only the set bits are visited. Run state is two registers: the position of the
 ; run's first colon, and whether a second one has appeared.
 ;
@@ -77,11 +77,11 @@
 ; mask, and every later load is 32-aligned, so no load ever touches a page the byte-at-a-time export
 ; would not have reached. The scan always stops at the terminator because NUL is part of the mask.
 ; The one-past reads ([pos+1], the next-character test) are only issued when the character AT pos is
-; not NUL, so the byte they touch is at worst the terminator itself -- always mapped.
+; not NUL, so the byte they touch is at worst the terminator itself, always mapped.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt, blsr) + BMI2 (shrx). Validated on Zen 4.
 ;
-; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 bits are -- and
+; Only ymm0-ymm5 are used. xmm6-xmm15 are callee-saved under Win64 (their low 128 bits are) and
 ; parking a constant in ymm6, as an earlier cut of change 161 did, silently destroys any double the
 ; caller had live. Invisible to a correctness test, which compares pointers and characters. See
 ; tools/abi-check. ':' is the rarest of the four and is only compared against, so it becomes a memory

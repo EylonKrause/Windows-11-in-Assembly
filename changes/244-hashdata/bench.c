@@ -4,18 +4,18 @@
 // The case mix is the whole design here, because this function has two size parameters and its cost
 // is their product. probes/cost.c measured the shipped surface across cbData x cbHash and found the
 // per-lookup cost FLAT at 0.42 ns for every digest of six bytes or more, and RISING as the digest
-// shrinks -- 0.51 ns at four bytes, 0.74 at two, 1.06 at one -- because a one-lane digest has no
+// shrinks (0.51 ns at four bytes, 0.74 at two, 1.06 at one) because a one-lane digest has no
 // parallelism left and the shipped loop's memory chain becomes the limit.
 //
 // That shape is exactly where a twelve-lanes-in-registers implementation is weakest. A pass over the
 // source costs the same whether it advances two lanes or twelve, so at cbHash = 1 we do twelve times
 // the arithmetic for one byte of result and win only what the shipped loop wastes on memory traffic.
 // The small digests are therefore in the table on purpose, at the shortest source length as well as
-// the longest -- they are the rows that decide whether this lands.
+// the longest; they are the rows that decide whether this lands.
 //
 // No restore is needed. The digest is written to a buffer that is not read back, and the source is
 // never modified, so unlike the in-place path functions in this repository there is nothing to undo
-// between calls -- and therefore none of the restore artefacts that parked changes 142, 228, 230 and
+// between calls, and therefore none of the restore artefacts that parked changes 142, 228, 230 and
 // 241. The destination still ROTATES across four buffers, for the same reason those changes now do:
 // it costs nothing and removes the question entirely.
 #define WIN32_LEAN_AND_MEAN

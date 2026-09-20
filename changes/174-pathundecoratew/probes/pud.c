@@ -105,7 +105,7 @@ int main(void){
             for(int i=0;i<80;i++){ d1[i]=POISON; d2[i]=POISON; }
             for(int i=0;i<=len;i++){ d1[i]=in[i]; d2[i]=in[i]; }
 
-            /* candidate v2 -- four conditions, all of them pinned by the probes above:
+            /* candidate v2, four conditions, all of them pinned by the probes above:
                  (a) look only in the LAST component (after the last backslash);
                  (b) the '[' must NOT be the first character of that component
                      ("[1].txt" is left alone, "file[1].txt" is not);

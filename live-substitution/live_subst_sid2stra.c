@@ -6,7 +6,7 @@
 // LocalFree. An implementation that returned a static buffer, a HeapAlloc block, or a LocalAlloc
 // block with the wrong flags would satisfy a byte-comparison gate and corrupt the caller's heap
 // here. So every block is freed, and its LocalSize and LocalFlags are compared as well as its
-// contents -- a block that is right but too big is still wrong.
+// contents; a block that is right but too big is still wrong.
 //
 // Five things are compared per case: the BOOL, GetLastError (which on success becomes zero whatever
 // it was before), what happened to the output pointer (a poison value distinguishes "left alone"
@@ -14,13 +14,13 @@
 //
 // The block here is characters + 1 Bytes, not (characters + 1) * 2. probes/contract.c measured the
 // ANSI form to be the wide form narrowed one byte per character, over every shape of SID and under
-// four thread locales, with zero differences -- so there is no code page in the implementation, and
+// four thread locales, with zero differences, so there is no code page in the implementation, and
 // the narrowing is a VPACKUSWB that SATURATES. Any character at or above 0x100 would come back as
 // 0xFF rather than as itself, and comparing the BYTES rather than the status is what would show it.
 //
 // The sub-authority count is drawn over its whole byte range, 0..255, not 0..15. That is change
 // 067's lesson learned the expensive way: its corpus drew the count as (seed>>8)%16 and therefore
-// never expressed a count above 15, which is a refusal the implementation did not have -- and
+// never expressed a count above 15, which is a refusal the implementation did not have, and
 // ConvertStringSidToSidW builds a 254-sub-authority SID in one call.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
@@ -29,7 +29,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of the module -- never a live system process, never the file on disk.
+//       copy-on-write copy of the module, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is used by neither the loader nor
 //       the heap.

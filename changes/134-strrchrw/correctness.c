@@ -29,7 +29,7 @@ int main(void){
     // Seeking the NUL itself, in the bounded form. This is the combination the gate never drew:
     // it asked for a NUL only with end == NULL, and it scanned ranges spanning NULs only for 'b'.
     // Both halves were here; the product of them was not, and live substitution found the defect
-    // that lived in exactly that product -- 364 of 20000 cases, every one of them (wMatch == 0,
+    // that lived in exactly that product, 364 of 20000 cases, every one of them (wMatch == 0,
     // end past the terminator). A raw range is scanned literally, so the NULs in it are findable,
     // at their LAST occurrence, half-open. See probes/nulmatch.c.
     { static wchar_t b[32]; int i;

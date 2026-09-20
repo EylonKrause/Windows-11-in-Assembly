@@ -73,7 +73,7 @@ PUSH = re.compile(r'^push\s+(\w+)\s*$', re.I)
 INSTR = re.compile(r'^([a-z][a-z0-9]*)\s+(.*)$', re.I)
 
 # a label on the same line hid the instruction behind it (found 2026-09-16, while mutation-testing
-# change 261). This tree writes `f_f1:   mov r12d, 7` -- label and instruction on one line -- and
+# change 261). This tree writes `f_f1:   mov r12d, 7` (label and instruction on one line) and
 # INSTR is anchored, so `f_f1:` failed to match and the write to r12 was never seen. The dynamic
 # gate caught that deliberate clobber and this scan reported PASS, which is the wrong way round for
 # a net that exists to cover what the dynamic gate cannot reach. Every loop head, every branch
@@ -81,11 +81,11 @@ INSTR = re.compile(r'^([a-z][a-z0-9]*)\s+(.*)$', re.I)
 # scan was blind to a large fraction of the code it claimed to cover.
 #
 # Anchored at the start and requiring the colon IMMEDIATELY after the identifier, so it cannot eat
-# a segment override in an operand (`mov rax, gs:[30h]` starts with `mov ` -- no colon after it).
+# a segment override in an operand (`mov rax, gs:[30h]` starts with `mov `, no colon after it).
 LABEL = re.compile(r'^[A-Za-z_$?@][\w$?@]*:{1,2}\s*')
 
 # Mnemonics whose FIRST operand is read, not written. Everything else that names a bare
-# non-volatile register first is treated as writing it -- deliberately the conservative direction,
+# non-volatile register first is treated as writing it, deliberately the conservative direction,
 # since a false positive is investigated and a false negative is not.
 READONLY = {
     'cmp', 'test', 'push', 'call', 'jmp', 'ret', 'retn', 'int', 'nop', 'bt', 'align', 'db', 'dw',

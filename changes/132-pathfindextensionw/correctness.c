@@ -2,14 +2,14 @@
 // Bit-exact fuzz of wia_pathfindextw vs live shlwapi!PathFindExtensionW + oracle.
 //
 // Corrected 2026-09-15, and the correction is the point. The previous version of this test declared
-// "600k path fuzz" and passed -- while the implementation was wrong on 295513 of 2015539 enumerated
+// "600k path fuzz" and passed, while the implementation was wrong on 295513 of 2015539 enumerated
 // strings. Its alphabet was {a, b, '.', backslash, '/', ':', '.', 'c'}: NO SPACE. The oracle, the
 // implementation and the corpus all shared one blind spot, so the test could not see it.
 //
 // The fix is not "add a space to the fuzz". A bigger random alphabet would have found this one
 // eventually and would leave the next gap just as invisible. So the first section below is now an
 // EXHAUSTIVE enumeration over the alphabet that makes every separator interaction reachable --
-// {a, '.', backslash, '/', ':', space}, every string of length 0..7 -- which is a proof rather than
+// {a, '.', backslash, '/', ':', space}, every string of length 0..7, which is a proof rather than
 // a sample, and would have failed loudly on day one.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

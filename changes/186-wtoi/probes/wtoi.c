@@ -7,19 +7,19 @@
       bit-exact reimpl would need the CRT's full Unicode digit table, not an ASCII loop."
    That objection is now answered by measurement rather than by assumption. Two sweeps settled it:
 
-     * DIGITS -- probing L"2" + c + L"1" over all 65536 code units (the middle position removes
+     * DIGITS, probing L"2" + c + L"1" over all 65536 code units (the middle position removes
        the leading-whitespace, sign and digit-zero confounds) the accepted set is EXACTLY
        18 CONTIGUOUS BLOCKS OF TEN, every block ascending 0..9:
          0030 0660 06F0 0966 09E6 0A66 0AE6 0B66 0C66 0CE6
          0D66 0E50 0ED0 0F20 1040 17E0 1810 FF10
        180 members, 18 runs, no exceptions. That is the Unicode 3.0-era Nd set -- the same list
        change 166 found frozen in ntdll, independently confirmed here in a different DLL.
-     * LOCALE -- the sets are byte-identical under LC_ALL = C, en-US, ar-SA, ja-JP, th-TH, hi-IN,
+     * LOCALE; the sets are byte-identical under LC_ALL = C, en-US, ar-SA, ja-JP, th-TH, hi-IN,
        de-DE.UTF-8 and .65001. Not locale-sensitive, so a fixed table is honest.
-     * WHITESPACE -- 26 code units: 0009-000D, 0020, 0085, 00A0, 1680, 180E, 2000-200A, 2028,
+     * WHITESPACE, 26 code units: 0009-000D, 0020, 0085, 00A0, 1680, 180E, 2000-200A, 2028,
        2029, 202F, 205F, 3000. (U+200B is NOT included.) The byte form (change 108) skips only
        six, so this is the other place the wide form genuinely differs.
-     * SIGN -- exactly U+002D and U+002B, no Unicode minus/plus variants.
+     * SIGN, exactly U+002D and U+002B, no Unicode minus/plus variants.
 
    What is left to pin HERE:
      1. overflow: does it saturate like atoi (INT_MAX / INT_MIN), or wrap?

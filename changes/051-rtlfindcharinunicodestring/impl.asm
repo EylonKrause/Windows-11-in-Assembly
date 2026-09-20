@@ -10,8 +10,8 @@
 ; STATUS_NOT_FOUND (0xC0000225). Counted strings (Length in bytes), so embedded NULs
 ; and a NUL in the set are ordinary data.
 ;
-; The hot path -- forward, case-sensitive (Flags 0 = find-in-set, Flags 2 = complement)
-; -- is vectorized with the set-broadcast method (16 wchars/block, reads bounded by the
+; The hot path, forward, case-sensitive (Flags 0 = find-in-set, Flags 2 = complement)
+; is vectorized with the set-broadcast method (16 wchars/block, reads bounded by the
 ; count so page-safe). CI and backward take a correct scalar path (rare). ntdll's is
 ; scalar (~4.5 GB/s). ISA: AVX2 + BMI1. Validated on Zen3.
 
@@ -19,7 +19,7 @@ EXTERN wia_upcase:WORD
 
 ; Register note. This function may only touch xmm0-xmm5: xmm6-xmm15 are callee-saved under Win64
 ; (their low 128 bits are; the upper halves are volatile). An earlier cut held the haystack chunk in
-; ymm6, which silently destroyed any double the caller had live -- invisible to a correctness test,
+; ymm6, which silently destroyed any double the caller had live, invisible to a correctness test,
 ; which compares an NTSTATUS and a position. Only registers 0, 4 and 6 were ever in use here, so
 ; moving the chunk to ymm1 costs nothing at all. See tools/abi-check.
 ;

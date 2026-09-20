@@ -1,11 +1,11 @@
 // changes/298-findresourceexw/probes/abi_dynamic.c
 //
 // Gate 3, run locally. tools/abi-check/check.bat is the repository-wide driver, but adding a row to
-// it would mean editing a file this change is not allowed to touch -- so this probe links the SAME
+// it would mean editing a file this change is not allowed to touch, so this probe links the SAME
 // assembly helper (tools/abi-check/abi_probe.obj) and arms the sentinels around each call itself.
 //
 // Why it matters here: both exported procedures PUSH three non-volatile registers (rbx, rsi, rdi)
-// and both have several distinct exit paths -- the vector exit, the too-long exit, the non-ASCII
+// and both have several distinct exit paths, the vector exit, the too-long exit, the non-ASCII
 // scalar exit, its own too-long exit, and the page-crossing peel's terminator exit. Each one pops
 // independently, so each one is a separate chance to unbalance the stack. Every path is driven
 // here. wia_findresourceexw also calls out to ntdll four different ways (LdrFindResource_U,

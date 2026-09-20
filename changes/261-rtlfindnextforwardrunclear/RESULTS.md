@@ -212,7 +212,7 @@ falls out, the last word with its slack, the run that reaches the end of the bit
 reaches bit zero going backward, nothing-found in both directions, and both refusals.
 
 Mutation-tested: inserting a single `mov r12d, 7` makes the gate report
-`ABI: FAILED 261-rtlfindnextforwardrunclear -- clobbers 1 non-volatile register(s): r12`.
+`ABI: FAILED 261-rtlfindnextforwardrunclear, clobbers 1 non-volatile register(s): r12`.
 
 ### That mutation also exposed a hole in the static scan
 

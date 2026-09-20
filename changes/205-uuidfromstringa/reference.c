@@ -5,7 +5,7 @@
 //   * exactly 36 characters, UNBRACED: 8 hex, '-', 4 hex, '-', 4 hex, '-', 4 hex, '-', 12 hex, then
 //     a NUL at [36]. Hex digits are case-insensitive;
 //   * a braced string is rejected with 1705 (RPC_S_INVALID_STRING_UUID). Note this is the opposite
-//     of change 118's ntdll!RtlGUIDFromString, which *requires* the braces -- the two contracts are
+//     of change 118's ntdll!RtlGUIDFromString, which *requires* the braces; the two contracts are
 //     not interchangeable, which is exactly why this one was probed rather than assumed;
 //   * StringUuid == NULL is SUCCESS: return 0 and write the nil UUID (16 zero bytes);
 //   * every other malformed input -> 1705, and the output GUID is NOT TOUCHED. A pre-poisoned GUID
@@ -47,7 +47,7 @@ long ref_uuidfromstringa(unsigned char* s, GUID* out)
         return RPC_OK;
     }
 
-    /* the string must be exactly 36 characters long -- walked, so a shorter one is never read past */
+    /* the string must be exactly 36 characters long, walked, so a shorter one is never read past */
     {
         int n = 0;
         while (n < 37 && s[n]) ++n;

@@ -7,8 +7,8 @@
  *     NTSTATUS RtlUTF8StringToUnicodeString(PUNICODE_STRING dst, PCUTF8_STRING src, BOOLEAN alloc)
  *
  * discovery/ntdll_rtl_uncovered3.c measured them at 0.097 and 0.213 ns/byte. This project already
- * converted the N-forms they wrap -- RtlUnicodeToUTF8N as change 016 at 2.82x and RtlUTF8ToUnicodeN
- * as change 034 at 3.12x -- so the interesting question is not "can the conversion be made faster"
+ * converted the N-forms they wrap, RtlUnicodeToUTF8N as change 016 at 2.82x and RtlUTF8ToUnicodeN
+ * as change 034 at 3.12x, so the interesting question is not "can the conversion be made faster"
  * but "how much of a wrapper call IS the conversion".
  *
  * That question decides whether there is a change here at all. If the wrapper is a size pass plus a
@@ -23,7 +23,7 @@
  *   * is the result NUL-terminated, and does the terminator need room of its own?
  *   * what is Length set to, and MaximumLength?
  *   * is the destination left alone on failure?
- *   * what happens to an EMPTY source, and to invalid input -- an unpaired surrogate going out,
+ *   * what happens to an EMPTY source, and to invalid input, an unpaired surrogate going out,
  *     and malformed UTF-8 coming in?
  */
 #define WIN32_LEAN_AND_MEAN

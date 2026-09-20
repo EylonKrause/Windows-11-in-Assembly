@@ -1,7 +1,7 @@
 /* changes/281-strchriw/correctness.c
  *
  * Gate 1 for shlwapi!StrChrIW: Ours vs the scalar model vs the live export, on the returned
- * pointer -- compared as an OFFSET, so that "found it in the right place" and "found it at all" are
+ * pointer, compared as an OFFSET, so that "found it in the right place" and "found it at all" are
  * the same question.
  *
  * The corpus is built where a vectorised, page-aligned search goes wrong:
@@ -84,7 +84,7 @@ int main(void)
      *
      * The partner comes from the measured fold, not from a case function. probes/contract.c built
      * its pairs from CharUpperW/CharLowerW/RtlUpcase/RtlDowncase and therefore could never ask
-     * about (U+1D2C, 'a') -- a pair none of those four relates -- which is exactly the pair that
+     * about (U+1D2C, 'a') (a pair none of those four relates) which is exactly the pair that
      * was wrong. A corpus that cannot express a case cannot fail on it.
      */
     {

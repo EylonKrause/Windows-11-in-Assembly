@@ -1,7 +1,7 @@
 // changes/151-wcscpy-s/correctness.c
 // Bit-exact fuzz of wia_wcscpy_s vs live ucrtbase!wcscpy_s + oracle. Each trial compares the errno
 // return, the number of invalid-parameter-handler invocations, and every BYTE of a canary-filled
-// destination -- the byte-level compare is what pins the ERANGE path, which writes `size` wide
+// destination; the byte-level compare is what pins the ERANGE path, which writes `size` wide
 // characters of src before emptying dst.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -61,7 +61,7 @@ int main(void)
     if (!sys || !set) { printf("no wcscpy_s / handler setter\n"); return 2; }
     set(myiph);                       /* without this the live ERANGE path __fastfails the process */
 
-    /* /MD build on purpose -- see RESULTS.md: under the default /MT the test program would carry its
+    /* /MD build on purpose, see RESULTS.md: under the default /MT the test program would carry its
        own static copy of the handler state and the two sides would consult different handlers. */
     { hits = 0; _invalid_parameter_noinfo();
       if (hits != 1) { ++fails; printf("FAIL handler not reachable through _invalid_parameter_noinfo\n"); } }
@@ -93,7 +93,7 @@ int main(void)
         for (int doff = 0; doff < 8 && fails < 15; ++doff)
             for (int len = 0; len <= 140 && fails < 15; ++len)
             {
-                /* 0x412C has low byte ',' and 0xFF41 has low byte 'A' -- a byte-granular terminator
+                /* 0x412C has low byte ',' and 0xFF41 has low byte 'A', a byte-granular terminator
                    scan would false-hit on the 0x_100-style values, so the fill alternates. */
                 wchar_t base = (len & 1) ? (wchar_t)0x4100 : L'a';
                 trial(soff, doff, len, (size_t)len + 1, base, "exact fit");

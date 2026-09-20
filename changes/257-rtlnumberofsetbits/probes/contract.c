@@ -13,9 +13,9 @@
  * What has to be pinned first, because counting is only simple once the edges are settled:
  *
  *   1. Is the range (start, length) or (start, end)? The survey called it with (100, 60000) on a
- *      half-set bitmap and got 30000, which is 60000/2 and not 59900/2 -- so LENGTH. That was one
+ *      half-set bitmap and got 30000, which is 60000/2 and not 59900/2, so LENGTH. That was one
  *      observation; this sweeps it.
- *   2. What happens past SizeOfBitMap -- a range that runs off the end, a start at or past it, and
+ *   2. What happens past SizeOfBitMap, a range that runs off the end, a start at or past it, and
  *      a length of zero. The slack in the final ULONG is set to 1 here deliberately, so any failure
  *      to mask shows up as a larger count.
  *   3. DOES ClearBits = SizeOfBitMap - SetBits exactly, including for ranges? If so one core

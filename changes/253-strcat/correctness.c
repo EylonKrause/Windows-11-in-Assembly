@@ -7,8 +7,8 @@
  *
  * A search can be checked by its answer; a copy cannot. `strcat` is specified to write exactly
  * strlen(src)+1 units at dst+strlen(dst) and nothing ELSE, and every plausible vectorised mistake
- * -- storing a whole 32-byte block for a three-byte tail, rounding a length up to an alignment
- * boundary, using an overlapping store pair that reaches backwards past the start -- produces a
+ *, storing a whole 32-byte block for a three-byte tail, rounding a length up to an alignment
+ * boundary, using an overlapping store pair that reaches backwards past the start, produces a
  * perfectly correct string, a perfectly correct return value, and silently destroys whatever the
  * caller had after the destination. probes/contract.c measured that the shipped export disturbs
  * nothing past the terminator even for an empty source; so every buffer here is pre-filled with a
@@ -17,14 +17,14 @@
  * THE CORPORA:
  *   1. Every alignment x every length, exhaustively. Both pointers are slid across a 32-byte
  *      window independently, because the implementation's first-block handling is driven by
- *      `src & 31` and its store ladder by the tail length -- so the interesting cases are the
+ *      `src & 31` and its store ladder by the tail length, so the interesting cases are the
  *      products of the two, not either alone.
  *   2. Lengths that straddle the block loop, 0..200, which is where "the terminator is the first
  *      byte of a new block" and "the terminator is the last byte of a block" live.
  *   3. A PAGE_NOACCESS GUARD PAGE immediately after the source, which turns an over-read into a
  *      fault. This is the claim that the aligned-block walk needs no clamp, tested.
  *   4. A GUARD PAGE immediately after the destination's last legal byte, which turns an over-WRITE
- *      into a fault rather than a silent canary mismatch -- belt and braces against 1.
+ *      into a fault rather than a silent canary mismatch, belt and braces against 1.
  *
  * NULL is deliberately absent: probes/contract.c established that the shipped export FAULTS on a
  * NULL in either argument, so there is no contract to match, and ours faults at the same first

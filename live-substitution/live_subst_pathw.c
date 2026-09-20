@@ -9,17 +9,17 @@
 //                   164 PathCchAddBackslash
 //
 // Why these nine together. They are the whole of the uncovered path family and they share one
-// subject -- a path buffer -- so a single corpus drives all nine, and the same string is asked
+// subject (a path buffer) so a single corpus drives all nine, and the same string is asked
 // about by both the old shlwapi function and its modern PathCch replacement in the same breath.
 // That pairing is the point: their documented behaviours are NOT the same, and the differences are
 // the kind that a corpus built for one of them would never provoke in the other.
 //
 // Six behaviours the corpus exists to drive, each taken from the change that measured it:
 //   * 158 leaves the destination COMPLETELY UNCHANGED when the result would exceed 259 characters,
-//     while 159 leaves it holding cch-1 characters of the result -- a PARTIAL WRITE on failure.
+//     while 159 leaves it holding cch-1 characters of the result, a PARTIAL WRITE on failure.
 //     Two functions, the same job, opposite failure semantics. Both are driven past their limits.
 //   * 160 returns S_FALSE when the path already has an extension, and that check sits AFTER the
-//     validation but BEFORE the size checks -- so a path that already has one returns S_FALSE even
+//     validation but BEFORE the size checks, so a path that already has one returns S_FALSE even
 //     when the buffer could never have held the result. The corpus supplies both orders.
 //   * 164's checks interleave with its size tests: an unterminated path loses to the size check,
 //     but a path already ending in '\' beats it. Its own header records "C:\a\" with cch = 3 giving
@@ -27,20 +27,20 @@
 //     length rather than generously.
 //   * 164 has NO PATHCCH_MAX_CCH ceiling and NO MAX_PATH limit, where 159 and 160 have both, so
 //     cch = 32769 is a valid call for one and E_INVALIDARG for the others. The corpus draws it.
-//   * 162 leaves the stale tail past the new terminator untouched -- stripping "C:\dir\file.txt"
-//     leaves "file.txt\0" followed by "le.txt\0" -- so every in-place routine here is compared over
+//   * 162 leaves the stale tail past the new terminator untouched, stripping "C:\dir\file.txt"
+//     leaves "file.txt\0" followed by "le.txt\0", so every in-place routine here is compared over
 //     its whole buffer, poison included, never just the resulting string.
 //   * a SPACE stops the extension scan exactly as a backslash does, so "a.b " has no extension.
 //     Change 132 shipped without that rule because its fuzz alphabet had no space in it, and 143
 //     and 144 inherited the gap before it was corrected. The alphabet here contains one.
 //
 // pszPath IS never NULL. 159 and 160 answer E_INVALIDARG for it, but 164 has no NULL check at all
-// and FAULTS -- its header says so, and reproducing that exactly is the implementation's job, not
+// and FAULTS; its header says so, and reproducing that exactly is the implementation's job, not
 // something to fire at a shared corpus.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copies of shlwapi and kernelbase -- never a live system process, never a file on disk.
+//       copies of shlwapi and kernelbase, never a live system process, never a file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle. kernelbase is patched here, which the earlier harnesses did not do,
 //       so it is worth being explicit: these five PathCch entries are leaf string functions. They
@@ -223,7 +223,7 @@ static void build_corpus(void){
 
         /* Make a real extension likely rather than incidental: without this, a random draw over the
          * alphabet often has its last dot before a backslash and the "has an extension" branches --
-         * 160's S_FALSE in particular -- would almost never be taken. */
+         * 160's S_FALSE in particular, would almost never be taken. */
         if(n>=4 && (i%3)==0){
             r->path[o+n-4]=L'.';
             r->path[o+n-3]=L'o'; r->path[o+n-2]=L'b'; r->path[o+n-1]=L'j';
@@ -234,7 +234,7 @@ static void build_corpus(void){
           while(e[m] && m<19){ r->ext[m]=e[m]; ++m; } r->ext[m]=0; }
 
         /* cch is drawn AT and AROUND the length, because that is where every one of these five
-         * changes its answer -- a generous cch would only ever exercise the success path. */
+         * changes its answer; a generous cch would only ever exercise the success path. */
         switch(i%9){
         case 0: r->cch=0;                       break;  /* E_INVALIDARG / 0x8007007A */
         case 1: r->cch=(size_t)n;               break;  /* not terminated within cch */

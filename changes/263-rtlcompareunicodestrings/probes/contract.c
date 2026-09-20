@@ -6,7 +6,7 @@
  *
  * discovery/rtl_cmpstrings_probe.c has already settled the two questions that decide whether this
  * is a target at all: it is a DISTINCT export from the landed RtlCompareUnicodeString (singular),
- * and its case-insensitive flag is exactly RtlUpcaseUnicodeChar -- 66462 equal pairs over a dense
+ * and its case-insensitive flag is exactly RtlUpcaseUnicodeChar, 66462 equal pairs over a dense
  * sweep, with zero characters equal that the table disagrees about and zero different that it
  * agrees about. A flag that consulted a locale would have ended the change there, the way
  * discovery/lstrcmp_is_linguistic.c ended its target.
@@ -17,7 +17,7 @@
  *   * Is the return a sign or a value? a caller testing `< 0` cannot tell, but one storing the
  *     result can, and this project reproduces what the export returns rather than what callers
  *     are likely to look at.
- *   * What decides an unequal-length comparison -- the common prefix first, or the length? And
+ *   * What decides an unequal-length comparison, the common prefix first, or the length? And
  *     what exactly is returned when one string is a prefix of the other?
  *   * Which character's difference is reported under the case-insensitive flag: the raw pair, or
  *     the upcased pair? They differ in sign for pairs like 'a' (0x61) against 'B' (0x42).

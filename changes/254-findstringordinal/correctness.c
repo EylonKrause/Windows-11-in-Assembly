@@ -11,14 +11,14 @@
  * enumerated cases passed in silence while the vector path was broken, because a six-character
  * string never reaches it) and of change 252 (whose corpora were split the same way):
  *
- *   1. THE REFUSALS           -- every validation branch, and the exact last-error each sets
- *   2. EXHAUSTIVE, short      -- all four modes; reaches only the scalar tail
- *   3. The block boundary     -- every n-m from 0 to 40, planted at every offset, all four modes:
+ *   1. THE REFUSALS, every validation branch, and the exact last-error each sets
+ *   2. EXHAUSTIVE, short, all four modes; reaches only the scalar tail
+ *   3. The block boundary, every n-m from 0 to 40, planted at every offset, all four modes:
  *                                this is where the forward loop bound and the BACKWARD one live,
  *                                and the backward walk is the half with no precedent in 252
- *   4. RANDOMISED, long       -- reaches the vector loops, over four alphabets
- *   5. The fold               -- real fold pairs, and pairs the nt ordinal table refuses to merge
- *   6. A GUARD PAGE           -- a PAGE_NOACCESS page against the end of the source, so an
+ *   4. RANDOMISED, long, reaches the vector loops, over four alphabets
+ *   5. The fold, real fold pairs, and pairs the nt ordinal table refuses to merge
+ *   6. A GUARD PAGE, a PAGE_NOACCESS page against the end of the source, so an
  *                                over-read faults rather than merely disagreeing
  */
 #define WIN32_LEAN_AND_MEAN

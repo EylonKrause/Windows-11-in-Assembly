@@ -17,7 +17,7 @@
 ;   else              copy it verbatim; longer than 0x100 characters is ERROR_FILENAME_EXCED_RANGE
 ; then the finish: strip trailing dots but stop if a '*' precedes one; an empty output becomes "\"; an
 ; output of exactly two characters whose second is ':' gets a separator. Both of those last two are
-; BEST EFFORT -- when the buffer cannot hold the extra character the function returns S_OK unfixed.
+; BEST EFFORT, when the buffer cannot hold the extra character the function returns S_OK unfixed.
 ;
 ; The domain is dwFlags == 0, which is what PathCchCanonicalize passes and what every caller in this
 ; project's corpus uses. Flag 0x01 is not a post-step: it selects a different backward walk (measured
@@ -27,7 +27,7 @@
 ;
 ; Where the speed comes from. The shipped code makes an indirect call per component to find the
 ; component end and copies one wchar_t at a time with a bounds test per character. This one:
-;   * pre-scans the whole input with AVX2 for the only thing that can complicate it -- a '.' at a
+;   * pre-scans the whole input with AVX2 for the only thing that can complicate it, a '.' at a
 ;     component start, found as the two-character pattern "\." plus the first-character case. Blocks
 ;     Overlap by one character so that pattern can never straddle a block boundary and no carry between
 ;     iterations is needed.
@@ -64,7 +64,7 @@ HR_EXCED    EQU     0800700CEh                  ; ERROR_FILENAME_EXCED_RANGE
 ; IS_LETTER_JMP CH, S1, S2, NOTLETTER
 ;   CH is a 32-bit register holding a character and is PRESERVED; S1 and S2 are 32-bit scratch.
 ;   A drive letter is an ISO-8859-1 letter: A-Z, a-z, and 00C0..00FF except 00D7 and 00F7. probes/
-;   letter.c measured all 65536 code units -- exactly 114 are accepted, so this is neither ASCII nor
+;   letter.c measured all 65536 code units, exactly 114 are accepted, so this is neither ASCII nor
 ;   IsCharAlphaW (47455) nor C1_ALPHA. Folding with 0x20 collapses five ranges into two, because
 ;   C0..DF fold onto E0..FF and D7 folds onto F7.
 ;   Pass THREE DISTINCT registers: change 241 lost an afternoon to a macro handed the same register
@@ -125,7 +125,7 @@ wia_pathcchcanonicalizeex PROC FRAME
         mov     rdi, rbx                        ; cursor
 
 ; ---- the extended prefix ---------------------------------------------------------------------------
-; "\\?\" followed by a drive letter and a colon is dropped -- nothing is required after the colon.
+; "\\?\" followed by a drive letter and a colon is dropped; nothing is required after the colon.
 ; "\\?\UNC\rest" walks exactly as "\\" + rest, because the two leading separators of the rewritten
 ; string are themselves zero-length components that emit themselves, so seeding them and skipping to
 ; rest is the same computation without a copy.
@@ -469,14 +469,14 @@ delegate_unset:
 wia_pathcchcanonicalizeex ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; find_sep -- rsi -> rdx, the first '\' at or after rsi, or the terminator, whichever comes first.
+; find_sep, rsi -> rdx, the first '\' at or after rsi, or the terminator, whichever comes first.
 ; Clobbers rax, rcx, rdx, ymm0..ymm2. Preserves rsi, rdi, rbx, r8..r11.
         ALIGN 16
 find_sep PROC
         mov     rdx, rsi
         ; a scalar probe first, for eight characters. Real components are a handful of characters long,
         ; and the vector path's load -> compare -> compare -> or -> movmsk -> tzcnt chain is about
-        ; twenty cycles of LATENCY that the next component's scan cannot start until it resolves -- the
+        ; twenty cycles of LATENCY that the next component's scan cannot start until it resolves, the
         ; scans are serially dependent through the read pointer. Eight characters of two predicted
         ; not-taken branches each cost about as much as one such chain, so a short component never pays
         ; for the vector machinery. Long components still get it, below.
@@ -519,7 +519,7 @@ fs_ret:
 find_sep ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; copy_n -- copy r10 characters from rsi to rdi, advancing both. The caller has already checked the
+; copy_n, copy r10 characters from rsi to rdi, advancing both. The caller has already checked the
 ; destination bound, and the source is known to hold r10 characters, so the reads stay inside the
 ; string. Clobbers rax, rcx, ymm0, ymm1.
 ;
@@ -588,12 +588,12 @@ cn_done:
 copy_n ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; isroot -- PathCchIsRoot on the NUL-terminated string at rbx; returns al = 0/1.
+; isroot, PathCchIsRoot on the NUL-terminated string at rbx; returns al = 0/1.
 ; probes/isroot.c measured the internal predicate the live function consults against the exported
-; PathCchIsRoot over 8587 strings: 0 differences. The output can still carry an extended prefix -- an
-; input like "\\?\a\.." keeps it, because only a drive or UNC prefix is stripped -- so the prefix forms
+; PathCchIsRoot over 8587 strings: 0 differences. The output can still carry an extended prefix, an
+; input like "\\?\a\.." keeps it, because only a drive or UNC prefix is stripped, so the prefix forms
 ; are part of this test. Clobbers rax, rcx, r8, r9, r10. PRESERVES rdx, rsi, rdi, rbx, r11.
-; The length is already known -- it is rdi - rbx -- so the two cheapest rejections come first. An
+; The length is already known (it is rdi - rbx) so the two cheapest rejections come first. An
 ; output that does not begin with a separator can only be the drive root "X:\", which is exactly three
 ; characters, so a single length test rejects every ordinary path in four instructions. That matters
 ; because isroot is called on every ".." and every trailing "." in the path.
@@ -668,7 +668,7 @@ ir_no:
         xor     al, al
         ret
 
-; unc_shape -- r8 points at what follows the two leading separators. "\\" alone, "\\server" and
+; unc_shape, r8 points at what follows the two leading separators. "\\" alone, "\\server" and
 ; "\\server\share" are roots; a trailing separator or a third component is not.
 unc_shape:
         cmp     word ptr [r8], 0
@@ -706,7 +706,7 @@ us_no:
 isroot ENDP
 
 ; ---------------------------------------------------------------------------------------------------
-; void wia_pccx_set_fallback(void* fn) -- install the original implementation for nonzero dwFlags.
+; void wia_pccx_set_fallback(void* fn), install the original implementation for nonzero dwFlags.
         ALIGN 16
 wia_pccx_set_fallback PROC
         mov     qword ptr [wia_pccx_fallback], rcx

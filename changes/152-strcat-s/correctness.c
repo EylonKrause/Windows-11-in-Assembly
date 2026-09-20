@@ -1,7 +1,7 @@
 // changes/152-strcat-s/correctness.c
 // Bit-exact fuzz of wia_strcat_s vs live ucrtbase!strcat_s + oracle. Each trial compares the errno
 // return, the number of invalid-parameter-handler invocations, and every byte of a canary-filled
-// destination -- the byte compare is what pins the two partial-write paths (an unterminated dst,
+// destination; the byte compare is what pins the two partial-write paths (an unterminated dst,
 // which must write only dst[0], and ERANGE, which appends first and empties afterwards).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -69,7 +69,7 @@ int main(void)
     if (!sys || !set) { printf("no strcat_s / handler setter\n"); return 2; }
     set(myiph);
 
-    /* /MD build on purpose -- see 150's RESULTS.md on the two copies of the handler state. */
+    /* /MD build on purpose, see 150's RESULTS.md on the two copies of the handler state. */
     { hits = 0; _invalid_parameter_noinfo();
       if (hits != 1) { ++fails; printf("FAIL handler not reachable through _invalid_parameter_noinfo\n"); } }
 

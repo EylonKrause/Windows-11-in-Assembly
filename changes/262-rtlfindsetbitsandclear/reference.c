@@ -3,8 +3,8 @@
  * The independent oracle for RtlFindSetBitsAndClear and RtlFindClearBitsAndSet.
  *
  * It shares nothing with impl.asm but the contract. impl.asm reuses change 256's aligned-block
- * filter -- which rejects thirty-two bytes with one compare and rebuilds a run only around a
- * witness -- and then writes the range with masked ends and a vector middle. This counts bits one
+ * filter, which rejects thirty-two bytes with one compare and rebuilds a run only around a
+ * witness, and then writes the range with masked ends and a vector middle. This counts bits one
  * at a time and writes them one at a time.
  *
  * THE RULES, as probes/contract.c measured them:
@@ -16,7 +16,7 @@
  *   * NumberToFind = 0 returns the hint rounded DOWN to a multiple of eight (or 0 when the hint is
  *     at or past the size) and WRITES nothing.
  *   * NumberToFind > SizeOfBitMap is not found, and the slack past SizeOfBitMap never contributes.
- *   * exactly NumberToFind bits are written, at the returned index -- not the whole run that was
+ *   * exactly NumberToFind bits are written, at the returned index, not the whole run that was
  *     found. Asking for 8 inside a run of 20 leaves the other 12 alone.
  *   * NOT FOUND writes nothing at all.
  *

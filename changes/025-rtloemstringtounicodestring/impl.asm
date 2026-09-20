@@ -22,13 +22,13 @@ wia_oem2u PROC
         lea       edx, [eax*2]                     ; out bytes = 2n
         movzx     r9d, word ptr [rcx + 2]          ; dst MaximumLength
         ; The export nul-terminates, so it needs room for 2n bytes of conversion plus a two-byte
-        ; terminator. This used to compare 2n against MaximumLength -- room for the conversion
-        ; alone -- and the success path wrote no terminator. Both halves were wrong together, which
+        ; terminator. This used to compare 2n against MaximumLength, room for the conversion
+        ; alone, and the success path wrote no terminator. Both halves were wrong together, which
         ; is why the change's own gate saw neither: MaximumLength was fixed and generous in every
         ; case, so the size rule never bound, and the comparison stopped at Length, so the wchar at
         ; [Length/2] was outside it by construction.
         ;
-        ; Measured: a 4-character source needs MaximumLength >= 10, and 9 is not enough -- the
+        ; Measured: a 4-character source needs MaximumLength >= 10, and 9 is not enough, the
         ; rule is on the byte count, so an ODD MaximumLength of 11 succeeds where 9 fails. On
         ; overflow this one writes nothing and leaves dst->Length alone, unlike sibling 018 which
         ; truncates and partially writes. Found by live substitution; see live_subst_ntconv2.c.

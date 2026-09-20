@@ -1,7 +1,7 @@
 // changes/073-ui64tow/reference.c — scalar oracle for _ui64tow.
 // The radix is converted with (unsigned), not (unsigned long long), and the difference is real.
-// For every radix in 2..36 the two are identical, which is why the corpus -- which swept exactly
-// 2..36 -- could never tell them apart. Widening it to the out-of-range radices that ucrtbase
+// For every radix in 2..36 the two are identical, which is why the corpus, which swept exactly
+// 2..36, could never tell them apart. Widening it to the out-of-range radices that ucrtbase
 // accepts made this model the only one of the three that disagreed:
 //     v=4294967295, radix=-1:   ours '10'   ucrtbase '10'   this model 'V'
 // ucrtbase converts the radix to a 32-bit UNSIGNED value, so -1 is 4294967295 and

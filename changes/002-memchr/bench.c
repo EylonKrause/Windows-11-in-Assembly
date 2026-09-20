@@ -1,4 +1,4 @@
-// changes/002-memchr/bench.c  -- wia_memchr vs live ucrtbase memchr.
+// changes/002-memchr/bench.c: wia_memchr vs live ucrtbase memchr.
 // Worst case for a find: target ABSENT, so every byte is scanned.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

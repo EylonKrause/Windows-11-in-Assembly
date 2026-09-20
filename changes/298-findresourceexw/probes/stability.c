@@ -1,4 +1,4 @@
-/* probes/stability.c -- can a win in the kernelbase WRAPPER even be measured,
+/* probes/stability.c: can a win in the kernelbase WRAPPER even be measured,
  * when 85-95% of every call is ntdll!LdrFindResource_U which we are not replacing?
  *
  * "ours" here is a plain C wrapper: normalise in a stack buffer, call

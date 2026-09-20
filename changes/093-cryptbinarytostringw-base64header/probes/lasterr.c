@@ -1,4 +1,4 @@
-/* b2serr.c -- what last error does CryptBinaryToString{A,W} leave, and on which paths?
+/* b2serr.c: what last error does CryptBinaryToString{A,W} leave, and on which paths?
  *
  * Live substitution found 19 of 8000 cases where the shipped export sets a last error on the
  * cb == 0 path and changes 081/085/090/092 leave the caller's value untouched. Before changing

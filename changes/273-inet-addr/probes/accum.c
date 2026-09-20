@@ -6,7 +6,7 @@
  * a. Hexadecimal seems to wrap, except when it does not.
  *
  *     0x12345678     accepted, 0x12345678         eight digits, the control
- *     0x123456789    accepted, 0x23456789         NINE digits -- the top nibble is simply GONE
+ *     0x123456789    accepted, 0x23456789         NINE digits; the top nibble is simply GONE
  *     0x1234567890   accepted, 0x34567890         ten digits, two nibbles gone
  *     0xF00000000    REFUSED                      nine digits, and this one is not accepted at all
  *
@@ -28,9 +28,9 @@
  *     " "      accepted, 0.0.0.0
  *     "  "     REFUSED
  *     "\t"     REFUSED
- *     "1 .2.3.4"   accepted, 0.0.0.1     -- the parse stops at the space and keeps what it has
+ *     "1 .2.3.4"   accepted, 0.0.0.1; the parse stops at the space and keeps what it has
  *
- * So a space terminates the address and the rest of the string is ignored -- but only one space, and
+ * So a space terminates the address and the rest of the string is ignored, but only one space, and
  * only a space. That is three rules fighting, and the corpus has to contain whichever one is real,
  * because an implementation that gets it wrong is wrong on an input any caller could produce by
  * trimming a string badly. Every combination of the six whitespace bytes is asked, at the front, in

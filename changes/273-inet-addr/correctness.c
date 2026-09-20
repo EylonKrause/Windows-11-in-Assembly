@@ -2,7 +2,7 @@
  *
  * Gate 1 for ws2_32!inet_addr: Ours vs the scalar model vs the live export.
  *
- * There is only one thing to compare -- the 32-bit result -- so the whole weight of this gate is in
+ * There is only one thing to compare (the 32-bit result) so the whole weight of this gate is in
  * the corpus, and the corpus is built out of the four things the probes found that a plausible
  * generator would never produce:
  *
@@ -10,7 +10,7 @@
  *     numbers with 9 to 24 digits in all three bases, with every leading digit, because whether one
  *     of those is accepted depends on a comparison between two wrapped values and nothing else.
  *   * Whitespace ends the address and the rest is ignored, so every one of the six whitespace bytes
- *     is placed at every position of several addresses -- and every OTHER byte is placed there too,
+ *     is placed at every position of several addresses, and every OTHER byte is placed there too,
  *     since "which bytes end it" is the question.
  *   * The single byte 0x20 is an address and nothing else with leading whitespace is.
  *   * Every part's field boundary, in all three bases, for all four forms.

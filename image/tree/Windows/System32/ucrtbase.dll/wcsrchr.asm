@@ -13,7 +13,7 @@
 ; Contract (probed against the live export):
 ;   - returns the LAST match, or NULL;
 ;   - c == 0 returns a pointer to the TERMINATOR ("abc" -> s+3, "" -> s+0). That is standard C and the
-;     opposite of shlwapi's StrRChrW (change 134), which returns NULL for a NUL search -- two functions
+;     opposite of shlwapi's StrRChrW (change 134), which returns NULL for a NUL search, two functions
 ;     doing "reverse character search" that disagree on this exact case.
 ;
 ; Method: a single FORWARD pass tracking the last match. Scanning forward rather than backward avoids

@@ -14,7 +14,7 @@
 ;
 ; EIGHTEEN TIMES, for a target offset of three bits. The aligned copy is RtlCopyMemory and runs at
 ; memory speed. The shifted one is about eighteen instructions per 32-BIT WORD, and what makes it
-; expensive is not the shifting -- it is that the destination word is written, read back and written
+; expensive is not the shifting; it is that the destination word is written, read back and written
 ; again:
 ;
 ;       0013E454  mov rcx, r9          ; the shift count, reloaded every iteration
@@ -36,8 +36,8 @@
 ;   * Copy reads the source from bit 0 and writes it at TargetBit. Extract reads at TargetBit and
 ;     writes from BIT 0. They are the same move in opposite directions, which is why one core
 ;     serves both.
-;   * RtlCopyBitMap's fourth argument is ignored. It is a three-argument function -- r9d is
-;     overwritten at 0x13E34A before it is ever read -- and passing 0, 1, 16 or 0xFFFFFFFF as a
+;   * RtlCopyBitMap's fourth argument is ignored. It is a three-argument function, r9d is
+;     overwritten at 0x13E34A before it is ever read, and passing 0, 1, 16 or 0xFFFFFFFF as a
 ;     fourth argument gives byte-for-byte identical results. Its count is
 ;         min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit)
 ;     and RtlExtractBitMap's, which really does take four, is
@@ -61,7 +61,7 @@
 ; Amount is the same for every word and is computed once.
 ;
 ;   * the DESTINATION is walked in 32-bit words, never 64, because an RTL_BITMAP buffer is an array
-;     of ULONG and the shipped code touches exactly those words -- a 64-bit store at the end would
+;     of ULONG and the shipped code touches exactly those words; a 64-bit store at the end would
 ;     write four bytes it never writes;
 ;   * the first and last destination words are MASKED read-modify-writes, because the bits outside
 ;     the range must survive;
@@ -75,7 +75,7 @@
 ;         vmovdqu [dst + w*4], ymm0
 ;
 ;     Six instructions for thirty-two bytes, with no read-modify-write anywhere. When the shift is
-;     zero this still works -- VPSLLD by 32 zeroes its lanes, so the OR contributes nothing -- but a
+;     zero this still works (VPSLLD by 32 zeroes its lanes, so the OR contributes nothing) but a
 ;     byte-aligned copy takes a plain 32-byte move instead, because that case is already
 ;     RtlCopyMemory in the shipped code and is running at memory speed.
 ;
@@ -83,7 +83,7 @@
 ; touches thirty-six bytes of source for thirty-two of destination, so it runs only while those
 ; thirty-six lie inside the source's ULONG array, and the last few words are produced by a scalar
 ; path that reads the source with an explicit bounds test and treats anything past the end as zero.
-; Those bits are masked off by `count` in any case -- the check is there so the READ cannot fault,
+; Those bits are masked off by `count` in any case; the check is there so the READ cannot fault,
 ; not because the value matters.
 ;
 ; ISA: AVX2, BMI2 (shrx is not used; the funnel is SHRD, which is baseline).
@@ -99,7 +99,7 @@ PUBLIC wia_extractbitmap
 ; ---------------------------------------------------------------------------------------------
 wia_copybitmap PROC
         ; count = min(Source->SizeOfBitMap, Destination->SizeOfBitMap - TargetBit), in 32 bits,
-        ; and the subtraction is allowed to wrap -- see the contract above.
+        ; and the subtraction is allowed to wrap, see the contract above.
         mov       eax, dword ptr [rdx]        ; Destination->SizeOfBitMap
         sub       eax, r8d
         mov       r10d, dword ptr [rcx]       ; Source->SizeOfBitMap
@@ -135,16 +135,16 @@ wia_extractbitmap PROC
         jmp       bb_enter
 wia_extractbitmap ENDP
 
-; -- GETSRC: the 32 source bits belonging to the destination word at byte offset rdi, into eax.
+; GETSRC: the 32 source bits belonging to the destination word at byte offset rdi, into eax.
 ;
-; Inlined at every site rather than called. It is wanted at four places -- the first destination
-; word, the last one, the single-word case, and the fully checked loop -- and a call at each cost
+; Inlined at every site rather than called. It is wanted at four places, the first destination
+; word, the last one, the single-word case, and the fully checked loop, and a call at each cost
 ; the short rows about a nanosecond apiece, which on a copy of twenty bits is a quarter of the whole
 ; call. Reads rsi (source), rdi (destination byte offset), rbp (delta) and [rsp+32] (the source
 ; bytes this copy may read); clobbers rax, rcx, rdx, r9, r10, r11.
 ;
 ; a read past the source is prevented rather than tolerated. Bits past the end are masked off by
-; the count anyway, so their value is irrelevant -- the bound is there so the load cannot fault.
+; the count anyway, so their value is irrelevant; the bound is there so the load cannot fault.
 GETSRC MACRO
         LOCAL   gsneg, gshi, gshave, gsnz, gsdone
         mov       rax, rdi
@@ -184,12 +184,12 @@ gsdone:
 ENDM
 
 ; ---------------------------------------------------------------------------------------------
-; bb_short -- the whole copy lands in at most TWO destination words.
+; bb_short, the whole copy lands in at most TWO destination words.
 ;   rcx = Source*, rdx = Destination*, r9d = dlo, r11d = slo, r10d = count
 ;
 ; No frame, no saved registers, no unwind data. That is the entire reason it exists: a copy of
 ; twenty bits through the general path is seven pushes, seven pops and a setup that computes the
-; last destination word, the shift and both masks -- and the whole call is over in about three
+; last destination word, the shift and both masks, and the whole call is over in about three
 ; nanoseconds, so the prologue IS the function. With the general path those rows measured
 ; 0.67x-0.90x; the work they actually need is one masked read-modify-write.
 ;
@@ -204,7 +204,7 @@ bb_short PROC
         ; The read bound is the LARGER of the source array and what this copy needs. The array,
         ; because reading inside it is always safe and the extra bits are masked off; what the copy
         ; needs, because a wrapped count makes the shipped export read past the array and KEEP what
-        ; it finds -- the corpus caught exactly that, an EXTRACT of 15 bits from bit 18 of a 15-bit
+        ; it finds, the corpus caught exactly that, an EXTRACT of 15 bits from bit 18 of a 15-bit
         ; source. Taking only the array would substitute zeros and disagree.
         mov       eax, dword ptr [rcx]        ; Source->SizeOfBitMap
         add       eax, 31
@@ -282,7 +282,7 @@ sh_have:
         or        dword ptr [rdx + r9], eax
         ret
         ; a 64-bit write is taken only when the copy really spans two words, in which case both are
-        ; written and both therefore exist -- the word after a one-word span may be the last of the
+        ; written and both therefore exist, the word after a one-word span may be the last of the
         ; caller array
 sh_two: and       qword ptr [rdx + r9], r8
         or        qword ptr [rdx + r9], rax
@@ -316,12 +316,12 @@ bb_enter PROC FRAME
         mov       rsi, qword ptr [rcx + 8]    ; Source->Buffer
         mov       rbx, qword ptr [rdx + 8]    ; Destination->Buffer
         ; NO NULL TESTS. The entry stubs have already dereferenced both bitmaps to work out the
-        ; count, and the shipped exports dereference on their first instruction too -- a NULL
+        ; count, and the shipped exports dereference on their first instruction too, a NULL
         ; RTL_BITMAP has no behaviour to match, only a fault to reproduce. Four tests that can
         ; never fire are four instructions, and on a copy of twenty bits that is measurable.
 
         ; The source read bound is what the copy needs, not what the source declares. When the
-        ; count wraps -- a TargetBit past the size -- the shipped export reads source words beyond
+        ; count wraps (a TargetBit past the size) the shipped export reads source words beyond
         ; SizeOfBitMap and uses what it finds there, so a bound taken from the declared size would
         ; substitute zeros and disagree. The corpus caught exactly that: EXTRACT of 15 bits from
         ; bit 18 of a 15-bit source reads the word after the array, and ntdll keeps the answer.
@@ -334,8 +334,8 @@ bb_enter PROC FRAME
         shl       rax, 2
         mov       dword ptr [rsp + 32], eax   ; the source bytes this copy may read
 
-        ; Neither dlo nor dend is kept in a register. Each is wanted exactly twice -- to build the
-        ; first word mask and the last -- so both are turned into what those masks need, and one of
+        ; Neither dlo nor dend is kept in a register. Each is wanted exactly twice, to build the
+        ; first word mask and the last, so both are turned into what those masks need, and one of
         ; the two callee-saved registers they would have occupied is never pushed at all.
         mov       rbp, r11
         sub       rbp, r9                     ; delta = slo - dlo, SIGNED
@@ -389,7 +389,7 @@ bb_first:
 
 ; ---- the whole words between the ends ----
 ; The bound tests are hoisted. The first version tested the destination end and the source end on
-; every 32-byte step -- four instructions of bookkeeping around six of work, and the aligned rows
+; every 32-byte step, four instructions of bookkeeping around six of work, and the aligned rows
 ; measured 0.79x-0.86x against RtlCopyMemory because of it. Both bounds advance by exactly 32 bytes
 ; per step, so the number of safe steps is computed once and the loop just counts down.
 bb_bulk:

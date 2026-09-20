@@ -5,7 +5,7 @@
  * It shares nothing with impl.asm but the contract. impl.asm scans with a page-safe AVX2 strlen and
  * copies 32 bytes at a time; this counts one byte and copies one byte.
  *
- * The rules, as probes/contract.c measured them -- and two of them differ from the wide analogue
+ * The rules, as probes/contract.c measured them, and two of them differ from the wide analogue
  * that change 101 landed, which is why none of them were inherited:
  *
  *   * src == NULL is STATUS_SUCCESS with nothing changed, and so is an empty source.
@@ -15,7 +15,7 @@
  *     not, at any size.
  *   * The sum is computed wide. Length 40000 with a 30000-byte source is refused; a 16-bit
  *     comparison would wrap to 4464 and overrun the buffer.
- *   * On failure -- STATUS_BUFFER_TOO_SMALL, 0xC0000023 -- nothing at all is touched.
+ *   * On failure (STATUS_BUFFER_TOO_SMALL, 0xC0000023) nothing at all is touched.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

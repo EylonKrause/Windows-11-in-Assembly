@@ -4,11 +4,11 @@
  *
  * The rows are what a backward substring search actually costs:
  *
- *   * a MISS over a long haystack, which must try every start position -- the worst case;
+ *   * a MISS over a long haystack, which must try every start position, the worst case;
  *   * a hit near the END, which a backward search finds at once and a forward one does not;
  *   * a hit near the START, which is the backward search's own worst case;
  *   * a needle whose first character is COMMON, so the filter fires constantly and the verification
- *     runs on almost every position -- this is the row that measures the filter's value, and a
+ *     runs on almost every position; this is the row that measures the filter's value, and a
  *     bench without it would report only the easy case;
  *   * short haystacks, where the whole cost is the call and the two length scans.
  *

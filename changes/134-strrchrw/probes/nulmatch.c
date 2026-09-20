@@ -1,4 +1,4 @@
-/* probes/nulmatch.c -- does StrRChrW's "wMatch == 0 -> NULL" hold for the RAW-RANGE form?
+/* probes/nulmatch.c: does StrRChrW's "wMatch == 0 -> NULL" hold for the RAW-RANGE form?
  *
  * The live harness found 364 of 20000 cases differing, every one of them with wMatch == 0 and a
  * pszEnd PAST the string's terminator. The export returned the terminator's own offset; this
@@ -7,8 +7,8 @@
  *
  * The header's contract line is not wrong so much as under-qualified: in the NUL-terminated form a
  * scan that stops AT the terminator can never match it, so NULL falls out for free and is what the
- * export does. In the raw-range form the range is scanned literally -- the header says so itself,
- * "ignoring embedded NULs and running past the terminator if asked" -- and a NUL inside that range
+ * export does. In the raw-range form the range is scanned literally, the header says so itself,
+ * "ignoring embedded NULs and running past the terminator if asked", and a NUL inside that range
  * is an ordinary character that can be found.
  *
  * (Named nulmatch.c, not nul.c: NUL is a reserved DOS device name on Windows and it stays

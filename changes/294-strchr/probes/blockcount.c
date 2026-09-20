@@ -1,8 +1,8 @@
-// changes/294-strchr/probes/blockcount.c -- driver for blockcount.asm. See that file's header.
+// changes/294-strchr/probes/blockcount.c: driver for blockcount.asm. See that file's header.
 //
 // Chooses the number of 128-bit blocks in the prologue, and the width of the wide loop, by
 // measuring the WORST (length, start-alignment) pair each variant produces against the live
-// export -- because that worst pair is what the speed gate is, and it is not the pair `malloc`
+// export, because that worst pair is what the speed gate is, and it is not the pair `malloc`
 // happens to hand a benchmark.
 //
 //   ml64 /nologo /c /Fo blockcountasm.obj blockcount.asm

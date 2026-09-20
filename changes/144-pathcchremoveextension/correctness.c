@@ -5,7 +5,7 @@
 // the corpus could not produce the failing shape and the oracle shared the same gap. 57746 of 349525
 // strings over {a, '.', backslash, space} were wrong. See discovery/extension_space_audit.c.
 //
-// The fix is not "add a space to the fuzz" -- a bigger random alphabet leaves the next gap just as
+// The fix is not "add a space to the fuzz"; a bigger random alphabet leaves the next gap just as
 // invisible. The section marked EXHAUSTIVE below enumerates the small alphabet instead of sampling
 // it, which is a proof rather than a sample and would have failed loudly on day one.
 // Bit-exact fuzz of wia_pathcchremoveext vs live kernelbase!PathCchRemoveExtension + oracle: the

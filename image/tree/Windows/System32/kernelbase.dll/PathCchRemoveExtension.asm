@@ -13,12 +13,12 @@
 ;     with '/' and ':' NOT stopping the search. Verified on the same 15 edge cases as change 132;
 ;   - cchPath must be in [1, 32768] (PATHCCH_MAX_CCH). 0 or > 32768 -> E_INVALIDARG (0x80070057);
 ;   - the string must be NUL-terminated strictly inside cchPath (len <= cch-1), else E_INVALIDARG.
-;     Measured: length 32767 with cch 32768 succeeds, length 32768 with cch 32769 fails -- the limit is
+;     Measured: length 32767 with cch 32768 succeeds, length 32768 with cch 32769 fails; the limit is
 ;     on cch, not on the length as such;
 ;   - returns S_OK when an extension was found and removed, and **S_FALSE (1)** when there was none --
 ;     the buffer is then left alone. On E_INVALIDARG the buffer is untouched as well;
 ;   - and it additionally requires the string LENGTH <= 259, independent of cchPath: length 259 works,
-;     260 fails even with a generous cch. PathCchFindExtension (change 143) accepts both -- two adjacent
+;     260 fails even with a generous cch. PathCchFindExtension (change 143) accepts both, two adjacent
 ;     functions in the same family with different limits, found by fuzzing.
 ;
 ; Method: change 132's single-pass AVX2 scan (per 32-byte block: masks for '.', '\' and NUL; the
@@ -151,7 +151,7 @@ pc_done:
         mov       rax, rbx                          ; no extension -> the terminator
 pc_ok:
         ; Extra limit this function has and PathCchFindExtension (143) does NOT: the string LENGTH must
-        ; be <= 259, independent of cchPath. Measured -- length 259 succeeds and 260 fails even with a
+        ; be <= 259, independent of cchPath. Measured, length 259 succeeds and 260 fails even with a
         ; generous cch, while FindExtension accepts both.
         mov       rcx, rbx
         sub       rcx, rsi

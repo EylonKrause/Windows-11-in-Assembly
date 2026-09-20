@@ -15,7 +15,7 @@
  *   2-byte    C2..DF 80..BF, the two-byte block: sixteen bytes, eight units, no shuffle
  *   3-byte    E1..EF 80..BF 80..BF, the three-byte block: twenty-four bytes, eight units
  *   4-byte    F0..F3, the four-byte block: sixteen bytes, four surrogate PAIRS
- *   mixed     ASCII alternating with two-byte -- what European and Middle Eastern prose looks like
+ *   mixed     ASCII alternating with two-byte, what European and Middle Eastern prose looks like
  *             once it has spaces and punctuation in it, and the commonest non-ASCII input there is
  *   U+fffd    ef bf bd repeated: the three-byte block again, and also what this decoder's own
  *             substitution of malformed input produces, so it is the shape of re-decoded text

@@ -5,7 +5,7 @@
 // Freeze-safety protocol (per Eylon's zero-tolerance directive after repeated PC freezes):
 //   (0) SACRIFICIAL CHILD: this is a standalone single-threaded console exe. A fault here
 //       kills only this process, never the PC. It patches only its own per-process (cow)
-//       copy of ucrtbase -- never a live system process.
+//       copy of ucrtbase, never a live system process.
 //   (1) Run ours first: before any hot-patch, each wia_* is validated standalone against its
 //       scalar reference over the fuzz corpus. If ANY mismatch, that function is NOT patched.
 //   (2) Patch only when idle: the target isn't executing on any other thread (single-threaded

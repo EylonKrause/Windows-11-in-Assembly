@@ -2,7 +2,7 @@
  *
  * WHICH CRC-32 IS ntdll!RtlCrc32?
  *
- * discovery/ntdll_bitmap3.c measured it at 4627.90 ns for 64 KB -- 0.071 ns/byte, the worst
+ * discovery/ntdll_bitmap3.c measured it at 4627.90 ns for 64 KB, 0.071 ns/byte, the worst
  * per-byte cost found anywhere in ntdll this session. Nothing can be written until the exact
  * variant is known, and "it is probably zlib" is not knowing.
  *
@@ -22,7 +22,7 @@
  *   5. CHAINING: is the third argument really a running CRC? If CRC(b, n2, CRC(a, n1, 0)) equals
  *      CRC(ab, n1+n2, 0) then it is, and an implementation may process a buffer in pieces.
  *   6. And the hypothesis is then confirmed or rejected over a few thousand random buffers
- *      against a from-scratch bitwise implementation of the derived parameters -- which is the
+ *      against a from-scratch bitwise implementation of the derived parameters, which is the
  *      only step that actually proves anything.
  */
 #define WIN32_LEAN_AND_MEAN

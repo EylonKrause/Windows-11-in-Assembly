@@ -7,7 +7,7 @@
 //
 // NOTE the 1024 class: at 260 characters or more the export hits its MAX_PATH guard and returns
 // without touching the buffer, so that class times the LENGTH SCAN alone. That is a real caller
-// path, not a degenerate one -- a long path is exactly when the guard fires.
+// path, not a degenerate one; a long path is exactly when the guard fires.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

@@ -6,8 +6,8 @@
  * The plan for the case-insensitive path is the one change 236 arrived at: compare the RAW
  * characters first, because two strings that are equal are usually equal exactly, and fold only a
  * block that disagrees. That leaves one case where the fold is on the critical path for every
- * character -- two strings that differ only in case, where every block disagrees raw and every
- * block has to be folded -- and for that case a 65536-entry table lookup per character would be
+ * character, two strings that differ only in case, where every block disagrees raw and every
+ * block has to be folded, and for that case a 65536-entry table lookup per character would be
  * slower than the shipped code.
  *
  * So the fold needs an in-vector form, and an in-vector form can only exist over a range where the

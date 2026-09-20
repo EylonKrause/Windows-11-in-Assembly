@@ -8,7 +8,7 @@
  * holes, so the shapes come over from the start and are adapted to a FORWARD, first-match search:
  *
  *   * interior near-misses at every index, with the vector filter neutralised;
- *   * a match planted where the scan must NOT find it -- for a forward scan, below the haystack
+ *   * a match planted where the scan must NOT find it, for a forward scan, below the haystack
  *     pointer and below the resumed scan bound, which is what the bottom edge mask is for;
  *   * every member of every filter dispatch class, because a four-register filter asked to hold a
  *     five-member set must drop one and only the dropped member exposes it;
@@ -295,7 +295,7 @@ int main(void)
      * The forward block scan reads aligned 32-byte blocks, so the block containing the haystack
      * pointer almost always extends BELOW it, and the bottom edge mask is the only thing stopping a
      * hit there from being accepted. Change 283's equivalent corpus caught exactly that mutant, and
-     * it returned a NEGATIVE byte offset -- a pointer below the string the caller gave.
+     * it returned a NEGATIVE byte offset, a pointer below the string the caller gave.
      */
     {
         long before = cases;
@@ -320,7 +320,7 @@ int main(void)
      *
      * probes/partners.c (change 283) measured that only nine partner counts occur: 0, 2, 3, 4, 5, 6,
      * 7, 8 and the 255 bitmap sentinel. A four-register filter asked to hold a five-member set must
-     * drop a member, and only the dropped one exposes it -- which is how a mutant that moved the
+     * drop a member, and only the dropped one exposes it, which is how a mutant that moved the
      * threshold from four to two hundred survived change 283's first sweep.
      */
     {
@@ -449,7 +449,7 @@ int main(void)
     /* 14. The empty needle over a haystack that contains a nul-matching code unit.
      *
      * Corpus 5 asks for an empty needle over "abcXYZabc" and gets NULL, and the first draft of this
-     * change concluded that an empty needle is refused -- the way change 283 correctly measured for
+     * change concluded that an empty needle is refused, the way change 283 correctly measured for
      * StrRStrIW. It is not. "abcXYZabc" holds no code unit that matches a NUL, and the empty needle's
      * first code unit IS the terminator, so the search finds nothing for a reason that has nothing to
      * do with the needle being empty. The live-substitution gate differed on 96 of 30000 cases, all

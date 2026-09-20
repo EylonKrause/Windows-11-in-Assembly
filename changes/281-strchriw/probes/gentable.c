@@ -1,6 +1,6 @@
 /* changes/281-strchriw/probes/gentable.c
  *
- * GENERATES foldpairs.c -- the fold relation, asked of StrChrIW and written out.
+ * GENERATES foldpairs.c, the fold relation, asked of StrChrIW and written out.
  *
  * Every table in this project is built by asking the function that owns it, never transcribed:
  * change 277's case tables, change 269's SDDL aliases, change 210's upcase table. This one cannot
@@ -10,14 +10,14 @@
  *     which is not something a gate can do on every run;
  *   * and the cheap shortcut does not work. probes/sortkey.c computed the whole relation from
  *     LCMapStringW(LCMAP_SORTKEY|NORM_IGNORECASE) in 0.002 s and it SPLITS 116 classes the export
- *     unites -- all of them precomposed Hangul syllables against their jamo, U+AE4B against
+ *     unites, all of them precomposed Hangul syllables against their jamo, U+AE4B against
  *     U+1101 and so on. Close is not the relation.
  *
  * So the relation is extracted ONCE, here, from the live export, and written out as source. What
  * keeps that honest is that the output is SMALL and CHECKABLE: 57063 of the 59321 classes are
  * singletons, so only 8472 code units are in a class with anybody else, and those are the only ones
  * that need to be written down. tables.c rebuilds the full 65536-entry map from those pairs at init
- * and then VERIFIES it against the live export in milliseconds -- every non-singleton class is
+ * and then VERIFIES it against the live export in milliseconds; every non-singleton class is
  * checked by asking StrChrIW to find each of its members in a short string of the class.
  *
  * Run this only to regenerate foldpairs.c. The gate does not need it.

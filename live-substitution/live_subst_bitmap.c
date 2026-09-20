@@ -5,8 +5,8 @@
 //   023 RtlNumberOfSetBits   030 RtlAreBitsSet
 //   123 RtlFindLongestRunClear   124 RtlNumberOfClearBits
 //
-// Why these four together. They share one subject -- an `RTL_BITMAP`, which is a bit count and a
-// pointer -- so a single corpus drives all four, and 023 and 124 are exact complements: for the
+// Why these four together. They share one subject; an `RTL_BITMAP`, which is a bit count and a
+// pointer, so a single corpus drives all four, and 023 and 124 are exact complements: for the
 // same bitmap their answers must sum to `SizeOfBitMap`. That is a free cross-check the harness
 // makes explicitly, because two implementations can agree with each other and both be wrong about
 // where the bitmap ends.
@@ -14,8 +14,8 @@
 // The trap this corpus is built around: **bits at index >= SizeOfBitMap must be ignored.** All four
 // contracts say so, and it is the easiest thing in the world to get right by accident on a corpus
 // whose buffer happens to be zero past the declared size. So every bitmap here is allocated with
-// eight extra words beyond `SizeOfBitMap` and those words are filled with GARBAGE -- sometimes all
-// ones, sometimes random -- chosen so that an implementation that reads one word too far, or that
+// eight extra words beyond `SizeOfBitMap` and those words are filled with GARBAGE, sometimes all
+// ones, sometimes random, chosen so that an implementation that reads one word too far, or that
 // forgets to mask the final partial word, gets a different answer rather than the same one.
 //
 // The sizes are chosen the same way: 0, 1, and every value on and either side of the 32-bit word
@@ -25,22 +25,22 @@
 //
 // RtlAreBitsSet gets three queries per case, not one, because its answer depends on a (start, len)
 // pair and most pairs are uninteresting. One is drawn to land inside a set run, one to straddle a
-// word boundary, and one to be degenerate -- `len == 0`, which is FALSE by ntdll convention rather
+// word boundary, and one to be degenerate, `len == 0`, which is FALSE by ntdll convention rather
 // than the vacuous TRUE a fresh implementation would produce, or a range that runs off the end of
 // the bitmap, which is also FALSE.
 //
 // RtlFindLongestRunClear WRITES, and its output index is the only thing in this harness that a
 // caller reads out of memory rather than a register. `*StartingIndex` is POISONED before every call,
-// so "left it alone" is distinguishable from "wrote zero" -- the distinction that mattered for the
+// so "left it alone" is distinguishable from "wrote zero", the distinction that mattered for the
 // `RtlInit*String` descriptors and for the GUID formatter's capacity terminator.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copy of ntdll -- never a live system process, never the file on disk.
+//       copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle. These four are worth a note: Rtl bitmaps are what the heap and the
 //       handle table are built on, so the FUNCTIONS look load-bearing. They are not *used* by the
-//       loader or the allocator during this harness -- they are leaf routines over a caller-supplied
+//       loader or the allocator during this harness; they are leaf routines over a caller-supplied
 //       struct, this process is single-threaded, and nothing allocates while the patch is in place.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte, then the whole corpus is
 //       re-run through the restored exports.

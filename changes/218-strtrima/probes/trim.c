@@ -11,10 +11,10 @@
    What has to be settled:
      * Is the walk byte-wise on this code page? Asked separately from its siblings, because it is a
        different function. 6.33x is the MBCS-walk signature.
-     * what exactly is trimmed -- leading only, trailing only, or both;
+     * what exactly is trimmed, leading only, trailing only, or both;
      * What the return value means. "TRUE if anything was trimmed" is the obvious guess and obvious
        guesses are what this project keeps getting punished for;
-     * a string made entirely of trim characters -- does it become empty;
+     * a string made entirely of trim characters, does it become empty;
      * the empty set and the empty source, and NULL for either;
      * whether the trailing scan and the leading scan use the SAME set (they need not);
      * and the one that costs the most to get wrong: Does it write when it trims nothing? An

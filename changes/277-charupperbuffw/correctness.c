@@ -4,8 +4,8 @@
  * EXPORTS, on the return value AND every character of the buffer.
  *
  * Both exports are one change, because they are the same loop with two tables and two ranges, and a
- * gate that checked only the upper form would leave the lower one's range -- 'A'..'Z' plus 0x20
- * rather than 'a'..'z' minus it -- untested. Change 268's lesson: a pair is one change or it is two
+ * gate that checked only the upper form would leave the lower one's range, 'A'..'Z' plus 0x20
+ * rather than 'a'..'z' minus it, untested. Change 268's lesson: a pair is one change or it is two
  * gates.
  *
  * The corpus is built where a blocked vector loop goes wrong:
@@ -16,11 +16,11 @@
  *     code unit inside its block is exactly what decides which path runs.
  *
  *   * every LENGTH 0..200. The vector path runs while 32 bytes remain and the tail runs one
- *     character at a time, so every length crosses that boundary differently -- and length 0 has its
+ *     character at a time, so every length crosses that boundary differently, and length 0 has its
  *     own rule, which is to touch nothing at all.
  *
  *   * The buffer is poisoned past the count and checked afterwards. CharUpperBuffW takes a count,
- *     not a terminator -- probes/mapping.c measured it mapping straight past an embedded NUL -- so
+ *     not a terminator (probes/mapping.c measured it mapping straight past an embedded NUL) so
  *     an implementation that ran to a NUL, or that rounded the count up to a whole vector block,
  *     would corrupt whatever follows. That is change 016's defect exactly: storing sixteen and
  *     advancing by fewer.
@@ -107,7 +107,7 @@ int main(void)
         printf("  1. every code unit 0..0xFFFF, alone: %ld\n", cases - before);
     }
 
-    /* 2. every code unit at every offset 0..31 of a 32-character buffer -- which block it lands in
+    /* 2. every code unit at every offset 0..31 of a 32-character buffer, which block it lands in
           decides whether the vector path or the table path runs */
     {
         long before = cases;
@@ -141,7 +141,7 @@ int main(void)
         printf("  3. every length 0..200, ASCII, high, and mixed: %ld\n", cases - before);
     }
 
-    /* 4. embedded NULs -- the count is what matters, not a terminator */
+    /* 4. embedded NULs; the count is what matters, not a terminator */
     {
         long before = cases;
         for (n = 1; n <= 64; ++n) {

@@ -4,7 +4,7 @@
 // Every line of this was measured, not read off msdn. probes/wcso.c is the measurement; the
 // disassembly of the shipped export in RESULTS.md is the cross-check. What it found:
 //
-//   * HSTRING LAYOUT. The shipped export does NOT call its own accessors -- it reads the handle
+//   * HSTRING LAYOUT. The shipped export does NOT call its own accessors; it reads the handle
 //     directly: `mov r9d,[rdx+4]` is the length and `mov r8,[rdx+10h]` is the buffer. The same two
 //     offsets are the whole body of WindowsGetStringLen and WindowsGetStringRawBuffer. Confirmed
 //     against those two accessors over 164 live handles of every kind combase can make: heap
@@ -22,13 +22,13 @@
 //     leaves a live IRestrictedErrorInfo on the thread. Proved by originating the identical error
 //     ourselves and comparing IRestrictedErrorInfo::GetErrorDetails field by field: same HRESULT,
 //     same description, same restricted description ("result"), same capability SID. The export at
-//     combase+0x69530 that the shipped code calls IS RoOriginateErrorW -- ordinal 0x19F, same RVA.
+//     combase+0x69530 that the shipped code calls IS RoOriginateErrorW, ordinal 0x19F, same RVA.
 //
 //   * Embedded NULs are ordinary characters. "a\0b" vs "a\0c" is -1, not 0: the comparison runs to
 //     the declared length and does not stop at a NUL. (HSTRING allows them; that is why
 //     WindowsStringHasEmbeddedNull exists.)
 //
-//   * Comparing a handle with itself is an early-out -- `cmp rcx,rdx / je` is the second
+//   * Comparing a handle with itself is an early-out, `cmp rcx,rdx / je` is the second
 //     instruction of the shipped body, ahead of every other test. It is also why h vs
 //     WindowsDuplicateString(h) is free: a duplicate of a heap HSTRING is the SAME handle with the
 //     refcount bumped.
@@ -38,17 +38,17 @@
 //     StrChrI family OUT because those fold through the locale machinery. Here: 400 000 random
 //     pairs over an alphabet loaded with case pairs, ignorables, combining marks, sharp-s,
 //     U+0130/U+0131, lone and paired surrogates, PUA and non-characters produced ZERO differences
-//     against the plain code-unit compare below -- on a corpus where a linguistic CompareStringW
+//     against the plain code-unit compare below, on a corpus where a linguistic CompareStringW
 //     disagrees with it 19.7% of the time. Identical under en-US, tr-TR, lt-LT, az-Latn-AZ, el-GR
 //     and ja-JP. Ordering is by UTF-16 code unit, not code point: U+ffff > U+10000.
 //
 //   * The one thing that is not the empty-string model. a non-NULL handle whose buffer is NULL
-//     compares EQUAL to everything -- "abc" included -- and leaves GetLastError() == 87. That is
+//     compares EQUAL to everything ("abc" included) and leaves GetLastError() == 87. That is
 //     not a rule anyone wrote down; it falls out of the implementation. The shipped body forwards
 //     to kernelbase!CompareStringOrdinal, which rejects a NULL lpString with 0 /
 //     ERROR_INVALID_PARAMETER, and the shipped body maps "not 1 and not 3" to *result = 0. No
 //     documented creator can build such a handle, so this is only reachable through a hand-built
-//     header -- and the corpus builds them, because the layout is proved and the gate is exact.
+//     header, and the corpus builds them, because the layout is proved and the gate is exact.
 //
 // A successful call does NOT disturb GetLastError.
 #define WIN32_LEAN_AND_MEAN

@@ -1,6 +1,6 @@
 /* discovery/momentary_tier2.c
  *
- * TIER 2 of "what does Windows run constantly" -- the next 45 shaped candidates by fan-in after
+ * TIER 2 of "what does Windows run constantly", the next 45 shaped candidates by fan-in after
  * the ones desktop_startup_top.c already settled.
  *
  * How this list was built. The union of the desktop and startup import sweeps
@@ -203,7 +203,7 @@ int main(void) {
     {
         pfn_FindResourceExW pFRE = (pfn_FindResourceExW)sym(L"kernel32.dll", "FindResourceExW");
         pfn_GetFullPathNameW pGFP = (pfn_GetFullPathNameW)sym(L"kernel32.dll", "GetFullPathNameW");
-        /* LoadLibraryW, not GetModuleHandleW. Linking user32.lib does NOT load user32 -- the
+        /* LoadLibraryW, not GetModuleHandleW. Linking user32.lib does NOT load user32, the
          * linker only emits an import for a symbol something actually references, and nothing in
          * this file calls a user32 function directly. So GetModuleHandleW returned NULL here, the
          * `if (pFRE && u)` guard was false, and the FindResourceExW row silently did not run:

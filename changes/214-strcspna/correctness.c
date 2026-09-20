@@ -13,7 +13,7 @@
 //    before the string could produce a false hit if the shift were wrong. Every case is therefore
 //    run at every start offset within a 32-byte block, with the preceding bytes deliberately filled
 //    with set members.
-// 3. a NULL set is not the empty set -- 0 versus strlen. Both are tested explicitly.
+// 3. a NULL set is not the empty set, 0 versus strlen. Both are tested explicitly.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

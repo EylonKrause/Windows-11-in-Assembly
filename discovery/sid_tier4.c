@@ -1,12 +1,12 @@
 /* discovery/sid_tier4.c
  *
- * TIER 4 -- the ntdll SID trio and the remaining shaped fan-in leaders.
+ * TIER 4, the ntdll SID trio and the remaining shaped fan-in leaders.
  *
  * Why the SIDs are worth a second look after tier 2 ruled two of them out.
  *
  * tier 2 measured advapi32's wrappers and ruled out GetLengthSid (4.85 ns flat) and
  * RtlLengthSid (1.70 ns flat). But it also measured `EqualSid` at 10.30 ns for a five-sub-authority
- * SID -- 24 bytes -- which is 0.368 ns/byte. That is slow for a 24-byte compare: this repository's
+ * SID (24 bytes) which is 0.368 ns/byte. That is slow for a 24-byte compare: this repository's
  * RtlCompareMemory lands at 4.4x and does that much in a couple of nanoseconds. advapi32's EqualSid
  * is a forwarder, so the question is what the ntdll body underneath costs, and whether the wrapper
  * or the body is where the time goes.
@@ -15,7 +15,7 @@
  *
  * A SID is at most 68 bytes (1 revision + 1 count + 6 authority + 15 x 4 sub-authorities) and a
  * real token SID is 24-32, so none of these can ever be throughput-bound. The question is whether
- * the SHIPPED code spends more than the handful of instructions the work actually needs -- which is
+ * the SHIPPED code spends more than the handful of instructions the work actually needs, which is
  * exactly the question that made FileTimeToSystemTime a target at 36 ns and GetSystemTimeAsFileTime
  * a non-target at 1.80 ns.
  *
@@ -23,7 +23,7 @@
  *
  *   CreateWellKnownSid   83 modules   builds a SID from an enum: a table lookup and a copy
  *   CharNextW            49           advances one UTF-16 character; surrogate-aware or not?
- *   SHLoadIndirectString 46           "@dll,-id" indirection -- parse then load a resource
+ *   SHLoadIndirectString 46           "@dll,-id" indirection, parse then load a resource
  *   PathFileExistsW      49           a filesystem call; timed only to rule it out on evidence
  *
  * BUILD
@@ -94,7 +94,7 @@ int main(void) {
     pfn_RtlLengthSid pLen = (pfn_RtlLengthSid)nt("RtlLengthSid");
 
     /* Three SID shapes. A well-known SID has ONE sub-authority and a domain user has FIVE, and the
-     * difference is the whole length-dependence such a function can have -- timing only the short
+     * difference is the whole length-dependence such a function can have, timing only the short
      * one would understate every copy and compare here. */
     PSID s1 = NULL, s5 = NULL, s5b = NULL, s5c = NULL;
     ConvertStringSidToSidW(L"S-1-1-0", &s1);                                    /* Everyone, 12 B */

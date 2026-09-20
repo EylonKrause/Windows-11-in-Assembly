@@ -4,8 +4,8 @@
  * with no vector path and no range rule, so it is a second opinion about the thing the assembly
  * optimises rather than a copy of it.
  *
- * probes/mapping.c established that the mapping is exactly this -- per-character, context-free,
- * not locale-aware, identical to ntdll's -- and tables.c builds the tables by asking the exports
+ * probes/mapping.c established that the mapping is exactly this, per-character, context-free,
+ * not locale-aware, identical to ntdll's, and tables.c builds the tables by asking the exports
  * themselves.
  *
  * The count is a COUNT, not a terminator: probes/mapping.c measured the export mapping straight

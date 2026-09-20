@@ -1,8 +1,8 @@
 @echo off
-REM changes/233-pathquotespacesa/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/233-pathquotespacesa/build.bat: assemble, gate on correctness, then benchmark.
 Rem /EHa is for the correctness harness only: the shipped export faults when the caller lies
 REM about the buffer size (probes/pqsa.c), so the harness must catch that. The implementation
-REM itself has NO wrapper -- see impl.asm.
+REM itself has NO wrapper, see impl.asm.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1
 set H=%~dp0

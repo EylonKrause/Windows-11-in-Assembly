@@ -2,8 +2,8 @@
  *
  * The exact status and the exact destination state, for every size relationship.
  *
- * probes/contract.c showed three different outcomes already -- STATUS_SUCCESS, STATUS_BUFFER_TOO_SMALL
- * (0xC0000023) and STATUS_BUFFER_OVERFLOW (0x80000005) -- and they do not line up with a single
+ * probes/contract.c showed three different outcomes already, STATUS_SUCCESS, STATUS_BUFFER_TOO_SMALL
+ * (0xC0000023) and STATUS_BUFFER_OVERFLOW (0x80000005), and they do not line up with a single
  * "does it fit" test:
  *
  *      "abc" (3 UTF-8 bytes) into MaximumLength 3  ->  0xC0000023
@@ -14,8 +14,8 @@
  * reimplementation that returned the wrong one of those two failure codes would look right in every
  * test that only asked "did it fail".
  *
- * Also: On failure the destination is partially written -- "abc" into MaximumLength 2 leaves an 'a'
- * behind -- and Length is NOT updated. That is the N-form's own behaviour showing through, and it
+ * Also: On failure the destination is partially written, "abc" into MaximumLength 2 leaves an 'a'
+ * behind, and Length is NOT updated. That is the N-form's own behaviour showing through, and it
  * has to be reproduced rather than tidied up, because a caller that inspects the buffer after a
  * failure sees it.
  *

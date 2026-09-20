@@ -5,19 +5,19 @@
 ;
 ; discovery/shlwapi_narrow2.c timed the twelve narrow shlwapi siblings still unconverted, and this
 ; one carries the biggest ratio by a distance: 158.64 ns against 19.86 ns for PathRemoveBlanksW on
-; the same character count -- 7.99x the wide cost for HALF the bytes. Change 141 converted the wide
+; the same character count, 7.99x the wide cost for HALF the bytes. Change 141 converted the wide
 ; form at 4.68x.
 ;
 ; ---- what the probe settled (probes/blanks.c) -------------------------------------------------------
 ;   * a blank is 0x20 and nothing else. Every byte value was tried leading and trailing: exactly one
-;     qualifies in each position. a tab is not a blank -- "\ta\t" comes back unchanged -- which is
+;     qualifies in each position. a tab is not a blank ("\ta\t" comes back unchanged) which is
 ;     worth stating because "remove blanks" reads like it should mean whitespace.
 ;   * Both ends are stripped; blanks in the MIDDLE survive.
 ;   * A string made entirely of blanks becomes empty. An empty string is left completely untouched.
 ;   * NULL returns without faulting.
 ;   * BYTE-WISE, and checked with the STRONGER screen. StrStrA passed the usual "put a byte in front
-;     of the interesting character" test and was still not byte-wise -- its comparison conflated two
-;     values INSIDE a candidate -- so this probe varied every byte value where the function actually
+;     of the interesting character" test and was still not byte-wise, its comparison conflated two
+;     values INSIDE a candidate, so this probe varied every byte value where the function actually
 ;     looks, immediately inside both runs: 0 of 254 behave unexpectedly.
 ;
 ; ---- And the write order, which is the opposite of change 218's ------------------------------------
@@ -27,7 +27,7 @@
 ;
 ;       a b c \0 <space> \0 <space> \0
 ;
-; which is only what you get by MOVING FIRST -- copying "abc  \0" down to the front -- and cutting
+; which is only what you get by MOVING FIRST (copying "abc  \0" down to the front) and cutting
 ; the trailing blanks afterwards. Had it cut first and moved second, byte 4 would be a leftover 'c'
 ; rather than a space. Two sibling functions doing the same job in the opposite order is exactly the
 ; sort of thing that gets assumed instead of measured.
@@ -40,11 +40,11 @@
 ; ---- method ----------------------------------------------------------------------------------------
 ; One forward pass yields all three facts at once. A blank is a single byte value, so no membership
 ; bitmap is needed: comparing against 0x20 and against 0 gives, per 32-byte block, the mask of
-; characters that are NEITHER -- and the first set bit of that is the start of the kept range, the
+; characters that are NEITHER, and the first set bit of that is the start of the kept range, the
 ; last one before the terminator is its end, and the terminator's own mask gives the length.
 ;
 ; The first block's mask has the bits BEFORE the string cleared rather than shifted out, so the block
-; base can be the signed value -(psz & 31) and every later block is simply +32 -- one uniform loop.
+; base can be the signed value -(psz & 31) and every later block is simply +32, one uniform loop.
 ;
 ; The move is forward with the destination at or below the source, so each block is loaded before it
 ; IS STORED and the store lands entirely behind the next block's read. The overlapping head/tail pair
@@ -138,7 +138,7 @@ pb_l2:
         bsr       ecx, eax
         lea       r11, [r10 + rcx]
 pb_nomore:
-        ; "no non-blank in THIS block" is not "no non-blank anywhere" -- change 218 hit exactly that
+        ; "no non-blank in THIS block" is not "no non-blank anywhere", change 218 hit exactly that
         ; conflation, at one source alignment only, when the string spanned a block boundary and its
         ; terminator landed as byte 0 of the next block. Only r8 answers the second question.
         cmp       r8, -1
@@ -209,7 +209,7 @@ pb_trail:
         jmp       pb_ret
 
 pb_allblank:
-        ; every character is a blank. The buffer becomes empty -- and an EMPTY string is left
+        ; every character is a blank. The buffer becomes empty, and an EMPTY string is left
         ; completely untouched, which is a different thing from being emptied.
         test      rdx, rdx
         jz        pb_ret

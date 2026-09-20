@@ -7,7 +7,7 @@
 ; Same block scan as changes 135/136: per 32-byte block every set character is broadcast and compared
 ; and the results OR-ed. Unlike StrCSpnW, which only needs to know *where* the scan stopped, this has
 ; to know *why*: the terminator and a set member are tracked in separate masks, and whichever comes
-; first decides -- a set hit returns its address, the terminator returns NULL.
+; first decides; a set hit returns its address, the terminator returns NULL.
 ;
 ; Page-safe: masked aligned prologue, all later loads 32-aligned (an aligned 32-byte load cannot cross
 ; a page boundary).

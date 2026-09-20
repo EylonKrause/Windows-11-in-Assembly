@@ -1,7 +1,7 @@
 // changes/206-stringfromguid2/bench.c
 // Gate 2: time wia_StringFromGUID2 against the live combase!StringFromGUID2.
 // The classes cover the generous buffer (the normal case), the exact 39-cell fit, and each of the
-// three distinct failure shapes -- because on this function the failures are not rare edge cases,
+// three distinct failure shapes, because on this function the failures are not rare edge cases,
 // they are a third of the contract.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

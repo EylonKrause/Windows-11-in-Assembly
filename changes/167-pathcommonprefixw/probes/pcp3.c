@@ -1,4 +1,4 @@
-/* PathCommonPrefixW round 3 -- REFERENCE-FIRST validation.
+/* PathCommonPrefixW round 3, REFERENCE-FIRST validation.
    Encode the rule derived in rounds 1-2 and fuzz it against the live export. Any mismatch
    means the rule is wrong; the printout shows the exact disagreeing case.
 

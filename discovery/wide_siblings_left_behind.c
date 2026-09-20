@@ -10,7 +10,7 @@
  *
  *     | `strrchr` / `wcsrchr` | SSE4.2 pcmpistri | already vectorized |
  *
- * -- one row, two exports, on the assumption that a narrow function and its wide sibling share an
+ *, one row, two exports, on the assumption that a narrow function and its wide sibling share an
  * implementation. They did not, and the register was wrong for a year until a change measured it.
  *
  * tools/keepasis-audit.py now lists every row in that register that names more than one export.
@@ -27,7 +27,7 @@
  *
  * Also included: wcsstr against strstr is the pair most worth knowing, because change 089 already
  * measured `strstr` and PARKED it ("ties/loses below ~2 KB"). If `wcsstr` is scalar, the wide one
- * is a target even though the narrow one was not -- which is precisely the 148/149 shape.
+ * is a target even though the narrow one was not, which is precisely the 148/149 shape.
  *
  * Run on an idle machine, and not during a revalidation sweep. min-of-N.
  */

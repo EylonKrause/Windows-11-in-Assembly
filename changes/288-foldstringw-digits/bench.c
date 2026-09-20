@@ -5,13 +5,13 @@
  * The rows separate the three things this call can cost:
  *
  *   * ASCII, where every code unit maps to itself and the table is read from its first 512 bytes;
- *   * ARABIC-INDIC DIGITS, where every code unit actually changes -- 462 of 65535 units do, and a row
+ *   * ARABIC-INDIC DIGITS, where every code unit actually changes, 462 of 65535 units do, and a row
  *     of nothing but those is the case where the fold is doing real work rather than copying;
  *   * a MIXED string, which is what real text with foreign digits looks like;
  *   * CJK, which reads the far side of a 128 KB table and never changes anything, so it isolates the
  *     cache behaviour from the mapping;
  *   * cchSrc = -1, which adds a length scan;
- *   * cchDest = 0, the LENGTH QUERY, which must not write at all -- for us that is pure overhead with no
+ *   * cchDest = 0, the LENGTH QUERY, which must not write at all, for us that is pure overhead with no
  *     store loop, and it is worth knowing whether the export short-circuits it as cheaply;
  *   * and a short string, where the whole cost is the call and the argument checking.
  *

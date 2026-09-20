@@ -26,9 +26,9 @@
 ; cases with 0 mismatches and landed at 13.12x. What remains here is the BOOL and the error mapping.
 ;
 ; And it was proved before it was built, which is the rule change 242 established: probes/compose.c
-; ran 451 543 cases -- the enumerated {\, ., a, :} subspace to length 7 and {\, ., a} to length 9,
+; ran 451 543 cases, the enumerated {\, ., a, :} subspace to length 7 and {\, ., a} to length 9,
 ; 45 shapes the Ex contract turns on, every input length 250..300 plus shrinking and over-long ones,
-; and 400 000 fuzz cases -- comparing the BOOL, the whole destination buffer and GetLastError against
+; and 400 000 fuzz cases, comparing the BOOL, the whole destination buffer and GetLastError against
 ; PathCchCanonicalizeEx(dst, MAX_PATH, src, 0) wrapped exactly as above. Zero disagreements.
 ;
 ; The order of the two NULL checks is observable, and it is the one thing a careless wrapper would

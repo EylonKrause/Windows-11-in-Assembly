@@ -2,7 +2,7 @@
 // Gate 1: wia_pathundecoratea must be indistinguishable from shlwapi!PathUndecorateA.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
-// The whole buffer is compared, always -- including the stale tail past the new terminator, which
+// The whole buffer is compared, always, including the stale tail past the new terminator, which
 // the shipped export deliberately leaves behind ("file[123].txt" becomes "file.txt" with ".txt"
 // still sitting in the bytes after it). A string comparison would pass an implementation that
 // cleared them.
@@ -10,7 +10,7 @@
 // And the corpora enumerate rather than sample, with a space in the alphabet. That is not a style
 // preference here: the wide sibling this change is modelled on, change 174, shipped WRONG for
 // exactly this reason. Its fuzz alphabet had no space in it, so its test, its oracle and its
-// implementation shared one blind spot -- as did 132, 140, 143, 144, 158, 159 and 160, eight
+// implementation shared one blind spot, as did 132, 140, 143, 144, 158, 159 and 160, eight
 // landed changes on one missing stopper. probes/space2.c found it by enumerating THIS export.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -51,7 +51,7 @@ int main(void){
 
     static char s[600];
 
-    // every case the probes established, explicitly -- including the space cases that were the
+    // every case the probes established, explicitly, including the space cases that were the
     // whole reason the wide sibling had to be corrected
     {
         static const char* v[] = {
@@ -73,7 +73,7 @@ int main(void){
         for(int i=0; v[i]; ++i) CHECK(one(v[i]), "probe-derived case");
     }
 
-    // EXHAUSTIVE over the alphabet that drives every branch, up to length 8 -- 1727604 strings
+    // EXHAUSTIVE over the alphabet that drives every branch, up to length 8, 1727604 strings
     {
         static const char AL[6] = { 'a', '[', ']', '1', '.', '\\' };
         for(int n=0;n<=8;++n){
@@ -87,7 +87,7 @@ int main(void){
         }
     }
 
-    // Exhaustive again, with a space in the alphabet -- the corpus shape change 174 lacked.
+    // Exhaustive again, with a space in the alphabet, the corpus shape change 174 lacked.
     // 335923 strings, 238267 of them containing a space.
     {
         static const char AL6[6] = { '[', ']', '.', '1', ' ', 'z' };
@@ -121,17 +121,17 @@ int main(void){
         }
     }
 
-    // every byte value inside the brackets -- pins "digits only, possibly none"
+    // every byte value inside the brackets, pins "digits only, possibly none"
     for(int c=1;c<256;c++){
         s[0]='f'; s[1]='['; s[2]=(char)c; s[3]=']'; s[4]='.'; s[5]='t'; s[6]=0;
         CHECK(one(s), "bracket-content sweep");
     }
-    // every byte value immediately after the ']' -- pins "must be '.' or the terminator"
+    // every byte value immediately after the ']', pins "must be '.' or the terminator"
     for(int c=1;c<256;c++){
         s[0]='f'; s[1]='['; s[2]='1'; s[3]=']'; s[4]=(char)c; s[5]='t'; s[6]=0;
         CHECK(one(s), "post-bracket sweep");
     }
-    // every byte value immediately BEFORE the '[' and at the component start -- the two positions
+    // every byte value immediately BEFORE the '[' and at the component start, the two positions
     // where an MBCS-aware export would differ from a byte-wise one. probes/bytes.c ran this
     // against the live export; here it also has to match our assembly and the oracle.
     for(int c=1;c<256;c++){
@@ -140,7 +140,7 @@ int main(void){
         s[0]=(char)c; s[1]='['; s[2]='1'; s[3]=']'; s[4]='.'; s[5]='t'; s[6]=0;
         CHECK(one(s), "component-start sweep");
     }
-    // every byte value as a lone separator ahead of the name -- re-derives the stopper set from
+    // every byte value as a lone separator ahead of the name, re-derives the stopper set from
     // scratch instead of inheriting "backslash and space" from the correction
     for(int c=1;c<256;c++){
         s[0]='a'; s[1]=(char)c; s[2]='b'; s[3]='['; s[4]='1'; s[5]=']'; s[6]='.'; s[7]='e'; s[8]=0;
@@ -170,7 +170,7 @@ int main(void){
         }
     }
 
-    // long paths with a SPACE ahead of the decoration -- the vector scan must carry `stop` across
+    // long paths with a SPACE ahead of the decoration; the vector scan must carry `stop` across
     // block boundaries, which the short corpora above cannot reach
     {
         static char buf[700];
@@ -185,7 +185,7 @@ int main(void){
         }
     }
 
-    // randomized fuzz -- alphabet carries both a space and a tab, because the rule is 0x20
+    // randomized fuzz, alphabet carries both a space and a tab, because the rule is 0x20
     // specifically and not whitespace in general
     {
         static const char AL[10] = { 'a', '[', ']', '1', '9', '.', '\\', 'x', ' ', '\t' };
@@ -197,7 +197,7 @@ int main(void){
         }
     }
 
-    // NULL -- the live export tolerates it
+    // NULL, the live export tolerates it
     wia_pathundecoratea(0);
     ref_pathundecoratea(0);
     CHECK(1, "NULL");

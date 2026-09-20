@@ -114,7 +114,7 @@ int main(void){
                place and return 0. */
             int ref;
             {
-                /* v2: every failure path writes str[0] = 0 -- including numberOfElements == 0,
+                /* v2: every failure path writes str[0] = 0, including numberOfElements == 0,
                    which the shipped function does even though the buffer is nominally empty. */
                 size_t k = 0;
                 while(k < n && d1[k]) ++k;

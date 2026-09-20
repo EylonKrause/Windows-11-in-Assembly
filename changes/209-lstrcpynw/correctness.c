@@ -6,11 +6,11 @@
 // Two things drive the shape of this test.
 //
 // 1. The destination is terminated, not padded. Every case therefore compares the whole destination
-//    buffer against a poison fill, not just the copied prefix -- a strncpy-shaped implementation
+//    buffer against a poison fill, not just the copied prefix, a strncpy-shaped implementation
 //    would zero-fill the tail and pass a prefix-only check.
 // 2. a faulting source is part of the contract: it returns NULL with the readable prefix already
-//    copied. The page-guard section below builds exactly that -- an unterminated string ending at a
-//    PAGE_NOACCESS boundary -- and compares our result against the LIVE export character for
+//    copied. The page-guard section below builds exactly that, an unterminated string ending at a
+//    PAGE_NOACCESS boundary, and compares our result against the LIVE export character for
 //    character, including how much of the destination each one filled in before giving up. That is
 //    what the page-safe copy in impl.asm exists to get right; a 32-byte load straddling the boundary
 //    would fault before storing and leave less behind.

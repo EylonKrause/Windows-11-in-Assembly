@@ -3,7 +3,7 @@
  * The scalar model for oleaut32!SysAllocString.
  *
  * probes/contract.c established that the export is exactly SysAllocStringLen after a wcslen --
- * byte for byte over fourteen lengths -- and that the allocator behind it is PRIVATE: a BSTR built
+ * byte for byte over fourteen lengths, and that the allocator behind it is PRIVATE: a BSTR built
  * by hand through CoTaskMemAlloc terminates the process when SysFreeString touches it, and so does
  * CoTaskMemRealloc on a real one. So the model calls SysAllocStringLen too. It is not a second
  * opinion about the allocation, which nothing outside oleaut32 can have; it is a second opinion

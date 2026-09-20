@@ -4,7 +4,7 @@
  * else here: three-way against the live export, over a corpus built to reach every rule.
  *
  * RtlUnicodeToUTF8N(NULL, ...) asks how many bytes the output would need. This implementation did
- * not answer it -- it returned STATUS_BUFFER_TOO_SMALL with nothing produced, and with a NULL
+ * not answer it, it returned STATUS_BUFFER_TOO_SMALL with nothing produced, and with a NULL
  * pointer and a NON-ZERO size it dereferenced the pointer and faulted. The conversion itself was
  * and is bit-exact; what was missing was a whole MODE of the function, which every corpus here
  * managed to miss because they all pass a real destination buffer.
@@ -14,7 +14,7 @@
  *   1. the size AND the status against live, over every length from 0 to 400, for ASCII,
  *      two-byte, three-byte, surrogate-pair and lone-surrogate inputs;
  *   2. a NULL destination with a NON-ZERO size, which is the case that used to fault;
- *   3. that the measuring answer always agrees with what a real conversion produces -- the size it
+ *   3. that the measuring answer always agrees with what a real conversion produces, the size it
  *      reports must be exactly the size a big-enough buffer fills;
  *   4. randomised strings, including deliberately surrogate-heavy ones.
  */

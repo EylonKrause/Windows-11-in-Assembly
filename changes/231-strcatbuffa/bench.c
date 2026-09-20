@@ -6,7 +6,7 @@
 // The case mix. StrCatBuff is a bounded scan plus a bounded copy, so the axes are the destination
 // length, the source length, and how the bound sits relative to them. The "bound already exceeded"
 // row matters because that is the case where the shipped function does the scan and then writes
-// nothing at all -- pure scan cost, no copy.
+// nothing at all, pure scan cost, no copy.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>

@@ -3,11 +3,11 @@
 //
 // Contract, measured against the live export in probes/sfg.c:
 //   * cchMax >= 39 -> write "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" in UPPER-case hex plus a NUL,
-//     and return 39 -- the character count INCLUDING the terminator;
+//     and return 39, the character count INCLUDING the terminator;
 //   * cchMax <= 38 -> return 0 and leave the buffer COMPLETELY UNTOUCHED. There is no truncating
 //     path, which is the one place this differs sharply from ConvertGuidToStringW (change 202),
 //     where 1..38 writes a truncated prefix;
-//   * cchMax is SIGNED -- -1 and -1000 both return 0;
+//   * cchMax is SIGNED, -1 and -1000 both return 0;
 //   * the length is checked before the buffer is used, so a NULL buffer with cchMax 0 returns 0
 //     without faulting.
 //

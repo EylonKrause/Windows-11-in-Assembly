@@ -1,5 +1,5 @@
 @echo off
-REM changes/225-lstrlena/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/225-lstrlena/build.bat: assemble, gate on correctness, then benchmark.
 REM /EHa is required: the wrapper in seh.c converts an access violation into 0, which is the
 REM measured behaviour of the shipped export (see probes/lena.c).
 setlocal

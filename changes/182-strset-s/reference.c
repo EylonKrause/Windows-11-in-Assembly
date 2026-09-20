@@ -7,7 +7,7 @@
 //     str[0] = 0, return EINVAL (22);
 //   * otherwise -> fill every cell before the terminator, keep it, return 0.
 // (Changes 178-181 validate first and write nothing on error; change 150's strcpy_s leaves a
-//  partial copy. Three different behaviours in one CRT -- each measured, none inherited.)
+//  partial copy. Three different behaviours in one CRT, each measured, none inherited.)
 #include <stddef.h>
 
 int ref_strset_s(char* str, size_t numberOfElements, int c){

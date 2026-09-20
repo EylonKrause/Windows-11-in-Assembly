@@ -1,5 +1,5 @@
 @echo off
-REM changes/271-convertsidtostringsida/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/271-convertsidtostringsida/build.bat: assemble, gate on correctness, benchmark.
 REM
 Rem  three changes are linked here and none of them is copied: the formatter is change 067, the
 REM  LocalAlloc and the four SetLastError calls are change 270's alloc.c, and only the narrowing is

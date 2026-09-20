@@ -9,7 +9,7 @@
 // `mov r10, rcx`, and `div eax, edi` where it has `div rax, rdi`.
 //
 // That one difference is the whole contract difference: the magnitude is 32 bits, so for any radix
-// other than 10 the value is formatted as an UNSIGNED 32-BIT quantity -- _itoa_s(-1, buf, n, 16)
+// other than 10 the value is formatted as an UNSIGNED 32-BIT quantity, _itoa_s(-1, buf, n, 16)
 // gives "ffffffff", eight f's, not the sixteen change 194 produces.
 //
 // Everything else is change 194's contract, which was READ out of the shipped disassembly because

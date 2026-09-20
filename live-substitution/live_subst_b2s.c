@@ -1,6 +1,6 @@
 // live-substitution/live_subst_b2s.c
 //
-// Live-run proof for CryptBinaryToStringA and CryptBinaryToStringW -- eight changes behind two
+// Live-run proof for CryptBinaryToStringA and CryptBinaryToStringW, eight changes behind two
 // exports:
 //
 //   CRYPT_STRING_BASE64        081 (A)  083 (W)
@@ -10,22 +10,22 @@
 //
 // This is the first harness here that has to assemble a whole export. Every other one patches a
 // function that exactly one change implements. `CryptBinaryToStringA` is implemented by FOUR, one
-// per format, and none of them is the export -- so the thing patched over the export is a
+// per format, and none of them is the export, so the thing patched over the export is a
 // DISPATCHER that reads dwFlags and routes to the change that owns that format. That is the same
 // structure image/materialize.py already records for an export with several landed changes, built
 // and run for the first time.
 //
 // a trap stub stands in for everything else, and it is the point of the design. crypt32 defines
 // ten formats; these changes cover four. The dispatcher cannot fall back to the real export
-// because the real export is what it is patched over -- the call would re-enter the dispatcher and
+// because the real export is what it is patched over; the call would re-enter the dispatcher and
 // recurse until the stack ran out. So an unhandled format goes to a stub that RECORDS being
 // entered and fails, and the run asserts the trap count is ZERO. That converts "the corpus stayed
-// inside the supported formats" from an assumption into a measurement -- the same device
+// inside the supported formats" from an assumption into a measurement, the same device
 // live_subst_cvt.c uses for 289 and 290.
 //
 // One path is deliberately not compared, and it is documented in the changes themselves. Change
-// 081's header states that the too-small-buffer partial-write path is APPROXIMATED -- FALSE plus
-// ERROR_MORE_DATA -- and "not matched byte-for-byte (see RESULTS.md)". Driving it here would
+// 081's header states that the too-small-buffer partial-write path is APPROXIMATED, FALSE plus
+// ERROR_MORE_DATA, and "not matched byte-for-byte (see RESULTS.md)". Driving it here would
 // rediscover a divergence the repository already declared. So the corpus gives every call either
 // a query (pszString == NULL) or a sufficient buffer, and the shortfall path is exercised in its
 // own clearly-labelled section that REPORTS what differs without failing the run. A harness that
@@ -34,7 +34,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       crypt32 -- never a live system process, never the file on disk.
+//       crypt32, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -78,11 +78,11 @@ static BOOL WINAPI trapW(const BYTE* pb, DWORD cb, DWORD f, wchar_t* o, DWORD* p
 /* Which change claims which modifier, taken from the implementations' own headers and not from
  * what looks reasonable. 081/083 say "with and without CRYPT_STRING_NOCRLF" and 085/087 say
  * "[+ CRYPT_STRING_NOCRLF]". 090/091 say "CRLF per line" and 092/093 "CRLF every 64 chars", and
- * NEITHER mentions the modifier at all -- so a dispatcher that routed NOCRLF to them would be
+ * NEITHER mentions the modifier at all, so a dispatcher that routed NOCRLF to them would be
  * claiming coverage nobody wrote.
  *
  * The first draft of this file did exactly that, and the run reported 2013 of 8000 cases
- * differing on flags 40000000 and 40000004 -- our output carrying a CR where the export had data.
+ * differing on flags 40000000 and 40000004; our output carrying a CR where the export had data.
  * That was this dispatcher over-claiming, not a defect in the changes, and the fix is here rather
  * than in any impl.asm. The modifier now decides routing, and anything unclaimed reaches the trap.
  */

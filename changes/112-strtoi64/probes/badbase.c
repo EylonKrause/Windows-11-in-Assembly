@@ -1,4 +1,4 @@
-/* badbase.c -- what does the strtoX family do with an INVALID base?
+/* badbase.c: what does the strtoX family do with an INVALID base?
  *
  * The live harness found 567 of 30000 cases differing, every one of them base 1: the shipped
  * exports set errno = EINVAL and report through the invalid-parameter handler, while changes

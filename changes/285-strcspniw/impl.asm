@@ -1,12 +1,12 @@
 ; changes/285-strcspniw/impl.asm
 ;   int wia_strcspniw(PCWSTR str, PCWSTR set)                   [Win64: rcx, rdx -> eax]
 ;
-; shlwapi!StrCSpnIW -- the case-insensitive SPAN: how many leading characters of `str` are NOT in
+; shlwapi!StrCSpnIW; the case-insensitive SPAN: how many leading characters of `str` are NOT in
 ; `set`, equivalently the index of the first one that IS.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER. discovery/charclass_strcmp_2026.c measured the shipped export at 2971 ns over 511
-; code units -- the most expensive of the remaining StrXxxIW family.
+; code units, the most expensive of the remaining StrXxxIW family.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 2. The relation is change 281's, and that was measured, not assumed.
@@ -14,7 +14,7 @@
 ; probes/contract.c turned up what looked like a contradiction: a set of {SOFT HYPHEN} does not match
 ; a zero width space in the string, although both are ignorable-looking and change 283's corpus called
 ; such a pair a match. probes/relation.c settled it by EXTRACTING StrCSpnIW's own relation --
-; StrCSpnIW({c},{m}) == 0 is a direct membership oracle, so a full row costs 65535 calls -- and
+; StrCSpnIW({c},{m}) == 0 is a direct membership oracle, so a full row costs 65535 calls, and
 ; diffing twelve rows against change 281's tables:
 ;
 ;     786420 pairs, ZERO disagreements. Symmetric in the export itself. And a four-member set is
@@ -26,7 +26,7 @@
 ;
 ; So change 281's tables apply unchanged, and "c is in the set" means: SOME member's match set
 ; contains c. With an INTRANSITIVE relation there are no equivalence classes to collapse, so that
-; union is all there is -- a set of k characters can accept far more than k code units.
+; union is all there is; a set of k characters can accept far more than k code units.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 3. The one simplification that makes this change small.
@@ -38,8 +38,8 @@
 ;     length; if it does not, the scan runs out and the answer is the length.
 ;
 ; Both give the same number, for every string and every set. So the terminator is folded into the
-; accept set unconditionally -- the answer is the index of the first character that is NUL or in the
-; set -- and this implementation never measures the string's length at all. Change 284 learned what
+; accept set unconditionally; the answer is the index of the first character that is NUL or in the
+; set, and this implementation never measures the string's length at all. Change 284 learned what
 ; that costs: measuring the string first turned one of its bench rows into a dead tie.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -47,14 +47,14 @@
 ;
 ;   (a) walk the set once and expand it into an explicit ACCEPT LIST of code units: a member with no
 ;       partners contributes itself, a member with 2..8 contributes its whole pool slot. A member with
-;       the 255 bitmap sentinel -- any of the 3320 ignorables -- would contribute thousands, so it
+;       the 255 bitmap sentinel (any of the 3320 ignorables) would contribute thousands, so it
 ;       sends the whole call to the scalar path instead. So does a list that overflows 16 entries.
 ;   (b) scan the string for the accept list in chunks of four, sixteen code units at a time, with the
 ;       terminator tested in every pass by comparing against a zeroed register. Only ymm0..ymm5 are
 ;       touched, so nothing has to be saved: ymm0 holds the data, ymm1..ymm4 the four broadcasts, ymm5
 ;       the compare result.
 ;   (c) keep the LOWEST hit across chunks, and tighten each later pass's upper bound to it. The first
-;       pass is unbounded -- it does not need a bound, because the terminator is in every chunk and
+;       pass is unbounded; it does not need a bound, because the terminator is in every chunk and
 ;       therefore always stops it.
 ;
 ; A one-character set is one pass, which is optimal. A set whose expansion needs k chunks costs k
@@ -74,7 +74,7 @@ EXTERN wia_sci_bmap:DWORD
                 .code
 
 ; ---------------------------------------------------------------------------------------------
-; match_pair -- ZF=1 if the set member in r14w accepts the string code unit in r15w.
+; match_pair, ZF=1 if the set member in r14w accepts the string code unit in r15w.
 ; Clobbers exactly rax, r12, r13.
 ; ---------------------------------------------------------------------------------------------
 match_pair PROC PRIVATE
@@ -120,7 +120,7 @@ mp_bitmap:
 match_pair ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; spnscan -- the LOWEST address in [rsi, rbx] whose code unit matches one of the broadcasts in
+; spnscan, the LOWEST address in [rsi, rbx] whose code unit matches one of the broadcasts in
 ; ymm1..ymm4 or is zero. Returns that address in rax, or 0 if the bound was reached first.
 ;
 ; The zero compare is what makes the first pass safe without a bound. The terminator is tested in
@@ -191,7 +191,7 @@ ss_none:
 spnscan ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; bcast_chunk -- broadcast up to four accept entries, starting at index r11d of the list at [rsp+8],
+; bcast_chunk, broadcast up to four accept entries, starting at index r11d of the list at [rsp+8],
 ; into ymm1..ymm4. Entries past the end of the list are left as ZERO, which is harmless: the zero
 ; compare in spnscan already matches the terminator, so a zero broadcast can only find what is
 ; already being looked for.
@@ -254,7 +254,7 @@ wia_strcspniw PROC FRAME
         ;
         ; The cap is 256 Entries, not 16, and the bench is why. a set member contributes at most eight
         ; entries, so sixteen ran out at a four-character set and sent everything past that to the
-        ; scalar path -- a twelve-character set then cost 12462 ns for 511 code units, only 16.8x the
+        ; scalar path; a twelve-character set then cost 12462 ns for 511 code units, only 16.8x the
         ; shipped export, because the scalar path is one match_pair call per (character, member) pair.
         ; At 256 the same set expands to 36 entries and takes nine bounded vector passes instead.
 
@@ -304,7 +304,7 @@ add_self:
         inc       r14d
         jmp       set_loop
 set_done:
-        ; An EMPTY set expands to nothing, and then the terminator alone decides -- which is exactly
+        ; An EMPTY set expands to nothing, and then the terminator alone decides, which is exactly
         ; what one pass with a zeroed chunk computes, so a single 0 entry is appended rather than
         ; special-cased. It is harmless anyway: the zero compare already matches it.
         test      r14d, r14d
@@ -318,12 +318,12 @@ have_list:
         ; The obvious structure is one full pass per chunk, and it was measured: a twelve-character set
         ; whose match is at index 3 of a 511-code-unit string cost 231 ns, only 5.99x the shipped
         ; export, because chunk 0 has no match and its pass therefore runs all the way to the
-        ; terminator -- and so does every chunk before the one that finally matches.
+        ; terminator, and so does every chunk before the one that finally matches.
         ;
         ; So the string is divided into DISJOINT windows of 4, 8, 16, ... blocks, and every chunk is
         ; run against a window before the next window is opened. An early match is found in the first
         ; window, and because the windows do not overlap the total number of blocks scanned is
-        ; unchanged -- each block is still visited once per chunk, so the no-match case costs exactly
+        ; unchanged; each block is still visited once per chunk, so the no-match case costs exactly
         ; what it did before, plus one re-broadcast of the chunks per window.
         ;
         ; A window-bounded pass is SAFE past the end of the string even though the window is not: every
@@ -338,7 +338,7 @@ have_list:
 
         ; One chunk needs no windows. With four or fewer accept entries there is a single pass to make,
         ; and that pass already stops at its first hit, so dividing the string into windows only adds
-        ; per-window setup -- measured at 49.2 ns rising to 55.1 ns on the one-character-set rows.
+        ; per-window setup, measured at 49.2 ns rising to 55.1 ns on the one-character-set rows.
         cmp       r14d, 4
         ja        win_first
         mov       rbx, -1                         ; unbounded: the terminator stops it
@@ -394,8 +394,8 @@ win_found:
 
 ; ---- The scalar path, member-major and without a single call.
 ;
-; Reached when a set member carries the 255 bitmap sentinel -- any of the 3320 ignorables, which would
-; contribute thousands of accept entries -- or when the expansion overflows 256 entries.
+; Reached when a set member carries the 255 bitmap sentinel, any of the 3320 ignorables, which would
+; contribute thousands of accept entries, or when the expansion overflows 256 entries.
 ;
 ; The first draft was character-major and called match_pair once per (character, member) pair, which
 ; re-derived that member's kind and table pointer on every single character: 916 ns for a 511-code-unit
@@ -404,7 +404,7 @@ win_found:
 ; This version is MEMBER-MAJOR and hoists each member's kind out of the loop, so there are three tight
 ; loops and no calls at all: compare against one code unit, test one bit in a 8 KB bitmap, or walk a
 ; pool slot of at most eight. Each member's scan is bounded by the best index found so far, and because
-; the terminator stops every member's scan, the first member establishes that bound -- the same trick
+; the terminator stops every member's scan, the first member establishes that bound, the same trick
 ; the vector path uses to avoid ever measuring the string.
 ;
 ; rbx carries the best index and starts at -1, which as an UNSIGNED bound is the largest possible, so
@@ -479,7 +479,7 @@ sc_pool_inner:
         inc       r12
         jmp       sc_pool_loop
 
-        ; this member stopped at r12, either on a match or on the terminator -- both end ITS scan, and
+        ; this member stopped at r12, either on a match or on the terminator, both end ITS scan, and
         ; both are valid answers, because the span ends at whichever comes first
 sc_stop:
         cmp       r12, rbx
@@ -491,7 +491,7 @@ sc_all_done:
         mov       rax, rbx
         cmp       rax, -1
         jne       sc_ret
-        ; An empty set cannot reach this path -- it expands to nothing and takes the vector side -- but
+        ; An empty set cannot reach this path (it expands to nothing and takes the vector side) but
         ; the answer is defined anyway: the terminator's index.
         xor       r12, r12
 sc_term:

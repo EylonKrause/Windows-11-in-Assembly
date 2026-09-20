@@ -2,20 +2,20 @@
 ; char* wia_pathremovebackslasha(PSTR psz)   [Win64: rcx -> rax]
 ;
 ; Reimplements shlwapi!PathRemoveBackslashA: strip one trailing backslash, unless the result would
-; be a bare root. 21.93 ns against 16.88 ns for the wide form on the same character count -- 1.30x
+; be a bare root. 21.93 ns against 16.88 ns for the wide form on the same character count, 1.30x
 ; the wide cost for HALF the bytes, so twice as slow per byte.
 ;
 ; The rule is not "strip a trailing backslash", and every part of it was re-derived against the
 ; NARROW export in probes/prba.c rather than inherited from change 171:
 ;
-;   * The return is always psz + max(n-1, 0) -- a pointer to the last character, not the terminator,
+;   * The return is always psz + max(n-1, 0), a pointer to the last character, not the terminator,
 ;     and not the start. Confirmed at n = 0, 1, 2 and 3, and on all 19531 enumerated strings.
 ;   * One trailing backslash is removed UNLESS the remainder would be a bare root:
 ;         m == 0, or (m == 1 and psz[0] == '\'), or (m == 2 and psz[1] == ':' and psz[0] a letter)
 ;     where m = n-1. So "\" and "\\" and "C:\" keep their backslash, while "\\\", "C:\\", "ab\" and
 ;     "\\server\share\" lose one.
 ;   * Exactly one byte value is ever removed: 0x5C. Sweeping all 255 non-NUL values as the trailing
-;     character, only the backslash goes -- a forward slash is not a separator here, so "a/" is left
+;     character, only the backslash goes; a forward slash is not a separator here, so "a/" is left
 ;     alone and "C:/" is not a protected root.
 ;   * NULL returns NULL without faulting.
 ;
@@ -32,11 +32,11 @@
 ; not a protected root while L"\u00C0:\\" is. Inheriting the wide set would have produced a function
 ; that wrongly protects 78 byte values.
 ;
-; Method: change 225's page-safe length scan -- first block aligned down with the bits before the
-; string masked off, then 64-byte aligned pairs -- and then four compares. The scan is the whole
+; Method: change 225's page-safe length scan, first block aligned down with the bits before the
+; string masked off, then 64-byte aligned pairs, and then four compares. The scan is the whole
 ; cost; the rule is a handful of instructions on the result.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .code
 wia_pathremovebackslasha PROC

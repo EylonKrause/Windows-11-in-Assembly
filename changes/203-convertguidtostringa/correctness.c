@@ -4,8 +4,8 @@
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
 //
 // The buffer comparison matters more than usual here. Three different "failure" lengths behave
-// three different ways -- cch 0 writes nothing, 1..38 writes a truncated prefix plus a terminator,
-// and cch >= 0x80000000 writes exactly one NUL -- so a test that only checked the return value
+// three different ways, cch 0 writes nothing, 1..38 writes a truncated prefix plus a terminator,
+// and cch >= 0x80000000 writes exactly one NUL, so a test that only checked the return value
 // would pass on an implementation that is wrong about all three.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

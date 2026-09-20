@@ -10,7 +10,7 @@
 //                             a NUL written at [n], Length = n, and the status is
 //                             STATUS_SUCCESS when n == srclen, STATUS_BUFFER_OVERFLOW otherwise
 //
-// so a source of 8 characters with MaximumLength 4 comes back as "ABC\0" with Length 3 -- a partial
+// so a source of 8 characters with MaximumLength 4 comes back as "ABC\0" with Length 3, a partial
 // write on failure. Its siblings 019, 020, 024 and 025 all refuse outright instead and leave the
 // destination untouched; this one alone truncates. Measured in live-substitution, probe output
 // recorded in RESULTS.md.

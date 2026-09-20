@@ -13,7 +13,7 @@
  *                                access.
  *
  * detail.c could not tell them apart because both its buffers were page-aligned, which forces
- * (dst - src) mod 4096 to equal the destination offset -- the two axes were the same number.
+ * (dst - src) mod 4096 to equal the destination offset; the two axes were the same number.
  * Here the source is moved to a page offset of 2048, so the distance stays ~2 KB away from a
  * multiple of 4096 while the destination alignment still sweeps the full 64-byte line.
  *

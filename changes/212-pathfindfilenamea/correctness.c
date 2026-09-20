@@ -8,7 +8,7 @@
 // 1. The rule is not local. a colon separates only when it is the sole colon in its run, so no
 //    bounded window of characters decides the answer and no sampled corpus can establish the rule.
 //    The test is therefore EXHAUSTIVE over the alphabet that makes every separator interaction
-//    reachable -- {a, backslash, slash, colon} at every length 0..9, 349525 strings -- and then over
+//    reachable ({a, backslash, slash, colon} at every length 0..9, 349525 strings) and then over
 //    a wider alphabet at every length 0..7.
 // 2. The first load is aligned down. impl.asm rounds the path pointer down to a 32-byte boundary and
 //    shifts the leading bytes out of the mask, so the number of bytes the first block covers depends
@@ -84,7 +84,7 @@ int main(void){
     }
 
     // ---- EXHAUSTIVE over a wider alphabet, lengths 0..7 --------------------------------------------
-    // Adds a dot, a space, a second ordinary letter and a high byte -- 0xE9 is an ordinary character
+    // Adds a dot, a space, a second ordinary letter and a high byte, 0xE9 is an ordinary character
     // in code page 1252 and must not behave as a DBCS lead byte.
     {
         static const char A[8] = { 'a', '\\', '/', ':', '.', ' ', 'z', (char)0xE9 };

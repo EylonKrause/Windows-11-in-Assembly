@@ -1,11 +1,11 @@
-// changes/294-strchr/bench.c -- wia_strchr vs the LIVE exports, across size classes.
+// changes/294-strchr/bench.c: wia_strchr vs the LIVE exports, across size classes.
 //
 // Three tables, and a change lands only if none of them reports a regression:
-//   [1] needle ABSENT  -- the scan runs the whole string to the terminator. Worst case, and the
+//   [1] needle ABSENT, the scan runs the whole string to the terminator. Worst case, and the
 //                         case discovery/momentary_tier2.c measured at 0.0352 ns/byte.
-//   [2] needle FOUND at the LAST character -- same amount of scanning, but the return takes the
+//   [2] needle FOUND at the LAST character, same amount of scanning, but the return takes the
 //                         match path rather than the terminator path.
-//   [3] needle ABSENT, vs msvcrt!strchr -- msvcrt ships its own copy, so the claim "faster than
+//   [3] needle ABSENT, vs msvcrt!strchr, msvcrt ships its own copy, so the claim "faster than
 //                         both hosts" has to be measured against both and not assumed.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

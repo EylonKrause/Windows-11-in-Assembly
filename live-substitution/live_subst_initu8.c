@@ -1,7 +1,7 @@
 // live-substitution/live_subst_initu8.c
 // LIVE-RUN PROOF for change 264 (ntdll!RtlInitUTF8String).
 //
-// The implementation is change 095's, reached through a linker ALIAS -- probes/equiv.c proved
+// The implementation is change 095's, reached through a linker ALIAS, probes/equiv.c proved
 // RtlInitUTF8String identical to RtlInitString over 125883 cases, including every ordered byte
 // pair. This run is what turns that into a claim about THIS export: the patch goes on
 // RtlInitUTF8String at its own address, and every answer is compared against what the shipped code
@@ -9,19 +9,19 @@
 //
 // All three fields are compared against a struct poisoned with 0xCD before every call. Length alone
 // would miss an implementation that forgot MaximumLength, and both would miss one that forgot the
-// Buffer pointer -- which the NULL case is specifically about, since it must write all three.
+// Buffer pointer, which the NULL case is specifically about, since it must write all three.
 //
 // The corpus reaches the clamp, and the run reports how many cases did. Above 65534 bytes the
 // answer stops depending on the string, and an implementation that stopped SCANNING there would be
 // faster and wrong; the corpus therefore contains strings on both sides of it.
 //
 // The corpus is regenerated from the case index on every pass. Change 252's harness carried prng
-// state across its three passes and reported 14285 differences with its counter at ZERO -- the
-// shipped export disagreeing with itself -- and that is the discipline this avoids.
+// state across its three passes and reported 14285 differences with its counter at ZERO, the
+// shipped export disagreeing with itself, and that is the discipline this avoids.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this export is not used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

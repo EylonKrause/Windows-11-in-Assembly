@@ -5,7 +5,7 @@
 // The whole buffer is compared, always, and so is the BOOL. The export writes only the extension
 // and its terminator and leaves everything past it stale ("file.txtxxxxxx" + ".o" ->
 // "file.o\0txxxxxx"), and it must leave the buffer COMPLETELY untouched when the result does not
-// fit -- neither of which a string comparison can see.
+// fit, neither of which a string comparison can see.
 //
 // And the corpora enumerate rather than sample, with a space in the alphabet. The wide sibling,
 // change 158, shipped wrong for exactly the want of that: its corpus had no space in it, so its
@@ -108,7 +108,7 @@ int main(void){
     }
 
     // The MAX_PATH boundary, swept exactly. The limit is on the result, so every combination of
-    // input length and extension length has to be walked across it -- an input-length-only sweep
+    // input length and extension length has to be walked across it, an input-length-only sweep
     // would pass an implementation that bounded the wrong quantity.
     {
         static char big[640];
@@ -128,7 +128,7 @@ int main(void){
         }
     }
 
-    // long paths with a SPACE ahead of the extension -- the vector scan must carry the stopper
+    // long paths with a SPACE ahead of the extension; the vector scan must carry the stopper
     // across 32-byte block boundaries, which no short corpus reaches
     {
         static char big[640];
@@ -162,7 +162,7 @@ int main(void){
         s[0]='a'; s[1]='b'; s[2]='.'; s[3]=(char)c; s[4]='t'; s[5]=0;
         chk(s, ".zz", "path byte sweep: just after the dot");
     }
-    // every byte value inside the EXTENSION -- it is copied verbatim, not validated
+    // every byte value inside the EXTENSION; it is copied verbatim, not validated
     for (int c = 1; c < 256; ++c) {
         char e[8];
         e[0]='.'; e[1]=(char)c; e[2]='z'; e[3]=0;
@@ -200,7 +200,7 @@ int main(void){
         CHECK(!sys(0, ".obj"), "NULL path returns FALSE (live)");
     }
 
-    // randomized fuzz -- alphabet carries both a space and a tab, because the rule is 0x20
+    // randomized fuzz, alphabet carries both a space and a tab, because the rule is 0x20
     // specifically and not whitespace in general
     {
         static const char AL[10] = { 'a', 'b', '.', '\\', '/', ':', ' ', '\t', 'x', '.' };

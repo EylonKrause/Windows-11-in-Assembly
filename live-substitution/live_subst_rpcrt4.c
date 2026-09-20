@@ -1,5 +1,5 @@
 // live-substitution/live_subst_rpcrt4.c
-// LIVE-RUN PROOF for changes 205 and 208 -- rpcrt4!UuidFromStringA and UuidFromStringW.
+// LIVE-RUN PROOF for changes 205 and 208, rpcrt4!UuidFromStringA and UuidFromStringW.
 //
 // The shipped narrow parser measures 82 ns against its own wide sibling's 23 ns for identical work.
 // Ours is a table-driven parse with one branchless validity test.
@@ -8,7 +8,7 @@
 //   * a BRACED string is REJECTED (1705). That is the opposite of ntdll!RtlGUIDFromString, which
 //     requires the braces, so getting it backwards would be an easy and invisible mistake;
 //   * StringUuid == NULL is a SUCCESS that writes the nil UUID;
-//   * on ANY failure the caller's GUID is left untouched -- so every case, failing ones included,
+//   * on ANY failure the caller's GUID is left untouched, so every case, failing ones included,
 //     compares all sixteen output bytes from a pre-poisoned buffer, not just the return value.
 //
 // The corpus is three-quarters valid and one-quarter malformed across assorted shapes, so both the
@@ -19,7 +19,7 @@
 //
 // FOR 208 there is one extra thing to prove. The wide implementation narrows its 36 UTF-16 cells to
 // bytes with a SATURATING vpackuswb before parsing, which is only sound because 0100h-7FFFh clamp to
-// 0FFh and 8000h-FFFFh clamp to 00h -- both invalid in the hex table -- and because nothing but 002Dh
+// 0FFh and 8000h-FFFFh clamp to 00h (both invalid in the hex table) and because nothing but 002Dh
 // can become '-'. So its corpus injects characters ABOVE 0xFF, including U+0130 and U+FF21 (which a
 // truncating narrow would read as '0' and '!') and U+802D and U+FF2D (which a careless one could turn
 // into a separator).

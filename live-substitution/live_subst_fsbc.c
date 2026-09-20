@@ -10,10 +10,10 @@
 // is not a risk worth engineering around, and a difference of even one bit changes it.
 //
 // Every case rebuilds its bitmap from the case index, and here that is not merely hygiene the way
-// it was for the read-only changes -- it is the only way the corpus means anything. A call CONSUMES
+// it was for the read-only changes; it is the only way the corpus means anything. A call CONSUMES
 // what it finds: run the same case twice on one buffer and the second call is a different question
 // from the first. Change 252's harness carried PRNG state across its passes and reported 14285
-// differences with its counter at ZERO -- the shipped export disagreeing with itself -- and a
+// differences with its counter at ZERO (the shipped export disagreeing with itself) and a
 // mutating export would produce that failure from a single missed reset.
 //
 // The three arms are counted and the run fails if any is empty: found-and-wrote, not-found, and
@@ -22,7 +22,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports before any patch exists.
 //   (2) Patch only when idle: single-threaded, and neither export is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored, VERIFIED byte-for-byte, and the corpus run again.

@@ -2,7 +2,7 @@
  *
  * The same question again, asked of the upcase family.
  *
- * discovery/utf8_nonascii_rows.c found changes 016 and 034 -- the two UTF-8 conversions -- benched
+ * discovery/utf8_nonascii_rows.c found changes 016 and 034 (the two UTF-8 conversions) benched
  * on ASCII input only, and running at 0.21x to 0.94x on everything else. The defect was not in what
  * they computed; it was in what had been measured. That is a shape, not an accident, and the shape
  * is: An implementation with a data-dependent fast path, benched on the data the fast path was
@@ -27,7 +27,7 @@
  * implementations; and `ascii-mixed` differs from it only in which letters actually change, so a
  * gap between those two would be a branch on the DATA rather than on the class. Everything from
  * `latin-1` onward is the table path, and `cjk` is the case where the table changes nothing at all
- * -- the cost there is the lookup itself, with no folding to show for it.
+ *; the cost there is the lookup itself, with no folding to show for it.
  *
  * It is evidence, not a fix.
  */

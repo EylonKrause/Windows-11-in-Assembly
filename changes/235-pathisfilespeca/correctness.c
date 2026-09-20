@@ -7,7 +7,7 @@
 //
 //   * There are two separators, not one. 0x5C and 0x3A. The colon is the one a reader forgets, so
 //     every byte value is swept at three positions rather than spot-checked.
-//   * The empty string is TRUE. That is the single case a natural model gets wrong -- the probe's
+//   * The empty string is TRUE. That is the single case a natural model gets wrong, the probe's
 //     first model required a non-empty string and that was its only mismatch in 488281 strings --
 //     so it is asserted directly as well as covered by the enumeration.
 #define WIN32_LEAN_AND_MEAN

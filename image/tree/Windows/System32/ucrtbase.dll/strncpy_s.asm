@@ -16,7 +16,7 @@
 ;      documented no-op and needs all three; dst == NULL with size != 0 is still EINVAL.
 ;   2. dst == NULL or size == 0                 -> handler, EINVAL (22), dst untouched;
 ;   3. count == 0                               -> dst[0] = 0, return 0, and NO handler even when
-;      src is NULL -- the count test comes before the src test, which the probe confirms;
+;      src is NULL; the count test comes before the src test, which the probe confirms;
 ;   4. src == NULL                              -> dst[0] = 0, handler, EINVAL;
 ;   5. it fits                                  -> exactly n+1 bytes written, return 0;
 ;   6. it does not fit, count != _TRUNCATE      -> `size` bytes written FIRST, then dst[0] = 0,
@@ -36,7 +36,7 @@
 ;     no NUL, lim == size   ->  it does not fit
 ;
 ; which is why the code picks the branch by comparing count against size ONCE, up front, and the
-; scan's "not found" exit then means something different in each -- so the bound register can hold
+; scan's "not found" exit then means something different in each, so the bound register can hold
 ; lim and still be a valid `size` on the failure path, because that path is only reachable when
 ; lim == size. That is what keeps seven live values inside the volatile registers.
 ;
@@ -44,7 +44,7 @@
 ; and stops after the block holding index lim-1, so it never crosses into a page the caller did not
 ; give us and never reads further than the live scalar loop would. Every byte the copy then reads
 ; has already been touched by the scan.
-; Writes: exactly n+1 bytes on success, exactly `size` on failure -- the head/tail pair overlaps
+; Writes: exactly n+1 bytes on success, exactly `size` on failure, the head/tail pair overlaps
 ; INSIDE the copied range, so nothing past the last byte the live function writes is disturbed.
 ;
 ; ISA: AVX2 + BMI2 (shrx). Validated on Zen3.

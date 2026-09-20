@@ -5,7 +5,7 @@
 //
 //   * NULL and the EMPTY STRING both return NULL, and those are the only NULLs.
 //   * exactly ONE byte value is a separator: 0x5C. Sweeping all 255 non-NUL values between two
-//     letters, only the backslash moves the answer -- a forward slash is not a separator.
+//     letters, only the backslash moves the answer; a forward slash is not a separator.
 //   * With no separator the answer is a pointer to the TERMINATOR, not NULL.
 //   * The doubled-separator quirk: when the byte after the first separator is also a separator,
 //     advance exactly ONE more, never the whole run. Measured with leading runs of 1..6: the

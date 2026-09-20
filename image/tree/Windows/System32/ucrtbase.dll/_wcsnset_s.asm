@@ -6,7 +6,7 @@
 ; errno_t wia_wcsnset_s(wchar_t* str, size_t numberOfElements, wchar_t c, size_t count)
 ;   [Win64: rcx, rdx, r8w, r9 -> eax]
 ;
-; Reimplements ucrtbase!_wcsnset_s -- the bounded sibling of change 080 (_wcsnset) and the wide
+; Reimplements ucrtbase!_wcsnset_s, the bounded sibling of change 080 (_wcsnset) and the wide
 ; mirror of change 184. ucrtbase's is scalar: 84.7 ns over a 254-character string.
 ;
 ; Contract: identical in shape to change 184's, and that is a MEASUREMENT, not an assumption --
@@ -18,7 +18,7 @@
 ;     cells, and only THEN write str[0] = 0, returning EINVAL (22).
 ;   * Otherwise -> fill min(count, length) cells, leave the rest of the string and the
 ;     terminator alone, return 0.
-;   * _TRUNCATE ((size_t)-1) is NOT special-cased -- it saturates to the other limit.
+;   * _TRUNCATE ((size_t)-1) is NOT special-cased, it saturates to the other limit.
 ;   * Every fill value behaves the same, including 0.
 ;
 ; The scan cannot be shortened by `count`: even at count 0 the return value still depends on
@@ -32,7 +32,7 @@
 ; declared buffer remain, and is additionally guarded against crossing into the next page. The
 ; fill writes at most numberOfElements-1 characters.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

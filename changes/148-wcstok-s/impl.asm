@@ -2,12 +2,12 @@
 ; wchar_t* wia_wcstok_s(wchar_t* str, const wchar_t* delim, wchar_t** ctx)   [Win64: rcx, rdx, r8 -> rax]
 ;
 ; Reimplements ucrtbase!wcstok_s. ucrtbase's costs 369 ns to pull one token out of a 254-wchar string
-; (~1.45 ns/char -- even slower than the narrow strtok_s, change 147) because it is two scalar set-scans -- strspn to skip leading delimiters, then strcspn
+; (~1.45 ns/char (even slower than the narrow strtok_s, change 147) because it is two scalar set-scans) strspn to skip leading delimiters, then strcspn
 ; to find the token end. Both become one AVX2 block scan each.
 ;
-; Contract (probed against the live export -- standard C semantics):
+; Contract (probed against the live export, standard C semantics):
 ;   - str == NULL continues from *ctx;
-;   - leading delimiters are SKIPPED but left intact in the buffer -- only the delimiter that ends a
+;   - leading delimiters are SKIPPED but left intact in the buffer, only the delimiter that ends a
 ;     token is overwritten with NUL (",,a,,b,," leaves ",,a\0,b\0,");
 ;   - no token left -> NULL, with *ctx pointing at the terminator;
 ;   - an empty delimiter set makes the whole remaining string one token.

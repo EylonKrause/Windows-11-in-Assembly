@@ -29,7 +29,7 @@ wia_u2a PROC
         movzx     r9d, word ptr [rcx + 2]          ; dst MaximumLength
         ; The export nul-terminates, and it truncates rather than refusing.
         ;
-        ; This used to be `cmp eax, r9d / ja overflow` -- room for the conversion and nothing else --
+        ; This used to be `cmp eax, r9d / ja overflow`, room for the conversion and nothing else --
         ; and the success path wrote no terminator. Both halves were wrong, and they were wrong
         ; together, which is why the change's own gate could not see either: it ran every case with
         ; MaximumLength fixed at 300 (so the size rule never bound) and compared only indices
@@ -40,7 +40,7 @@ wia_u2a PROC
         ;     Max >= 1           -> n = min(srclen, Max - 1) characters are converted, a NUL is
         ;                           written at [n], Length = n, and the status is STATUS_SUCCESS
         ;                           when n == srclen and STATUS_BUFFER_OVERFLOW otherwise.
-        ; So srclen 8 with Max 4 comes back as "ABC\0" with Length 3 and an overflow status -- a
+        ; So srclen 8 with Max 4 comes back as "ABC\0" with Length 3 and an overflow status, a
         ; Partial write on failure. Its three siblings do not do this: 020, 024, 019 and 025 refuse
         ; outright and leave the destination alone. Four functions in one family, two failure
         ; disciplines, measured rather than assumed.

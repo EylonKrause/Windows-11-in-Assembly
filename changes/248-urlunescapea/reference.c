@@ -7,11 +7,11 @@
 // Every rule here was measured by probes/unesca.c against the live export. The three that are not the
 // wide form's, and that a reasonable person would have got wrong by analogy with change 245:
 //
-//   1. AS_UTF8 IS REFUSED (E_INVALIDARG), not implemented -- but only on the path that reaches the
+//   1. AS_UTF8 IS REFUSED (E_INVALIDARG), not implemented, but only on the path that reaches the
 //      check, and INPLACE is tested first, so INPLACE|AS_UTF8 unescapes.
 //   2. %00 TRUNCATES on the non-in-place path and returns S_OK: "a%00b" -> "a", cch = 1. The shipped
 //      code calls its walk and discards the HRESULT, then measures the temporary with a strlen. The
-//      IN-PLACE path tail-calls the same walk, so THERE %00 returns E_INVALIDARG -- one function, two
+//      IN-PLACE path tail-calls the same walk, so THERE %00 returns E_INVALIDARG, one function, two
 //      paths, two answers for one input. The first version of the probe asserted the wide form's rule
 //      here and was wrong.
 //   3. A FAULTING SOURCE returns S_OK with an empty result, because the length comes from an
@@ -20,7 +20,7 @@
 //      live export alone.
 //
 // And the one the wide form shares but that is easy to invert: URL_DONT_UNESCAPE_EXTRA_INFO stops the
-// walk at a raw '?' or '#' and copies the marker and everything after it verbatim -- while an escape
+// walk at a raw '?' or '#' and copies the marker and everything after it verbatim, while an escape
 // that DECODES to '?' does not stop anything ("a%3Fb%41" -> "a?bA"). So the test is on the source
 // byte, never on the byte produced.
 #define WIN32_LEAN_AND_MEAN

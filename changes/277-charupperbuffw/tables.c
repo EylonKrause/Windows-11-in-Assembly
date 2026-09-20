@@ -6,25 +6,25 @@
  *
  *   * CharUpperBuffW agrees with ntdll!RtlUpcaseUnicodeChar on all 65536 code units, and
  *     CharLowerBuffW with RtlDowncaseUnicodeChar on all 65536;
- *   * it is NOT locale-aware -- it agrees with LCMapStringW(LCMAP_UPPERCASE) under the user
+ *   * it is NOT locale-aware, it agrees with LCMapStringW(LCMAP_UPPERCASE) under the user
  *     locale, the invariant locale, German AND Turkish, which is the one that would differ if
  *     linguistic casing were involved;
  *   * and it has no context: every code unit maps the same alone as it does inside a run, 0 of
  *     65535. The surrogate pair U+10428 does come out as U+10400, but that falls out of the table
- *     mapping each surrogate on its own -- section 1 covers the surrogates too.
+ *     mapping each surrogate on its own, section 1 covers the surrogates too.
  *
  * That is what makes this change possible where changes 274 and 276 were parked: there is no
  * allocator and no collation behind it, only a lookup this project can own.
  *
  * The tables are built from the exports under test, not from ntdll and not from a list. Change 015
  * builds its upcase table from RtlUpcaseUnicodeChar and probes/mapping.c proved the two are
- * identical -- but the function this change has to match is CharUpperBuffW, so that is the one
+ * identical, but the function this change has to match is CharUpperBuffW, so that is the one
  * asked. It is the same decision change 269 made about the SDDL aliases and change 210 about its
  * upcase table: a transcribed table is a constant nobody can check by reading it.
  *
  * And the ASCII claim is checked rather than assumed. The vector path in impl.asm handles a block
- * with no code unit at or above 0x80 by a range subtract -- 'a'..'z' minus 0x20, 'A'..'Z' plus
- * 0x20 -- and everything else by the table. That is only correct if the table AGREES with the range
+ * with no code unit at or above 0x80 by a range subtract, 'a'..'z' minus 0x20, 'A'..'Z' plus
+ * 0x20, and everything else by the table. That is only correct if the table AGREES with the range
  * rule below 0x80, which is exactly the kind of thing that is true until it is not: the self-check
  * below walks all 128 and refuses to run if any disagrees.
  */

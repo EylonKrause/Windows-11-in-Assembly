@@ -11,9 +11,9 @@
 ;
 ; ntdll uses a per-byte run-length table. This scans 64-bit words: it extends a clear-run across word
 ; boundaries (returning the moment it reaches num) and tests each word for an interior run >= num in
-; O(1)/O(log num) -- a POPCNT reject then, when num<=popcount<=64, an O(log num) shift-reduce whose set
+; O(1)/O(log num), a POPCNT reject then, when num<=popcount<=64, an O(log num) shift-reduce whose set
 ; bits mark run>=num starts (tzcnt = earliest). An AVX2 fast path bulk-skips 256-bit chunks that hold no
-; target bit (all-set for clear-search) -- the common long allocated/free runs on real bitmaps. Pass 1
+; target bit (all-set for clear-search), the common long allocated/free runs on real bitmaps. Pass 1
 ; scans [startpos, n); if nothing, pass 2 scans [0, startpos+num) (so total work ~= n, not 2n).
 ; Unified with RtlFindSetBits (126) by an invert mask (r14): clear-search 0, set-search -1.
 ;
@@ -23,7 +23,7 @@
 ; Register note. This function may only touch xmm0-xmm5: xmm6-xmm15 are callee-saved under Win64
 ; (their low 128 bits are; the upper halves are volatile). An earlier cut kept the all-ones vector
 ; and the broadcast invert mask in ymm7/ymm6, which silently destroyed any double the caller had
-; live -- invisible to a correctness test, which compares a bit index. Only registers 0 and 1 were
+; live, invisible to a correctness test, which compares a bit index. Only registers 0 and 1 were
 ; otherwise in use, so moving the pair to ymm3/ymm2 costs nothing. See tools/abi-check.
 ;
 .code

@@ -6,7 +6,7 @@
 ; HRESULT wia_pathcchaddbackslash(PWSTR pszPath, size_t cchPath)   [Win64: rcx, rdx -> eax]
 ;
 ; Reimplements kernelbase!PathCchAddBackslash: append a backslash unless the path already ends with
-; one. 31 ns for a ~70-character path -- almost all of it a character-at-a-time bounded strlen.
+; one. 31 ns for a ~70-character path, almost all of it a character-at-a-time bounded strlen.
 ;
 ; Contract (probed against the live export). The ORDER of the checks is observable and was measured:
 ;   1. cch == 0, or the path is not NUL-terminated within cch
@@ -18,13 +18,13 @@
 ;
 ; Step 2 sits BETWEEN the two size checks, which a single "validate then act" reading would get
 ; wrong in both directions. Probed: "C:\a\" with cch = 3 returns 0x8007007A (the termination check
-; wins), while the same path with cch = 6 -- too small to hold a sixth character -- returns S_FALSE,
+; wins), while the same path with cch = 6 (too small to hold a sixth character) returns S_FALSE,
 ; because by then the trailing backslash has already settled it.
 ;
 ; Three things this function does NOT do, each checked rather than assumed:
-;   * no PATHCCH_MAX_CCH ceiling -- cch = 32769 is accepted, unlike changes 159 and 160;
-;   * no MAX_PATH limit -- a 261-character result is fine;
-;   * no NULL check -- pszPath = NULL FAULTS rather than returning E_INVALIDARG, so dereferencing it
+;   * no PATHCCH_MAX_CCH ceiling, cch = 32769 is accepted, unlike changes 159 and 160;
+;   * no MAX_PATH limit; a 261-character result is fine;
+;   * no NULL check, pszPath = NULL FAULTS rather than returning E_INVALIDARG, so dereferencing it
 ;     reproduces the behaviour exactly.
 ; A trailing '/' does not count as a backslash: "a/" becomes "a/\".
 ;
@@ -32,8 +32,8 @@
 ; The first working version was 0.89x at 16 characters: correct, but slower than the live scalar
 ; loop. Two costs, both avoidable and both only material when the string is short. The vector
 ; prologue is ~15 cycles of load -> compare -> vpmovmskb -> shrx -> tzcnt before anything is known,
-; and it ends in a vzeroupper; and a caller that has just written the buffer -- which any caller of
-; an in-place path routine has -- leaves stores that a 32-byte load over the same bytes cannot
+; and it ends in a vzeroupper; and a caller that has just written the buffer, which any caller of
+; an in-place path routine has, leaves stores that a 32-byte load over the same bytes cannot
 ; forward from, while a 2-byte load forwards cleanly. Same effect as changes 152 and 156.
 ;
 ; So paths of 23 characters or fewer are measured by a plain scalar probe and never reach a vector

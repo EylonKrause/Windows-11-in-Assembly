@@ -1,6 +1,6 @@
 /* discovery/desktop_top_unexplored.c
  *
- * discovery/desktop-surface.md ranks the desktop's real call surface by FAN-IN -- how many of the
+ * discovery/desktop-surface.md ranks the desktop's real call surface by FAN-IN, how many of the
  * 459 modules mapped into explorer, dwm, the shells and the brokers actually bind each function.
  * Eight of its top rows are shaped like targets. Six have been worked: WideCharToMultiByte (289),
  * MultiByteToWideChar (290), memcmp (005), and memset/memcpy/memmove, which between them carry 25
@@ -12,7 +12,7 @@
  *     OutputDebugStringW    bound by 304
  *
  * Fan-in is a proxy for pervasiveness, not for time spent, and a function being bound by three
- * hundred modules is not a reason to reimplement it -- it is a reason to find out what it costs.
+ * hundred modules is not a reason to reimplement it; it is a reason to find out what it costs.
  * This file finds out. LoadStringW (109) is included as a third because it sits on the resource
  * path that change 298 already found hard to resolve, and a second data point on that path is
  * cheap here.
@@ -31,7 +31,7 @@
  *   inside worth looking at. The narrow sibling is timed beside it because one is usually
  *   implemented in terms of the other, and which way round is a measurement, not a guess.
  *
- * Run it on an idle machine, and not while a revalidation sweep is running -- every row is a
+ * Run it on an idle machine, and not while a revalidation sweep is running; every row is a
  * min-of-N, which is robust to one slow sample and not at all to a saturated machine.
  */
 #define WIN32_LEAN_AND_MEAN

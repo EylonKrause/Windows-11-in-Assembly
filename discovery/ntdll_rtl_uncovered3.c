@@ -8,7 +8,7 @@
  * plausible is measured here: name comparisons, a parse, a validator, the size calculators and the
  * UTF-8 string wrappers.
  *
- * What is deliberately not here, and why -- so that nobody measures them again hoping for a
+ * What is deliberately not here, and why, so that nobody measures them again hoping for a
  * different answer:
  *
  *   * RtlComputeCrc32 measured 0.012 ns/byte in the third sweep, which is 81 GB/s. That is faster
@@ -27,7 +27,7 @@
  *   * RtlUnicodeStringToUTF8String (0.099 ns/byte) and RtlUTF8StringToUnicodeString (0.213) are
  *     REAL TARGETS, and this project already converted the N-forms they wrap, as changes 016 and
  *     034, at 2.82x and 3.12x.
- *   * RtlEqualComputerName and RtlEqualDomainName are slow -- 559 ns for fifteen characters -- and
+ *   * RtlEqualComputerName and RtlEqualDomainName are slow (559 ns for fifteen characters) and
  *     NOT CONVERTIBLE: their fold is an OEM code-page conversion rather than the upcase table. The
  *     evidence is beside their rows.
  *   * RtlValidateUnicodeString, the three size calculators, RtlUnicodeStringToInteger, RtlRandom
@@ -37,7 +37,7 @@
  *
  * METHOD, and the mistakes this file is written to avoid:
  *   * Run it on an idle machine. Every row is a min-of-N.
- *   * Every row prints what it actually did -- the return value and the output where there is one.
+ *   * Every row prints what it actually did; the return value and the output where there is one.
  *     A survey row whose subject does not do the work its label claims is this project's most
  *     expensive recurring mistake.
  *   * a row whose cost does not scale with a length is reported per call and marked, because

@@ -1,7 +1,7 @@
 // changes/229-lstrcpyw/bench.c
 // Gate 2: time wia_lstrcpyw against the live kernelbase!lstrcpyW.
 // Lengths are COMPUTED, never hardcoded, and the pool offsets are computed with guaranteed spacing
-// -- hand-placed offsets let one case's buffer land inside another's twice while change 228 was
+//, hand-placed offsets let one case's buffer land inside another's twice while change 228 was
 // being written, and the only reason it was caught was a row reporting a throughput above memcpy's.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

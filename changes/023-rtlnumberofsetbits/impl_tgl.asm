@@ -13,7 +13,7 @@
 ;   * POPCNT is one per cycle, so 64 bits per cycle is the hard ceiling of that loop, and
 ;   * every iteration adds into the SAME accumulator, so the adds form one serial dependency chain.
 ;
-; This part has AVX512VPOPCNTDQ. `vpopcntq zmm` population-counts eight qwords -- 512 bits -- in a
+; This part has AVX512VPOPCNTDQ. `vpopcntq zmm` population-counts eight qwords (512 bits) in a
 ; single instruction, and two independent accumulators break the chain. ntdll cannot do this: it
 ; ships one binary for every x86-64 Windows machine, including the large majority with no AVX-512 at
 ; all, so its large-bitmap path is stuck at what POPCNT can do. That asymmetry is the entire win
@@ -26,19 +26,19 @@
 ; SHAPE
 ;   >= 1024 bits : two vpopcntq per iteration, 128 B/iter, two accumulators, horizontal sum once
 ;      512..1023 : one vpopcntq
-;         < 512  : the parent's scalar ladder, byte-for-byte -- see below
+;         < 512  : the parent's scalar ladder, byte-for-byte, see below
 ;
 ; The small sizes deliberately execute the PARENT'S code path. They are where change 023 already
 ; wins (2.34x at 64 bits) and where a vector setup could only cost; a variant that regressed the
 ; small classes to win the large one would fail the same gate the parent passed.
 ;
 ; PAGE SAFETY: unchanged from the parent. Every load is inside the bits the function has been told
-; to read -- the 1024-bit step consumes exactly the 128 bytes it loads -- so this reads no byte the
+; to read (the 1024-bit step consumes exactly the 128 bytes it loads) so this reads no byte the
 ; parent would not also have read.
 ;
 ; RTL_BITMAP = { ULONG SizeOfBitMap @0; PULONG Buffer @8 }.
 ; ISA: AVX512F + AVX512VPOPCNTDQ, plus POPCNT for the tail. Validated on bench #3
-; (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 ;
 ; ABI: uses zmm0-zmm3 only. xmm0-xmm5 are volatile under Win64, so nothing here needs a spill;
 ; tools/abi-audit.py and tools/abi-check both cover this.
@@ -68,7 +68,7 @@ lp1024:
         cmp       r9d, 1024
         jae       lp1024
 
-        ; one more 512-bit step if the remainder still covers a full zmm -- otherwise this would be
+        ; one more 512-bit step if the remainder still covers a full zmm, otherwise this would be
         ; up to eight scalar POPCNTs, which is the thing being avoided.
         cmp       r9d, 512
         jb        hsum

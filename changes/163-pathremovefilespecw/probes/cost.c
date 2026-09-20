@@ -2,7 +2,7 @@
  *
  * The disassembly says PathRemoveFileSpecW is an envelope over five named exports:
  *   PathCchSkipRoot, wcschr (in a last-backslash loop), PathCchIsRoot, PathIsUNCW,
- *   and PathCchRemoveFileSpec -- which is change 240, already landed.
+ *   and PathCchRemoveFileSpec, which is change 240, already landed.
  * Deriving it therefore means deriving PathCchSkipRoot first, which is a full root parser.
  * That is only worth doing if the numbers say so.
  */

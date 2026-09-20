@@ -5,7 +5,7 @@
 ; changes/283-strrstriw/impl.asm
 ;   PCWSTR wia_strrstriw(PCWSTR start, PCWSTR end, PCWSTR needle)   [Win64: rcx, rdx, r8 -> rax]
 ;
-; shlwapi!StrRStrIW -- the case-insensitive SUBSTRING search, backwards.
+; shlwapi!StrRStrIW, the case-insensitive SUBSTRING search, backwards.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 1. THE NUMBER. discovery/charclass_strcmp_2026.c measured the shipped export at 21816.97 ns over
@@ -16,14 +16,14 @@
 ; 2. The one question that decided whether this could be written at all.
 ;
 ; A substring search over a collation could compare SPANS rather than characters, and CompareStringW
-; gives ignorable characters zero weight -- so "ab<SOFT HYPHEN>cd" would contain "abc", a
+; gives ignorable characters zero weight, so "ab<SOFT HYPHEN>cd" would contain "abc", a
 ; three-character needle matching a four-character span. No per-character loop can reproduce that,
 ; and changes 274 and 276 parked on exactly that kind of wall.
 ;
 ;     probes/contract.c:  "ab<SOFT HYPHEN>cd" vs needle "abc"  ->  NOT FOUND
 ;
-; It is per-character. The relation is change 281's, linked unchanged -- locale-invariant, symmetric,
-; INTRANSITIVE (168 triples, so no classes, stored per needle), 10553170 pairs -- and the probe
+; It is per-character. The relation is change 281's, linked unchanged, locale-invariant, symmetric,
+; INTRANSITIVE (168 triples, so no classes, stored per needle), 10553170 pairs, and the probe
 ; confirmed it holds inside substrings too: "x<D7A2>y" matches both "x<D7B0>y" and "x<D7B1>y", while
 ; "x<D7B0>y" does not match "x<D7B1>y".
 ;
@@ -33,12 +33,12 @@
 ; probes/bounds.c measured each of these against the live export:
 ;
 ;   * `end` Bounds only where a match may start, exclusively. Over "abcXYZabc" the answer becomes 6
-;     as soon as end reaches start+7 -- a match at 6 occupies 6,7,8 and is returned even though it
+;     as soon as end reaches start+7; a match at 6 occupies 6,7,8 and is returned even though it
 ;     does not fit inside [start, start+7).
 ;   * The haystack is nul-terminated. a NUL at index 4 hides a match at 9, while matches before it
 ;     are still found. StrRChrIW walks straight through an embedded NUL; this does not.
 ;   * And it reads to the terminator regardless of `end`. With a terminator present, an `end` 64
-;     code units past a guard page does NOT fault -- the NUL stops it first. With NO terminator, an
+;     code units past a guard page does NOT fault, the NUL stops it first. With NO terminator, an
 ;     `end` of start+6 DOES fault. The caller must supply a terminator; `end` will not save it.
 ;
 ;   Also: an empty needle returns NULL, a needle longer than the string returns NULL, and a NULL
@@ -48,7 +48,7 @@
 ; 4. THE ALGORITHM: a vector filter in front of a scalar verifier.
 ;
 ;   (a) measure the needle and the haystack, each to its terminator;
-;   (b) the highest candidate start is min(start + hlen - nlen, end - 1) -- below `start`, nothing
+;   (b) the highest candidate start is min(start + hlen - nlen, end - 1), below `start`, nothing
 ;       to do;
 ;   (c) scan backwards for a code unit matching the needle's first character, sixteen at a time,
 ;       using change 282's loop: four broadcasts of that character's match set, both edge masks,
@@ -61,7 +61,7 @@
 ; MISS rows at 118-123x. Adding the last-character reject in step (d) took it to 77.01x.
 ;
 ; The bench keeps a row whose needle begins with a character matching every code unit in the
-; haystack -- the case where the filter rejects nothing and every position reaches the verifier. It
+; haystack, the case where the filter rejects nothing and every position reaches the verifier. It
 ; sat at 8.09x while every other row was past a hundred, which is exactly why it is in the table:
 ; without it the reported number would be the easy case only. The last-character reject took that
 ; row to 16.88x, and it remains the worst row by a wide margin.
@@ -80,7 +80,7 @@ EXTERN wia_sci_bmap:BYTE
 .code
 
 ; ---------------------------------------------------------------------------------------------
-; match_pair -- does the needle code unit in r14w match the haystack code unit in r15w?
+; match_pair, does the needle code unit in r14w match the haystack code unit in r15w?
 ; ZF=1 on match. Clobbers rax, r12, r13.
 ; ---------------------------------------------------------------------------------------------
 match_pair PROC PRIVATE
@@ -126,7 +126,7 @@ mp_bitmap:
 match_pair ENDP
 
 ; ---------------------------------------------------------------------------------------------
-; vscan -- the highest address in [rsi, r11] whose code unit matches the set broadcast into
+; vscan, the highest address in [rsi, r11] whose code unit matches the set broadcast into
 ; ymm1..ymm4, or 0. Change 282's loop, with an INCLUSIVE upper bound.
 ; Clobbers rax, rcx, rdx, r8, r9, r12, r13, ymm0, ymm5.
 ; ---------------------------------------------------------------------------------------------
@@ -246,11 +246,11 @@ hlen_done:
         ; either. It treats the string as ending at the terminator and compares every remaining
         ; needle character against a VIRTUAL NUL:
         ;
-        ;   * over "zzzq" the needle {q, soft hyphen} is found at the last character -- the soft
+        ;   * over "zzzq" the needle {q, soft hyphen} is found at the last character, the soft
         ;     hyphen is one of the 3320 code units that match a NUL (change 282's foldnul.c), and it
         ;     was matched against the terminator;
         ;   * with 'W' written immediately after that terminator, {q, shy, shy} is still found, while
-        ;     {Q, W} is not -- so the characters past the end are compared against NUL, not against
+        ;     {Q, W} is not, so the characters past the end are compared against NUL, not against
         ;     the memory that is actually there;
         ;   * a tail of 32 soft hyphens still matches, so the run is unbounded;
         ;   * the same holds at an EMBEDDED NUL: over "ab\0cd" the needle {B,SHY,SHY} is found while
@@ -264,8 +264,8 @@ hlen_done:
         ;
         ;       min( hlen - nlen + maxtail,  hlen - 1,  endq )
         ;
-        ; and for every needle whose last character is NOT one of those 3320 -- which is every
-        ; ordinary needle -- maxtail is zero and this collapses to hlen - nlen, the bound the change
+        ; and for every needle whose last character is NOT one of those 3320, which is every
+        ; ordinary needle, maxtail is zero and this collapses to hlen - nlen, the bound the change
         ; was originally written with. That is why the first draft passed everything except a corpus
         ; built on purpose to ask.
         test      r9, r9
@@ -300,7 +300,7 @@ qa_have:                                          ; rcx = qTopA = min(hlen - nle
         ; call, which is a fifth of the whole operation on a sixteen-character string.
         ;
         ; When it is computed, match_pair clobbers only rax, r12 and r13, none of which this loop
-        ; uses, so it needs no spills -- and for any needle whose last character is not one of the
+        ; uses, so it needs no spills, and for any needle whose last character is not one of the
         ; 3320 that match a NUL it exits after ONE call.
         xor       r8, r8
         cmp       rcx, r11
@@ -369,7 +369,7 @@ rb_done:
         ; ---- (e) REGION A: every candidate whose match lies entirely inside the string. This is the
         ; whole search whenever maxtail is zero. Every such candidate satisfies q + nlen - 1 <= hlen-1,
         ; so every load the verifier makes is inside the string and the last-character probe needs no
-        ; bound -- which is what keeps the fast path at full speed.
+        ; bound, which is what keeps the fast path at full speed.
         test      rcx, rcx
         js        rs_null
         lea       r11, [rsi + rcx*2]              ; the inclusive upper bound for vscan
@@ -427,7 +427,7 @@ verify_at:
         ; The last character is tested before the middle ones, and it is worth its own comment.
         ; The vector filter keys on the needle's FIRST character, so a needle beginning with a
         ; character that matches everything filters nothing and every position reaches the
-        ; verifier. The bench keeps exactly that row -- "QQQQZ" over a haystack of 'q' -- and it sat
+        ; verifier. The bench keeps exactly that row ("QQQQZ" over a haystack of 'q') and it sat
         ; at 8.09x while every other row was past a hundred. One extra comparison, at the END of the
         ; needle where the rare character usually is, rejects those candidates immediately.
         cmp       r10, 1

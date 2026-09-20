@@ -1,5 +1,5 @@
 // changes/189-wcstoul/correctness.c
-// Gate 1: wia_wcstoul must be indistinguishable from ucrtbase!wcstoul -- value, *endptr, errno AND
+// Gate 1: wia_wcstoul must be indistinguishable from ucrtbase!wcstoul, value, *endptr, errno AND
 // the invalid-parameter handler hit count. Three-way against the scalar oracle and the live
 // export.
 //

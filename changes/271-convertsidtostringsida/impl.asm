@@ -2,28 +2,28 @@
 ;   BOOL wia_sid2stra(const void* sid, char** out)      [Win64: rcx, rdx -> eax]
 ;
 ; advapi32!ConvertSidToStringSidA. discovery/sid_inet_bstr.c measured it at 254.59 ns against
-; 181.45 ns for the wide form -- a 73 ns gap, which is about what a code-page conversion of a
+; 181.45 ns for the wide form; a 73 ns gap, which is about what a code-page conversion of a
 ; 44-character string costs.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; The ANSI form is the wide form narrowed one byte per character, and that was measured, not assumed.
 ;
-; probes/contract.c asks both exports the same question over every shape of SID -- every
+; probes/contract.c asks both exports the same question over every shape of SID, every
 ; sub-authority count 0..255, every revision 0..255, the identifier authority at every decimal and
-; hexadecimal boundary at six counts, the NULL arguments, and the last-error rule -- and compares the
+; hexadecimal boundary at six counts, the NULL arguments, and the last-error rule, and compares the
 ; characters, the refusals, GetLastError, LocalSize, LocalFlags and the fate of the output pointer.
 ; ZERO DIFFERENCES. It then repeats the comparison under four thread locales including Shift-JIS and
 ; UTF-8, because a SID string being ASCII "by construction" is exactly the kind of reasoning changes
 ; 021 and 027 were built on before their code pages were measured. Still zero.
 ;
 ; So there is no code page in this file. A SID string is 'S', '-', '0'..'9', 'A'..'F' and 'x', all
-; below 0x80, so the narrowing is a saturating byte pack that cannot clip -- sixteen characters per
+; below 0x80, so the narrowing is a saturating byte pack that cannot clip, sixteen characters per
 ; iteration through VPACKUSWB, which needs no lane fix-up at 128 bits.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; Everything else is change 270's contract, and it is linked rather than restated: the formatter is
 ; change 067, the failure codes and the allocation are change 270's alloc.c, and the block is
-; LocalAlloc(LMEM_FIXED) of exactly characters+1 bytes -- one byte per character here rather than
+; LocalAlloc(LMEM_FIXED) of exactly characters+1 bytes, one byte per character here rather than
 ; two, which probes/contract.c measured at four counts.
 ;
 ; ISA: SSE2/AVX for the pack (VEX-encoded, so no alignment requirement); change 067 brings AVX2.
@@ -40,7 +40,7 @@ EXTERN wia_sid2str_err_nomem:PROC
 
 ;   [rsp+0..31]     shadow space for the calls out
 ;   [rsp+32..47]    a UNICODE_STRING: Length, MaximumLength, then Buffer at +8
-;   [rsp+48..847]   the temporary wide string -- 400 characters against a longest result of 184
+;   [rsp+48..847]   the temporary wide string, 400 characters against a longest result of 184
 ;   [rsp+848]       the caller's `out`
 USTR      EQU 32
 TMP       EQU 48

@@ -2,7 +2,7 @@
  *
  * THREE-WAY: ours vs the scalar model vs the LIVE advapi32 export.
  *
- * The model was validated on its own first -- probes/model.c, 36508 cases, zero disagreements --
+ * The model was validated on its own first, probes/model.c, 36508 cases, zero disagreements --
  * because a grammar this surprising had to be pinned before any assembly could be written against
  * it. This gate runs the same corpora with the assembly in the middle, and adds the cases that only
  * matter once there IS an implementation: the whole byte image of the SID, the length, the output
@@ -12,12 +12,12 @@
  * was touched, and on success the SID's length and every byte of it.
  *
  * THE CORPORA:
- *   1. every number form in each of the three field positions -- the cross product, 27000 cases,
+ *   1. every number form in each of the three field positions, the cross product, 27000 cases,
  *      which is what reaches combinations nobody writes down by hand;
  *   2. prefixes, separators and shapes;
  *   3. every sub-authority count from 0 to 260, straddling the 254 limit and its
  *      ERROR_ARITHMETIC_OVERFLOW;
- *   4. Every code unit 1..0xFFFF in each of the three field positions, twice each -- leading, where
+ *   4. Every code unit 1..0xFFFF in each of the three field positions, twice each, leading, where
  *      whitespace is legal in two of the three, and trailing, where it is legal in none. This is
  *      what covers the Unicode digit and whitespace sets without a table of them appearing here;
  *   5. every two-character string over printable ASCII: the alias table, exhaustively;
@@ -52,7 +52,7 @@ static long n_ok, n_sid, n_over, n_param;
  * 272's gate that found it, because its corpus happened to use a non-zero sentinel.
  *
  * It is the same defect as change 067's corpus stepping MaximumLength by two: not a weak test, an
- * absent one -- the generator could not express the case. */
+ * absent one; the generator could not express the case. */
 #define SENTINEL 0x0D15EA5Eul
 static void one(const wchar_t* s)
 {

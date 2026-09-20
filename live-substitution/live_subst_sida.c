@@ -6,15 +6,15 @@
 // process's UNPATCHED LocalFree.
 //
 // The last error is compared on every call, from a non-zero sentinel. Change 269's first gate did
-// neither -- it set the last error to zero before each call and then compared it only on FAILING
-// ones -- and the two omissions together hid a real defect for a whole change: all four exports of
+// neither, it set the last error to zero before each call and then compared it only on FAILING
+// ones, and the two omissions together hid a real defect for a whole change: all four exports of
 // the SID text family ZERO the last error on success, and 269's implementation did not.
 // changes/272-.../probes/lasterror.c is the measurement; this harness is built so it could not
 // happen here.
 //
 // Two widening paths are driven, because they are different code:
 //   * an input with no byte at or above 0x80 is widened by a VPMOVZXBW zero extension, with no code
-//     page consulted -- licensed by probes/asciilen.c, which measured every byte 0x00..0x7F against
+//     page consulted, licensed by probes/asciilen.c, which measured every byte 0x00..0x7F against
 //     all 22 code pages Windows can use as an ACP and found zero counterexamples;
 //   * anything else calls MultiByteToWideChar.
 // A corpus of plausible SID strings is entirely ASCII, so the fallback would never run. A quarter of

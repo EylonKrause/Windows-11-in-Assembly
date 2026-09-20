@@ -314,7 +314,7 @@ int main(void){
     report(c0, b0);
 
     section("11. NULL faults, in both, and the fault is UNWINDABLE");
-    /* Both NULLs fault -- measured in probes/pccx.c, unlike change 240 which returns E_INVALIDARG --
+    /* Both NULLs fault, measured in probes/pccx.c, unlike change 240 which returns E_INVALIDARG --
        so there is nothing to check and the first access reproduces it. What this section really
        proves is that the fault can be UNWOUND: change 241 spent an afternoon on a harness that
        exited with code 5 and no output because a fault inside a PROC with no unwind information

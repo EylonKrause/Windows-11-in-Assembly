@@ -1,5 +1,5 @@
 // live-substitution/live_subst_ws2.c
-// ws2_32's IP-conversion exports DELEGATE into landed ntdll changes -- proved by a counter.
+// ws2_32's IP-conversion exports DELEGATE into landed ntdll changes, proved by a counter.
 //
 // ================================================================================================
 // Corrected by change 273. This file used to open with "ws2_32's IP-conversion exports are already
@@ -34,13 +34,13 @@
 //     ws2_32!inet_ntop  (RVA 0x29C20)  call [rip+0x2D644] -> slot 0x57290 -> ntdll!RtlIpv4AddressToStringExA
 //
 // and both of those are landed: change 114 and change 065. So patching the ntdll export redirects
-// the ws2_32 caller too, with no new implementation and no new contract -- the same shape as change
+// the ws2_32 caller too, with no new implementation and no new contract, the same shape as change
 // 242 covering PathCombineW/PathAppendW, and as change 249's UrlHashW.
 //
 // This harness exists because "already covered" is a claim. An import-table reading is good evidence
 // and a counter is proof: each ntdll export is patched on its own, the WS2_32 name is then called,
 // and our counter has to move. It also checks that the answers are identical either way, because a
-// wrapper is entitled to transform what it passes and what it returns -- inet_addr, for one, has its
+// wrapper is entitled to transform what it passes and what it returns, inet_addr, for one, has its
 // own leading-space test before it delegates.
 //
 // FREEZE-SAFETY PROTOCOL: sacrificial single-threaded child; only this process's copy-on-write copy

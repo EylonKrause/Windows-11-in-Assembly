@@ -8,7 +8,7 @@
      * It is the only value that occurs. PathCchCanonicalize is documented as PathCchCanonicalizeEx with
        PATHCCH_NONE, so every caller of the simple form lands here, and every caller in this project's
        corpus passes 0.
-     * Flag 0x01 is not a post-step -- it changes the pop itself. probes/refcheck.c measured
+     * Flag 0x01 is not a post-step, it changes the pop itself. probes/refcheck.c measured
        "C:a\.." as "\" with flags 0 and "C:a\" with 0x01, "\\srv\.." as "\" against "\\srv\", and
        "\\srv\shr\a\..\..\.." as "\" against "\\srv\". So ALLOW_LONG_PATHS selects a different backward
        walk with a different floor, which is a second contract, not a modifier of this one. The

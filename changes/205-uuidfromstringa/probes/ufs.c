@@ -6,12 +6,12 @@
    project's own wide GUID parser (change 118, ntdll!RtlGUIDFromString) does the same job in ~12 ns.
 
    Nothing about the contract is assumed. What has to be settled:
-     * the accepted form -- braced, unbraced, or either;
+     * the accepted form, braced, unbraced, or either;
      * exact return codes for success and for every kind of malformed input (RPC_S_OK = 0,
        RPC_S_INVALID_STRING_UUID = 1700);
      * whether a NULL string means "nil UUID" (rpcrt4 has historically done this);
      * case sensitivity of the hex digits;
-     * what happens after the 36th character -- is a trailing NUL required, is trailing junk
+     * what happens after the 36th character, is a trailing NUL required, is trailing junk
        rejected, is a shorter string rejected;
      * whether the output UUID is touched at all on failure.                                     */
 #define WIN32_LEAN_AND_MEAN

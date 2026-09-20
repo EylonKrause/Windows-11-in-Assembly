@@ -1,11 +1,11 @@
 @echo off
 REM ===========================================================================
 Rem  ws2_32's IP-conversion exports are already covered by landed ntdll changes.
-REM  inet_addr and inet_ntop do not parse or format an address at all -- they
+REM  inet_addr and inet_ntop do not parse or format an address at all, they
 REM  dispatch through their import table into ntdll!RtlIpv4StringToAddressA and
 REM  ntdll!RtlIpv4AddressToStringExA, which are changes 114 and 065. This patches
 REM  those ntdll exports and proves, with a counter, that the ws2_32 names route
-REM  through them -- no new implementation, no new contract.
+REM  through them, no new implementation, no new contract.
 REM  Sacrificial single-threaded child; no system process touched, nothing on disk.
 REM ===========================================================================
 setlocal

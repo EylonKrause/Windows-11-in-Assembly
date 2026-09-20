@@ -10,7 +10,7 @@
  *
  * so 67 ns of the 181 is unaccounted for, and change 067 already formats a SID in 74 ns against
  * ntdll's 105. If the two formatters agree, change 270 is an ENVELOPE over change 067 plus one
- * LocalAlloc, in the same way change 268 is an envelope over 016 and 034 -- and the ceiling is
+ * LocalAlloc, in the same way change 268 is an envelope over 016 and 034, and the ceiling is
  * about 92 ns, or 1.97x.
  *
  * "If they agree" is the whole question and it is not a safe assumption. Change 268 was built on
@@ -22,10 +22,10 @@
  * THE QUESTIONS, in the order they decide the implementation:
  *
  *   1. do the two formatters produce the same text, over every shape of SID?
- *   2. what does advapi32 do with a SID ntdll REFUSES -- revision != 1?
+ *   2. what does advapi32 do with a SID ntdll REFUSES, revision != 1?
  *   3. how many sub-authorities will it format, and what does the count byte do past 15?
  *   4. the identifier authority is 48 bits: where is the decimal/hex boundary, and what case?
- *   5. what is the FAILURE contract -- the BOOL, GetLastError, and the output pointer?
+ *   5. what is the FAILURE contract, the BOOL, GetLastError, and the output pointer?
  *   6. is the returned block a LocalAlloc block, and is its size exactly the string?
  *
  * Nothing is asserted. Every line prints what the live exports returned, so the table can be

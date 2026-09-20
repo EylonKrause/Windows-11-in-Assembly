@@ -168,7 +168,7 @@ register without one.
 
 **Mutation-tested in both directions, and this is the gate that caught the real bug.** Re-introducing
 a single `vmovdqu ymm6, ...` makes the dynamic gate report
-`ABI: FAILED 263-rtlcompareunicodestrings -- clobbers 1 non-volatile register(s): xmm6`
+`ABI: FAILED 263-rtlcompareunicodestrings, clobbers 1 non-volatile register(s): xmm6`
 and `tools/abi-audit.py` flag the same file independently.
 
 The driver needed a **five-argument** arming helper (`wia_abi_call5`), written in assembly as a

@@ -3,17 +3,17 @@ REM ===========================================================================
 Rem  live-run proof for change 284 (shlwapi!StrStrIW).
 REM
 REM  The shipped export costs 1281 ns over 511 code units. Its comparison is PER
-REM  CHARACTER, not a collation over spans -- "ab<SOFT HYPHEN>cd" does not contain
-REM  "abc" -- which is what makes this change writable on change 281's relation.
+REM  CHARACTER, not a collation over spans, "ab<SOFT HYPHEN>cd" does not contain
+REM  "abc", which is what makes this change writable on change 281's relation.
 REM
 Rem  nothing was inherited from change 283. probes/contract.c re-measured every
 REM  question, because 283 shipped two wrong drafts and both passed a gate. The
 REM  rule: the string behaves as though the terminator were followed by ENDLESS
-REM  NULs, and those NULs are never loaded -- with 'W' after the terminator,
+REM  NULs, and those NULs are never loaded, with 'W' after the terminator,
 Rem  {q,shy,shy} is found and {q,w} is not. So a needle whose tail matches a NUL
 REM  can match past the end, and a needle longer than the whole string can match.
 REM  A match may START only at a real character, an embedded NUL ends the search,
-REM  and an EMPTY needle returns NULL -- the opposite of C strstr.
+REM  and an EMPTY needle returns NULL, the opposite of C strstr.
 REM
 Rem  Both filter paths are driven, and so is the wide threshold itself: U+00AD
 REM  reaches the wide path through a 255 sentinel, which leaves the real

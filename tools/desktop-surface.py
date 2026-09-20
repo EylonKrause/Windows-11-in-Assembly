@@ -66,7 +66,7 @@ PROFILES = {
         "Widgets", "SearchIndexer", "fontdrvhost", "ShellAppRuntime",
     ],
     # What runs before a desktop exists. smss.exe has already exited by the time anything can ask
-    # it anything -- it is the one boot process that cannot be sampled this way -- but everything
+    # it anything (it is the one boot process that cannot be sampled this way) but everything
     # else in the startup chain is still resident, and its module set IS what it loaded at boot.
     # svchost carries the service host groups; lsass, services and winlogon are the session-0
     # spine; csrss and wininit come up before either.
@@ -79,7 +79,7 @@ PROFILES = {
 DESKTOP_PROCESSES = PROFILES["desktop"]
 
 # dumpbin prints per-DLL header rows in the same indented "<hex> <word>" shape as a named import.
-# Without this filter they enter the ranking as if they were functions -- `Characteristics` came
+# Without this filter they enter the ranking as if they were functions, `Characteristics` came
 # out ranked 60th by fan-in on the first run, which is exactly the kind of artifact that survives
 # review because it looks like a plausible Win32 name.
 DUMPBIN_HEADER_WORDS = {

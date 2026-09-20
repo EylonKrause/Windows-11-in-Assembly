@@ -2,7 +2,7 @@
 ; errno_t wia_ui64toa_s(unsigned __int64 Value, char* Buffer, size_t SizeInChars, int Radix)
 ;   [rcx, rdx, r8, r9d -> eax]
 ;
-; Reimplements ucrtbase!_ui64toa_s -- the unsigned sibling of change 194, and the bounded form of
+; Reimplements ucrtbase!_ui64toa_s, the unsigned sibling of change 194, and the bounded form of
 ; change 055. 41.4 ns for a 20-digit value in the shipped version, again a 64-bit `div` per digit.
 ;
 ; The two share ONE worker in ucrtbase: _i64toa_s at RVA 0x00079D60 computes
@@ -75,7 +75,7 @@ wia_ui64toa_s PROC
         mov       rax, rcx                     ; magnitude, treated as unsigned
         cmp       r10d, 10
         je        d10
-        ; Every power-of-two radix -- 2, 4, 8, 16, 32 -- can shift instead of divide. Only radix 16
+        ; Every power-of-two radix (2, 4, 8, 16, 32) can shift instead of divide. Only radix 16
         ; was special-cased at first, which left radix 2 issuing 64 divisions and measuring a 1.00x
         ; tie; with the shift it becomes one of the widest wins here. The test is done in r9d, not
         ; eax, because eax already holds the magnitude.
@@ -157,7 +157,7 @@ emitted:
         inc       rdx
 s_nosign:
         ; Copy the digits 8 bytes at a time. A byte-at-a-time loop cost ~13 cycles on a 13-digit
-        ; base-36 value and put that class at 0.92x -- a regression. Every wide store here is
+        ; base-36 value and put that class at 0.92x; a regression. Every wide store here is
         ; provably inside the buffer: success means negative + digits + 1 <= SizeInChars, so while
         ; 8 or more digits remain there are at least 9 cells left.
         mov       rax, rcx                     ; digit count

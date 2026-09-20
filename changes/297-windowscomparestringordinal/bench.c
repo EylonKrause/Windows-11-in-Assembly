@@ -10,7 +10,7 @@
 //
 // The handles are real, not forged. correctness.c forges headers because that is the only way to
 // reach a page boundary and the NULL-buffer corners; a benchmark has no such need, so every string
-// here comes from WindowsCreateStringReference -- the fast-pass handle a WinRT caller actually
+// here comes from WindowsCreateStringReference, the fast-pass handle a WinRT caller actually
 // passes, and the one that does NOT copy its buffer.
 //
 // Short rows are timed x16, which is change 261's remedy for this harness's own floor: an empty

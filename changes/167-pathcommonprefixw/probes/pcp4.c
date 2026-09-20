@@ -1,4 +1,4 @@
-/* PathCommonPrefixW round 4 -- dump GROUND TRUTH over a tiny alphabet so the rule can be
+/* PathCommonPrefixW round 4, dump GROUND TRUTH over a tiny alphabet so the rule can be
    read off directly instead of guessed. Alphabet {a, '\\'} keeps the table small enough to
    print in full; ':' is added in a second pass to test the drive-root rule separately.
    For each pair we print la, lb, c (case-insensitive common prefix) and the live answer.

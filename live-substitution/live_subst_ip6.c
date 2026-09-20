@@ -7,7 +7,7 @@
 // with two exports at once:
 //
 //   * it patches W alone, and then checks that the shipped, unpatched ExW starts running our
-//     assembly -- proved by a counter, not asserted. That is the composition, demonstrated on the
+//     assembly, proved by a counter, not asserted. That is the composition, demonstrated on the
 //     real binary rather than argued from a disassembly listing.
 //   * it then patches ExW ALONE and checks the whole envelope.
 //
@@ -16,7 +16,7 @@
 // until now.
 //
 // What is compared, and the one thing that is not. The NTSTATUS, *Terminator (for W), *ScopeId and
-// *Port (for ExW) on every case -- and the sixteen address bytes on every case the export SUCCEEDED.
+// *Port (for ExW) on every case, and the sixteen address bytes on every case the export SUCCEEDED.
 // The failure-path address region is counted and reported rather than compared, because the shipped
 // parser fills the destination as it goes while change 166 accumulates in a stack scratch and copies
 // out once: measured at 17268 of 55987 enumerated strings, every one a call the shipped export
@@ -27,7 +27,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch.
 //   (2) Patch only when idle: single-threaded, and neither routine is used by the loader or heap.
 //   (3) REVERSIBLE: original bytes restored, and the restore is VERIFIED byte-for-byte.

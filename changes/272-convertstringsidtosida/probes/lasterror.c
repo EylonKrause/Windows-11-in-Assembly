@@ -8,7 +8,7 @@
  *     "S-1-5-1"   live: TRUE, GetLastError() == 0        ours and the model: TRUE, err untouched
  *
  * So ConvertStringSidToSidA zeroes the last error on success. That is the same rule change 271
- * measured for ConvertSidToStringSidA and change 270 for its wide sibling -- but change 269
+ * measured for ConvertSidToStringSidA and change 270 for its wide sibling, but change 269
  * concluded the opposite for ConvertStringSidToSidW, because its implementation does not touch the
  * last error on success and its gate agreed with the live export over 429776 cases.
  *
@@ -20,8 +20,8 @@
  * cases cannot distinguish them, and no number of further cases would. It is the same defect as
  * change 067's corpus stepping MaximumLength by two: the generator could not express the case.
  *
- * So this file asks all four exports of the family the question properly -- from a NON-ZERO
- * starting value, on the succeeding path and on each failing one -- and the answer decides whether
+ * So this file asks all four exports of the family the question properly, from a NON-ZERO
+ * starting value, on the succeeding path and on each failing one, and the answer decides whether
  * change 269 has a latent defect that its own gate is blind to.
  */
 #define WIN32_LEAN_AND_MEAN

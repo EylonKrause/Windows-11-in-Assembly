@@ -9,13 +9,13 @@
  *
  *   * The hex set is exactly 22 ASCII characters, "0123456789ABCDEFabcdef", swept over all 65535
  *     non-NUL code units in both escape positions: 22 accepted in each, the two positions agree
- *     everywhere, and ZERO non-ASCII code units are accepted. So no locale is involved -- which is
+ *     everywhere, and ZERO non-ASCII code units are accepted. So no locale is involved, which is
  *     what distinguishes this from StrChrIW and the rest of the case-insensitive family that this
  *     project scoped out as collation-based.
  *   * %XY decodes to value(X)*16 + value(Y), verified over all 484 accepted pairs.
  *   * An incomplete or invalid escape is copied literally: "a%", "a%4", "a%zz", "a%4z", "a%z4" all
  *     come through unchanged. After a decode the scan does NOT re-examine what it produced --
- *     "%2541" gives "%41", not "%" then a re-scan -- and it does not treat trailing hex as another
+ *     "%2541" gives "%41", not "%" then a re-scan, and it does not treat trailing hex as another
  *     escape: "%414243" is "A4243".
  *   * %00 Returns E_INVALIDARG and leaves both the destination and *pcchUnescaped untouched, even
  *     when the %00 is in the middle of an otherwise valid string ("a%00b"). That is what forces a
@@ -28,13 +28,13 @@
  *     An empty input gives S_OK, *pcch = 0 and a terminator.
  *   * URL_UNESCAPE_INPLACE (0x00100000) is tested before all argument validation (the export's
  *     first real instruction is `bt r9d, 0x14`), rewrites pszUrl, and ignores pszUnescaped and
- *     pcchUnescaped entirely -- *pcch is not even written. In place, %00 aborts and leaves the
+ *     pcchUnescaped entirely, *pcch is not even written. In place, %00 aborts and leaves the
  *     buffer as it was.
  *   * URL_DONT_UNESCAPE_EXTRA_INFO (0x02000000): at the first '#' or '?' that character and the
  *     whole remainder are copied verbatim and the walk stops. An escape that PRODUCES '?' does not
  *     trigger it ("a%3Fb%41" -> "a?bA").
  *   * Of all 32 Flag bits, exactly two change the answer on a subject built to discriminate all of
- *     them -- bit 18 (URL_UNESCAPE_AS_UTF8) and bit 25 (URL_DONT_UNESCAPE_EXTRA_INFO) -- with bit
+ *     them (bit 18 (URL_UNESCAPE_AS_UTF8) and bit 25 (URL_DONT_UNESCAPE_EXTRA_INFO)) with bit
  *     20 (INPLACE) excluded from that sweep only because it rewrites its input.
  *   * Overlap is well-defined, in all five placements tried, because of the staging buffer: exactly
  *     aliased, destination inside the source, and source inside the destination all give
@@ -96,7 +96,7 @@ static long ref_walk(wchar_t* buf, unsigned long flags)
 long wia_ref_urlunescapew(wchar_t* pszUrl, wchar_t* pszUnescaped,
                           unsigned long* pcchUnescaped, unsigned long dwFlags)
 {
-    /* INPLACE is tested first, before every argument check -- measured, not assumed.
+    /* INPLACE is tested first, before every argument check, measured, not assumed.
        AND IT STILL REFUSES %00: the first version of this oracle dropped ref_walk's result here and
        returned S_OK, which the correctness harness caught against the live export on five shapes.
        In place the abort leaves the buffer with everything up to the %00 already rewritten, which

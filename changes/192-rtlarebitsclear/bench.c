@@ -1,6 +1,6 @@
 // changes/192-rtlarebitsclear/bench.c
 // Gate 2: time wia_arebitsclear against the live ntdll!RtlAreBitsClear.
-// The bitmap is all-clear so the scan runs to completion -- the honest worst case for both
+// The bitmap is all-clear so the scan runs to completion, the honest worst case for both
 // sides, and the one that actually measures throughput rather than an early exit.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

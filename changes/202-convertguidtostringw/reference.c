@@ -18,7 +18,7 @@
 //   * cch >= 0x80000000              -> 122 with String[0] = 0, NOT 87. The inner helper rejects
 //     (cch-1) > 0x7FFFFFFE and the wrapper maps its E_INVALIDARG to 122 like any other failure;
 //   * an unaligned GUID pointer is fine;
-//   * ConvertGuidToStringA produces the same characters -- 0 differences over 200 000 random
+//   * ConvertGuidToStringA produces the same characters, 0 differences over 200 000 random
 //     (GUID, cch) pairs compared character for character, return value included.
 //
 // Field order note: Data1/Data2/Data3 are little-endian integers printed most-significant first,

@@ -7,7 +7,7 @@
  *      kernel32!ExpandEnvironmentStringsW   resolved LIVE with GetProcAddress
  *
  * and compares, for each of them: the return value, the whole destination buffer byte for byte
- * (which is how "nothing is written past the logical end" is checked -- the buffer is pre-filled
+ * (which is how "nothing is written past the logical end" is checked; the buffer is pre-filled
  * with a sentinel and any stray store shows up as a sentinel that did not survive), and the
  * thread's last-error value. One mismatch fails the gate.
  *
@@ -16,7 +16,7 @@
  * so "compare up to the answer" would never look at the bytes that prove it.
  *
  * What the corpus covers (counts printed at the end):
- *   * empty input, length 1, and every length 0..80 -- five times the 16-character vector width
+ *   * empty input, length 1, and every length 0..80, five times the 16-character vector width
  *   * every start offset 0..15 within a 32-byte block, so the aligned-down prologue load is
  *     exercised at every possible shift
  *   * every destination size from 0 to len+2 for every one of those, i.e. the match/truncation
@@ -29,7 +29,7 @@
  *     tail length, with and without a trailing '%'
  *   * a destination buffer ending exactly at a page boundary with the next page PAGE_NOACCESS,
  *     with nSize exactly reaching the boundary
- *   * lpSrc == NULL, lpDst == NULL, nSize == 0 -- the measuring call
+ *   * lpSrc == NULL, lpDst == NULL, nSize == 0, the measuring call
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

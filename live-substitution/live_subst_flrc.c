@@ -2,18 +2,18 @@
 // LIVE-RUN PROOF for change 255 (ntdll!RtlFindLongestRunClear).
 //
 // The export is hot-patched in a sacrificial child so that every subsequent call BY NAME runs our
-// assembly, and both observables are compared -- the returned length AND the written
+// assembly, and both observables are compared, the returned length AND the written
 // *StartingIndex. The index is where the tie-break lives: an implementation that updated its best
 // on ">=" instead of ">" would return the right LENGTH on every bitmap and the wrong INDEX only
 // when two runs tie, so a harness that checked the length alone would prove very little.
 //
 // The corpus is regenerated from the case index on every pass, which is the discipline change 252's
 // harness needed after it carried PRNG state across its three passes and reported 14285 differences
-// with its counter at ZERO -- the shipped export disagreeing with itself.
+// with its counter at ZERO, the shipped export disagreeing with itself.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live export before any patch exists.
 //   (2) Patch only when idle: single-threaded, and this routine is used by neither the loader nor
 //       the heap.
@@ -109,7 +109,7 @@ static void build_case(long i)
             for (x = st; x < st + ln && x < WORDS * 32; ++x) buf[x >> 5] &= ~(1u << (x & 31));
         }
     if (shape == 6) {
-        /* Many equal runs, so the first must win -- the case the index exists to test */
+        /* Many equal runs, so the first must win, the case the index exists to test */
         ULONG len = 1 + (rnd() % 9), gap = 1 + (rnd() % 9), st = rnd() % 64;
         for (b = (int)st; b + (int)len <= WORDS * 32; b += (int)(len + gap))
             for (k = 0; k < (int)len; ++k) buf[(b + k) >> 5] &= ~(1u << ((b + k) & 31));

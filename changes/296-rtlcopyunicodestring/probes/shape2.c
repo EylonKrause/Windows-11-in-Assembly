@@ -12,7 +12,7 @@
  *
  *     (dst - src - blocksize) mod 4096
  *
- * being small -- i.e. of the distance between the caller's two buffers, which neither
+ * being small, i.e. of the distance between the caller's two buffers, which neither
  * implementation controls and neither can fix. If that is what the benchmark's malloc layout
  * kept landing on, then the right answer is to say so with numbers, not to move the
  * benchmark's buffers until the ratio looks better.

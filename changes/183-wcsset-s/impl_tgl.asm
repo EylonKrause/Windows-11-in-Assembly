@@ -9,7 +9,7 @@
 ; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here it measures 0.78x at the smallest
-; class, and the reason is not the arithmetic -- it is that at that size the parent does NO VECTOR
+; class, and the reason is not the arithmetic; it is that at that size the parent does NO VECTOR
 ; Work at all while paying the full price of having intended to.
 ;
 ; What the bench's "8" row actually is matters, and it is not eight bytes: bench.c builds an
@@ -21,7 +21,7 @@
 ;     eight characters one at a time, two bytes per iteration.
 ;   * `vpbroadcastw ymm2` then runs unconditionally, and the fill likewise falls straight to
 ;     `f_tail` and stores eight characters one at a time.
-;   * Both ymm writes have dirtied the upper state, so the epilogue owes a `vzeroupper` -- which is
+;   * Both ymm writes have dirtied the upper state, so the epilogue owes a `vzeroupper`, which is
 ;     mandatory (the caller's later SSE code would otherwise pay a transition penalty) and bought
 ;     nothing here.
 ;
@@ -34,19 +34,19 @@
 ; What the variant changes
 ; ------------------------
 ; It splits at the bound BEFORE touching any vector register. Below a 16-CHARACTER bound (32 bytes
-; -- the parent's vector width) it stays in VEX-128 and general-purpose registers: a VEX-encoded
+; the parent's vector width) it stays in VEX-128 and general-purpose registers: a VEX-encoded
 ; 128-bit instruction zeroes bits 128 and above of its destination, so the upper state stays CLEAN
 ; and no `vzeroupper` is owed on that path at all. At or above that bound it branches to the
-; parent's code, spliced in unchanged -- that is where the parent already wins up to 3.5x, and it
+; parent's code, spliced in unchanged; that is where the parent already wins up to 3.5x, and it
 ; is not what this variant is about.
 ;
 ; The narrow path does not scan with a loop. A bound under 16 characters is covered entirely by two
-; overlapping 16-byte probes -- one at the head, one placed against the END of the declared span --
+; overlapping 16-byte probes, one at the head, one placed against the END of the declared span --
 ; so the whole scan is two loads, two compares and two mask extractions with no iteration at all.
 ; If the head mask is empty the terminator cannot lie below character 8, so wherever the two
 ; windows overlap the lowest set bit of the tail mask IS the first terminator; that is what makes
 ; the pair sufficient rather than merely convenient. The fill then uses OVERLAPPING stores rather
-; than a character loop -- writing the same character twice is free, branching once per character
+; than a character loop, writing the same character twice is free, branching once per character
 ; is not.
 ;
 ; The shape matters more than the instruction count, and that is the real lesson here. Two earlier
@@ -58,13 +58,13 @@
 ;     the fill, and picking the fill rung), and at this size the function is BRANCH-BOUND rather
 ;     than load- or store-bound. Change 008 on this same machine learned the identical lesson.
 ;   * The probe pair with the count kept in CHARACTERS: 0.96x. Every store address then needed
-;     `r11*2`, and the count arrived through `tzcnt -> shr -> lea [base+index*2+disp]` -- and a
+;     `r11*2`, and the count arrived through `tzcnt -> shr -> lea [base+index*2+disp]`, and a
 ;     three-component LEA is a 3-cycle single-port instruction on this core, sitting directly
 ;     between the scan's result and the first store address.
 ;
 ; So the count is carried in BYTES throughout. `tzcnt` on a `vpmovmskb` mask already yields a byte
 ; offset, the fill's rung tests are simply doubled, and every store addresses `[rcx + r10 - width]`
-; with no scaling at all -- the count now reaches the first store one `add` after the mask. The
+; with no scaling at all, the count now reaches the first store one `add` after the mask. The
 ; whole 9-character call also stays on the FALL-THROUGH path: every branch it executes is
 ; not-taken, including the fill rung, because the ladder is ordered widest-first.
 ;
@@ -77,7 +77,7 @@
 ; so the one-character rung can still store r8w directly. correctness.c sweeps 0x0000, the
 ; surrogate range and 0xFFFF through this path.
 ;
-; CONTRACT -- unchanged, and unusual enough to restate. The `_s` family in this CRT has three
+; CONTRACT, unchanged, and unusual enough to restate. The `_s` family in this CRT has three
 ; distinct shapes and assuming one from another is how an earlier candidate was refuted on 407 604
 ; of 1 000 000 cases. The parent pinned this one by probing the live export
 ; (../182-strset-s/probes/sss.c, which fuzzed the byte AND the wide form, 1 000 000 cases each,
@@ -90,13 +90,13 @@
 ;   * Otherwise -> fill every cell before the terminator, keep the terminator, return 0.
 ;   * Every fill value behaves the same, including 0, the surrogate range and 0xFFFF.
 ;
-; PAGE SAFETY -- the repository's two-part discipline, restated for a probe pair:
+; PAGE SAFETY, the repository's two-part discipline, restated for a probe pair:
 ;   * DECLARED BUFFER. Both probes read strictly inside [str, str + 2*numberOfElements), because
 ;     the tail probe is placed against that span's end and the pair is only used when the span is
 ;     at least as wide as one probe. No read goes past what the caller declared.
 ;   * PAGE. A caller may declare more than it allocated, so the declared span is additionally
 ;     required to lie inside a single page. Because both probes live inside that span, ONE test --
-;     first and last byte agree above bit 11 -- guards them both, which is why the pair costs one
+;     first and last byte agree above bit 11, guards them both, which is why the pair costs one
 ;     guard and not two. When it fails, the call falls back to a one-character walk that never
 ;     returns to a probe, so no character is probed twice and none is read that the parent would
 ;     not have read.
@@ -105,9 +105,9 @@
 ;     particular never overwrite the terminator the scan just found.
 ;
 ; ISA: AVX2 for the >= 16 character path (the parent's), VEX-128 + BMI1 + general-purpose below.
-; No AVX-512 -- this part has it, but a 128-bit EVEX form of the same scan buys nothing and the
+; No AVX-512; this part has it, but a 128-bit EVEX form of the same scan buys nothing and the
 ; k-register round trip needed to turn a compare into an index is longer than `vpmovmskb`.
-; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 
 EXTERN _invalid_parameter_noinfo:PROC
 
@@ -120,8 +120,8 @@ wia_wcsset_s PROC
                                                  ; a ymm, and owing a vzeroupper, worth it
 
 ;=========== narrow path: bound < 16 characters. No ymm is written anywhere below. ===========
-; The whole budget is under 16 characters, so the fill count -- the length on success, or
-; numberOfElements-1 on failure -- is at most 28 BYTES, and the ladder at n_fill covers every case.
+; The whole budget is under 16 characters, so the fill count, the length on success, or
+; numberOfElements-1 on failure, is at most 28 BYTES, and the ladder at n_fill covers every case.
 ; r10 carries that count in bytes and r11 carries the outcome (0 = success, 1 = EINVAL).
 
         vmovd     xmm2, r8d                      ; the fill value, splatted now: it depends only on
@@ -229,7 +229,7 @@ n_found:
         xor       r11d, r11d                     ; outcome = success
         jmp       n_fill
 
-;========= wide path: bound >= 16 characters -- the parent's code, spliced in unchanged =========
+;========= wide path: bound >= 16 characters, the parent's code, spliced in unchanged =========
 wide:
         mov       r9, rcx                        ; scan cursor
         mov       r10, rdx                       ; characters of budget remaining

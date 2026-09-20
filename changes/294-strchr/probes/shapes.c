@@ -1,4 +1,4 @@
-// changes/294-strchr/probes/shapes.c -- driver for shapes.asm. See that file's header.
+// changes/294-strchr/probes/shapes.c: driver for shapes.asm. See that file's header.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

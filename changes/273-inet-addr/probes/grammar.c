@@ -3,8 +3,8 @@
  * What does ws2_32!inet_addr actually accept?
  *
  * discovery/sid_inet_bstr.c measured it at 24.98 ns and flagged it as the LENIENT IPv4 parser: it
- * takes "1.2", "0x7f.1" and octal, all of which RtlIpv4StringToAddressA -- change 114, already
- * converted -- refuses. So the two are NOT the same function and change 114 cannot simply be
+ * takes "1.2", "0x7f.1" and octal, all of which RtlIpv4StringToAddressA, change 114, already
+ * converted, refuses. So the two are NOT the same function and change 114 cannot simply be
  * wrapped, which is the first thing this file has to establish rather than assume.
  *
  * 24.98 ns is also small enough that the contract is most of the work. The classic inet_addr
@@ -18,20 +18,20 @@
  * with each part decimal, or octal with a leading 0, or hexadecimal with a leading 0x. That is what
  * the BSD implementation does and what every description of inet_addr says. Whether Microsoft's
  * agrees is a different question, and this project has been wrong about exactly that kind of
- * inherited description five times now -- change 269 found SIX places where one export disagreed
+ * inherited description five times now, change 269 found SIX places where one export disagreed
  * with its own documentation, and change 067's "the terminator needs two bytes" turned out to be
  * one byte.
  *
  * THE QUESTIONS, in the order they decide the implementation:
  *
- *   1. the FOUR FORMS -- are all four accepted, and is the packing the documented one?
- *   2. the BASES -- leading 0 for octal, 0x for hexadecimal, per part or carried?
- *   3. the OVERFLOW rules -- what happens when a part exceeds its field, and does it saturate,
+ *   1. the FOUR FORMS, are all four accepted, and is the packing the documented one?
+ *   2. the BASES, leading 0 for octal, 0x for hexadecimal, per part or carried?
+ *   3. the OVERFLOW rules, what happens when a part exceeds its field, and does it saturate,
  *      wrap, or refuse? This is where change 269 found a parser that SATURATES one field and
  *      REFUSES on another.
  *   4. Whitespace, signs and trailing text.
  *   5. what INADDR_NONE means, given that 255.255.255.255 is a legal address whose value IS
- *      INADDR_NONE -- so the failure signal is ambiguous by construction, and a caller cannot tell
+ *      INADDR_NONE, so the failure signal is ambiguous by construction, and a caller cannot tell
  *      them apart. Does the export do anything about that?
  *   6. does it need WSAStartup, and what does it do with NULL?
  *

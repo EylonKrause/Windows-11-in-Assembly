@@ -1,4 +1,4 @@
-/* discovery/msvcrt_also_audit.c -- AUDIT: the 38 exports image/materialize.py claims for msvcrt too.
+/* discovery/msvcrt_also_audit.c: AUDIT: the 38 exports image/materialize.py claims for msvcrt too.
  *
  * image/materialize.py carries a set called MSVCRT_ALSO and writes this repository's assembly into
  * msvcrt.dll's folder for every name in it. Its justification, in its own comment, is:
@@ -19,7 +19,7 @@
  * is already sitting in msvcrt.dll's folder in the image tree.
  *
  * This drives every one of the 38 through a differential corpus. Where a difference is possible it
- * is driven EXHAUSTIVELY -- all 256 byte values for the narrow folders, all 65536 for the wide ones,
+ * is driven EXHAUSTIVELY, all 256 byte values for the narrow folders, all 65536 for the wide ones,
  * all 256x256 byte pairs for the narrow case-insensitive compares.
  *
  * Note on the two CRTs, learned the hard way in msvcrt_vs_ucrt.c: the invalid-parameter handler and

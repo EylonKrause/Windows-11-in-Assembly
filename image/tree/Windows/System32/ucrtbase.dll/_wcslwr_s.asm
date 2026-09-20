@@ -6,27 +6,27 @@
 ; errno_t wia_wcslwr_s(wchar_t* str, size_t numberOfElements)
 ;   [Win64: rcx, rdx -> eax]
 ;
-; Reimplements ucrtbase!_wcslwr_s -- the bounded sibling of change 049 (_wcslwr) and the
+; Reimplements ucrtbase!_wcslwr_s, the bounded sibling of change 049 (_wcslwr) and the
 ; lowercase mirror of change 178 (_wcsupr_s). ucrtbase's is scalar: 172 ns for a 254-character
 ; string.
 ;
 ; Contract (derived in probes/wls.c, fuzz-confirmed bit-exact against the live export over
-; 1,000,000 cases -- confirmed on the first attempt). Probed on its OWN terms rather than
+; 1,000,000 cases, confirmed on the first attempt). Probed on its OWN terms rather than
 ; inherited from change 178, on the principle change 179 established: 178 and 179 validate
 ; first, but change 150's strcpy_s does the opposite, so this family cannot be reasoned about.
 ;   * The fold is exactly the 26 ASCII letters a-z, mapping U+0041..U+005A -> U+0061..U+007A.
-;     0 differences from the plain ASCII rule, 947 from RtlDowncaseUnicodeChar -- so this is
+;     0 differences from the plain ASCII rule, 947 from RtlDowncaseUnicodeChar, so this is
 ;     NOT the OS case table, the same conclusion change 049 reached for the unbounded form.
 ;   * Success -> 0, lowercased in place, nothing past the terminator touched.
 ;   * No terminator strictly inside numberOfElements -> EINVAL (22) AND str[0] = 0, including
 ;     when numberOfElements is ZERO.
-;   * Validate first, then fold: on the einval path nothing but str[0] is modified -- there is
+;   * Validate first, then fold: on the einval path nothing but str[0] is modified; there is
 ;     NO partial fold, which is why this is two passes rather than a fused scan-and-fold.
 ;   * The invalid-parameter handler is invoked through ucrtbase's OWN exported
 ;     `_invalid_parameter_noinfo` (the convention changes 150-157 established).
 ;
 ; Method: pass 1 is a bounded terminator scan that writes nothing, 16 characters per step.
-; Pass 2 folds a KNOWN length, so it needs no terminator test -- change 049's fold, mirrored:
+; Pass 2 folds a KNOWN length, so it needs no terminator test, change 049's fold, mirrored:
 ; two vpcmpgtw form the A..Z mask, AND with 0x0020, then vpADDw (178 subtracts; this adds).
 ;
 ; Page safety: pass 1's 32-byte load happens only when at least 16 characters of the caller's
@@ -34,7 +34,7 @@
 ; within 32 bytes of a page end it steps one character and retries. Pass 2 touches only the
 ; string whose length pass 1 established.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

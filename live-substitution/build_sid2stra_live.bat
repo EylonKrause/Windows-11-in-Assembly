@@ -2,9 +2,9 @@
 REM ===========================================================================
 Rem  live-run proof for change 271 (advapi32!ConvertSidToStringSidA).
 REM
-REM  The same five comparisons as the wide form's harness -- the BOOL,
+REM  The same five comparisons as the wide form's harness, the BOOL,
 REM  GetLastError, what happened to the output pointer, LocalSize and LocalFlags,
-REM  and a hash of every byte of the block -- with the block one byte per
+REM  and a hash of every byte of the block, with the block one byte per
 REM  character rather than two.
 REM
 Rem  the narrowing is what is on trial here. Vpackuswb saturates, so a character

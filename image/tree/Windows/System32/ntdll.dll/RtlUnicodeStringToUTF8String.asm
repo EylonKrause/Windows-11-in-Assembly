@@ -14,8 +14,8 @@
 ; ------------------------------------------------------------------------------------------------
 ; Where their time goes, measured before anything was written (probes/contract.c).
 ;
-; These are wrappers around the N-forms this project already converted -- RtlUnicodeToUTF8N as
-; change 016 and RtlUTF8ToUnicodeN as change 034 -- so the question was not whether the conversion
+; These are wrappers around the N-forms this project already converted, RtlUnicodeToUTF8N as
+; change 016 and RtlUTF8ToUnicodeN as change 034, so the question was not whether the conversion
 ; could be made faster but how much of a wrapper call IS the conversion:
 ;
 ;       RtlUnicodeStringToUTF8String, 4000 chars    779.35 ns
@@ -32,7 +32,7 @@
 ; Four things the two directions do differently. a first draft of this file assumed they mirrored
 ; each other, because they are documented as a pair and read like one. Every one of these was
 ; measured off the live exports after that draft failed its own correctness gate on 32784 of 84434
-; cases -- with the status, Length AND MaximumLength matching live on every single one of them, so
+; cases, with the status, Length AND MaximumLength matching live on every single one of them, so
 ; the only field left was the destination buffer.
 ;
 ;   1. What a failing call leaves in the buffer (probes/failwrite.c).
@@ -43,7 +43,7 @@
 ;                          from 0 up to one word short of enough.
 ;
 ;      That single difference is the architecture of this file. The first direction can hand the
-;      caller's buffer straight to the N-form and let it write what fits -- one pass. The second
+;      caller's buffer straight to the N-form and let it write what fits, one pass. The second
 ;      cannot, because by the time the N-form reports the shortfall it has already written the part
 ;      that fit, and there is no way to take it back.
 ;
@@ -69,7 +69,7 @@
 ;
 ; Length and MaximumLength are USHORTs, and a conversion can produce more than 65535 bytes: three
 ; bytes per character going out, two bytes per input byte coming back. There was no way to reason
-; out what the shipped code does about that -- refuse, truncate, or wrap -- so it was asked:
+; out what the shipped code does about that (refuse, truncate, or wrap) so it was asked:
 ;
 ;        UTF-16 -> UTF-8 : 65534 bytes of result succeed (MaximumLength 65535 when allocating);
 ;                          65535 bytes give STATUS_INVALID_PARAMETER_2 (0xC00000F0).
@@ -77,8 +77,8 @@
 ;                          65534 bytes give 0xC00000F0.
 ;
 ; In both directions the rule is the same one stated the same way: The terminated size must fit in
-; The field. And 0xC00000F0 beats both shortfall codes -- 90000 bytes of result into a four-byte
-; destination is 0xC00000F0, not STATUS_BUFFER_TOO_SMALL, with nothing written -- so the size test
+; The field. And 0xC00000F0 beats both shortfall codes, 90000 bytes of result into a four-byte
+; destination is 0xC00000F0, not STATUS_BUFFER_TOO_SMALL, with nothing written, so the size test
 ; comes first. Letting that field wrap instead would allocate a small block and convert a large
 ; string into it, which is a heap overrun, which is why it was asked before the code was written.
 ;
@@ -88,7 +88,7 @@
 ;
 ;   UTF-16 -> UTF-8 : a character is at most THREE UTF-8 bytes (a surrogate pair is four bytes for
 ;                     two characters, and a lone surrogate is three), so a source of L bytes cannot
-;                     produce more than 3*(L/2). When 3*(L/2) + 1 fits the field -- L <= 43688 --
+;                     produce more than 3*(L/2). When 3*(L/2) + 1 fits the field, L <= 43688 --
 ;                     0xC00000F0 is impossible and the conversion can go straight into the caller's
 ;                     buffer, partial fill and all. Only a longer source needs sizing first, and
 ;                     then only to choose between 0xC00000F0 and converting.
@@ -96,15 +96,15 @@
 ;   UTF-8 -> UTF-16 : an input byte produces at most ONE UTF-16 word (ASCII and every invalid byte
 ;                     produce one; multi-byte sequences produce one or two words from two to four
 ;                     bytes), so N input bytes cannot produce more than 2N output bytes. When the
-;                     destination has room for 2N + 2, the conversion CANNOT fail -- and a
+;                     destination has room for 2N + 2, the conversion CANNOT fail, and a
 ;                     conversion that cannot fail cannot leave a partial write behind, which is the
 ;                     only thing the second pass was protecting. A tighter destination falls back to
 ;                     sizing first, which is what the shipped code does on every call.
 ;
 ; The allocating path needs the size in both directions and always will: the buffer does not exist
-; until the size is known. probes/alloc.c established what to allocate -- an ordinary process-heap
+; until the size is known. probes/alloc.c established what to allocate, an ordinary process-heap
 ; block of exactly the terminated size, Length excluding the terminator, MaximumLength including it,
-; in both directions -- and that the paired RtlFreeUTF8String / RtlFreeUnicodeString accept a block
+; in both directions, and that the paired RtlFreeUTF8String / RtlFreeUnicodeString accept a block
 ; allocated the same way by hand. That is the only reason these exports are convertible at all.
 ;
 ; ISA: whatever changes 016 and 034 need; this file is control flow.
@@ -211,7 +211,7 @@ u8_toobig:
         ; The sizing call is written out at both places that need it rather than factored into a
         ; local helper. A local CALL would put the helper's instructions inside this PROC's address
         ; range with rsp eight bytes below what .allocstack 72 describes, so an exception raised in
-        ; that window would unwind wrongly -- the same reason nothing is pushed in the body.
+        ; that window would unwind wrongly; the same reason nothing is pushed in the body.
 u8_measure_first:
         xor       ecx, ecx                      ; a NULL destination asks for the size only
         xor       edx, edx
@@ -231,7 +231,7 @@ u8_measure_first:
 
         ; ---------------- allocate the destination ----------------
         ; This path needs the size BEFORE the buffer exists, so it is the one place where the
-        ; input really is read twice no matter what -- the same two passes the shipped code makes
+        ; input really is read twice no matter what; the same two passes the shipped code makes
         ; on every call.
 u8_alloc:
         xor       ecx, ecx
@@ -296,7 +296,7 @@ wia_utf8stringtounicodestring PROC FRAME
         jnz       w_alloc
 
         ; An input byte produces at most one UTF-16 word. If the destination has room for 2N
-        ; output bytes AND the two-byte terminator, this conversion cannot fail -- and only a
+        ; output bytes AND the two-byte terminator, this conversion cannot fail, and only a
         ; conversion that can fail needs the sizing pass, because only a failing call has to leave
         ; the destination untouched.
         movzx     eax, word ptr [rdx]           ; src->Length, in bytes
@@ -333,7 +333,7 @@ wia_utf8stringtounicodestring PROC FRAME
         ; measured size + 2. So the subtraction below is a GUARD, not a behaviour: the mutation
         ; that removes it is the one mutation of this file the correctness gate does not catch,
         ; and it is honest to say why rather than to pretend the gate is complete. What it guards
-        ; is a disagreement between change 034's measuring mode and its converting mode -- if the
+        ; is a disagreement between change 034's measuring mode and its converting mode, if the
         ; conversion ever produced MORE than the measurement promised, the N-form would stop at
         ; MaximumLength and the wide terminator would then be stored two bytes past the caller's
         ; buffer. With the subtraction the N-form stops two bytes earlier and reports a shortfall

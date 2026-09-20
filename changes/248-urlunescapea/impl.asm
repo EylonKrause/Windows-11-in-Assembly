@@ -1,10 +1,10 @@
 ; changes/248-urlunescapea/impl.asm
-; The kernels of shlwapi!UrlUnescapeA. The envelope -- the INPLACE test that precedes all validation,
+; The kernels of shlwapi!UrlUnescapeA. The envelope, the INPLACE test that precedes all validation,
 ; the argument checks, the URL_UNESCAPE_AS_UTF8 refusal, the __try that makes a faulting source return
-; an empty result instead of crashing, and the overlap case -- is in seh.c, for the reasons there.
+; an empty result instead of crashing, and the overlap case, is in seh.c, for the reasons there.
 ;
 ; Why this one, after change 245 did the wide form. discovery/shlwapi_url_str.c measured the narrow
-; form at 1.85 ns per character against the wide form's 1.24 -- slower per character for half the data,
+; form at 1.85 ns per character against the wide form's 1.24, slower per character for half the data,
 ; which is the per-character-code-path signature that gave this project its largest narrow-sibling
 ; wins. The shipped shape is the same five sequential walks plus the heap round trip that 245 removed:
 ;
@@ -17,15 +17,15 @@
 ;     00049EE3  call 0x11CD0     LocalFree
 ;     00049F06  call 0x4B9DC     copy-out
 ;
-; and there is no code-page call anywhere in it -- no MultiByteToWideChar, no cpinfo, no dbcs
-; lead-byte helper -- so unlike StrStrA, which this project scoped out when a code-page fold conflated
+; and there is no code-page call anywhere in it, no MultiByteToWideChar, no cpinfo, no dbcs
+; lead-byte helper, so unlike StrStrA, which this project scoped out when a code-page fold conflated
 ; 0x5E and 0x88, this function really is byte-wise. probes/unesca.c confirms that from the outside:
 ; all 484 accepted hex pairs decode to va*16+vb, and of the 255 non-NUL byte values exactly 22 are hex
 ; digits, in either position, with ZERO bytes >= 0x80 accepted.
 ;
 ; Three things are not the wide form's, each measured rather than inherited:
 ;
-;   1. URL_UNESCAPE_AS_UTF8 IS REFUSED, not implemented -- E_INVALIDARG, destination untouched. The
+;   1. URL_UNESCAPE_AS_UTF8 IS REFUSED, not implemented, E_INVALIDARG, destination untouched. The
 ;      disassembly does it branchlessly at 0x49E37 (`and eax,0x40000 / neg / sbb ebx,ebx /
 ;      and ebx,0x80070057`). So this change needs no delegation for it, where 245 did.
 ;   2. a faulting source is swallowed. The length comes from lstrlenA, which is SEH-wrapped, so an
@@ -39,12 +39,12 @@
 ; And (3) Is why this is simpler than change 245. The wide form needed a measuring pass, or its
 ; dedicated "%00" pattern scan, purely so a zero-valued escape could refuse BEFORE anything was
 ; written. Here a zero-valued escape merely ends the result, so when the caller's buffer is larger than
-; the source -- which it is whenever anyone sizes a buffer the obvious way -- there is nothing to
+; the source (which it is whenever anyone sizes a buffer the obvious way) there is nothing to
 ; measure: the result can never be longer than the source, so ONE pass writes it.
 ;
 ; FOUR KERNELS, and the C envelope picks among them:
 ;   wia_uua_strlen   a page-safe length, called under seh.c's __try
-;   wia_uua_measure  the result length, stopping at a zero-valued escape -- only for the size test
+;   wia_uua_measure  the result length, stopping at a zero-valued escape, only for the size test
 ;   wia_uua_write    the result, plus its terminator; returns the length
 ;   wia_uua_inplace  the whole in-place path, which has no size test and its own %00 answer
 ;
@@ -53,8 +53,8 @@
 ; BEFORE it moves anything), and one extra call against five shipped walks plus a heap allocation is
 ; not where this function's time goes.
 ;
-; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shrx, bzhi). 32 source bytes per scan block -- twice the wide
-; form's characters -- and the remainder is ONE masked block rather than a byte loop.
+; ISA: AVX2 + BMI1 (tzcnt) + BMI2 (shrx, bzhi). 32 source bytes per scan block, twice the wide
+; form's characters, and the remainder is ONE masked block rather than a byte loop.
 
 OPTION PROC:PRIVATE
 PUBLIC wia_uua_strlen
@@ -67,7 +67,7 @@ F_EXTRAINFO   EQU 02000000h
 .const
 ; 0xFF marks a non-digit, so ONE table lookup classifies and converts at once. Every byte >= 0x80 is
 ; 0xFF because the probe swept all 255 non-NUL values against the live export and not one high byte is
-; accepted in either position -- this table is a measurement, not an assumption about the code page.
+; accepted in either position; this table is a measurement, not an assumption about the code page.
 c_hex   DB 16 DUP(0FFh)                                   ; 00-0F
         DB 16 DUP(0FFh)                                   ; 10-1F
         DB 16 DUP(0FFh)                                   ; 20-2F
@@ -87,7 +87,7 @@ c_hex   DB 16 DUP(0FFh)                                   ; 00-0F
 ; swallow, and a leaf with no unwind data unwinds correctly from the return address alone.
 ;
 ; Page-safe: the first load is aligned DOWN and the bits before the string are shifted off, so this
-; faults on exactly the strings a byte-at-a-time scan faults on. That matters in both directions -- it
+; faults on exactly the strings a byte-at-a-time scan faults on. That matters in both directions, it
 ; must not fault EARLIER than the shipped one (which would turn a working call into an empty result),
 ; and it must still fault where the shipped one does (so the swallow stays the envelope's decision).
 ; ---------------------------------------------------------------------------------------------
@@ -150,15 +150,15 @@ sc_hit:
         ret
 ; The tail is masked blocks, not a byte loop, and both halves of that sentence were paid for.
 ;
-; Why not a byte loop: with one, 63 plain bytes measured 27.17 ns and 64 measured 10.80 -- one byte
-; More was 2.5x faster -- because 63 leaves a 31-byte remainder the loop walked one byte at a time.
+; Why not a byte loop: with one, 63 plain bytes measured 27.17 ns and 64 measured 10.80, one byte
+; More was 2.5x faster, because 63 leaves a 31-byte remainder the loop walked one byte at a time.
 ; That same remainder WAS the whole of the 16-byte in-place row, which came in at 0.86x and parked the
 ; change on gate 2.
 ;
 ; Why blocks and not a block: the first attempt at this loaded one aligned-down block and masked it,
 ; reasoning that a remainder under 32 bytes fits in 32 bytes. It does not: a remainder starting 31
 ; bytes into its block has ONE byte there and the rest in the NEXT block. It cost 1100 mismatches,
-; every one of them an escape near the end of a long string copied through as a literal '%' -- and the
+; every one of them an escape near the end of a long string copied through as a literal '%', and the
 ; oracle and the live export agreed against us, which is exactly what that pairing is for. The
 ; remainder spans at most two aligned blocks, so this loop runs at most twice.
 ;
@@ -206,7 +206,7 @@ uua_scan ENDP
 ; With URL_DONT_UNESCAPE_EXTRA_INFO clear, all three vectors hold '%', so the scan costs the same
 ; either way and no branch selects between two loops. The probe settled what the flag means: the
 ; marker itself and everything after it are copied verbatim ("a%41b?c%42d" -> "aAb?c%42d"), and only
-; a RAW '?' or '#' stops the walk -- one that arrives as %3F does not ("a%3Fb%41" -> "a?bA"), which is
+; a RAW '?' or '#' stops the walk; one that arrives as %3F does not ("a%3Fb%41" -> "a?bA"), which is
 ; why the scan looks at source bytes and never at what it has produced.
 set_cmp PROC
         mov       r10d, eax
@@ -243,7 +243,7 @@ set_cmp ENDP
 ; lookups above are serialised into one ~10-cycle L1 chain, I replaced them with an explicit
 ; `lea rax,[rsi+3] / cmp rax,r11 / ja` bound and two INDEPENDENT lookups rejected by one compare on
 ; their OR. Measured: the escape-dense row went 351 -> 417 ns and the 1-in-12 row 345 -> 368. The
-; premise was wrong -- the second load depends on the first only through a BRANCH, which predicts, so
+; premise was wrong, the second load depends on the first only through a BRANCH, which predicts, so
 ; it already issued speculatively in parallel; all the rewrite bought was four more uops per escape on
 ; the hottest path in the function. The short-circuit stays.
 decode PROC
@@ -266,7 +266,7 @@ decode ENDP
 ; Copy exactly rbx bytes rsi -> r14, advancing both. Clobbers rax, rbx, ymm0.
 ; Correct when r14 <= rsi even though consecutive chunks overlap: every byte a 32-byte store lands on
 ; is at an address <= rsi+31, and those 32 bytes were loaded before the store issued. r14 > rsi is NOT
-; this routine's problem -- seh.c removes that case before any kernel runs.
+; this routine's problem, seh.c removes that case before any kernel runs.
 copy_exact PROC
 ce_32:
         cmp       rbx, 32
@@ -462,7 +462,7 @@ wia_uua_write ENDP
 ;
 ; One pass, no size test, no *pcch. It takes its own length rather than receiving one, because the
 ; shipped in-place path is reached BEFORE the four argument checks and tail-calls the walk with no
-; length of its own -- so an unterminated buffer faults there, and faults here.
+; length of its own, so an unterminated buffer faults there, and faults here.
 ;
 ; And %00 returns E_INVALIDARG here, keeping whatever was already written. That is the same walk the
 ; other path calls; the difference is only that the other path throws the HRESULT away.
@@ -483,11 +483,11 @@ wia_uua_inplace PROC FRAME
         .endprolog
 
 ; The length first, and the order is load-bearing. wia_uua_strlen ends in vzeroupper, which zeroes
-; the upper lane of every ymm register -- including the comparison vectors set_cmp builds. Calling
+; the upper lane of every ymm register, including the comparison vectors set_cmp builds. Calling
 ; set_cmp first cost three hours: the scan then matched '%' only in the low 16 bytes of each 32-byte
 ; block, so every escape in a block's upper half was copied through as a literal. It passed 1085965
 ; enumerated cases without a murmur, because a string of six characters never reaches the vector path
-; at all -- only the long-string rows caught it, and they caught it against both the oracle and the
+; at all, only the long-string rows caught it, and they caught it against both the oracle and the
 ; live export at once.
         mov       [rsp+32], rcx
         mov       dword ptr [rsp+40], edx     ; the flags, across a call that clobbers the vectors

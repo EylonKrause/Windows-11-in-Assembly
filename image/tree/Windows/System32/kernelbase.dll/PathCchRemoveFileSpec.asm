@@ -8,18 +8,18 @@
 ; Reimplements kernelbase!PathCchRemoveFileSpec: remove the last component of a path, refusing to cut
 ; into its root.
 ;
-; 696 ns for a 1000-character path once the benchmark's own restore is subtracted -- 0.348 ns per
+; 696 ns for a 1000-character path once the benchmark's own restore is subtracted, 0.348 ns per
 ; byte, about one cycle a byte. The work is "find the last separator", which is a BACKWARD scan, and
 ; 696 ns is a lot against the roughly 24 ns a wcslen of the same length costs. kernelbase is also
 ; where the gap is: discovery/kernelbase_pathcch.c found only twelve converted functions there against
 ; ucrtbase's 75 and ntdll's 68, and this family exactly half done.
 ;
 ; The contract. Four rules, and three of them were found by isolating a derived quantity and
-; ENUMERATING IT rather than by reasoning about the implementation -- the same move that cracked
+; ENUMERATING IT rather than by reasoning about the implementation, the same move that cracked
 ; change 236's cut. probes/pcrfs6.c validates the whole model against the live export over roughly
 ; 5.8 million cases, comparing the HRESULT AND the whole buffer: 0 mismatches.
 ;
-;   1. The protected root, measured as the fixed point of the function itself -- apply it until it
+;   1. The protected root, measured as the fixed point of the function itself, apply it until it
 ;      returns S_FALSE and what is left is exactly what it refuses to cut into. That is what showed
 ;      PathCchSkipRoot to be the wrong source for it: SkipRoot includes the root's trailing separator
 ;      and this function's protected prefix does not, a consistent difference of one on every UNC path
@@ -38,13 +38,13 @@
 ;          X ":"  ->  3 if a separator follows, else 2
 ;          otherwise: 0
 ;
-;      server/share parse: scan to the next separator -- that ends the SERVER; if no separator follows
+;      server/share parse: scan to the next separator, that ends the SERVER; if no separator follows
 ;      it, the root ends there; otherwise scan the next segment, and if that share is empty the root
 ;      falls back to the end of the server. The empty-share clause is what "\\a\" -> 3, "\\\" -> 2 and
 ;      "\\\\" -> 2 require, and no reading of the documentation produces it.
 ;
 ;   2. a drive letter is 114 Values, not 52: the ASCII letters plus the CP1252 accented letters, with
-;      0xD7 and 0xF7 -- the multiplication and division signs -- absent and 0xDF present. Derived by
+;      0xD7 and 0xF7 (the multiplication and division signs) absent and 0xDF present. Derived by
 ;      sweeping ALL 65 536 wchar values, because this is a WIDE function and 1..255 is not a sweep.
 ;      This is the mirror image of change 232, which found the NARROW PathRemoveBackslashA taking
 ;      ASCII-only drive letters where its wide sibling takes Latin-1; there, inheriting the wide set
@@ -56,15 +56,15 @@
 ;                         if the result still ends in a separator, clear that one too and shorten;
 ;                         or, if the cut landed on the root and the root is a server/share root,
 ;                         clear one more slot at j+1.
-;      It clears a slot per removed separator, not one terminator at the cut -- only a whole-buffer
+;      It clears a slot per removed separator, not one terminator at the cut, only a whole-buffer
 ;      comparison sees that, and "\\\a\aaa" proves only ONE extra character goes by keeping its last
 ;      two 'a's. The extra slot is a property of the root's TYPE, not of whether the root ends in a
 ;      separator: "\\\" (root "\\") clears it, "a:\\aa" (root "a:\") does not.
 ;
-;   4. cch bounds the highest index written -- not the result and not the input. Measured as min_cch(P),
+;   4. cch bounds the highest index written, not the result and not the input. Measured as min_cch(P),
 ;      the smallest cch that is not rejected: it equals (highest index written) + 1 on all 87 381
 ;      strings swept. So "C:\dir\file.txt" is 15 characters and succeeds at cch = 7 because its answer
-;      is 6 plus a terminator, while "\\srv\shr" -- already its own root -- needs cch >= 10 to say
+;      is 6 plus a terminator, while "\\srv\shr" (already its own root) needs cch >= 10 to say
 ;      S_FALSE, because the highest thing it would write is the terminator already at index 9.
 ;      E_INVALIDARG otherwise, and also for a NULL pointer, cch == 0, or cch > PATHCCH_MAX_CCH
 ;      (0x8000). S_FALSE writes nothing at all; S_OK is returned exactly when the buffer changes.
@@ -73,18 +73,18 @@
 ; profile of a forward per-character walk that tracks the last separator as it goes. This one does the
 ; opposite:
 ;
-;   * ONE vectorised wcslen -- 16 characters per 32-byte block -- to find the end;
+;   * ONE vectorised wcslen (16 characters per 32-byte block) to find the end;
 ;   * a BACKWARD vectorised scan from the end for the last separator, which for any real path finds it
 ;     in the FIRST block and never looks at the rest of the string.
 ;
-; A path whose last component is short -- which is every path -- therefore costs a wcslen plus one
+; A path whose last component is short (which is every path) therefore costs a wcslen plus one
 ; 32-byte compare, instead of a walk over every character. The root parse is bounded work at the front
 ; and is left scalar deliberately: it is at most eight characters of prefix plus two segment scans, and
 ; vectorising it would cost more in setup than it saves.
 ;
 ; Page safety: the wcslen issues a 32-byte load only when (cursor & 4095) <= 4064, stepping one
-; character otherwise. The backward scan needs no check -- it reads only inside [root, n), bytes the
-; wcslen has already proved are mapped -- and the root parse reads only up to index 7 plus characters
+; character otherwise. The backward scan needs no check; it reads only inside [root, n), bytes the
+; wcslen has already proved are mapped, and the root parse reads only up to index 7 plus characters
 ; it has already seen to be non-terminating. probes/pcrfs.c confirms the shipped export does not
 ; overread either: 99 of 99 guard-page cases clean.
 ;
@@ -131,7 +131,7 @@ rl_lead_sep:
         jne       rl_one                         ; a LONE leading separator
         cmp       word ptr [rcx + 4], 3Fh        ; '?'
         jne       rl_unc2
-        ; "\\?" -- the extended prefix, which must be completed or the root is 1
+        ; "\\?"; the extended prefix, which must be completed or the root is 1
         cmp       word ptr [rcx + 6], 5Ch
         jne       rl_one
         ; "\\?\UNC\" ?
@@ -250,7 +250,7 @@ wia_pathcchremovefilespec PROC
 ; ---- the ROOT first, because it lets a hopeless cch be rejected without scanning the string ------
 ; The answer is never shorter than the root, so the highest index written is never below it, so
 ; cch <= rootlen can be refused immediately. That matters: the shipped function rejects a too-small
-; cch in 6.88 ns, and computing the length first made this 0.83x on that row -- the one size class
+; cch in 6.88 ns, and computing the length first made this 0.83x on that row, the one size class
 ; that would have parked the change.
         call      rl_calc                        ; rcx is still p
         mov       r13d, eax                      ; rl
@@ -287,7 +287,7 @@ have_len:
         ; r12 = n; the root is already in r13 and unc_root in edi
 
 ; ---- the last separator at or after the root: a BACKWARD vectorised scan ------------------------
-        ; Reads only inside [rl, n) -- characters the wcslen already proved are mapped -- so no page
+        ; Reads only inside [rl, n) (characters the wcslen already proved are mapped) so no page
         ; check is needed here.
         mov       r10, -1                        ; j
         mov       rax, r12                       ; cursor, exclusive

@@ -6,7 +6,7 @@
  * single-broadcast path, up to four takes the four-register path, and anything more takes a WIDE
  * path that bypasses the vector filter entirely. A mutant that moved the threshold from 4 to 200
  * SURVIVED the whole correctness corpus, because the only many-partner needle the corpus ever used
- * was the ignorable set -- which change 281 stores behind a 255 sentinel, so it took the WIDE path
+ * was the ignorable set, which change 281 stores behind a 255 sentinel, so it took the WIDE path
  * either way and the moved threshold changed nothing.
  *
  * To cover the dispatch the corpus needs needles whose first character has 5, 6, ... partners, and

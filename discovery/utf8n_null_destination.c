@@ -21,26 +21,26 @@
  *       NULL               0     00000000 / 5            C0000023 / 0          DIFFER
  *       NULL              99     00000000 / 5            (access violation)    DIFFER
  *
- * and RtlUTF8ToUnicodeN behaves the same way: live answers 12 for six ASCII bytes -- the count is
- * in BYTES of UTF-16, not characters -- while ours answers STATUS_BUFFER_TOO_SMALL with nothing
+ * and RtlUTF8ToUnicodeN behaves the same way: live answers 12 for six ASCII bytes; the count is
+ * in BYTES of UTF-16, not characters, while ours answers STATUS_BUFFER_TOO_SMALL with nothing
  * produced.
  *
  * Why the gates did not catch it. Both changes are bit-exact against their live exports over large
- * corpora -- and every case in those corpora passes a real destination buffer. The NULL destination
+ * corpora, and every case in those corpora passes a real destination buffer. The NULL destination
  * is not an edge of the LENGTH, which is what those corpora sweep; it is a different MODE of the
  * same function, and nothing in the corpora asked for it. This is the same shape as the SPACE bug
  * that sat in four landed changes at once: not a subtle arithmetic slip, but a case nobody thought
  * to ask about.
  *
- * What it means in practice. Under live substitution a caller that sizes before converting -- which
+ * What it means in practice. Under live substitution a caller that sizes before converting, which
  * is what RtlUnicodeStringToUTF8String does internally on its allocating path, and what any careful
- * caller does -- gets STATUS_BUFFER_TOO_SMALL instead of a size, or faults outright if it passes a
+ * caller does, gets STATUS_BUFFER_TOO_SMALL instead of a size, or faults outright if it passes a
  * non-zero size with a NULL pointer. The conversion itself is correct; the mode is missing.
  *
  * This file is the evidence, not the fix. Fixing it means giving both changes a real sizing pass:
  * straightforward for UTF-16 -> UTF-8, where the output length of each character is decided by
  * three range tests and a surrogate-pair rule, and harder for UTF-8 -> UTF-16, where the count
- * depends on the decoder's exact replacement policy for malformed input -- which has to be
+ * depends on the decoder's exact replacement policy for malformed input, which has to be
  * reproduced, not approximated, because a size that is one short produces a truncated conversion
  * in the caller's buffer.
  *

@@ -47,7 +47,7 @@ static int fixed_point(const wchar_t* p, int n)
     return (int)wcslen(fp);
 }
 
-/* THE CANDIDATE: the structural prefix only -- the server and share are not protected. */
+/* THE CANDIDATE: the structural prefix only; the server and share are not protected. */
 static int is_drive_letter(wchar_t c)
 {
     if (c >= L'A' && c <= L'Z') return 1;

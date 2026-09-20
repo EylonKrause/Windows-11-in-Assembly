@@ -4,7 +4,7 @@
  *
  * impl.asm drops its unroll when the buffers overlap, because probes/overlap.c showed the live export
  * behaving exactly like a naive forward one-unit-at-a-time loop and the unrolled loop does not always
- * reproduce that. Mutation mutant #28 weakened the overlap TEST -- it measures the span in code units
+ * reproduce that. Mutation mutant #28 weakened the overlap TEST, it measures the span in code units
  * instead of bytes, so it stops detecting overlap once the destination offset reaches half the length --
  * and it SURVIVED 66,656 correctness cases. The claim that it is an equivalent mutant rests on this:
  *

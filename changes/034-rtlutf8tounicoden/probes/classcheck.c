@@ -1,10 +1,10 @@
-/* classcheck.c -- independent three-way check of changes/034's TGL variant, per input class.
+/* classcheck.c: independent three-way check of changes/034's TGL variant, per input class.
  *
  * bad32check.c established that the variant returns the right STATUS and the right byte count on
- * the bench's `bad32` class while leaving most of the destination UNWRITTEN -- which is why that
+ * the bench's `bad32` class while leaving most of the destination UNWRITTEN, which is why that
  * row measured ~9.4 ns at every length. correctness.c passes 327,758 cases and cannot see it.
  *
- * The question this answers is whether the mixed-width classes -- the whole point of the change --
+ * The question this answers is whether the mixed-width classes, the whole point of the change --
  * are genuinely decoded or are the same illusion. It writes a known sentinel over the destination,
  * calls the live export and the variant on identical input, and compares the status, the byte
  * count AND every output byte.

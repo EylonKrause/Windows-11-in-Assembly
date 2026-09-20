@@ -2,7 +2,7 @@
  * refcheck.c is down to 9189 mismatches of 3 000 000, every one of them only in the ILLEGAL_CHARS
  * bit, and every one of them on the byte alphabet {00,09,0A,0D,1A,20,30,61,FE,FF}. Rather than
  * guess at the CR/LF counter again, enumerate ALL buffers of length 4 and 6 over that alphabet
- * (10^4 and 10^6) and print the SHORTEST disagreements -- a minimal counterexample pins the rule.
+ * (10^4 and 10^6) and print the SHORTEST disagreements, a minimal counterexample pins the rule.
  * Build: cl /nologo /O2 minimal.c && minimal.exe
  */
 #define WIN32_LEAN_AND_MEAN

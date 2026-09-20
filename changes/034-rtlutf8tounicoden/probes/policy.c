@@ -2,8 +2,8 @@
  *
  * How many UTF-16 units does RtlUTF8ToUnicodeN produce from malformed UTF-8?
  *
- * This is the rule the measuring mode needs, and it cannot be guessed. A first attempt -- one
- * U+FFFD per bad byte -- over-counted badly: for a 48-byte run of continuation bytes the live
+ * This is the rule the measuring mode needs, and it cannot be guessed. A first attempt, one
+ * U+FFFD per bad byte, over-counted badly: for a 48-byte run of continuation bytes the live
  * export produced 78 bytes of UTF-16 where that rule said 80, and it got worse with longer runs.
  * The export is emitting FEWER replacements than there are bad bytes, which means it consumes a
  * maximal invalid subsequence per replacement rather than one byte per replacement.

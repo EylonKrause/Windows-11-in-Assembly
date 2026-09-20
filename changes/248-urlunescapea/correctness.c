@@ -1,6 +1,6 @@
 // changes/248-urlunescapea/correctness.c
 // THREE-WAY: ours, an independent oracle (reference.c), and the LIVE shlwapi!UrlUnescapeA export, on
-// identical buffers, compared on the HRESULT, on *pcch, and on the whole buffer -- not just the
+// identical buffers, compared on the HRESULT, on *pcch, and on the whole buffer, not just the
 // destination. The whole buffer matters three times over here:
 //
 //   * the in-place path writes the SOURCE and never touches *pcch, so comparing only a destination

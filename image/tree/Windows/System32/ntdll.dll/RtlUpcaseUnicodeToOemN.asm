@@ -89,21 +89,21 @@ mb_ascii8:
         jmp       mb_loop
 ; -------------------------------------------------------------------------------------------------
 ; The table path takes a run, added 2026-09-16. It used to convert one character and jump back to
-; `mb_loop`, which re-ran the 16-wide test AND the 8-wide test -- two vector loads, two VPTESTs and
-; four bound comparisons -- to discover once more that the character in front of it is not ASCII.
+; `mb_loop`, which re-ran the 16-wide test AND the 8-wide test, two vector loads, two VPTESTs and
+; four bound comparisons, to discover once more that the character in front of it is not ASCII.
 ; On text where the vector block never applies, that cost was paid on every character for the whole
 ; string.
 ;
 ; discovery/upcase_nonascii_rows.c measured what it came to: 0.59x against the shipped export on
 ; Cyrillic or CJK, in a change published at 10.24x on ASCII. And the sibling that does the same job
-; with the same table -- change 020, RtlUpcaseUnicodeStringToAnsiString -- already converts SIXTEEN
+; with the same table (change 020, RtlUpcaseUnicodeStringToAnsiString) already converts SIXTEEN
 ; characters per visit and measures 2.62x on the same text. This is change 263's rule, which this
 ; repository wrote down and this file broke:
 ;
 ;       a scalar walk must not re-enter a vector loop.
 ;
-; The run is bounded by both limits this function has -- characters remaining and output room
-; remaining -- so the loop below cannot overrun either, and `mb_loop` still owns the decision to
+; The run is bounded by both limits this function has, characters remaining and output room
+; remaining, so the loop below cannot overrun either, and `mb_loop` still owns the decision to
 ; stop. Sixteen is the vector block's own width: long enough to amortise the probe, short enough
 ; that text alternating ASCII with anything else still reaches the vector path.
 ; -------------------------------------------------------------------------------------------------

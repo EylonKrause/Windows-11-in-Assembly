@@ -4,14 +4,14 @@
  *
  * The rows are what a set span actually costs, and the set is as much of the input as the string:
  *
- *   * no match over a long string, which must reach the terminator -- the worst case for the scan;
+ *   * no match over a long string, which must reach the terminator, the worst case for the scan;
  *   * a match near the START, which is where a span usually stops in real use (a delimiter search);
  *   * a match near the END of a long string;
  *   * a ONE-character set, which expands to at most four accept entries and therefore takes exactly
- *     one vector pass -- the fast path;
+ *     one vector pass, the fast path;
  *   * a set large enough to need SEVERAL chunks, so the per-chunk pass and its shrinking bound are
  *     both measured;
- *   * a set holding a 255-sentinel member (an ignorable), which forces the SCALAR path -- the row that
+ *   * a set holding a 255-sentinel member (an ignorable), which forces the SCALAR path, the row that
  *     stops the headline number from being the easy case only;
  *   * short strings, where the whole cost is the call and the set expansion.
  *

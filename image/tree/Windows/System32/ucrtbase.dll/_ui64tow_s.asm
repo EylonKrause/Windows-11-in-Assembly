@@ -6,7 +6,7 @@
 ; errno_t wia_ui64tow_s(unsigned __int64 Value, wchar_t* Buffer, size_t SizeInChars, int Radix)
 ;   [rcx, rdx, r8, r9d -> eax]
 ;
-; Reimplements ucrtbase!_ui64tow_s -- the unsigned wide form, closing the bounded 64-bit formatter
+; Reimplements ucrtbase!_ui64tow_s, the unsigned wide form, closing the bounded 64-bit formatter
 ; family (194 byte signed, 195 byte unsigned, 196 wide signed, 197 wide unsigned). 40.5 ns for a
 ; 20-digit value in the shipped version, one 64-bit `div` per digit.
 ;

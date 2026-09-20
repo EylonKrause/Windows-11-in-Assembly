@@ -10,7 +10,7 @@
 #     changes/023-rtlnumberofsetbits/impl_tgl.asm + build_tgl.bat + RESULTS-tgl.md
 #
 # and `build_2ndpc.bat` / `build_tgl.bat` are never invoked by the main sweep. So sixteen
-# implementations in this repository -- seven Zen 4 variants and nine Tiger Lake ones -- have been
+# implementations in this repository (seven Zen 4 variants and nine Tiger Lake ones) have been
 # outside every automated gate since the day they were written. They are the files most likely to
 # rot, too: they exist precisely because the shipped function behaved differently on one machine,
 # so they are the ones a servicing update is most likely to invalidate.
@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 $here = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 if (-not $Repo) { $Repo = Split-Path -Parent $here }
 
-# Import the toolchain portably -- every build_*.bat carries the same hardcoded BuildTools path as
+# Import the toolchain portably, every build_*.bat carries the same hardcoded BuildTools path as
 # its parent build.bat, and on a machine with a different VS edition that call fails silently.
 . (Join-Path $here 'vsenv.ps1') -Quiet
 if (-not $env:VSCMD_VER) { Write-Host 'FATAL: could not initialize the VS environment'; exit 2 }
@@ -58,7 +58,7 @@ $outDir = Join-Path $Repo 'revalidation'
 $logs   = Join-Path $outDir "variants_$stamp"
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
-# Find every variant build script. The pattern deliberately excludes plain `build.bat` -- that is
+# Find every variant build script. The pattern deliberately excludes plain `build.bat`; that is
 # the main sweep's job, and running it here would double every measurement.
 $builds = Get-ChildItem (Join-Path $Repo 'changes') -Recurse -Filter 'build_*.bat' |
           Sort-Object FullName
@@ -78,7 +78,7 @@ Write-Host ("sweeping {0} variant build(s)" -f $builds.Count)
 Write-Host ''
 
 # a variant's own RESULTS-<suffix>.md records whether it lands or is parked. a parked variant is one
-# already documented as losing a size class -- reporting that every run is noise, and noise is what
+# already documented as losing a size class, reporting that every run is noise, and noise is what
 # buries a real finding.
 function Get-VariantVerdict {
     param([string] $dir, [string] $suffix)
@@ -86,7 +86,7 @@ function Get-VariantVerdict {
     if (-not (Test-Path $r)) { return 'UNKNOWN' }
     $head = (Get-Content $r -TotalCount 4 -EA SilentlyContinue) -join ' '
     # The verdict may carry a qualifier, and requiring the bare word made this return unknown for
-    # two variants whose heading reads `**LANDS (variant)**` -- so the sweep could not tell whether
+    # two variants whose heading reads `**LANDS (variant)**`, so the sweep could not tell whether
     # a regression in them was expected or news. A verdict that cannot be read is not a neutral
     # 'unknown': it silently moves the change out of both the expected and the actionable list.
     if ($head -match '\*\*PARKED')                     { return 'PARKED' }
@@ -126,7 +126,7 @@ foreach ($b in $builds) {
     Remove-Item $so, $se -EA SilentlyContinue
 
     # Same classifier as the fixed one in revalidate.ps1. Rule 2 requires a NON-ZERO count, and the
-    # lookbehind is what stops "10 mismatches" being read as a zero -- a bare 'mismatch' word match
+    # lookbehind is what stops "10 mismatches" being read as a zero, a bare 'mismatch' word match
     # fires on "0 mismatches", which is the phrase a PASSING harness prints.
     $corr = 'n/a'
     if     ($txt -match 'CORRECTNESS[^\r\n]*FAILED')          { $corr = 'FAIL' }

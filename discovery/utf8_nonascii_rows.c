@@ -2,14 +2,14 @@
  *
  * Changes 016 And 034 Are benched on ASCII only, and ASCII is the case their fast paths exist for.
  *
- * Both are UTF-8 conversions. Both land on their published tables -- 2.61x and 3.61x geomean -- and
+ * Both are UTF-8 conversions. Both land on their published tables (2.61x and 3.61x geomean) and
  * every row of both tables is ASCII input. That is not a small omission for a UTF-8 converter: the
  * entire reason UTF-8 exists is the bytes above 0x7F, and a caller converting Hebrew, Greek,
  * Cyrillic, CJK or emoji never touches the path those tables measure.
  *
  * It surfaced from change 268, whose tight-destination row has to size the output before it
  * converts. probes/twopass.c split that row into its parts and the sizing pass was not the
- * problem -- the CONVERSION was, at 6585.9 ns against the shipped N-form's 2138.3 ns on the same
+ * problem; the CONVERSION was, at 6585.9 ns against the shipped N-form's 2138.3 ns on the same
  * 4000 bytes of two-byte sequences. That is 0.32x, in a change that publishes 3.61x.
  *
  * So this file asks the question properly, for both directions, across the input classes a real

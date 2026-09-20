@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!StrTrimA: strip leading and trailing characters that are in the trim set, IN
 ; PLACE, and report whether anything was stripped. 44622.19 ns to trim 4000 characters against
-; 7046.65 ns for StrTrimW over the same character count -- 6.33x the wide cost for HALF the bytes, on
+; 7046.65 ns for StrTrimW over the same character count, 6.33x the wide cost for HALF the bytes, on
 ; top of a wide form that was itself worth converting (change 139, 20.9x).
 ;
 ; ---- what the probe settled (probes/trim.c) ---------------------------------------------------------
@@ -16,10 +16,10 @@
 ;   * And the one no return-value comparison would catch: it writes only what it must, and the order
 ;     of its two writes is observable. The probe poisoned the bytes past the terminator and read them
 ;     back. "abc" trimmed of 'x' leaves the buffer completely untouched. "abcxx" gets ONE byte
-;     written -- the new terminator -- with the old 'x' and old terminator still in place. "xxabc"
+;     written (the new terminator) with the old 'x' and old terminator still in place. "xxabc"
 ;     moves four bytes ("abc" plus its terminator) down and leaves the rest.
 ;
-;     AND "xxabcxx" -- both ends -- leaves TWO terminators behind:
+;     AND "xxabcxx" (both ends) leaves TWO terminators behind:
 ;         a b c \0 c \0 x \0        and NOT        a b c \0 c  x  x \0
 ;     because the export cuts the TRAILING end in place FIRST and only then moves the leading end
 ;     down. probes/diag.c caught that: the first cut of this implementation moved first and
@@ -29,7 +29,7 @@
 ;
 ; ---- method ----------------------------------------------------------------------------------------
 ; The trim set becomes the same 256-BIT BITMAP changes 214-216 use, built in the caller's shadow
-; space -- 32 bytes, exactly the size of the bitmap -- and membership for 32 characters at once is the
+; space (32 bytes, exactly the size of the bitmap) and membership for 32 characters at once is the
 ; same two-table vpshufb test selected by the character's bit 7.
 ;
 ; One forward pass does all the searching. The terminator is never a member (the set string is
@@ -127,7 +127,7 @@ tr_built:
         vmovdqa   ymm0, ymmword ptr [r9]
         CLASSIFY2
         ; Clear the bits BEFORE the string instead of shifting them out, so the block base can be
-        ; the signed value -(psz & 31) and every later block is simply +32 -- one uniform loop.
+        ; the signed value -(psz & 31) and every later block is simply +32, one uniform loop.
         mov       r10d, -1
         shlx      r10d, r10d, ecx
         and       eax, r10d
@@ -184,7 +184,7 @@ tr_nomore:
         ; the TRAILING end in place FIRST, and only then moves the leading end down, so trimming
         ; both ends of "xxabcxx" leaves TWO terminators behind --
         ;       a b c \0 c \0 x \0      and not      a b c \0 c x x \0
-        ; -- the \0 at index 5 being the trailing cut, still visible after the move copied four
+        ; the \0 at index 5 being the trailing cut, still visible after the move copied four
         ; bytes over the front. An implementation that moved first and terminated once produces the
         ; same STRING and the same return value, and only a whole-buffer comparison tells them
         ; apart, which is why correctness.c does that.
@@ -211,8 +211,8 @@ tr_lead:
 
         ; The overlapping tail must be read before anything is written. Change 211 ends a short copy
         ; with a second, overlapping load/store pair and that is perfectly safe there, because its
-        ; source and destination are different buffers. Here they overlap -- the destination is the
-        ; source minus `first` -- so re-reading the tail after the front has been written reads bytes
+        ; source and destination are different buffers. Here they overlap; the destination is the
+        ; source minus `first`, so re-reading the tail after the front has been written reads bytes
         ; that have already moved. It produced "c c c " from "xxabc": the second four-byte copy
         ; re-read offset 2, which by then held the freshly written "c c ". So the tail is loaded
         ; into a register UP FRONT and only stored at the end.
@@ -277,7 +277,7 @@ tr_s1:
 
 tr_term:
         ; no terminator is written here: the copy above already carried it, and the trailing cut
-        ; (if there was one) was written before the move -- which is the order the export uses.
+        ; (if there was one) was written before the move, which is the order the export uses.
 tr_ret_flag:
         mov       eax, r11d
         vzeroupper

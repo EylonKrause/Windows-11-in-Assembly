@@ -7,7 +7,7 @@
  *      while ((signed char)*s <= ' ') ++s;
  *
  * and 0x00 is <= 0x20. So if that loop has no separate test for the terminator, an all-whitespace string
- * does not end at its NUL -- the scan walks straight through it and keeps going into whatever follows in
+ * does not end at its NUL, the scan walks straight through it and keeps going into whatever follows in
  * memory.
  *
  * Our implementation has the separate test and STOPS at the NUL. That is the safe reading, and it is what
@@ -16,13 +16,13 @@
  *   * the live-substitution harness recorded the SHIPPED export returning 6, 7, 3, 5, 0x000000BA,
  *     0x08225F8F and 0xB26A432B for strings whose first byte is NUL, where ours returns 0. Its case
  *     buffer is a reused static array, so the bytes AFTER the terminator are the previous case's;
- *   * probes/nodigits.c, calling with string LITERALS, saw 0 every time -- because the bytes after a
+ *   * probes/nodigits.c, calling with string LITERALS, saw 0 every time, because the bytes after a
  *     literal "" are whatever the linker put there, and they happened to yield 0.
  *
  * Neither of those proves the rule, because neither controls what follows the NUL. This probe does: it
  * plants a known number after the terminator and asks what comes back. If the answer is that number,
  * the export reads past the end of the string it was given, and a drop-in replacement has to do the same
- * thing to be bit-exact -- which is a far more interesting question than it first looks, because it means
+ * thing to be bit-exact, which is a far more interesting question than it first looks, because it means
  * matching an OVERREAD.
  *
  * It also finds out how far the scan will go, and whether a guard page stops it, because an export that

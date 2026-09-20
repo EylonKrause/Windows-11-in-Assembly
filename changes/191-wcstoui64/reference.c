@@ -2,14 +2,14 @@
 // The correctness oracle: the obvious scalar _wcstoui64. Not fast; just correct.
 //
 // _wcstoui64 and wcstoull share one code address, so this oracle covers both names.
-// Contract derived in ../190-wcstoi64/probes/wcstoi64.c and fuzz-confirmed against the live export -- value,
-// *endptr AND errno -- over 1,500,000 cases, 0 mismatches. It is change 188's wide/base crossing
+// Contract derived in ../190-wcstoi64/probes/wcstoi64.c and fuzz-confirmed against the live export, value,
+// *endptr AND errno, over 1,500,000 cases, 0 mismatches. It is change 188's wide/base crossing
 // with change 113's 64-bit unsigned tail, re-measured rather than inherited:
 //   * the limit is 2^64-1 and does NOT move with the sign (the opposite of change 190);
 //   * a leading '-' negates MODULO 2^64: "-1" -> 18446744073709551615, errno 0;
 //   * overflow returns _UI64_MAX with ERANGE regardless of sign, so "-18446744073709551616"
 //     comes back as _UI64_MAX rather than a negated value;
-//   * the "0x" prefix zero may be ANY block's zero -- the ASCII-only variant was refuted on
+//   * the "0x" prefix zero may be ANY block's zero; the ASCII-only variant was refuted on
 //     1525 of 1,500,000.
 #include <stddef.h>
 #include <errno.h>

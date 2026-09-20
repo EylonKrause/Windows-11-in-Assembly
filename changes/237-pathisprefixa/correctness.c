@@ -82,7 +82,7 @@ int main(void){
 
     /* ---- The two anomalies, asserted directly on all three ---------------------------------- */
     {
-        /* a two-character path is not a prefix of itself -- at that length and no other */
+        /* a two-character path is not a prefix of itself, at that length and no other */
         ASSERT3(wia_pathisprefixa("aa", "aa"), 0, "ours: a 2-char path is NOT a prefix of itself");
         ASSERT3(ref_pathisprefixa("aa", "aa"), 0, "oracle: a 2-char path is NOT a prefix of itself");
         ASSERT3(sys("aa", "aa"),               0, "live: a 2-char path is NOT a prefix of itself");

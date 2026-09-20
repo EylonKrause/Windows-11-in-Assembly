@@ -16,7 +16,7 @@
        zero of 255; this function is asked separately, because it is a different function.)
      * Is pszEnd inclusive or exclusive? The whole loop bound depends on it, and the answer is
        checked at the exact boundary, not inferred from a case in the middle.
-     * pszEnd == NULL -- does it mean "to the end of the string"?
+     * pszEnd == NULL, does it mean "to the end of the string"?
      * wMatch is a WORD on a code page with no lead bytes: is only the low byte consulted?
      * searching for the TERMINATOR, an empty string, NULL arguments, and an pszEnd that lies BEFORE
        pszStart -- the degenerate cases a reverse scan can get wrong in silence.                    */
@@ -100,7 +100,7 @@ int main(void){
         static const char s[] = "abc";
         show(s, -1, 0, "wMatch = 0, pszEnd = NULL");
         show(s, 3,  0, "wMatch = 0, pszEnd = s+3");
-        /* Not probed, deliberately: StrRChrA(s, s+4, 0) -- searching for the terminator with an
+        /* Not probed, deliberately: StrRChrA(s, s+4, 0), searching for the terminator with an
            pszEnd placed one PAST it -- does not return. The first run of this probe sat in that
            call for 300 seconds and had to be killed. It is an out-of-contract input (pszEnd is
            exclusive and s+4 is past the end of the string), and a hang is not behaviour a caller

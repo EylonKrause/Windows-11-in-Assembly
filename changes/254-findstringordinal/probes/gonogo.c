@@ -1,10 +1,10 @@
 /* changes/254-findstringordinal/probes/gonogo.c
  *
- * The go/no-go for kernelbase!FindStringOrdinal (rva 0x0A1E90) -- and it is not the same question
+ * The go/no-go for kernelbase!FindStringOrdinal (rva 0x0A1E90), and it is not the same question
  * change 252 asked, even though it is the same shape of function.
  *
  * What the disassembly already settles. The search itself is a naive O(n*m) scan that shifts its
- * window by ONE character, in both modes -- the case-sensitive inner loop is
+ * window by ONE character, in both modes; the case-sensitive inner loop is
  *
  *     000A2128  movzx eax, word ptr [rdx]            the needle character
  *     000A212B  cmp word ptr [rdi + rdx], ax         the haystack character
@@ -21,7 +21,7 @@
  *               shr eax, 4 / and edx, 0xf / add ecx, eax / movzx ecx, [rsi + rcx*2] ...
  *
  * A trie indexed by high byte, then high nibble, then low nibble is an ORDINAL table, not the sort
- * machinery -- so it is reproducible in principle. But the `< 0xC0` short-circuit means it cannot
+ * machinery, so it is reproducible in principle. But the `< 0xC0` short-circuit means it cannot
  * simply BE RtlUpcaseUnicodeChar: every code unit in 0x80..0xBF is left alone here, and at least one
  * of them (U+00B5 MICRO SIGN) the ordinal upcase table does map elsewhere. If that is right, change
  * 252's case-partner table is the WRONG table for this function and a second one has to be derived.
@@ -41,7 +41,7 @@
  *      any of 252's machinery can be reused.
  *
  *   3. What is the contract? The flags (FIND_FROMSTART / fromend / startswith / endswith), the
- *      -1 lengths, the empty needle, and what it returns when it fails -- all of which the
+ *      -1 lengths, the empty needle, and what it returns when it fails, all of which the
  *      documentation states and none of which this project takes on trust.
  */
 #define WIN32_LEAN_AND_MEAN

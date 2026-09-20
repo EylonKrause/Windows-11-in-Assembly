@@ -3,7 +3,7 @@
  * The contract of shlwapi/kernelbase!UrlUnescapeA, measured against the live export.
  *
  * Why this one, after change 245 did the wide form. discovery/shlwapi_url_str.c measured the narrow
- * form at 1.85 ns per character against the wide form's 1.24 -- slower per character for half the
+ * form at 1.85 ns per character against the wide form's 1.24, slower per character for half the
  * data, which is the per-character-code-path signature that gave this project its largest narrow
  * siblings (change 218 at 127x, 236 at 75x). And 245 already removed the scaffolding that dominates
  * the wide form, so the same structure applies.
@@ -18,7 +18,7 @@
  *                                               The WIDE form implements that flag; this one REFUSES
  *                                               it, which is the first real asymmetry.
  *     00049E5F  mov  dword ptr [rbp+7], 0x41    a 65-BYTE staging buffer
- *     00049E6B  call 0x4C150                    = lstrlenA -- and that one has an SEH HANDLER
+ *     00049E6B  call 0x4C150                    = lstrlenA, and that one has an SEH HANDLER
  *     00049E7B  call 0x0F730                    the capacity/grow helper
  *     00049E97  call 0x4A04C                    copy-in
  *     00049EA6  call 0x49F20                    the walk, in the temporary
@@ -28,15 +28,15 @@
  *     00049F06  call 0x4B9DC                    copy-out
  *
  * Five sequential walks plus a heap round trip, exactly as the wide form. No code-page call anywhere
- * -- no MultiByteToWideChar, no CPINFO, no DBCS lead-byte helper -- so unlike StrStrA (which this
+ * (no MultiByteToWideChar, no CPINFO, no DBCS lead-byte helper) so unlike StrStrA (which this
  * project scoped out when a code-page fold conflated 0x5E and 0x88) this one is byte-wise.
  *
  * The two asymmetries with the wide form, both of which this probe has to settle rather than assume:
  *
  *   1. AS_UTF8 IS REFUSED rather than implemented. If so, change 248 needs no delegation for it at
- *      all -- it can simply return E_INVALIDARG, which is simpler than what 245 had to do.
+ *      all; it can simply return E_INVALIDARG, which is simpler than what 245 had to do.
  *   2. The length comes from lstrlenA, which swallows an access violation. Change 247 established
- *      that the wide lstrlenW path does NOT swallow -- an unterminated extension at a guard page
+ *      that the wide lstrlenW path does NOT swallow, an unterminated extension at a guard page
  *      faults. If lstrlenA returns 0 on a faulting URL, then UrlUnescapeA returns S_OK with an empty
  *      result where UrlUnescapeW would fault, and an implementation without a __try would differ on
  *      exactly that input. Asked directly, against a PAGE_NOACCESS page.
@@ -105,7 +105,7 @@ int main(void)
         int first[256], second[256];
         int nf = 0, ns = 0;
         for (int c = 1; c < 256; ++c) {
-            /* the partner digit is '1', not '0' -- change 245's probe scored '0' as a non-digit
+            /* the partner digit is '1', not '0', change 245's probe scored '0' as a non-digit
                because "%00" is refused for a different reason entirely */
             in[0] = '%'; in[1] = (char)c; in[2] = '1'; in[3] = 0;
             hr = call(in, out, 64, &cch, 0);

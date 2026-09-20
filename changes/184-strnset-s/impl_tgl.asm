@@ -8,7 +8,7 @@
 ; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here the smallest class measures 0.79x, and
-; the reason is not the arithmetic -- it is that at that size the parent does no vector work at all
+; the reason is not the arithmetic; it is that at that size the parent does no vector work at all
 ; while paying the full price of having intended to. The bench's "8" row is 8 BYTES: an 8-character
 ; string with numberOfElements = 9 and count = _TRUNCATE, so the terminator sits at index 8 and the
 ; fill is min(count, 8) = 8 bytes. Against that input the parent:
@@ -19,8 +19,8 @@
 ;   * runs `vpbroadcastb ymm2` unconditionally, then falls straight through `f_blk` into `f_tail`
 ;     and stores the eight fill bytes one at a time;
 ;   * and, because both ymm writes have dirtied the upper state, owes a `vzeroupper` on the way
-;     out. That is mandatory -- without it the caller's next SSE instruction pays a transition
-;     penalty -- and it bought nothing here.
+;     out. That is mandatory, without it the caller's next SSE instruction pays a transition
+;     penalty, and it bought nothing here.
 ;
 ; So the short case pays for two ymm writes, a vzeroupper and seventeen single-byte iterations in
 ; order to move eight bytes. Willow Cove's dirty-upper bookkeeping is dearer than Zen's, which is
@@ -35,11 +35,11 @@
 ;     CLEAN and no `vzeroupper` is owed on that path at all.
 ;   * The scan probes 16 bytes, then 8, instead of walking. At numberOfElements = 9 the terminator
 ;     is found by one 8-byte probe plus one byte compare rather than by nine byte compares.
-;   * The fill uses OVERLAPPING stores rather than a byte loop -- writing the same byte twice is
+;   * The fill uses OVERLAPPING stores rather than a byte loop, writing the same byte twice is
 ;     free, branching once per byte is not.
 ;   * The broadcast is built with an `imul` against 0101010101010101h, so no vector register is
 ;     involved at all. For c <= 255 the partial products c<<0, c<<8, ... cannot carry into one
-;     another, so every byte of the result is exactly c -- and r8b still holds c afterwards, which
+;     another, so every byte of the result is exactly c, and r8b still holds c afterwards, which
 ;     the 1-byte case uses directly.
 ;
 ; At or above a 32-byte bound it branches to the parent's code, spliced in unchanged. That is where
@@ -48,7 +48,7 @@
 ; One thing that went wrong, and is worth knowing
 ; -----------------------------------------------
 ; Inserting the narrow path AHEAD of the parent's code cost the parent's code 15-20% on two classes
-; it had no business losing -- 254 and 254/partial, both of which execute only spliced instructions.
+; it had no business losing, 254 and 254/partial, both of which execute only spliced instructions.
 ; Nothing about them had changed; they had simply been pushed to a different offset, and the wide
 ; scan loop no longer began on a 16-byte boundary. An `ALIGN 16` in front of `wide:` gave both rows
 ; back (254/partial 45.9 ns against 45.1 ns for the parent, 254 actually better at 44.1 against
@@ -57,7 +57,7 @@
 ;
 ; This is the trap a variant of this shape walks straight into: a path you did not touch can still
 ; regress, because you moved it. A variant must be measured on every class, not on the one it set
-; out to fix. Note also that `ALIGN 32` is not available -- MASM rejects it here with A2189, because
+; out to fix. Note also that `ALIGN 32` is not available, MASM rejects it here with A2189, because
 ; a request may not exceed the segment's own alignment and `.code` is 16.
 ;
 ; Why the split is on the bound and not on the fill length
@@ -66,7 +66,7 @@
 ; _TRUNCATE while the bound is 9, or 1000 while the bound is 128, so the fill length is not a
 ; dispatch key. The BOUND is, and it caps both halves of the work: it bounds the scan directly, and
 ; it bounds the fill too, because the fill length is min(count, length) on success and
-; min(count, numberOfElements-1) on failure -- and both of those are strictly below the bound. A
+; min(count, numberOfElements-1) on failure, and both of those are strictly below the bound. A
 ; bound under 32 therefore guarantees a fill of at most 30 bytes, which is exactly the span the
 ; small overlapping-store ladder covers. One test on rdx decides the shape of the whole call, and
 ; it is a test the parent already had to make later anyway.
@@ -80,7 +80,7 @@
 ; The parent is left untouched: its measurement was taken on hardware with different AVX
 ; transition costs, where dirtying the upper state for a nine-byte call is cheap enough not to show.
 ;
-; CONTRACT -- unchanged, and worth restating because the `_s` family in this CRT has three distinct
+; CONTRACT, unchanged, and worth restating because the `_s` family in this CRT has three distinct
 ; shapes and assuming one from another is how a previous attempt on a sibling was refuted on 407604
 ; of 1000000 cases (see the parent's header and probes/sns.c for how this one was pinned):
 ;
@@ -95,14 +95,14 @@
 ;   * All 256 fill byte values behave identically, including 0.
 ;
 ; Page safety: a probe is issued only when that many bytes of the caller's declared buffer remain,
-; and is additionally guarded against crossing into the next page -- the same two-part discipline
+; and is additionally guarded against crossing into the next page, the same two-part discipline
 ; the parent uses, applied at 16 and 8 bytes as well as 32. When either test fails the narrow scan
 ; creeps a byte at a time to the end of the bound and never re-enters a probe loop, so no byte of
 ; input pays for a vector probe twice. The fill writes at most numberOfElements-1 bytes and the
 ; overlapping stores all land strictly inside that span, so the variant touches no byte the parent
 ; would not.
 ;
-; ABI: rcx, rdx, r8, r9, r10, r11, rax and xmm0-xmm2 only -- all volatile. Nothing in the
+; ABI: rcx, rdx, r8, r9, r10, r11, rax and xmm0-xmm2 only, all volatile. Nothing in the
 ; non-volatile xmm6-xmm15 low-lane range is written on either path.
 ;
 ; ISA: AVX2 for the >= 32 path (the parent's), VEX-128 + GPR below. No AVX-512, although this bench
@@ -111,11 +111,11 @@
 ; declared-bytes test already provides, while dirtying the upper state and so re-owing the
 ; `vzeroupper` this variant exists to remove; the EVEX-128 form keeps the state clean but pays a
 ; `bzhi`/`kmovd` set-up on what is the shortest path in the function. Replacing the 8-byte probe
-; with the general-purpose zero-byte trick -- (x-0101..h) & ~x & 8080..h -- was also rejected: it
+; with the general-purpose zero-byte trick ((x-0101..h) & ~x & 8080..h) was also rejected: it
 ; shortens the chain by two or three cycles but needs two 64-bit constants and a scratch register,
 ; and at this size the call is dominated by fixed overhead both sides pay, so the registers would
 ; have been spent for something the bench cannot see.
-; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 
 EXTERN _invalid_parameter_noinfo:PROC
 
@@ -187,7 +187,7 @@ n_noterm:
         mov       edx, 1                         ; outcome = EINVAL
 
 n_fill:
-        ; The limit is at most 30 here -- see "why the split is on the bound" above -- so this
+        ; The limit is at most 30 here (see "why the split is on the bound" above) so this
         ; ladder covers every reachable case with at most four stores and no loop at all.
         movzx     eax, r8b
         mov       r8, 0101010101010101h

@@ -69,7 +69,7 @@ int main(void){
         for (int b = 1; b < 256; ++b) {
             char t[10];
             if (b == '.' || b == '\\') continue;          /* would change the expected answer */
-            /* a, <byte>, '.', x  -- a byte scan puts the extension at index 2 */
+            /* a, <byte>, '.', x, a byte scan puts the extension at index 2 */
             t[0]='a'; t[1]=(char)b; t[2]='.'; t[3]='x'; t[4]=0;
             char* r = fext(t);
             if ((r - t) != 2) { if (bad < 8) printf("  byte %02X before the dot -> %d (expected 2)\n",

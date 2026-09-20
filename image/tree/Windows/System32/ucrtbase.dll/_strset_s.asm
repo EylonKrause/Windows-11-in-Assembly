@@ -6,7 +6,7 @@
 ; errno_t wia_strset_s(char* str, size_t numberOfElements, int c)
 ;   [Win64: rcx, rdx, r8d -> eax]
 ;
-; Reimplements ucrtbase!_strset_s -- the bounded sibling of change 077 (_strset). ucrtbase's is
+; Reimplements ucrtbase!_strset_s; the bounded sibling of change 077 (_strset). ucrtbase's is
 ; scalar: 106.7 ns to fill a 254-byte string.
 ;
 ; Contract (derived in probes/sss.c, fuzz-confirmed bit-exact against the live export over
@@ -37,7 +37,7 @@
 ; declared buffer remain, and is additionally guarded against crossing into the next page.
 ; The fill writes at most numberOfElements-1 bytes, so it stays inside the declared buffer.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

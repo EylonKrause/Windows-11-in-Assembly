@@ -1,6 +1,6 @@
 @echo off
 REM ===========================================================================
-REM  audits/gate-never-asked -- does the itoa/ultoa family agree with ucrtbase
+REM  audits/gate-never-asked, does the itoa/ultoa family agree with ucrtbase
 REM  on a radix outside 2..36?
 REM
 REM  Eight landed changes reimplement this family and every one of their corpora
@@ -9,7 +9,7 @@ REM  SIGNED int in all eight signatures. That is the same shape as the defect
 REM  found in changes 097 and 100: a parameter class the gate never asked about.
 REM
 REM  ONE CALL PER PROCESS. The all-in-one first draft died at exit code 148
-REM  having printed nothing, which is the signature of a fail-fast -- an
+REM  having printed nothing, which is the signature of a fail-fast, an
 REM  uncatchable termination that __except cannot see. The only way to attribute
 REM  one to a side is to give each call its own process and read the exit code.
 REM  Changes 274 and 276 hit the same wall on SysFreeString.

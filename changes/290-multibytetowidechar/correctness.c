@@ -13,7 +13,7 @@
  *     independently, so sixteen bytes that happen to be eight clean two-byte sequences has a
  *     probability of about 1e-11 per position.  Every vector block would be untested.  So the
  *     corpus is explicit about the classes: pure ASCII, pure two-, three- and four-byte runs, and
- *     -- new here, and the whole reason this change does not reuse change 034's decoder --
+ *, new here, and the whole reason this change does not reuse change 034's decoder --
  *     MIXED-WIDTH classes: ASCII+2, ASCII+3, ASCII+4, 2+3, 3+4, and all four widths rotating.
  *     discovery/utf8_width_mixtures.c is the file that proved a run-only decoder collapses on them.
  *
@@ -21,8 +21,8 @@
  *     boundary falls inside every class at some length and the room guard of every block is the
  *     one that decides where the output stops.
  *
- * 3.  a malformed byte planted at every position of every class -- eight of them, one per way a
- *     sequence can be wrong -- because the maximal-subpart rule is the part that is not guessable
+ * 3.  a malformed byte planted at every position of every class, eight of them, one per way a
+ *     sequence can be wrong, because the maximal-subpart rule is the part that is not guessable
  *     and the part every vector block must decline.
  *
  * 4.  The source ends at a page boundary with the next page PAGE_NOACCESS.  gen16 reads eighteen
@@ -116,7 +116,7 @@ static void one(const unsigned char* s, int n, int cb, int cch, DWORD fl)
 }
 
 /* ---------------------------------------------------------------------------------------------
- * the input classes.  Five are runs -- the shape change 034's blocks were written for -- and six
+ * the input classes.  Five are runs (the shape change 034's blocks were written for) and six
  * are MIXTURES, which is the shape real text has and the shape a run-only decoder collapses on.
  * ------------------------------------------------------------------------------------------- */
 enum { K_ASCII, K_TWO, K_THREE, K_FOUR, K_FFFD, K_A2, K_A3, K_A4, K_23, K_34, K_ALL, K_CONT, NCLASS };

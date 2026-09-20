@@ -6,7 +6,7 @@
 ; int wia_cso_core(const wchar_t* s1, int c1, const wchar_t* s2, int c2, int ic)
 ;   [rcx, edx, r8, r9d, [rsp+28h] -> eax]
 ;
-; Reimplements kernelbase!CompareStringOrdinal -- 13.46 GB/s case-sensitive, 13.41 case-insensitive,
+; Reimplements kernelbase!CompareStringOrdinal, 13.46 GB/s case-sensitive, 13.41 case-insensitive,
 ; 4.59 ns on a thirteen-character comparison. It is the recommended API for non-linguistic string
 ; comparison, so it sits on a great many hot paths.
 ;
@@ -14,9 +14,9 @@
 ; also found two that had to be abandoned: shlwapi!StrCmpNW orders LINGUISTICALLY ('A' > 'a'), and
 ; StrChrIW's fold has 3236-member equivalence classes because ignorable code points collate as
 ; nothing. "Ordinal" promises neither, but a name is not evidence, so probes/cso.c measured:
-;   * case-sensitive is exactly a code-unit compare -- 0 differences over 300 000 random pairs;
+;   * case-sensitive is exactly a code-unit compare, 0 differences over 300 000 random pairs;
 ;   * ignore-case equivalence classes are 1 or 2 members, i.e. a real table fold;
-;   * that fold is exactly ntdll's RtlUpcaseUnicodeChar -- 65534 code units, 0 mismatches -- the same
+;   * that fold is exactly ntdll's RtlUpcaseUnicodeChar (65534 code units, 0 mismatches) the same
 ;     table change 051 builds;
 ;   * ignore-case orders by the upcased values: "a" vs "B" is less (upcase 0041 < 0042) where the raw
 ;     code units say GREATER. 0 differences over 400 000 pairs;
@@ -28,11 +28,11 @@
 ; characters; if those are equal the SHORTER string is LESS. A count of 0 is legal on either side.
 ;
 ; The ignore-case path rests on one observation: upcase is a function, so a == b implies
-; upcase(a) == upcase(b). A chunk that matches RAW therefore needs no folding at all -- no table, no
+; upcase(a) == upcase(b). A chunk that matches RAW therefore needs no folding at all, no table, no
 ; ASCII guard, nothing. Equal strings are the overwhelmingly common input to an ordinal compare, and
 ; that is what the first cut of this file got wrong: it folded unconditionally and fell to a
 ; per-character table lookup for anything above 0x7F, measuring 1303 ns against the shipped 596 on
-; 4000 Cyrillic characters -- 0.46x. Three tiers now:
+; 4000 Cyrillic characters, 0.46x. Three tiers now:
 ;     1. chunks equal raw            -> advance, whatever the alphabet
 ;     2. chunks differ, both ASCII   -> vector fold (a-z -> A-Z) and re-compare
 ;     3. anything else               -> the 64K table one character at a time, bounded to 16 before
@@ -142,7 +142,7 @@ cs_diff:
 cs_tail:
         ; 8..15 characters left: TWO OVERLAPPING 8-character compares cover any such run exactly,
         ; and both windows are inside min(c1,c2) so neither can read past what the caller promised.
-        ; This is the common real-world size -- identifiers, short paths, registry names -- and a
+        ; This is the common real-world size (identifiers, short paths, registry names) and a
         ; scalar walk was costing thirteen iterations of a seven-instruction loop to answer it.
         ; The trailing window may only report a difference at an index >= 8, because the leading
         ; window already proved [0,8) equal, so its tzcnt is still the FIRST difference.
@@ -235,12 +235,12 @@ ci_tail:
         ; Fewer than eight left, and the tail is where this function was losing. a 13-character
         ; case-insensitive compare walked its last five characters one at a time through a 128 KB
         ; table and came out at 0.91x against the shipped export, while the published row said
-        ; 1.07x -- below five nanoseconds the harness floor was hiding it (change 261).
+        ; 1.07x, below five nanoseconds the harness floor was hiding it (change 261).
         ;
         ; The fix is the overlapping tail this repository already uses for copies: if the string is
         ; at least eight characters long, compare the LAST EIGHT instead. Everything before the
         ; cursor has already been established to fold equal, so re-reading it costs nothing and
-        ; cannot produce a false difference -- and the load stays inside the string, so there is no
+        ; cannot produce a false difference, and the load stays inside the string, so there is no
         ; page question.
         cmp       r9d, 8
         jb        ci_table
@@ -267,7 +267,7 @@ ci_table:
         cmova     eax, r9d
         mov       dword ptr [rsp + 24], eax     ; stop index for this run
         ; Tier one applies here too, and leaving it out cost this function its short rows.
-        ; Folding is a function, so equal raw characters fold equal in any alphabet -- which is
+        ; Folding is a function, so equal raw characters fold equal in any alphabet, which is
         ; exactly the reasoning the vector path above already uses at 16 and at 8 characters, and
         ; the table walk did not. Every character of an EQUAL string was paying two loads into a
         ; 128 KB table, and a 13-character case-insensitive compare came out at 0.91x against the

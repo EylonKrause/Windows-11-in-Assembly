@@ -6,17 +6,17 @@
 ; PWSTR wia_strstrw(PCWSTR pszFirst, PCWSTR pszSrch)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements shlwapi!StrStrW (ordinal, case-sensitive substring search). shlwapi's is a scalar scan
-; (~2.2 cycles/char -- 124 ns for a 254-char haystack, 466 ns for 1024).
+; (~2.2 cycles/char, 124 ns for a 254-char haystack, 466 ns for 1024).
 ;
 ; Contract: identical to C's wcsstr EXCEPT that an **empty needle returns NULL**, where wcsstr returns
 ; the haystack. Verified against the live export (StrStrW(L"abcdef", L"") -> NULL).
 ;
-; Method: AVX2 scan for the needle's FIRST character -- each 32-byte block compared against both that
-; character and 0, first stop wins (the 003/131 scheme) -- then a scalar verify of the remainder. This
+; Method: AVX2 scan for the needle's FIRST character, each 32-byte block compared against both that
+; character and 0, first stop wins (the 003/131 scheme), then a scalar verify of the remainder. This
 ; deliberately avoids the two-char-anchor trick: the anchor would need to load needle-length ahead of
 ; the current block, which can cross into an unmapped page past the terminator. Here the vector scan
-; never passes the terminator, and the verify stops at the first mismatch -- and the terminator
-; mismatches any non-NUL needle character -- so no read ever goes past the string.
+; never passes the terminator, and the verify stops at the first mismatch, and the terminator
+; mismatches any non-NUL needle character, so no read ever goes past the string.
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). Validated on Zen3.
 

@@ -5,7 +5,7 @@
  * character above 0x7F goes through the 65536-entry map, and that path had never been timed.
  *
  * discovery/upcase_nonascii_rows.c asked, and the answer was 0.59x against the shipped export on
- * Cyrillic or CJK -- in a change published at 10.24x. The cause was not the table: it was the
+ * Cyrillic or CJK, in a change published at 10.24x. The cause was not the table: it was the
  * scalar walk re-entering the vector loop once per character, which is change 263's rule, and the
  * sibling that does the same job with the same table (change 020) already had it right.
  *
@@ -15,7 +15,7 @@
  *   ascii-mixed   the same path with different letters actually changing
  *   latin-1       the table path, where the fold DOES something
  *   cyrillic      the table path on text the ANSI/OEM code page cannot represent
- *   cjk           the table path where the fold changes nothing at all -- the lookup, with
+ *   cjk           the table path where the fold changes nothing at all, the lookup, with
  *                 nothing to show for it, which is the worst case this function has
  *   mixed         ASCII alternating with a two-byte letter, which is what real prose looks like
  */

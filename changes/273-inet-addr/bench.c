@@ -6,7 +6,7 @@
  * harness floor that every row is timed x8 (change 261's probes/floor.c put an empty call through
  * this harness at 2.32 ns).
  *
- * The rows are the shapes the implementation distinguishes -- the four forms, the three bases, the
+ * The rows are the shapes the implementation distinguishes, the four forms, the three bases, the
  * two ways a parse can end, and the paths that exist only because of what the probes found:
  *
  *   "wrapping accumulator"   a number long enough to overflow 32 bits and still be accepted, which

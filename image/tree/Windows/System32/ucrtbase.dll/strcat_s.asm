@@ -5,7 +5,7 @@
 ; changes/152-strcat-s/impl.asm
 ; errno_t wia_strcat_s(char* dst, rsize_t size, const char* src)   [Win64: rcx, rdx, r8]
 ;
-; ucrtbase!strcat_s is two scalar byte loops back to back -- a bounded strlen over dst, then the same
+; ucrtbase!strcat_s is two scalar byte loops back to back, a bounded strlen over dst, then the same
 ; bounded copy loop as strcpy_s (change 150). Appending 254 characters costs 74 ns, and appending 16
 ; characters to a 1000-character string costs 236 ns. Both loops become AVX2 block scans here.
 ;
@@ -17,19 +17,19 @@
 ;   5. src does not fit              -> exactly `size - L` bytes of src written at dst+L FIRST, then
 ;                                       dst[0] = 0 (the ORIGINAL dst, not the append point), handler,
 ;                                       ERANGE (34).
-; Probed: dst = "AB", size = 3, src = "xyz" leaves 00 42 78 -- one byte of src appended and then the
+; Probed: dst = "AB", size = 3, src = "xyz" leaves 00 42 78, one byte of src appended and then the
 ; string emptied. Case 2 writes only dst[0]; the rest of the buffer is left alone.
 ;
 ; Ordering note: cases 2 and 3 are checked here in the opposite order to the UCRT source, so that the
 ; NULL-src test can be hoisted above the dst scan and the two scans can then be issued together. That
-; is safe because the two paths are OBSERVATIONALLY IDENTICAL -- both write dst[0] = 0, invoke the
-; handler exactly once, and return EINVAL -- which the probe confirms for a dst that is unterminated
+; is safe because the two paths are OBSERVATIONALLY IDENTICAL, both write dst[0] = 0, invoke the
+; handler exactly once, and return EINVAL, which the probe confirms for a dst that is unterminated
 ; AND a NULL src (rc=22, iph=1, dst = 00 5A ...). Nothing else distinguishes them.
 ;
 ; The two scans are INDEPENDENT, so both first blocks are loaded, compared and reduced to masks
 ; before either result is examined. That matters more than it looks: a caller that has just written
 ; a terminator into dst (`dst[0] = 0; strcat_s(dst, n, s);`, or a previous append) leaves a small
-; store in flight that a 32-byte load over the same bytes cannot forward from -- about 12 cycles on
+; store in flight that a 32-byte load over the same bytes cannot forward from, about 12 cycles on
 ; Zen3. Serialised, that stall is pure added latency; overlapped with the src scan it is nearly free.
 ; The src block is loaded FIRST for the same reason: it is the load that cannot be stalled by the
 ; caller's store.

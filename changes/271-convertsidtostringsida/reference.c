@@ -8,7 +8,7 @@
  *
  *   * the characters are the wide form's, narrowed one byte per character. Zero differences over
  *     every count 0..255, every revision 0..255, the identifier authority at every decimal and
- *     hexadecimal boundary at six counts -- and zero again under four thread locales including
+ *     hexadecimal boundary at six counts, and zero again under four thread locales including
  *     Shift-JIS and UTF-8, so there is no code page in this;
  *   * the block is characters + 1 BYTES rather than (characters + 1) * 2.
  *

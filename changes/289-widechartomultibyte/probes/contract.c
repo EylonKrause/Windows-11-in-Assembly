@@ -1,6 +1,6 @@
 /* changes/289-widechartomultibyte/probes/contract.c
  *
- * What the live export actually does -- asked, not assumed.
+ * What the live export actually does, asked, not assumed.
  *
  * The documentation for WideCharToMultiByte says several things about CP_UTF8 that the shipped
  * code does not do, and the disassembly of kernelbase!WideCharToMultiByte (RVA 0x00054A80 in

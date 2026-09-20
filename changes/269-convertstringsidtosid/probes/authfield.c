@@ -7,8 +7,8 @@
  *
  *     S-0-+1-0    live: OK      model: ERROR_INVALID_SID
  *
- * A leading `+` is refused in a SUB-AUTHORITY -- grammar.c measured that directly, `S-1-5-+18` is
- * rejected -- and accepted in the IDENTIFIER AUTHORITY. The two fields are not parsed by the same
+ * A leading `+` is refused in a SUB-AUTHORITY, grammar.c measured that directly, `S-1-5-+18` is
+ * rejected, and accepted in the IDENTIFIER AUTHORITY. The two fields are not parsed by the same
  * code, which is not something any amount of reading would have suggested, and it is exactly the
  * kind of asymmetry this project has been caught by before (change 268's two directions).
  *

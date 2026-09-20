@@ -1,12 +1,12 @@
 // live-substitution/live_subst_combase.c
-// LIVE-RUN PROOF for changes 206 and 207 -- combase!StringFromGUID2 and combase!IIDFromString,
+// LIVE-RUN PROOF for changes 206 and 207, combase!StringFromGUID2 and combase!IIDFromString,
 // the format and parse halves of the same COM GUID path.
 //
 // The most widely used GUID formatter in COM, at 11.32 ns per call. Ours is one vpshufb and a
 // template store.
 //
 // What must be proved live:
-//   * cchMax >= 39 writes 38 characters plus a NUL and returns 39 -- the count INCLUDING the
+//   * cchMax >= 39 writes 38 characters plus a NUL and returns 39, the count INCLUDING the
 //     terminator, not 38;
 //   * cchMax <= 38 returns 0 and leaves the buffer COMPLETELY UNTOUCHED. There is no truncating
 //     path, which is the sharp difference from ConvertGuidToStringW (changes 202/203), where a
@@ -24,7 +24,7 @@
 //
 // FOR 207 the hard part is the FAILURE path. IIDFromString writes into the caller's GUID as it
 // parses, so a malformed string leaves a PARTIALLY filled GUID that must match byte for byte, and
-// its HRESULT is two-valued -- E_INVALIDARG for a structural rejection (length != 38), CO_E_IIDSTRING
+// its HRESULT is two-valued, E_INVALIDARG for a structural rejection (length != 38), CO_E_IIDSTRING
 // for a content one. Returning "an error" is not good enough. So its corpus corrupts one character
 // at a time across all 38 positions, which is what stops the parser at each different field
 // boundary, and every case compares all sixteen bytes from a poison fill.

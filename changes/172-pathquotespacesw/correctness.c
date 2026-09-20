@@ -1,7 +1,7 @@
 // changes/172-pathquotespacesw/correctness.c
 // Gate 1: wia_pathquotespacesw must be indistinguishable from shlwapi!PathQuoteSpacesW.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// The whole buffer is compared, so any stray write -- including in the untouched FALSE case --
+// The whole buffer is compared, so any stray write, including in the untouched FALSE case --
 // is caught.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -66,7 +66,7 @@ int main(void){
         }
     }
 
-    // every code unit as the middle character -- pins "space" to exactly U+0020
+    // every code unit as the middle character, pins "space" to exactly U+0020
     for(int c=1;c<65536;c++){
         s[0]=L'a'; s[1]=(wchar_t)c; s[2]=L'b'; s[3]=0;
         CHECK(one(s), "space-set sweep");

@@ -1,7 +1,7 @@
 /* changes/246-pathcanonicalizew/reference.c
  *
  * An oracle for shlwapi!PathCanonicalizeW, built the way change 242's was: it calls CHANGE 243's
- * oracle -- wia_ref_pathcchcanonicalizeex, compiled alongside rather than copied -- and wraps it.
+ * oracle (wia_ref_pathcchcanonicalizeex, compiled alongside rather than copied) and wraps it.
  *
  * That is legitimate here, and probes/compose.c is why. It established over 451 543 cases, comparing
  * the BOOL, the whole destination buffer AND GetLastError, that

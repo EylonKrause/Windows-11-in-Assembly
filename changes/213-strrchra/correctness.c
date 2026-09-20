@@ -5,7 +5,7 @@
 //
 // The domain is part of the test. probes/srca.c established that the shipped export walks forward
 // with CharNextA, which does not advance past a terminator, so an pszEnd placed BEYOND the string's
-// NUL makes it spin forever -- measured twice, once at the cost of a 300-second timeout. Every
+// NUL makes it spin forever, measured twice, once at the cost of a 300-second timeout. Every
 // bounded case below therefore keeps pszEnd inside [pszStart, pszStart+strlen]. That is not the test
 // being lenient: outside that range the shipped function produces no result at all, so there is
 // nothing to be indistinguishable FROM.
@@ -145,7 +145,7 @@ int main(void){
     }
 
     // ---- GUARD PAGE: the terminator on the last byte of a mapped page ----------------------------
-    // The aligned 32-byte loads must never touch the page after it -- in the unbounded path, which
+    // The aligned 32-byte loads must never touch the page after it, in the unbounded path, which
     // is the one that has to discover the terminator for itself.
     {
         SYSTEM_INFO si; GetSystemInfo(&si);

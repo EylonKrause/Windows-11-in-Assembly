@@ -1,4 +1,4 @@
-// changes/005-memcmp/correctness.c  -- sign-compare vs scalar ref and live ucrtbase memcmp.
+// changes/005-memcmp/correctness.c: sign-compare vs scalar ref and live ucrtbase memcmp.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

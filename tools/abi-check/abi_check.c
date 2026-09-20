@@ -2,7 +2,7 @@
  *
  * Gate 3: every implementation in this repository must obey the Win64 register contract.
  *
- * Gates 1 and 2 -- bit-exact correctness and no size class slower than 0.97x -- cannot see this
+ * Gates 1 and 2 (bit-exact correctness and no size class slower than 0.97x) cannot see this
  * class of bug at all. A function that uses xmm6 as scratch returns exactly the right bytes and
  * runs exactly as fast; it just silently destroys whatever double the CALLER had live. Sixteen
  * implementations here did that for months. It was found by accident, when change 202's benchmark
@@ -10,7 +10,7 @@
  *
  * Each thunk below performs one real call with real arguments. wia_abi_probe fills every
  * non-volatile register with a sentinel first and reports which ones did not survive. The thunk is
- * ordinary compiled C, so one probe covers every signature -- two arguments or seven -- without
+ * ordinary compiled C, so one probe covers every signature (two arguments or seven) without
  * knowing anything about them.
  *
  * Build one variant per change:
@@ -411,7 +411,7 @@ static void thunk(void){
 #define NAME "158-pathrenameextensionw"
 extern int wia_pathrenameextw(wchar_t*, const wchar_t*);
 static void thunk(void){
-    /* added when this change was CORRECTED for the missing space rule -- the amendment introduced
+    /* added when this change was CORRECTED for the missing space rule, the amendment introduced
        a second vector temp per block, and a callee-saved one would be invisible to correctness */
     static wchar_t p[512];
     memcpy(p, L"C:\\some\\long\\path\\to\\a\\file.txt", 33 * sizeof(wchar_t));
@@ -693,7 +693,7 @@ static void thunk(void){
 #define NAME "231-strcatbuffa"
 extern char* wia_strcatbuffa(char*, const char*, int);
 static void thunk(void){
-    /* No SEH wrapper on this one -- the shipped export FAULTS rather than swallowing, so there is
+    /* No SEH wrapper on this one; the shipped export FAULTS rather than swallowing, so there is
        no fault path to unwind through. Every exit is driven instead: NULL destination, NULL source,
        cch <= 0, the scan failing (nothing written), an exact fit, a truncating append, and the
        long path through the 32-byte chunks. */
@@ -792,7 +792,7 @@ static void thunk(void){
 #define NAME "235-pathisfilespeca"
 extern int wia_pathisfilespeca(const char*);
 static void thunk(void){
-    /* a clean name (the scan runs to the terminator), both separators, the EMPTY STRING -- which is
+    /* a clean name (the scan runs to the terminator), both separators, the EMPTY STRING, which is
        TRUE, the one case a natural model gets wrong -- NULL, and a 4000-byte scan so the vector loop
        runs many iterations before answering. */
     static char p[4200];
@@ -1361,7 +1361,7 @@ extern void wia_pccx_set_fallback(void*);
 #define SETUP() wia_pccx_set_fallback((void*)GetProcAddress(LoadLibraryW(L"kernelbase.dll"), \
                                                            "PathCchCanonicalizeEx"))
 static void thunk(void){
-    /* the envelope's own paths -- both NULL checks, the TRUE return, and both halves of the failure
+    /* the envelope's own paths, both NULL checks, the TRUE return, and both halves of the failure
        mapping -- plus enough of change 243's core to make sure the call through it preserves
        everything: a plain path, a dot-dot walk, the MAX_PATH cap on both sides, and a path whose
        canonical form is far shorter than its input. */
@@ -1618,12 +1618,12 @@ static void thunk(void){
     }
     sink += wia_pathcommonprefixw(0, L"C:\\a", o);
     sink += wia_pathcommonprefixw(L"C:\\a", 0, o);
-    /* long, identical -- many whole blocks */
+    /* long, identical, many whole blocks */
     for (i = 0; i < 500; ++i) { a[i] = (i % 9 == 8) ? L'\\' : (wchar_t)(L'a' + i % 26);
                                 b[i] = a[i]; }
     a[500] = 0; b[500] = 0;
     sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];    /* result >= 260: copies nothing */
-    /* long, differing only in case -- the block-fold path on every block */
+    /* long, differing only in case, the block-fold path on every block */
     for (i = 0; i < 300; ++i) b[i] = (a[i] == L'\\') ? a[i] : (wchar_t)(a[i] - 32);
     b[300] = 0; a[300] = 0;
     sink += wia_pathcommonprefixw(a, b, o);   sink += o[0];
@@ -1638,7 +1638,7 @@ extern int  wia_pathisprefixw(const wchar_t*, const wchar_t*);
 extern void wia_upcase_init(void);
 #define SETUP() wia_upcase_init()
 static void thunk(void){
-    /* An envelope over TWO landed changes -- 167 for the walk, 001 for the length -- so what this
+    /* An envelope over TWO landed changes (167 for the walk, 001 for the length) so what this
        case checks is the seam across two calls: pszPath has to survive the first (it is passed to
        the second) and the length has to survive the second. Both live in non-volatile registers,
        and 167 reaches for ymm0-ymm5 while 001 reaches for its own.
@@ -1932,7 +1932,7 @@ typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
 extern unsigned char wia_arebitsset(void*, unsigned long, unsigned long);
 extern unsigned char wia_arebitsclear(void*, unsigned long, unsigned long);
 static void thunk(void){
-    /* A LEAF -- no prologue, no saved registers, no unwind data -- which is the point: it must
+    /* A LEAF (no prologue, no saved registers, no unwind data) which is the point: it must
        therefore not touch a non-volatile register at all, and the only way to be sure is to drive
        every path and look. Armed PER CALL (CALL4), not around the thunk: a thunk that uses r15 for
        its own loop hides an implementation that destroys r15, as change 258 demonstrated.
@@ -2073,7 +2073,7 @@ typedef struct { unsigned long SizeOfBitMap; unsigned long* Buffer; } ABI_RBM;
 extern unsigned long wia_findnextforwardrunclear(void*, unsigned long, unsigned long*);
 extern unsigned long wia_findlastbackwardrunclear(void*, unsigned long, unsigned long*);
 static void thunk(void){
-    /* TWO LEAVES -- no prologue, no saved registers, no unwind data -- which is exactly why this
+    /* TWO LEAVES (no prologue, no saved registers, no unwind data) which is exactly why this
        has to be driven rather than reasoned about: both functions keep everything in the seven
        volatile registers and the shadow space the caller already reserved, and a single stray
        push or a stray r12 would be invisible until something else broke. Armed PER CALL (CALL4),
@@ -2241,7 +2241,7 @@ static void thunk(void){
 typedef struct { unsigned short Length, MaximumLength; char* Buffer; } ABI_U8STR;
 extern void wia_rtlinitutf8string(ABI_U8STR*, const char*);
 static void thunk(void){
-    /* The implementation here is change 095's, reached through a LINKER ALIAS -- so what this gate
+    /* The implementation here is change 095's, reached through a LINKER ALIAS, so what this gate
        is really checking is that 095's code is still ABI-clean when it is entered under this
        export's name, and that the alias itself introduces nothing. It is cheap to run and the
        alternative is assuming it.
@@ -2268,7 +2268,7 @@ static void thunk(void){
 typedef struct { unsigned short Length, MaximumLength; char* Buffer; } ABI_ASTR;
 extern long wia_appendasciiztostring(ABI_ASTR*, const char*);
 static void thunk(void){
-    /* A LEAF -- no prologue, no saved registers, no unwind data -- which is the point: it keeps the
+    /* A LEAF (no prologue, no saved registers, no unwind data) which is the point: it keeps the
        source pointer in the caller's shadow space rather than in a non-volatile register, because
        the inlined scan uses edx as a scratch and the pointer does not survive it. If that parking
        were done with a push instead, this gate is what would notice.
@@ -2305,7 +2305,7 @@ static void thunk(void){
 #define NAME "266-rtliszeromemory"
 extern unsigned char wia_iszeromemory(const void*, size_t);
 static void thunk(void){
-    /* A LEAF -- no prologue, no saved registers, no unwind data -- so it must not touch a
+    /* A LEAF (no prologue, no saved registers, no unwind data) so it must not touch a
        non-volatile register at all. Armed PER CALL (CALL4), not around the thunk: a thunk that
        uses r15 for its own loop hides an implementation that destroys r15, as change 258
        demonstrated.
@@ -2699,7 +2699,7 @@ static void thunk(void){
 extern int wia_sid2stra(const void*, char**);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* The same two nested frames as 270 -- this one's 856 bytes with four pushes over change 067's
+    /* The same two nested frames as 270, this one's 856 bytes with four pushes over change 067's
        552 with eight, whose body calls out to an exception handler -- plus a VECTOR pack, which is
        the part that matters here: VPACKUSWB writes xmm0 and xmm1, and the LOW 128 BITS of xmm6 to
        xmm15 are non-volatile. Sixteen implementations in this repository used an xmm register as
@@ -2848,7 +2848,7 @@ static void thunk(void){
 extern char* wia_inet_ntoa(unsigned long);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* a 32-byte frame with one register pushed and one call out -- to the thread-local buffer, which
+    /* a 32-byte frame with one register pushed and one call out, to the thread-local buffer, which
        the compiler reaches through gs:[0x58] and the TLS array. That call is the reason the unwind
        data matters here: a mis-described frame is only visible when something unwinds through it,
        and a TLS access on a thread whose slot has not been materialised yet can do exactly that.
@@ -2924,7 +2924,7 @@ typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } U278;
 extern long wia_int2ustr(unsigned long, unsigned long, U278*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* a leaf with no frame and no calls -- the shape whose unwind data nobody checks because
+    /* a leaf with no frame and no calls, the shape whose unwind data nobody checks because
        nothing ever unwinds through it, until something does.
 
        TWO CONVERTERS ARE UNDER TEST, not one: base 10 goes through a length-first,
@@ -2962,7 +2962,7 @@ static void thunk(void){
 extern long wia_int2char(unsigned long, unsigned long, long, char*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* a leaf with no frame and no calls -- the shape whose unwind data nobody checks because
+    /* a leaf with no frame and no calls, the shape whose unwind data nobody checks because
        nothing ever unwinds through it, until something does.
 
        THREE WRITE PATHS ARE UNDER TEST, not one. Base 10 goes through a length-first,
@@ -3010,7 +3010,7 @@ typedef struct { long long q; } LI280;
 extern long wia_lint2char(const LI280*, unsigned long, long, char*);
 #define SETUP() ((void)0)
 static void thunk(void){
-    /* a leaf with no frame, no pushes and no calls -- the shape whose unwind data nobody checks
+    /* a leaf with no frame, no pushes and no calls, the shape whose unwind data nobody checks
        because nothing ever unwinds through it, until something does.
 
        FIVE PATHS ARE UNDER TEST, not one:
@@ -3466,7 +3466,7 @@ extern int wia_foldstringw_digits(unsigned long, const wchar_t*, int, wchar_t*, 
 int wia_fold_init(void);
 #define SETUP() do { if (wia_fold_init()) { printf("ABI: table init failed\n"); return 1; } } while (0)
 static void thunk(void){
-    /* FIVE arguments, so the fifth arrives on the STACK above the shadow space -- at [rsp+40] on entry
+    /* FIVE arguments, so the fifth arrives on the STACK above the shadow space, at [rsp+40] on entry
        and [rsp+96] after this function's seven pushes. That is the part of the ABI no earlier change in
        this project has exercised: everything so far took four arguments or fewer, all in registers. A
        frame with seven saved registers and one internal routine (the length scan).

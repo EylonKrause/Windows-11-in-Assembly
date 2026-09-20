@@ -4,7 +4,7 @@ Rem  live-run proof for changes 178-181 (_wcsupr_s, _strlwr_s, _wcslwr_s, _strup
 Rem  /md is required: with the default static CRT this exe would carry its own
 REM  invalid-parameter handler state, so the live exports and our assembly (which
 REM  calls ucrtbase's _invalid_parameter_noinfo) would consult two different
-REM  handlers -- the static one is unset, so the live export __fastfails the
+REM  handlers; the static one is unset, so the live export __fastfails the
 REM  process (exit code 9, no output). Changes 150 and 178 record the same trap.
 REM  Sacrificial single-threaded child; no system process is touched, nothing on
 REM  disk is modified.

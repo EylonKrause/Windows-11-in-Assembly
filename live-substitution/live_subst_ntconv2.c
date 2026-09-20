@@ -19,14 +19,14 @@
 //
 // The fast path and the table path are different code, and the corpus is built to hit both in every
 // proportion. Each of these routines checks a 16-element block for "all ASCII" and, if so, converts
-// it in-register -- a range add, a `vpackuswb`, a `vpmovzxbw` -- and otherwise goes to the table. So
+// it in-register (a range add, a `vpackuswb`, a `vpmovzxbw`) and otherwise goes to the table. So
 // a corpus of ASCII exercises half the function and a corpus of high characters exercises the other
 // half. Here the subjects are drawn as all-ASCII, all-high, and MIXED with the high character placed
 // deliberately at the first, middle and last element of a block, so the block-level decision is
 // tested at its boundaries rather than on average.
 //
 // The destination is compared whole, including Length and MaximumLength. `MaximumLength` is drawn
-// too small on one case in four, which is `STATUS_BUFFER_OVERFLOW` (0x80000005) -- and what the
+// too small on one case in four, which is `STATUS_BUFFER_OVERFLOW` (0x80000005), and what the
 // routine leaves in the destination on that path, and whether it updates `Length` anyway, is
 // exactly the class of thing this directory keeps finding. It is never assumed; the buffer is
 // poisoned and compared byte for byte.
@@ -40,7 +40,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only this process's copy-on-write
-//       copy of ntdll -- never a live system process, never the file on disk.
+//       copy of ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: these are leaf routines over caller-supplied descriptors; nothing in
 //       the loader or the heap calls them here, and the process is single-threaded.
@@ -187,7 +187,7 @@ static void build_corpus(void){
 
         /* The block-level decision, tested at its boundaries. Every one of these routines checks a
          * 16-element block for "all ASCII" and takes a different path if it is not, so a high
-         * character placed at element 0, 15 or the middle of a block is the interesting case -- not
+         * character placed at element 0, 15 or the middle of a block is the interesting case, not
          * a uniformly random mix, which would put one almost everywhere. */
         for(k=0;k<n;++k){
             unsigned v;

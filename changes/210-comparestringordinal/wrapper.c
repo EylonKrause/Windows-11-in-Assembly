@@ -2,7 +2,7 @@
 // Argument checks for kernelbase!CompareStringOrdinal, in front of the assembly core.
 //
 // Only two things belong here. A NULL on either side returns 0 with ERROR_INVALID_PARAMETER --
-// measured: the live export returns 0 and GetLastError() reports 87 -- and setting the last error is
+// measured: the live export returns 0 and GetLastError() reports 87, and setting the last error is
 // a call, which does not belong in the compare loop. Everything else is in impl.asm.
 //
 // Note the core is told about bIgnoreCase as a plain 0/1: BOOL is any nonzero, and normalising it

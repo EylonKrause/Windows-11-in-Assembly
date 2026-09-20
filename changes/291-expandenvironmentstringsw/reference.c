@@ -17,19 +17,19 @@
  *   ntdll!RtlExpandEnvironmentStrings       RVA 0xBB050
  *       the loop below, verbatim.
  *
- * The lookup is not reimplemented. `RtlQueryEnvironmentVariable` -- the ntdll export the shipped
- * RtlExpandEnvironmentStrings itself calls at 0x1800BB17F -- is resolved live and called with the
+ * The lookup is not reimplemented. `RtlQueryEnvironmentVariable`, the ntdll export the shipped
+ * RtlExpandEnvironmentStrings itself calls at 0x1800BB17F, is resolved live and called with the
  * identical six arguments. Reimplementing it would mean reimplementing the process environment
  * block walk, its cached hash table, its critical section AND the four virtual variables ntdll
- * special-cases ahead of the block (__CD__, __APPDIR__, FIRMWARE_TYPE, NUMBER_OF_PROCESSORS -- read
+ * special-cases ahead of the block (__CD__, __APPDIR__, FIRMWARE_TYPE, NUMBER_OF_PROCESSORS, read
  * out of ntdll's own table at RVA 0x173AC0 by probes; see RESULTS.md). None of that is the part
  * that is slow, and all of it is the part that is impossible to match by guessing.
  *
- * The six contract points, all proven against the live export rather than assumed -- every one of
+ * The six contract points, all proven against the live export rather than assumed, every one of
  * them is a direct reading of the disassembly above, and correctness.c re-proves each one on this
  * machine on every run:
  *
- *   return value            produced + 1 -- CHARACTERS, including the terminating null. Returned
+ *   return value            produced + 1, CHARACTERS, including the terminating null. Returned
  *                           whether or not the output fit.
  *   buffer too small        returns the FULL required length, and last error is NOT touched; the
  *                           destination keeps the nSize-1 characters that did fit and gets NO null
@@ -37,7 +37,7 @@
  *                           bit: MSDN says nothing about it.)
  *   an unmatched '%'        copied through literally, and the scan resumes at the NEXT character.
  *   '%%'                    NOT an escape. The first '%' is a literal, the second one opens a new
- *                           name -- so "%%" -> "%%", and "%%TEMP%%" -> "%<value>%".
+ *                           name, so "%%" -> "%%", and "%%TEMP%%" -> "%<value>%".
  *   '%VAR%', VAR unset      copied through literally, all of it, because the leading '%' becomes a
  *                           literal and the name characters are then copied one at a time.
  *   nSize == 0 / lpDst NULL the measuring call: returns the required length, writes nothing, does
@@ -55,7 +55,7 @@ typedef LONG WIA_NTSTATUS;
 typedef WIA_NTSTATUS (NTAPI *wia_qenv_fn)(PVOID, PCWSTR, SIZE_T, PWSTR, SIZE_T, SIZE_T*);
 
 /* The degenerate stand-in used only if ntdll ever stopped exporting the lookup. It reports every
- * name as unset, which is the branch that copies the text through literally -- i.e. the function
+ * name as unset, which is the branch that copies the text through literally, i.e. the function
  * still terminates and still returns a sane length. impl.asm installs exactly the same stub for
  * exactly the same reason, so the two agree even in that impossible case. */
 static WIA_NTSTATUS NTAPI wia_qenv_stub(PVOID e, PCWSTR n, SIZE_T nl, PWSTR v, SIZE_T vl, SIZE_T* rl)
@@ -120,7 +120,7 @@ DWORD wia_expand_env_w_ref(const wchar_t* lpSrc, wchar_t* lpDst, DWORD nSize)
                         continue;
                     }
                     /* Any other failure (STATUS_VARIABLE_NOT_FOUND is the usual one) falls
-                     * through to the literal copy of the '%' -- and only of the '%'. */
+                     * through to the literal copy of the '%', and only of the '%'. */
                 }
             }
         }

@@ -7,7 +7,7 @@
 ; an existing file. So the same probe is written here, in the one shape that cannot be masked: the
 ; sentinels are armed around the call, by hand, with no compiled C between the arming and the call.
 ;
-; That distinction is recorded in tools/abi-check/abi_check.c and it is not pedantry -- an earlier
+; That distinction is recorded in tools/abi-check/abi_check.c and it is not pedantry, an earlier
 ; form armed the sentinels and then called a compiled-C thunk, and where the compiler had used r15
 ; for a loop variable the thunk saved and restored r15 itself, undoing the damage the gate was
 ; looking for. On change 258, with `push r15` and its `pop` deleted from impl.asm, that form still
@@ -20,7 +20,7 @@
 ;
 ; This implementation touches no vector register at all and no non-volatile GPR, but it does CALL
 ; SetLastError on the reject path, and a callee that is itself wrong, or a frame this file got
-; wrong, would show up here and nowhere else -- so abi.c drives both the accept and the reject path.
+; wrong, would show up here and nowhere else, so abi.c drives both the accept and the reject path.
 ;
 ; `out` receives 8 qwords (rbx rbp rsi rdi r12 r13 r14 r15) then ten 16-byte xmm6..xmm15 values,
 ; exactly as they were when wia_filetime_to_systemtime returned.

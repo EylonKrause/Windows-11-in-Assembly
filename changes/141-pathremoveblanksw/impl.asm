@@ -5,11 +5,11 @@
 ; scalar scan (105 ns for a 254-char string).
 ;
 ; Contract (probed against the live export):
-;   - only SPACE (0020) is stripped -- a tab is NOT ("\t abc \t" comes back unchanged);
+;   - only SPACE (0020) is stripped; a tab is NOT ("\t abc \t" comes back unchanged);
 ;   - there is NO MAX_PATH guard here, unlike PathRemoveExtensionW (change 140), which stops working
 ;     entirely at 260 characters. Verified by sweeping lengths across the boundary;
-;   - the order is the reverse of StrTrimW (change 139): this one moves first -- shifting the whole
-;     remainder, trailing blanks and terminator included -- and only then writes the NUL that drops the
+;   - the order is the reverse of StrTrimW (change 139): this one moves first, shifting the whole
+;     remainder, trailing blanks and terminator included, and only then writes the NUL that drops the
 ;     trailing blanks. StrTrimW terminates first and then moves. That is observable in the bytes left
 ;     past the new terminator, so it is reproduced exactly here rather than approximated.
 ;

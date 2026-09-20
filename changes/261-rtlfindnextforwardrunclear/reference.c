@@ -8,14 +8,14 @@
  * THE RULES, as probes/contract.c measured them:
  *
  *   * Both forms clip at FromIndex, in opposite directions. Forward finds the first clear bit at or
- *     after FromIndex and reports the run FROM THERE -- asked from 105 inside a run of 100..119 it
+ *     after FromIndex and reports the run FROM THERE, asked from 105 inside a run of 100..119 it
  *     answers start=105, length=15, not start=100, length=20. Backward finds the last clear bit at
- *     or before FromIndex and reports the run from its TRUE START to that bit -- asked back from 105
+ *     or before FromIndex and reports the run from its TRUE START to that bit, asked back from 105
  *     it answers start=100, length=6.
  *   * FromIndex IS INCLUDED in both.
  *   * nothing FOUND writes the start pointer anyway, and with different values: the forward form
  *     writes SizeOfBitMap, the backward form writes 0.
- *   * FromIndex at or past SizeOfBitMap returns 0 and writes FromIndex itself -- not the size, and
+ *   * FromIndex at or past SizeOfBitMap returns 0 and writes FromIndex itself, not the size, and
  *     not zero. That is the one case where the two forms agree.
  *   * The slack past SizeOfBitMap never extends a run: the same buffer with bits 1000..1023 clear
  *     answers 24 when declared as 1024 bits and 10 when declared as 1010.

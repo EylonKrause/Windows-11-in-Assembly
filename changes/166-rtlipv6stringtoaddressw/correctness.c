@@ -70,7 +70,7 @@ static const char* C[]={"2001:db8::1","::1","::","fe80::1","1:2:3:4:5:6:7:8","20
     "::1.0x2.3.4","::1.2.3.0x5","::1.2.3.4x5","0x1:0x2::0x3","::0x0","x::1","::x1"};
 #define NC ((int)(sizeof(C)/sizeof(C[0])))
 
-// (a) units above 255 whose low byte IS a meaningful ASCII character -- the aliasing traps;
+// (a) units above 255 whose low byte IS a meaningful ASCII character, the aliasing traps;
 // (b) one member of each of the 17 Unicode decimal-digit blocks the live export folds into a value;
 // (c) plain non-ASCII, a lone surrogate, and the ends of the range.
 static const wchar_t TRAP[]={0x012E,0x013A,0x0130,0x0131,0x0139,0x0141,0x0161,0x0146,0xFF11,0xFF1A,0xFF0E,

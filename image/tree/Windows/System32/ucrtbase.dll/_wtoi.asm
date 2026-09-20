@@ -13,20 +13,20 @@
 ; table, not an ASCII loop. Scoped out rather than shipped as a silently-diverging ASCII-only
 ; version." Two exhaustive sweeps replaced that assumption with a measurement:
 ;
-;   * Digits -- over all 65536 code units the accepted set is exactly 18 Contiguous blocks of ten,
+;   * Digits, over all 65536 code units the accepted set is exactly 18 Contiguous blocks of ten,
 ;     each ascending 0..9 with no exceptions:
 ;         0030 0660 06F0 0966 09E6 0A66 0AE6 0B66 0C66 0CE6
 ;         0D66 0E50 0ED0 0F20 1040 17E0 1810 FF10
-;     180 members, 18 runs. That is the Unicode 3.0-era Nd list -- the same set change 166 found
+;     180 members, 18 runs. That is the Unicode 3.0-era Nd list, the same set change 166 found
 ;     frozen in ntdll, independently re-measured here in a different DLL. It is NOT a "full
 ;     Unicode digit table"; it is 18 range tests.
-;   * LOCALE -- byte-identical under LC_ALL = C, en-US, ar-SA, ja-JP, th-TH, hi-IN, de-DE.UTF-8
+;   * LOCALE, byte-identical under LC_ALL = C, en-US, ar-SA, ja-JP, th-TH, hi-IN, de-DE.UTF-8
 ;     and .65001, so a fixed table is honest rather than a C-locale-only approximation.
-;   * WHITESPACE -- 26 code units, where the byte form (change 108) skips six:
+;   * WHITESPACE, 26 code units, where the byte form (change 108) skips six:
 ;         0009-000D 0020 0085 00A0 1680 180E 2000-200A 2028 2029 202F 205F 3000
 ;     U+200B (ZWSP) is NOT among them.
-;   * SIGN -- exactly U+002D / U+002B; no Unicode minus (U+2212) or fullwidth variants.
-;   * OVERFLOW -- saturates: positive -> INT_MAX, negative -> INT_MIN (change 108's rule).
+;   * SIGN, exactly U+002D / U+002B; no Unicode minus (U+2212) or fullwidth variants.
+;   * OVERFLOW, saturates: positive -> INT_MAX, negative -> INT_MIN (change 108's rule).
 ;   * Digits from DIFFERENT blocks concatenate freely: '1' U+FF12 U+0663 parses as 123.
 ;
 ; Fuzz-confirmed bit-exact against the live export over 2,000,000 cases, 0 mismatches, on the
@@ -34,16 +34,16 @@
 ;
 ; Method: a frameless scalar loop (no CRT call, no locale lookup, no stack frame). The classifier
 ; is split by frequency, not by elegance:
-;   * ASCII '0'-'9'    -- one lea/cmp, the overwhelmingly common case;
-;   * c < 0x0660       -- rejected by one compare, which is also how the NUL terminator exits;
-;   * U+FF10-FF19      -- three instructions (fullwidth is the commonest non-ASCII digit);
-;   * the other 16 blocks -- ONE AVX2 pass: broadcast the character, subtract all 16 block bases,
+;   * ASCII '0'-'9', one lea/cmp, the overwhelmingly common case;
+;   * c < 0x0660, rejected by one compare, which is also how the NUL terminator exits;
+;   * U+FF10-FF19, three instructions (fullwidth is the commonest non-ASCII digit);
+;   * the other 16 blocks, ONE AVX2 pass: broadcast the character, subtract all 16 block bases,
 ;     and keep the lanes whose unsigned difference is <= 9 (vpminuw + vpcmpeqw). Constant time
 ;     regardless of which block matches, versus up to 16 dependent compares for a linear scan.
 ;     xmm only (VEX.128 zeroes the upper lanes), so there is no dirty-upper state and no
 ;     vzeroupper is required on any path.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

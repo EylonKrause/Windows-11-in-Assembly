@@ -11,8 +11,8 @@ REM  269's first gate did neither, and the two omissions together hid a real
 REM  defect for a whole change: all four exports of this family ZERO the last
 REM  error on success and 269's implementation did not.
 REM
-REM  Both widening paths are driven -- the VPMOVZXBW zero extension for pure
-REM  ASCII and MultiByteToWideChar for anything with a high byte -- and the
+REM  Both widening paths are driven, the VPMOVZXBW zero extension for pure
+REM  ASCII and MultiByteToWideChar for anything with a high byte, and the
 REM  harness FAILS if the high-byte class comes back empty, because a corpus of
 REM  plausible SID strings never reaches it. Alignment is swept 0..63, since the
 REM  scan loads its first block aligned down.

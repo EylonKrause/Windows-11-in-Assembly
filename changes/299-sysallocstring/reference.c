@@ -7,7 +7,7 @@
 //
 // The oracle calls the real SysAllocStringLen for the same reason the implementation does: the
 // allocation is not what is being replaced, and a block from a different allocator would not be
-// comparable to the export's -- or freeable by the caller's SysFreeString.
+// comparable to the export's, or freeable by the caller's SysFreeString.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <oleauto.h>

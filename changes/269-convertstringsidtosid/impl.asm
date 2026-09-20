@@ -2,7 +2,7 @@
 ;   BOOL wia_str2sid(const wchar_t* s, PSID* out)      [Win64: rcx, rdx -> eax]
 ;
 ; advapi32!ConvertStringSidToSidW. discovery/sid_inet_bstr.c measured it at 275.78 ns for a
-; five-sub-authority SID and 463.28 ns for eight -- about 45 Nanoseconds per decimal number, against
+; five-sub-authority SID and 463.28 ns for eight, about 45 Nanoseconds per decimal number, against
 ; the single-figure nanoseconds change 114 takes to parse the four numbers of an IPv4 address.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -12,8 +12,8 @@
 ;
 ;   1. Two number parsers. The revision and the identifier authority skip leading whitespace and
 ;      take an optional single '+'; a sub-authority takes neither. They also have different DIGIT
-;      SETS -- the lenient one accepts the whole Unicode decimal-digit set, the strict one only the
-;      ASCII and fullwidth digits -- so both are table lookups rather than range tests, and the
+;      SETS, the lenient one accepts the whole Unicode decimal-digit set, the strict one only the
+;      ASCII and fullwidth digits, so both are table lookups rather than range tests, and the
 ;      tables are built from the OS by classify.c.
 ;
 ;   2. The base carries. a `0x` on the revision makes every later field hexadecimal, and there the
@@ -26,10 +26,10 @@
 ;   4. The count stops at 254, because 8 + 4*254 is 1024, and the refusal there is
 ;      ERROR_ARITHMETIC_OVERFLOW rather than ERROR_INVALID_SID.
 ;
-;   5. Exactly two characters is an alias, looked up in a table built from the OS -- a third of the
+;   5. Exactly two characters is an alias, looked up in a table built from the OS, a third of the
 ;      66 entries resolve through this machine or this domain, so it cannot be transcribed.
 ;
-;   6. On failure the output pointer is left alone -- except after an sddl terminator. `)`, `,` and
+;   6. On failure the output pointer is left alone, except after an sddl terminator. `)`, `,` and
 ;      `;` following a COMPLETE SID make the call fail with ERROR_INVALID_SID and set the pointer to
 ;      NULL, because the parser underneath has a mode that stops at them and the public wrapper
 ;      rejects the trailing text afterwards. Three characters out of 65535; found by sweeping every
@@ -76,7 +76,7 @@ PAUTH     EQU 1064
 FRAME_SZ  EQU 1080
 
 ; ---------------------------------------------------------------------------------------------
-; SCANNUM -- one number, expanded inline at each of its three uses.
+; SCANNUM, one number, expanded inline at each of its three uses.
 ;
 ;   in    rbx = the cursor, r13b = 1 when the DEFAULT base is 16, rbp = the saturation limit
 ;   out   rax = the value clamped to rbp

@@ -2,7 +2,7 @@
 ; errno_t wia_i64toa_s(__int64 Value, char* Buffer, size_t SizeInChars, int Radix)
 ;   [rcx, rdx, r8, r9d -> eax]
 ;
-; Reimplements ucrtbase!_i64toa_s -- the bounded form of change 057. ucrtbase's costs 38.1 ns for a
+; Reimplements ucrtbase!_i64toa_s; the bounded form of change 057. ucrtbase's costs 38.1 ns for a
 ; 19-digit value, because its inner loop issues a 64-bit `div rax, rdi` PER DIGIT.
 ;
 ; The contract's error path could not be fitted black-box: the partial content left in the caller's
@@ -11,11 +11,11 @@
 ; and its shared worker at 0x00076F10):
 ;
 ;   * Buffer == NULL or SizeInChars == 0 -> errno = EINVAL (22), handler, return 22,
-;     and nothing is written -- not even Buffer[0].
+;     and nothing is written, not even Buffer[0].
 ;   * Otherwise BUFFER[0] = 0 Is written immediately, before any other validation. That is why an
 ;     invalid radix still empties the buffer while size 0 leaves it untouched.
 ;   * negative := (Radix == 10 && Value < 0). For every other radix the 64-bit value is formatted
-;     UNSIGNED -- _i64toa_s(-1, ..., 16) gives "ffffffffffffffff", exactly as change 057 records.
+;     UNSIGNED, _i64toa_s(-1, ..., 16) gives "ffffffffffffffff", exactly as change 057 records.
 ;   * If SizeInChars <= negative + 1 -> Erange (34) Immediately, with Buffer[0] = 0 and nothing
 ;     else touched. This is the case no fitted rule reproduced: for a negative value and size 2 it
 ;     fires BEFORE a single digit is emitted.
@@ -29,7 +29,7 @@
 ;     handler is invoked on both error paths.
 ;
 ; Method: digits are generated into a stack scratch, FORWARD, using change 057's 2-digit decimal
-; table for radix 10 and a shift for radix 16 -- no `div` at all on the two common radixes, against
+; table for radix 10 and a shift for radix 16, no `div` at all on the two common radixes, against
 ; one 64-bit division per digit in the shipped version. Only then is the fit decided, and the
 ; scratch is copied forward (success) or BACKWARD (the ERANGE partial), which is what reproduces
 ; ucrtbase's reversed leftovers exactly without emitting into the caller's buffer twice.
@@ -38,7 +38,7 @@
 ; wia_dec2b_init first), so this function is self-contained and can be hot-patched over the live
 ; export with no initialisation step.
 ;
-; ISA: baseline x64. No AVX needed -- the work is 20 digits, not 20 kilobytes.
+; ISA: baseline x64. No AVX needed; the work is 20 digits, not 20 kilobytes.
 
 EXTERN _errno:PROC
 EXTERN _invalid_parameter_noinfo:PROC
@@ -95,7 +95,7 @@ nn:
         mov       rax, rcx                     ; magnitude, treated as unsigned
         cmp       r10d, 10
         je        d10
-        ; Every power-of-two radix -- 2, 4, 8, 16, 32 -- can shift instead of divide. Only radix 16
+        ; Every power-of-two radix (2, 4, 8, 16, 32) can shift instead of divide. Only radix 16
         ; was special-cased at first, which left radix 2 issuing 64 divisions and measuring a 1.00x
         ; tie; with the shift it becomes one of the widest wins here. The test is done in r9d, not
         ; eax, because eax already holds the magnitude.
@@ -177,7 +177,7 @@ emitted:
         inc       rdx
 s_nosign:
         ; Copy the digits 8 bytes at a time. A byte-at-a-time loop cost ~13 cycles on a 13-digit
-        ; base-36 value and put that class at 0.92x -- a regression. Every wide store here is
+        ; base-36 value and put that class at 0.92x; a regression. Every wide store here is
         ; provably inside the buffer: success means negative + digits + 1 <= SizeInChars, so while
         ; 8 or more digits remain there are at least 9 cells left.
         mov       rax, rcx                     ; digit count

@@ -1,14 +1,14 @@
-/* probes/extlen.c -- does shlwapi!PathRenameExtensionW have an extension-length limit too?
+/* probes/extlen.c: does shlwapi!PathRenameExtensionW have an extension-length limit too?
  *
  * Changes 159 and 160 (the kernelbase PathCch pair) both turned out to reject an extension whose
  * body exceeds 255 characters with E_INVALIDARG, a rule neither contract recorded and neither
  * oracle modelled. 158 is the shlwapi function that does the same job, and its contract says the
- * opposite about validation -- "the new extension is NOT validated: 'obj' (no dot) gives
- * 'f.txtobj' -> 'fobj', '.a.b' is taken whole" -- so it plausibly has no such rule.
+ * opposite about validation; "the new extension is NOT validated: 'obj' (no dot) gives
+ * 'f.txtobj' -> 'fobj', '.a.b' is taken whole", so it plausibly has no such rule.
  *
  * "Plausibly" is not a measurement. The live harness that covers this export caps its extensions
  * at 24 characters, so it has never been asked. This asks, across the whole range, against both
- * the export and this implementation, and checks the BUFFER as well as the BOOL -- 158's documented
+ * the export and this implementation, and checks the BUFFER as well as the BOOL, 158's documented
  * failure mode is "the destination is left COMPLETELY UNCHANGED", which is the interesting thing to
  * get wrong.
  */

@@ -18,24 +18,24 @@
 ;     00100E43  call 0x45580                          a bounded copy into (point, 260 - n)
 ;     00100E48  mov  eax, 1                           TRUE
 ;
-; and the bytes at that default address are 2E 00 65 00 78 00 65 00 00 00 -- **L".exe"**, not the
+; and the bytes at that default address are 2E 00 65 00 78 00 65 00 00 00, **L".exe"**, not the
 ; empty string. That is the one surprise in this function and it is a large one: NULL pszExt on an
-; extensionless path REWRITES it. probes/addext.c asked directly -- `"" + NULL` comes back as ".exe".
+; extensionless path REWRITES it. probes/addext.c asked directly, `"" + NULL` comes back as ".exe".
 ;
 ; MEASURED, not inherited (probes/addext.c):
 ;   * the extension point is exactly PathFindExtensionW's, over 55987 enumerated strings on the
-;     alphabet ". \ space a b :" to length 6, with ZERO disagreements -- including that the append
+;     alphabet ". \ space a b :" to length 6, with ZERO disagreements, including that the append
 ;     lands exactly at that pointer. That alphabet carries a SPACE on purpose: change 132 shipped
 ;     WRONG with only the backslash stopping its backward scan, so this repository has already been
 ;     burned by inheriting this rule by name;
 ;   * the bound is on the RESULT: n + extlen <= 259 appends, >= 260 refuses. Swept over path lengths
 ;     250..262 against extension lengths 0..5, and the boundary tracks the SUM, not either operand;
-;   * a refusal writes nothing at all -- a 300-character path comes back byte-for-byte unchanged,
+;   * a refusal writes nothing at all; a 300-character path comes back byte-for-byte unchanged,
 ;     poison past the terminator intact;
 ;   * an EMPTY extension returns TRUE and writes nothing, not even the terminator it already has;
 ;   * an extension with no leading dot is appended verbatim ("file" + "zzz" -> "filezzz");
 ;   * an UNTERMINATED extension at a guard page FAULTS. lstrlenW does not swallow it, so neither does
-;     this -- the scan below is page-safe, which means it faults on exactly the strings the shipped
+;     this; the scan below is page-safe, which means it faults on exactly the strings the shipped
 ;     one faults on and not on a string that ends one character before an unmapped page.
 ;
 ; Composed on change 132, the way 246 is composed on 243. The extension point is the one part of this

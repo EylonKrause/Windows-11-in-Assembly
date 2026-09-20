@@ -1,4 +1,4 @@
-// changes/295-rtlunicodestringtointeger/bench.c -- wia_ustr2int vs the LIVE ntdll export.
+// changes/295-rtlunicodestringtointeger/bench.c: wia_ustr2int vs the LIVE ntdll export.
 //
 // The row list is the gate. Change 129 was parked for years on a four-row bench that could not
 // express four of its own regressions, and the same trap is wide open here: this export has five
@@ -6,8 +6,8 @@
 // a no-digits-is-still-success case, and two distinct INVALID_PARAMETER mechanisms that both write
 // the caller's word. Every one of those is a row, at more than one length where length matters.
 //
-// The four rows that came out of discovery/ntdll_tier3.c -- "1", nine digits, ten digits and a base-0
-// "0x" prefix, measured there at 3.95 / 11.95 / 13.15 / 25.70 ns -- are marked, because those are the
+// The four rows that came out of discovery/ntdll_tier3.c, "1", nine digits, ten digits and a base-0
+// "0x" prefix, measured there at 3.95 / 11.95 / 13.15 / 25.70 ns, are marked, because those are the
 // numbers this change was selected to beat and they are the ones to read first.
 //
 // `bytes` is each row's real Length in bytes, so the GB/s column means something; 129 found every row

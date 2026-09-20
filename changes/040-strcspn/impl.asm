@@ -2,18 +2,18 @@
 ; size_t wia_strcspn(const char* s, const char* set)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements ucrtbase!strcspn: length of the initial run of characters that appear in NEITHER `set`
-; nor {NUL} -- the complement span. Like `strspn` (change 159) the live one builds a 256-bit bitmap
+; nor {NUL}, the complement span. Like `strspn` (change 159) the live one builds a 256-bit bitmap
 ; of the set and then walks the string a byte at a time against it: 139 ns for 254 characters.
 ;
 ; The byte-granular twin of change 157, with the same asymmetry against 159: there the terminator
 ; needed no special case, because a NUL can never be a member of a NUL-terminated set, so it stopped
 ; the span for free. Here the span continues *while* characters are outside the set, so the NUL would
-; NOT stop it -- it must be compared explicitly and OR-ed into the stop mask.
+; NOT stop it; it must be compared explicitly and OR-ed into the stop mask.
 ;
 ; The first three set characters are broadcast ONCE into ymm2/ymm4/ymm5 before the block loop, spare
 ; slots taking a duplicate of member 0 (harmless: the compares are OR-ed and `a OR a == a`). An EMPTY
 ; set fills all three with zero, which merely duplicates the terminator compare that seeds the
-; accumulator -- and that is exactly right here, since `strcspn` with an empty set is the string
+; accumulator, and that is exactly right here, since `strcspn` with an empty set is the string
 ; length. Sets longer than three walk the remainder from memory.
 ;
 ; Only ymm0-ymm5 are usable (xmm6-xmm15 are non-volatile under Win64), and data, accumulator and the

@@ -6,7 +6,7 @@
 ; errno_t wia_wcsupr_s(wchar_t* str, size_t numberOfElements)
 ;   [Win64: rcx, rdx -> eax]
 ;
-; Reimplements ucrtbase!_wcsupr_s -- the bounded sibling of change 050 (_wcsupr). ucrtbase's is
+; Reimplements ucrtbase!_wcsupr_s; the bounded sibling of change 050 (_wcsupr). ucrtbase's is
 ; scalar: 177 ns to upcase a 254-character string, about 0.7 ns per character.
 ;
 ; Contract (derived in probes/wus.c, fuzz-confirmed bit-exact against the live export over
@@ -20,21 +20,21 @@
 ;     when numberOfElements is ZERO. (The first candidate reference omitted it and was refuted
 ;     on 13 989 of 1 000 000 cases.)
 ;   * The invalid-parameter handler is invoked, through ucrtbase's OWN exported
-;     `_invalid_parameter_noinfo` -- the convention changes 150-157 established -- so a caller
+;     `_invalid_parameter_noinfo` (the convention changes 150-157 established) so a caller
 ;     with a handler installed sees identical observable behaviour.
 ;
-; It validates first, then folds -- and that decides the structure
+; It validates first, then folds, and that decides the structure
 ;   On the EINVAL path, nothing except str[0] is modified. A fused scan-and-fold pass (the
 ;   shape changes 047 and 168 use) is therefore WRONG here: it upcases characters as it goes
 ;   and only discovers the missing terminator at the end, leaving partially folded text behind.
-;   That was measured, not guessed -- the fused version returned the right 22 but left
+;   That was measured, not guessed, the fused version returned the right 22 but left
 ;   str[1]='B' where the shipped function leaves 'b'.
 ;   Note this is the OPPOSITE of change 150, where strcpy_s DOES leave an observable partial
 ;   copy before ERANGE. The two `_s` functions differ, so each has to be probed on its own.
 ;   Hence two passes: a bounded terminator scan that writes nothing, then a length-driven fold.
 ;
 ; Method: pass 1 scans 16 characters per step for the terminator, bounded by numberOfElements.
-; Pass 2 folds a known length, so it needs no terminator test at all -- just change 050's fold
+; Pass 2 folds a known length, so it needs no terminator test at all, just change 050's fold
 ; (two vpcmpgtw form the a..z mask, AND with 0x0020, then vpsubw), 16 characters per step.
 ;
 ; Page safety: pass 1's 32-byte load happens only when at least 16 characters of the caller's
@@ -42,7 +42,7 @@
 ; within 32 bytes of a page end it steps one character and retries. Pass 2 reads and writes
 ; only within the string whose length pass 1 established.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

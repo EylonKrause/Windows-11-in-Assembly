@@ -30,7 +30,7 @@ int main(void){
       for(;d[k];k++) fw[k]=(wchar_t)(0xFF10+(d[k]-L'0')); fw[k]=0; }
     { const wchar_t* d=L"9223372036854775807"; int k=0;
       for(;d[k];k++) arab[k]=(wchar_t)(0x0660+(d[k]-L'0')); arab[k]=0; }
-    /* an Arabic-Indic zero introducing a hex prefix -- the rule a naive port gets wrong */
+    /* an Arabic-Indic zero introducing a hex prefix, the rule a naive port gets wrong */
     { const wchar_t* d=L"x1abcdef01234567"; arabhex[0]=0x0660;
       int k=0; for(;d[k];k++) arabhex[k+1]=d[k]; arabhex[k+1]=0; }
 

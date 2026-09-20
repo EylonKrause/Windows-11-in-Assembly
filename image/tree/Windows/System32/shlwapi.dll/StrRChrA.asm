@@ -12,13 +12,13 @@
 ; ---- what the probe found, and why the number is what it is -----------------------------------------
 ; probes/srca.c pinned the shipped algorithm exactly, and one observation did most of the work: an
 ; pszEnd placed past the string's terminator makes the live export never RETURN. Two different inputs
-; did it -- "abc" with pszEnd = s+4, and "abc\0ZZZZ\0" with pszEnd = t+9 -- and the first cost a
+; did it ("abc" with pszEnd = s+4, and "abc\0ZZZZ\0" with pszEnd = t+9) and the first cost a
 ; 300-second timeout to locate. That pins the loop:
 ;
 ;     last = NULL;  p = pszStart;
 ;     while (p != end) { if (*p == (char)wMatch) last = p;  p = CharNextA(p); }
 ;
-; CharNextA does not advance past a terminator -- it returns the same pointer -- so when `end` lies
+; CharNextA does not advance past a terminator (it returns the same pointer) so when `end` lies
 ; beyond the NUL the walk can never reach it and spins. Every other measurement falls out of that one
 ; LOOP: pszEnd is EXCLUSIVE because the test is `p != end` before the body (pszEnd = s+7, sitting on
 ; a match, finds the PREVIOUS one); searching for the TERMINATOR always returns NULL because a valid
@@ -27,12 +27,12 @@
 ;
 ; CONTRACT DOMAIN, therefore: pszEnd == NULL (search to the terminator), or
 ; pszStart <= pszEnd <= pszStart+strlen. Outside it the export does not return. A hang is not
-; behaviour a caller can depend on and is NOT reproduced here -- this returns an answer instead.
+; behaviour a caller can depend on and is NOT reproduced here; this returns an answer instead.
 ; That is a deliberate, documented divergence on inputs where the shipped function produces no
 ; result at all, and correctness.c stays inside the domain.
 ;
 ; And that domain is narrower than the wide form's. Change 134 recorded, verified, that StrRChrW
-; searches the RAW range when given an explicit pszEnd -- ignoring embedded NULs and running past the
+; searches the RAW range when given an explicit pszEnd, ignoring embedded NULs and running past the
 ; terminator if asked. The A form cannot, because CharNextA is in its loop. Two functions with the
 ; same name and different domains; one more reason this project re-probes every A form instead of
 ; inheriting its W.
@@ -41,7 +41,7 @@
 ;   * BYTE-WISE on this code page. Every byte value 0x01..0xFF was placed where a lead byte would
 ;     swallow the character after it: ZERO of 255 behave as one (GetACP() is 1252, which has none).
 ;     A vector scan reproduces this exactly.
-;   * wMatch is a word but only its low byte is consulted -- 0x015A, 0x5A5A and 0xFF5A all find 'Z',
+;   * wMatch is a word but only its low byte is consulted, 0x015A, 0x5A5A and 0xFF5A all find 'Z',
 ;     and 0x5A00 (low byte NUL) finds nothing.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@
 ; from the end so it exits at the first match found (the common "last separator in a path" use); the
 ; unbounded form scans forward tracking the last match, because finding the terminator first would
 ; cost a whole extra pass. All loads are 32-byte ALIGNED, and a 32-byte aligned load never crosses a
-; page boundary, so page safety is structural -- the range ends are handled by masking bits out of
+; page boundary, so page safety is structural; the range ends are handled by masking bits out of
 ; the compare result, never by narrowing the load.
 ;
 ; A narrow block carries 32 positions to the wide form's 16, and vpcmpeqb sets ONE mask bit per match
@@ -77,7 +77,7 @@ wia_strrchra PROC
         ; ---- bounded: backward over [start, end) ----
         ; Only the first and last blocks need masking, so neither test is in the loop. The first cut
         ; recomputed both end-masks on every block and measured 10.02 ns on a 254-character bounded
-        ; miss -- SLOWER than the 5.11 ns the unbounded path took over the same string, which does
+        ; miss, SLOWER than the 5.11 ns the unbounded path took over the same string, which does
         ; two compares per block instead of one. That is the giveaway that the cost was bookkeeping,
         ; not work. The loop below is eight instructions with no masking in it at all.
 rc_bk:

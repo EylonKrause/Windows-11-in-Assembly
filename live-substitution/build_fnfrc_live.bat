@@ -9,7 +9,7 @@ REM  implementation that routed one through the other would answer wrongly
 REM  rather than merely go unnoticed.
 REM
 Rem  Both the returned length and the written start are compared, and the start
-REM  is poisoned before every call -- "nothing found" still writes it, and the
+REM  is poisoned before every call; "nothing found" still writes it, and the
 REM  two forms write different values there.
 REM
 REM  Sacrificial single-threaded child; it patches only its own copy-on-write

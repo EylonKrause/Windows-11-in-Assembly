@@ -2,13 +2,13 @@
 // LIVE-RUN PROOF for change 285 (shlwapi!StrCSpnIW).
 //
 // What is compared is the returned count. This export returns an int, not a pointer, so there is no
-// byte-versus-code-unit trap here -- but the count must be exact, including past 16 bits.
+// byte-versus-code-unit trap here, but the count must be exact, including past 16 bits.
 //
 // The contract this harness respects, from changes/285-strcspniw/probes/contract.c and
 // probes/relation.c:
 //
 //   * the answer is the index of the first character that is in the set, or the length if none;
-//   * the relation is change 281's exactly -- extracted over 786420 pairs with zero disagreements,
+//   * the relation is change 281's exactly, extracted over 786420 pairs with zero disagreements,
 //     symmetric, and a multi-member set is exactly the UNION of its members' rows;
 //   * an embedded NUL ends the scan; an empty set gives the length; an empty string and any NULL
 //     argument give 0;
@@ -18,14 +18,14 @@
 // The forced sub-cases are chosen from what this change's own structure can get wrong, because that is
 // where the two previous changes' harnesses were weakest:
 //
-//   * cur_one    -- a set expanding to at most four accept entries, which takes a single unbounded
+//   * cur_one; a set expanding to at most four accept entries, which takes a single unbounded
 //                   pass and skips the windowing entirely;
-//   * cur_multi  -- a set expanding past four, which exercises the DOUBLING WINDOWS and the bound that
+//   * cur_multi, a set expanding past four, which exercises the DOUBLING WINDOWS and the bound that
 //                   tightens as chunks find better answers;
-//   * cur_big    -- a set holding a 255-sentinel member, which forces the call-free scalar path;
-//   * cur_mixed  -- a 255-sentinel member alongside ordinary ones, so the scalar path's three loops
+//   * cur_big, a set holding a 255-sentinel member, which forces the call-free scalar path;
+//   * cur_mixed, a 255-sentinel member alongside ordinary ones, so the scalar path's three loops
 //                   (self, pool, bitmap) all run in one call;
-//   * cur_guard  -- the terminator as the last readable code unit before an unmapped page, which is
+//   * cur_guard; the terminator as the last readable code unit before an unmapped page, which is
 //                   the only placement that tests where the scan really stops.
 //
 // Each carries an assertion that fails if the draw stops producing it.
@@ -147,7 +147,7 @@ static void build_case(long i)
         /* A 255-sentinel member alone: the scalar path, bitmap loop only.
          *
          * Half of these use a sentinel that does not accept a NUL. There are eleven distinct sentinel
-         * sets and only one -- the 3238-member ignorable set -- contains a NUL. Using only that one
+         * sets and only one (the 3238-member ignorable set) contains a NUL. Using only that one
          * leaves the scalar loop's own terminator test unnecessary, because the bitmap stops the loop
          * for free; a mutant removing that test then survives this gate, as one did. U+D7A2 carries
          * the sentinel with 238 members and does NOT accept a NUL. */

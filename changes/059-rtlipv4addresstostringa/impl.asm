@@ -56,8 +56,8 @@ no_dot:
         mov       byte ptr [r8], 0                   ; NUL
         ; The shipped export writes a second terminator, at the end of the field.
         ;
-        ; RtlIpv4AddressToStringA always stores a zero at destination byte 15 -- the last byte of
-        ; the 16-character maximum an IPv4 address can render to -- as well as the one after the
+        ; RtlIpv4AddressToStringA always stores a zero at destination byte 15, the last byte of
+        ; the 16-character maximum an IPv4 address can render to, as well as the one after the
         ; text. For "255.255.255.255" the two are the same byte; for anything shorter they are not,
         ; and this implementation wrote only the first. The live-substitution harness caught it on
         ; 17462 of 20000 cases with the same text and the same returned pointer; probes/tail.c

@@ -8,7 +8,7 @@
  *   * base 10 goes through a length-first, two-digits-at-a-time converter;
  *   * bases 2, 8 and 16 emit more than one digit per store from wide tables;
  *   * a POSITIVE length writes the digits and a terminator only if one fits;
- *   * a negative length is a zero-padded field width -- probes/negative.c found it, and it runs a
+ *   * a negative length is a zero-padded field width, probes/negative.c found it, and it runs a
  *     second loop that nothing else in this bench reaches. A bench without a padded row would
  *     measure two of the three write paths and report them as the function.
  *

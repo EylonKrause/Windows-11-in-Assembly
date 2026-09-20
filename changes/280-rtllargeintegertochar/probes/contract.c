@@ -4,7 +4,7 @@
  *
  * Change 279 established that RtlIntegerToChar's `length` is room in bytes with the terminator
  * written only if it fits, and that a NEGATIVE length is a zero-padded field width. Change 100 --
- * the landed implementation of THIS export -- is wrong on every negative length for exactly the
+ * the landed implementation of THIS export, is wrong on every negative length for exactly the
  * reason 097 was: an unsigned capacity compare, and a corpus that never asked. 123000 of 123000
  * negative-length cases differ from the live export.
  *
@@ -24,7 +24,7 @@
  *   3. IS INT_MIN the one negative length that refuses here too?
  *   4. SIGNEDNESS. `LARGE_INTEGER` is signed and 279's probe already says -1 prints as
  *      18446744073709551615, but the boundary at 2^63 is asked again here explicitly.
- *   5. THE BASES, and the longest answer in each -- which is what the digit-count tables must span.
+ *   5. THE BASES, and the longest answer in each, which is what the digit-count tables must span.
  *   6. Is the value read through the pointer more than once? It is passed by pointer, unlike the
  *      32-bit form, so a caller could in principle observe a double read. This decides whether the
  *      implementation may re-read it.

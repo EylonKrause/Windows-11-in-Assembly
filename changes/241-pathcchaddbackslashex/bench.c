@@ -79,7 +79,7 @@ typedef struct {
 } CASE;
 
 #pragma optimize("", off)
-/* The minimal restore: one store, undoing exactly the one the call made -- on the buffer the PREVIOUS
+/* The minimal restore: one store, undoing exactly the one the call made, on the buffer the PREVIOUS
    call dirtied, so a 2-byte store never sits in front of this call's 64-byte load. */
 static uint64_t op_ours_r(void* c){
     CASE* k = (CASE*)c;

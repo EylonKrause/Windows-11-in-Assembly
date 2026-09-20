@@ -11,7 +11,7 @@
        differed instead of comparing a window and saying "mismatch".
      * S_FALSE writes nothing at all, which a string comparison cannot tell from writing the same
        terminator back.
-     * cch bounds the highest index written -- including writes that land on the existing terminator
+     * cch bounds the highest index written, including writes that land on the existing terminator
        and are invisible in the buffer. 567 UNC cases differ from "result+1" for exactly that reason.
 
    THE CORPUS IS BUILT AROUND THE FOUR RULES AND THE THREE TRAPS.

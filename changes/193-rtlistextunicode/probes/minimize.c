@@ -1,6 +1,6 @@
 /* Delta-debug a failing RtlIsTextUnicode buffer down to a minimal counterexample.
  * refcheck.c now disagrees on 8578 of 3 000 000 cases, always only in ILLEGAL_CHARS, and only on
- * buffers of 20+ bytes -- exhaustive enumeration up to length 6 is clean. So instead of guessing
+ * buffers of 20+ bytes, exhaustive enumeration up to length 6 is clean. So instead of guessing
  * at the CR/LF counter again, take a known failing buffer and repeatedly delete 2-byte chunks for
  * as long as it still disagrees. Whatever survives is the rule.
  * Build: cl /nologo /O2 minimize.c && minimize.exe

@@ -1,7 +1,7 @@
-/* probes/maxpath.c -- PathCchRenameExtension has a THIRD size failure the contract missed.
+/* probes/maxpath.c: PathCchRenameExtension has a THIRD size failure the contract missed.
  *
  * The live harness found 355 of 12000 cases differing, every one of them with an input length of
- * 258 or 259 -- inside the documented "length <= 259" limit -- where the export answered
+ * 258 or 259 (inside the documented "length <= 259" limit) where the export answered
  * 0x800700CE (ERROR_FILENAME_EXCED_RANGE) and this implementation answered either
  * 0x8007007A (STRSAFE_E_INSUFFICIENT_BUFFER) or, with a generous cch, S_OK.
  *
@@ -13,7 +13,7 @@
  * Three things to settle, and only the first is visible in the harness output:
  *   (1) does a result longer than 259 fail even when the input was legal and cch is generous?
  *   (2) which wins when both the cch and the 259 limits are breached?
- *   (3) what is left in the buffer in each case -- untouched, fully written, or 160's peculiar
+ *   (3) what is left in the buffer in each case, untouched, fully written, or 160's peculiar
  *       "terminator where the dot would go, then the body, clamped" truncating write?
  * (3) is the one that decides whether the fix is a returned code or a code AND a write.
  */

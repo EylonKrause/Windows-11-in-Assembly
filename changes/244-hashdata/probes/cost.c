@@ -2,7 +2,7 @@
  *
  * Where the shipped cost actually lives, per source byte and per digest byte.
  *
- * The discovery sweep timed one shape only -- 4096 source bytes into a 16-byte digest, 6.37 ns per
+ * The discovery sweep timed one shape only, 4096 source bytes into a 16-byte digest, 6.37 ns per
  * source byte. That single number cannot say whether the cost is proportional to cbData x cbHash
  * (a table lookup per pair, which is what the algorithm needs) or whether small digests are
  * LATENCY-bound instead, which is the case that decides whether a faster implementation is

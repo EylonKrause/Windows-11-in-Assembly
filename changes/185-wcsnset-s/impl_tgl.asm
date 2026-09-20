@@ -8,7 +8,7 @@
 ; Why a variant and not an edit
 ; -----------------------------
 ; The parent wins every size class on Zen 3 and Zen 4. Here the "8" class measures 0.82x, and the
-; reason is not the arithmetic -- it is that at that size the parent does no vector work at all
+; reason is not the arithmetic; it is that at that size the parent does no vector work at all
 ; while paying the full price of having intended to.
 ;
 ; What that bench row actually is matters, because the label is in CHARACTERS while the page rules
@@ -18,12 +18,12 @@
 ;
 ;   * `vpxor ymm1, ymm1, ymm1` runs unconditionally in the prologue, before the bound is examined.
 ;   * The bounded terminator scan takes `cmp r11, 16 / jb scan_tail` on its very first test and
-;     then walks eight characters one at a time -- eight taken branches to find what one 16-byte
+;     then walks eight characters one at a time, eight taken branches to find what one 16-byte
 ;     load would have shown.
 ;   * `vmovd` / `vpbroadcastw ymm2` then run unconditionally, and the fill likewise falls straight
-;     to `f_tail` and stores eight characters one at a time -- eight more taken branches.
+;     to `f_tail` and stores eight characters one at a time, eight more taken branches.
 ;   * Both ymm writes have dirtied the upper state, so the epilogue owes a `vzeroupper`. That is
-;     mandatory -- the caller's later SSE code would otherwise pay the transition penalty -- and it
+;     mandatory (the caller's later SSE code would otherwise pay the transition penalty) and it
 ;     bought nothing here, because no 256-bit instruction ever executed.
 ;
 ; So the short case pays for two ymm writes, a vzeroupper, and sixteen single-character iterations.
@@ -44,14 +44,14 @@
 ;     This is not a sampling trick: if the first probe is clean then every element it covered is
 ;     known nonzero, so the lowest set bit of the second probe's mask IS the first terminator. The
 ;     two loads are independent, so they issue together; the parent's walk was serial.
-;   * The fill uses OVERLAPPING stores rather than a character loop -- writing the same character
-;     twice is free, branching once per character is not -- and the broadcast is built with an imul
+;   * The fill uses OVERLAPPING stores rather than a character loop, writing the same character
+;     twice is free, branching once per character is not, and the broadcast is built with an imul
 ;     so that no vector register is involved. `imul` against 0001000100010001h is exact for ANY
 ;     16-bit value, unlike the byte case where the argument has to be <= 255 for the partial
 ;     products not to carry into one another: here c<<0, c<<16, c<<32 and c<<48 each occupy their
 ;     own 16-bit lane by construction, so every lane is exactly c even for 0FFFFh.
 ;   * The ladder is ordered so that the largest narrow block (8..14 elements, 16..28 bytes) is the
-;     FALL-THROUGH rather than a taken branch -- that is the one the failing row exercises, and at
+;     FALL-THROUGH rather than a taken branch; that is the one the failing row exercises, and at
 ;     these sizes these functions are branch-bound, not load-bound. On that row the whole function
 ;     now executes with zero taken branches from entry to `ret`.
 ;
@@ -64,7 +64,7 @@
 ; What was considered and not used, and why
 ; -----------------------------------------
 ; This part has AVX-512VL, so the whole narrow scan could have been one masked load: `bzhi` the
-; bound into a k register, `vmovdqu16 ymm0{k1}{z}`, `vptestnmw k2{k1}`, `tzcnt` -- which needs no
+; bound into a k register, `vmovdqu16 ymm0{k1}{z}`, `vptestnmw k2{k1}`, `tzcnt`, which needs no
 ; page reasoning at all, because a masked load suppresses faults on masked-off elements, and which
 ; handles 1..15 in a single shape with the terminator index falling straight out of a per-word
 ; mask. It was rejected on two counts, both of which matter more than the instruction count: it
@@ -74,10 +74,10 @@
 ; replace. It would be the better shape only if the bound were variable enough for the 8 / 4 / walk
 ; ladder to mispredict, which is not what a bounded string setter sees.
 ;
-; CONTRACT -- unchanged, and worth restating because the `_s` family in this CRT has three distinct
+; CONTRACT, unchanged, and worth restating because the `_s` family in this CRT has three distinct
 ; shapes and assuming one from another is how an earlier candidate was refuted on 407604 of
 ; 1000000 cases. The parent pinned this one by probing the live export
-; (../184-strnset-s/probes/sns.c -- 1000000 cases for the byte and the wide form each, fuzzed side
+; (../184-strnset-s/probes/sns.c, 1000000 cases for the byte and the wide form each, fuzzed side
 ; by side, 0 mismatches for both):
 ;
 ;   * numberOfElements == 0 -> EINVAL (22) and nothing is written, regardless of count.
@@ -85,7 +85,7 @@
 ;     Elements (not bytes), and only then write str[0] = 0, returning einval (22).
 ;   * Otherwise -> fill min(count, length) elements, leave the rest of the string and the
 ;     terminator alone, return 0.
-;   * _TRUNCATE ((size_t)-1) is NOT special-cased -- it saturates to the other limit.
+;   * _TRUNCATE ((size_t)-1) is NOT special-cased, it saturates to the other limit.
 ;   * Every fill value behaves the same, including 0, the surrogate range and 0FFFFh.
 ;
 ; The scan cannot be shortened by `count`: even at count 0 the return value still depends on
@@ -96,16 +96,16 @@
 ; 8 bytes needs 4), AND the address is guarded against crossing into the next page. Both halves are
 ; kept even though the second probe's window ends exactly at the end of the declared buffer: the
 ; guard is what makes the property local to the instruction instead of an argument about the
-; caller. A guard that fires falls back to the single-character walk -- that is a page-safety step,
+; caller. A guard that fires falls back to the single-character walk; that is a page-safety step,
 ; not a scalar re-entry, and it never jumps back into a probe. The fill writes at most
 ; numberOfElements-1 elements and every overlapping store lands strictly inside that span, so the
 ; variant touches no byte the parent would not.
 ;
-; ABI: the narrow path uses xmm0-xmm2 and rax / r8 / r10 / r11 only -- no xmm6-xmm15, nothing
+; ABI: the narrow path uses xmm0-xmm2 and rax / r8 / r10 / r11 only, no xmm6-xmm15, nothing
 ; non-volatile, and no stack frame beyond the shadow space the CRT call already needed.
 ;
 ; ISA: AVX2 for the >= 16-element path (the parent's), VEX-128 + BMI1 below. No AVX-512, no GFNI.
-; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H) -- see docs/PLATFORM-i9-11900H.md.
+; Validated on bench #3 (Intel i9-11900H, Tiger Lake-H), see docs/PLATFORM-i9-11900H.md.
 
 EXTERN _invalid_parameter_noinfo:PROC
 
@@ -117,8 +117,8 @@ wia_wcsnset_s PROC
         jae       wide                           ; only now is dirtying a ymm worth it
 
 ;=============== narrow path: bound 1..15 elements. No ymm is written anywhere below. ============
-; The whole budget is under 32 bytes, so the fill count -- length on success, numberOfElements-1 on
-; failure -- is at most 14 elements, and two overlapping probes cover the whole scan.
+; The whole budget is under 32 bytes, so the fill count, length on success, numberOfElements-1 on
+; failure, is at most 14 elements, and two overlapping probes cover the whole scan.
         cmp       rdx, 8
         jb        n_lt8
         mov       eax, ecx
@@ -132,7 +132,7 @@ wia_wcsnset_s PROC
         test      eax, eax
         jnz       n_hit_lo
         ; Nothing in the first probe. The bound is under 16, so at most SEVEN elements remain,
-        ; and seven scalar compares cost less than a second vector probe -- which needs its own
+        ; and seven scalar compares cost less than a second vector probe, which needs its own
         ; page guard, its own mask extraction, and a lea/tzcnt/shr/lea to rebase the index it
         ; produces. The first version of this variant used that second probe and measured 0.82x,
         ; which is exactly what the parent measures: it moved work around without removing any.
@@ -149,7 +149,7 @@ n_found:
         xor       r10d, r10d                     ; outcome = success
 n_fill:
         ; Broadcast the fill character across a qword without touching a vector register. The four
-        ; partial products occupy disjoint 16-bit lanes, so this is exact for every wchar_t -- and
+        ; partial products occupy disjoint 16-bit lanes, so this is exact for every wchar_t, and
         ; r8w still holds c afterwards, which the single-element case uses.
         movzx     eax, r8w
         mov       r8, 0001000100010001h

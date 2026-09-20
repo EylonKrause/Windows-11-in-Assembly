@@ -1,11 +1,11 @@
 /* changes/256-rtlfindsetbits/probes/zeron.c
  *
- * NumberToFind = 0 -- the case that broke the first implementation, and a lesson about probes.
+ * NumberToFind = 0, the case that broke the first implementation, and a lesson about probes.
  *
  * probes/contract.c asked what NumberToFind = 0 returns and got 0, twice, from hints of 0 and 7.
  * Both are right and both are useless: the answer is the hint rounded down to a multiple of eight,
- * and 0 and 7 both round to 0. The three-way corpus caught it at 262 960 cases -- every n=0 case
- * with a hint of 8 or more -- which is the corpus doing its job, but the probe should have found it
+ * and 0 and 7 both round to 0. The three-way corpus caught it at 262 960 cases, every n=0 case
+ * with a hint of 8 or more, which is the corpus doing its job, but the probe should have found it
  * first, and would have if it had swept the hint instead of sampling it.
  *
  * The disassembly says so plainly, and was there to be read:

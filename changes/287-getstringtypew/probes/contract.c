@@ -4,21 +4,21 @@
  *
  *     BOOL GetStringTypeW(DWORD dwInfoType, LPCWCH lpSrcStr, int cchSrc, LPWORD lpCharType)
  *
- * discovery/uncovered_2026b.c measured it at 421.05 ns for 511 code units -- 0.412 ns per byte, the
+ * discovery/uncovered_2026b.c measured it at 421.05 ns for 511 code units, 0.412 ns per byte, the
  * most expensive uncovered export in that sweep that is not already known to be a collation wall.
  *
  * Everything depends on ONE question, and it is the same question change 281 had to settle about
  * shlwapi's case-insensitive relation: Is the answer for a code unit independent of its neighbours and
  * Of the locale? If it is, the whole function is a 65536-entry lookup and vectorises immediately. If
- * it is not -- if a character's classification depends on what surrounds it, or on the thread locale --
+ * it is not, if a character's classification depends on what surrounds it, or on the thread locale --
  * then no table reproduces it and this target is dead, exactly as changes 274 and 276 died on
  * collation, and as lstrcmpiW is already known to be dead.
  *
  * The three tests below each independently kill the target if they fail:
  *
  *   1. CONTEXT-FREEDOM. Build the whole table one character at a time, then ask for long random
- *      strings and compare every word against it. Change 281 ran exactly this shape -- 200000 random
- *      strings, 0 context-dependent answers -- and it is the reason that change was writable.
+ *      strings and compare every word against it. Change 281 ran exactly this shape, 200000 random
+ *      strings, 0 context-dependent answers, and it is the reason that change was writable.
  *   2. LOCALE INVARIANCE. The documented signature takes no locale, but GetStringTypeW is documented
  *      as using the CURRENT thread locale, which would make a shipped table wrong on another machine.
  *      So the table is rebuilt under several thread locales and diffed.

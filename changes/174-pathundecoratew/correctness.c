@@ -1,7 +1,7 @@
 // changes/174-pathundecoratew/correctness.c
 // Gate 1: wia_pathundecoratew must be indistinguishable from shlwapi!PathUndecorateW.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// The whole buffer is compared -- including the stale tail past the new terminator, which the
+// The whole buffer is compared, including the stale tail past the new terminator, which the
 // shipped function deliberately leaves behind.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -92,12 +92,12 @@ int main(void){
         }
     }
 
-    // every code unit inside the brackets -- pins "digits only, possibly none"
+    // every code unit inside the brackets, pins "digits only, possibly none"
     for(int c=1;c<65536;c++){
         s[0]=L'f'; s[1]=L'['; s[2]=(wchar_t)c; s[3]=L']'; s[4]=L'.'; s[5]=L't'; s[6]=0;
         CHECK(one(s), "bracket-content sweep");
     }
-    // every code unit immediately after the ']' -- pins "must be '.' or the terminator"
+    // every code unit immediately after the ']', pins "must be '.' or the terminator"
     for(int c=1;c<65536;c++){
         s[0]=L'f'; s[1]=L'['; s[2]=L'1'; s[3]=L']'; s[4]=(wchar_t)c; s[5]=L't'; s[6]=0;
         CHECK(one(s), "post-bracket sweep");

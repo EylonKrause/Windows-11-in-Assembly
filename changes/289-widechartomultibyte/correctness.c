@@ -3,7 +3,7 @@
  * The gate. Three-way on every case: our assembly, reference.c, and the live
  * kernelbase!WideCharToMultiByte resolved with GetProcAddress. A single mismatch fails.
  *
- * What is compared on every case -- all four of these, not merely the return value:
+ * What is compared on every case, all four of these, not merely the return value:
  *   1  the return value;
  *   2  GetLastError() afterwards, against a SENTINEL written before the call, so "the shipped code
  *      leaves the last error alone on success" is something this gate PROVES rather than assumes;
@@ -24,7 +24,7 @@
  *
  * It also drives the DISPATCH BOUNDARY from the refusing side: every input our assembly does not
  * handle is run through it too, where it must tail-call the live export and so agree trivially.
- * That is the point of the tail call -- those cases compare identical code against itself.
+ * That is the point of the tail call, those cases compare identical code against itself.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -173,8 +173,8 @@ int main(void)
 
     printf("== 289 WideCharToMultiByte -- ours vs reference.c vs live kernelbase ==\n");
     /* Where the tail call actually lands. The import table binds `__imp_WideCharToMultiByte` to
-     * KERNEL32's export, and kernel32!WideCharToMultiByte is one instruction -- `jmp qword ptr
-     * [rip+disp32]` -- into kernelbase. So the check is not "is the pointer equal" but "does the
+     * KERNEL32's export, and kernel32!WideCharToMultiByte is one instruction, `jmp qword ptr
+     * [rip+disp32]`, into kernelbase. So the check is not "is the pointer equal" but "does the
      * pointer reach the live export", and the thunk is decoded here rather than assumed. */
     {
         unsigned char* t = (unsigned char*)wia_wc2mb_fallback();
@@ -204,7 +204,7 @@ int main(void)
         long bad = 0, reachable = 0;
         /* The 175 Unreachable indices are skipped, and that is a statement about the encoder, not
          * a hole in the check. The index packs four characters' lengths at two bits each, so the
-         * code 3 would mean "four bytes" -- which only a surrogate PAIR produces, and pairs never
+         * code 3 would mean "four bytes", which only a surrogate PAIR produces, and pairs never
          * reach this block at all; the surrogate block takes them. The assembler emits nothing for
          * that code while PACK3L still counts it, so those 256 - 3^4 = 175 entries are deliberately
          * inconsistent and can never be looked up. Every index that CAN occur is checked. */
@@ -298,7 +298,7 @@ int main(void)
                 }
         }
         /* A surrogate pair at every position. The random fuzz essentially never reaches the
-         * four-pairs-in-a-row block on its own -- that is a ~4e-11 event per position. */
+         * four-pairs-in-a-row block on its own; that is a ~4e-11 event per position. */
         for (li = 0; li < 3; ++li) {
             n = L[li];
             for (pos = 0; pos + 1 < n; ++pos) {
@@ -335,7 +335,7 @@ int main(void)
             }
     printf("  [4] unaligned source (0..15 wchars) x unaligned destination : %ld cases\n", cases - before);
 
-    /* --- 5. a negative cchWideChar -- the commonest call shape there is ----------------------- */
+    /* --- 5. a negative cchWideChar; the commonest call shape there is ----------------------- */
     before = cases;
     for (c = 0; c < CLASSES; ++c)
         for (n = 0; n <= 80; ++n) {
@@ -355,7 +355,7 @@ int main(void)
                 one("cch<0 unal", 65001, 0, wbuf + i, -1, 0, 0, NULL, 0);
             }
         }
-    /* an ODD (byte-misaligned) source pointer -- the one case an aligned scan cannot take */
+    /* an ODD (byte-misaligned) source pointer, the one case an aligned scan cannot take */
     {
         unsigned char* raw = (unsigned char*)wbuf;
         for (n = 0; n <= 40; ++n) {

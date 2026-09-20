@@ -1,7 +1,7 @@
 @echo off
 REM ===========================================================================
 Rem  live-run proof for changes 166 (RtlIpv6StringToAddressW) and 250
-REM  (RtlIpv6StringToAddressExW) -- the FIRST live proof this family has had.
+REM  (RtlIpv6StringToAddressExW); the FIRST live proof this family has had.
 REM  121, 122 and 166 all landed with correctness, speed and ABI gates and no
 REM  hot-patch at all.
 REM

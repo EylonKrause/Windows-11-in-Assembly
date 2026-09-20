@@ -23,7 +23,7 @@
  *      fault.
  *   3. There is NO upper bound check. 0x7FFFFFFFFFFFFFFF is accepted and yields year 30828.
  *   4. On success the last error is NOT touched (a 0xDEADBEEF sentinel survives every call).
- *   5. wDayOfWeek IS filled in, as (days + 1) % 7 -- 1601-01-01 is a Monday and comes back as 1.
+ *   5. wDayOfWeek IS filled in, as (days + 1) % 7, 1601-01-01 is a Monday and comes back as 1.
  *   6. Exactly 16 bytes of *lpSystemTime are written, in the SYSTEMTIME field order, which is a
  *      PERMUTATION of ntdll's TIME_FIELDS order: TIME_FIELDS puts Day at +4 and Weekday at +14,
  *      SYSTEMTIME puts wDayOfWeek at +4 and wDay at +6.
@@ -62,7 +62,7 @@ int ref_filetime_to_systemtime(const FILETIME* lpFileTime, SYSTEMTIME* lpSystemT
     days = t / TICKS_PER_DAY;
     rem  = t % TICKS_PER_DAY;
 
-    /* Time of day -- four independent, obvious divisions. */
+    /* Time of day, four independent, obvious divisions. */
     lpSystemTime->wHour         = (WORD)(rem / TICKS_PER_HOUR);
     lpSystemTime->wMinute       = (WORD)((rem / TICKS_PER_MIN) % 60);
     lpSystemTime->wSecond       = (WORD)((rem / TICKS_PER_SEC) % 60);

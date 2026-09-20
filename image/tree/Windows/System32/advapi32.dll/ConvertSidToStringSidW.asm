@@ -7,12 +7,12 @@
 ;
 ; advapi32!ConvertSidToStringSidW. discovery/sid_inet_bstr.c measured the shipped export at
 ; 181.45 ns against 73.73 ns for ntdll!RtlConvertSidToUnicodeString on the same SID, with the
-; LocalAlloc/LocalFree pair the contract requires costing 40.41 ns of that -- so about 67 ns of the
+; LocalAlloc/LocalFree pair the contract requires costing 40.41 ns of that, so about 67 ns of the
 ; 181 was neither the formatting nor the allocation.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; This file is an envelope, not a second formatter. probes/contract.c formats every shape of SID
-; with advapi32's export AND with ntdll's and compares the two strings -- the ordinary counts, every
+; with advapi32's export AND with ntdll's and compares the two strings, the ordinary counts, every
 ; revision, every sub-authority count 0..255, and the identifier authority at every decimal and
 ; hexadecimal boundary. They agree on all of it, INCLUDING on what they refuse. So the text comes
 ; from change 067, which this links against, the same way change 268 links 016 and 034 rather than
@@ -28,8 +28,8 @@
 ; What the envelope owns, and every line of it is a measurement:
 ;
 ;   1. The failure codes are Win32 and there are only two. a NULL SID or a NULL out-pointer is
-;      ERROR_INVALID_PARAMETER; everything the formatter refuses -- a revision other than 1, a
-;      sub-authority count above 15 -- is ERROR_INVALID_SID. Nothing maps to anything else.
+;      ERROR_INVALID_PARAMETER; everything the formatter refuses, a revision other than 1, a
+;      sub-authority count above 15, is ERROR_INVALID_SID. Nothing maps to anything else.
 ;
 ;   2. On failure the output pointer is left alone, measured with a poison value. Its sibling
 ;      ConvertStringSidToSidW (change 269) CLEARS it for three characters out of 65535; this one
@@ -39,7 +39,7 @@
 ;      values at four lengths, twenty out of twenty).
 ;
 ;   4. The block is LocalAlloc(LMEM_FIXED) of exactly (characters + 1) * 2 Bytes, because the caller
-;      frees it with LocalFree. That is called, not imitated -- see alloc.c.
+;      frees it with LocalFree. That is called, not imitated, see alloc.c.
 ;
 ;   5. a SID that is not fully readable is a refusal when its sub-authority array runs off the end
 ;      and a FAULT when only its six identifier-authority bytes do (probes/truncated.c). That rule
@@ -62,7 +62,7 @@ EXTERN wia_sid2str_err_nomem:PROC
 ;
 ;   [rsp+0..31]     shadow space for the calls out
 ;   [rsp+32..47]    a UNICODE_STRING: Length, MaximumLength, then Buffer at +8
-;   [rsp+48..847]   the temporary string -- 400 characters, against a longest result of 184
+;   [rsp+48..847]   the temporary string, 400 characters, against a longest result of 184
 ;   [rsp+848]       the caller's `out`
 USTR      EQU 32
 UBUF      EQU 40
@@ -117,7 +117,7 @@ wia_sid2str PROC FRAME
         lea       r8d, [r12d + 2]                   ; bytes to move, the terminator included
 
         ; exactly r8d BYTES. The block is (characters+1)*2 and not one byte more, so the tail is an
-        ; OVERLAPPING chunk from the end rather than a rounded-up one -- the rule change 016 had to
+        ; OVERLAPPING chunk from the end rather than a rounded-up one; the rule change 016 had to
         ; be corrected for. The shortest result is "S-1-0" and a NUL, twelve bytes, so the
         ; eight-byte path always has something to work with.
         cmp       r8d, 32

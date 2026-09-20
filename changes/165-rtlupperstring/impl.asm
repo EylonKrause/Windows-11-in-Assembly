@@ -3,7 +3,7 @@
 ;
 ; Reimplements ntdll!RtlUpperString: copy Source into Destination, uppercasing as it goes.
 ;
-; The live one takes 1485 ns for 254 characters -- 5.85 ns PER CHARACTER. That is not a slow loop,
+; The live one takes 1485 ns for 254 characters, 5.85 ns PER CHARACTER. That is not a slow loop,
 ; it is a CALL per character: ntdll!RtlUpperChar measures 5.47 ns on its own, and RtlUpperString
 ; agrees with it byte for byte over all 256 inputs. So the routine is paying full call overhead to
 ; translate one byte at a time.
@@ -18,10 +18,10 @@
 ; table to reproduce and nothing locale-dependent to get wrong.
 ;
 ; Contract (probed against the live export):
-;   n = min(Source->Length, Destination->MaximumLength)      -- both are BYTE counts
+;   n = min(Source->Length, Destination->MaximumLength); both are BYTE counts
 ;   Destination->Buffer[0..n) = uppercased Source->Buffer[0..n)
 ;   Destination->Length = n
-;   Destination->MaximumLength is not touched, and NO terminator is written -- the byte just past
+;   Destination->MaximumLength is not touched, and NO terminator is written, the byte just past
 ;   the result keeps its previous value. Truncation when the destination is smaller is silent: a
 ;   MaximumLength of 3 against a 100-byte source yields Length = 3 and no error of any kind.
 ;
@@ -32,7 +32,7 @@
 ;       lowercase  <=>  t <= -103 signed   <=>  vpcmpgtb(-102, t)
 ; and the mask then selects a 0x20 to subtract. Four instructions per 32 bytes, no lookup.
 ;
-; The copy is strictly forward -- 32-byte blocks then a descending 16/8/4/2/1 ladder, each step
+; The copy is strictly forward, 32-byte blocks then a descending 16/8/4/2/1 ladder, each step
 ; loading before it stores. The head-plus-overlapping-tail trick used elsewhere in this repository
 ; is deliberately NOT used: the live routine is a forward per-character copy, so on overlapping
 ; buffers a forward copy is what reproduces it, and an overlapping tail store could differ.

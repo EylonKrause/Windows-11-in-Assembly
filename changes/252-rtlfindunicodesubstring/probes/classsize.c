@@ -5,14 +5,14 @@
  * The first implementation filters the insensitive search with an ASCII fold plus the clause "a
  * non-ASCII haystack unit is always a candidate". That clause is what makes the filter a superset
  * rather than an approximation, and it is unavoidable only because an ASCII fold cannot bring
- * U+00E0 and U+00C0 together. Its cost is that on text that is entirely non-ASCII -- Cyrillic,
- * Greek, Hebrew, CJK, which is not an adversarial input but simply most of the world's text -- the
+ * U+00E0 and U+00C0 together. Its cost is that on text that is entirely non-ASCII, Cyrillic,
+ * Greek, Hebrew, CJK, which is not an adversarial input but simply most of the world's text, the
  * filter admits every position and the scalar verifier runs at every one of them. Measured: 2.33x
  * over the shipped code, against 16x on ASCII and 35x case-sensitive.
  *
  * The alternative is to stop folding the haystack and start enumerating the needle. The anchor test
  * "upcase(hay) == upcase(needle[0])" is equivalent to "hay is a member of the case-equivalence
- * class of needle[0]" -- and that class can be enumerated ONCE per call, for the two anchor
+ * class of needle[0]", and that class can be enumerated ONCE per call, for the two anchor
  * characters only, and then tested with plain VPCMPEQW against each member. No fold on the
  * haystack at all, and EXACT rather than a superset: candidate density drops to the true match
  * density even on non-ASCII text.

@@ -2,7 +2,7 @@
  *
  * Gate 1 for change 245: wia_urlunescapew must be indistinguishable from the live UrlUnescapeW.
  *
- * Three-way on every case -- ours, an independent oracle (reference.c) and the live export -- and
+ * Three-way on every case (ours, an independent oracle (reference.c) and the live export) and
  * every case compares the HRESULT, the whole destination against a sentinel fill, and *pcch. All
  * three are load-bearing:
  *
@@ -16,8 +16,8 @@
  * The four axes that matter, and why each is here rather than sampled:
  *
  *   1. Every code unit in both escape positions. The hex set is 22 ASCII characters out of 65536,
- *      and an implementation that accepted one more -- a full-width digit, say, or a character the
- *      OS tables call a hex digit -- would pass any corpus of realistic URLs. So both positions are
+ *      and an implementation that accepted one more, a full-width digit, say, or a character the
+ *      OS tables call a hex digit, would pass any corpus of realistic URLs. So both positions are
  *      swept over all 65535 non-NUL code units.
  *   2. Every buffer size around the result length. The size test is strict and its failure must not
  *      touch the destination, so every capacity from 1 to result+3 is driven for several shapes.

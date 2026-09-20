@@ -2,8 +2,8 @@
  *
  * Gate 2: time wia_lint2char against the live ntdll!RtlLargeIntegerToChar.
  *
- * The rows are the bases, the digit counts, the two length rules and -- the one this change adds
- * over 279 -- Whether the value needs the 64-BIT division at all:
+ * The rows are the bases, the digit counts, the two length rules and, the one this change adds
+ * over 279, Whether the value needs the 64-BIT division at all:
  *
  *   * a decimal value BELOW 2^32 never enters the eight-digit peel: it goes straight to 067's
  *     proved 32-bit constant. A bench of nineteen-digit values alone would never measure that path,

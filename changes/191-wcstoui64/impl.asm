@@ -4,13 +4,13 @@
 ;
 ; Reimplements ucrtbase!_wcstoui64. `wcstoull` resolves to the SAME code address, so one
 ; implementation covers both exported names (verified: both at ucrtbase+0x5B600 on this build).
-; Sixth and last function unblocked by change 186's sweeps -- with 190 this family now covers
+; Sixth and last function unblocked by change 186's sweeps, with 190 this family now covers
 ; eight exported names across six implementations.
 ;
 ; Contract: change 188's wide/base crossing with change 113's 64-bit UNSIGNED tail, re-measured in
 ; probes/../190-wcstoi64/probes/wcstoi64.c rather than inherited:
 ;
-;   * the limit is 2^64-1 and does not move with the sign -- the opposite of change 190, where the
+;   * the limit is 2^64-1 and does not move with the sign, the opposite of change 190, where the
 ;     sign-dependent limit is the whole point;
 ;   * a leading '-' is accepted and NEGATES MODULO 2^64, so "-1" -> 18446744073709551615 with
 ;     errno 0, and "-18446744073709551615" -> 1;
@@ -20,13 +20,13 @@
 ;     1,500,000 fuzz cases, the any-block variant on 0.
 ;
 ; Because the limit is the full 64-bit range, the `cmp rax, r12` after the digit add can never
-; fire -- r12 is all ones -- so overflow is detected purely by the two mul/add carries. The
+; fire (r12 is all ones) so overflow is detected purely by the two mul/add carries. The
 ; compare is kept anyway so that 190 and 191 stay one diff apart and the shared shape is obvious.
 ;
-; Shape: identical to 188/190 -- no call on any path in the digit loop, classifier inlined in
+; Shape: identical to 188/190, no call on any path in the digit loop, classifier inlined in
 ; frequency order, `is_zero` for the two prefix sites.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _errno:PROC
 EXTERN _invalid_parameter_noinfo:PROC
@@ -154,11 +154,11 @@ have_base:
         add       rsi, 4
 no_prefix:
 
-        ;================ the limit -- the same for both signs here ================
+        ;================ the limit, the same for both signs here ================
         mov       r12, 0FFFFFFFFFFFFFFFFh        ; 2^64-1: unlike 190, the sign does not move it,
                                                  ; so the two mul/add carries alone detect overflow
 
-        ;================ digits -- no call on any path ================
+        ;================ digits, no call on any path ================
         mov       rbx, rsi                       ; digstart
         xor       rbp, rbp                       ; acc
         xor       r9d, r9d                       ; overflow flag
@@ -257,7 +257,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
+; is_zero, internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; ---------------------------------------------------------------------------
 is_zero:

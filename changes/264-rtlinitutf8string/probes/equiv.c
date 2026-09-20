@@ -3,7 +3,7 @@
  * Is RtlInitUTF8String bit-for-bit RtlInitString on every input?
  *
  * probes/contract.c asked twenty-odd hand-picked strings and got the same answer from both exports
- * every time -- byte counting rather than character counting, NO UTF-8 validation of any kind, the
+ * every time, byte counting rather than character counting, NO UTF-8 validation of any kind, the
  * same 0xFFFF clamp (Length saturates at 65534 and MaximumLength at 65535), the same NULL rule.
  * Twenty strings chosen by the person who expects them to agree is not evidence, and this project
  * has paid four times over for a rule inherited from a sibling because it looked like the same rule
@@ -12,7 +12,7 @@
  * So this enumerates instead of sampling, over exactly the dimensions where a UTF-8 aware
  * implementation would have to differ:
  *
- *   1. Every single byte 0x01..0xFF as a one-byte string, and every ordered pair of bytes -- 65280
+ *   1. Every single byte 0x01..0xFF as a one-byte string, and every ordered pair of bytes, 65280
  *      two-byte strings, which contains every lead/continuation combination there is, every
  *      overlong prefix, and every truncated sequence.
  *   2. every LENGTH from 0 to 300, so a length-dependent rule cannot hide between the sizes a

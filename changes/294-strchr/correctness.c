@@ -1,11 +1,11 @@
-// changes/294-strchr/correctness.c -- the gate.
+// changes/294-strchr/correctness.c: the gate.
 //
 // Compares wia_strchr against reference.c AND against the LIVE exports resolved with
 // GetProcAddress: ucrtbase!strchr (the subject) and msvcrt!strchr (which ships its own copy).
 // A single mismatch fails.
 //
 // strchr writes nothing, so "every output byte" here means: the caller's buffer and the
-// canaries around it are bit-identical after every call. That is checked too -- a vector
+// canaries around it are bit-identical after every call. That is checked too, a vector
 // implementation that spilled a mask, or wrote a sentinel terminator to shorten a tail, would
 // return the right pointer and still be wrong.
 #define WIN32_LEAN_AND_MEAN
@@ -142,7 +142,7 @@ int main(void)
         SYSTEM_INFO si; GetSystemInfo(&si);
         DWORD pg = si.dwPageSize, old;
 
-        // (a) [guard][data][GUARD]  -- terminator sits 1..160 bytes before the dead page
+        // (a) [guard][data][GUARD], terminator sits 1..160 bytes before the dead page
         unsigned char* a = (unsigned char*)VirtualAlloc(NULL, pg*3, MEM_RESERVE, PAGE_NOACCESS);
         VirtualAlloc(a + pg, pg, MEM_COMMIT, PAGE_READWRITE);
         for (int tail = 1; tail <= 160; ++tail) {
@@ -160,7 +160,7 @@ int main(void)
             s[0] = 'A';
         }
 
-        // (b) [GUARD][data][guard] -- the string starts 0..64 bytes into a page whose predecessor
+        // (b) [GUARD][data][guard], the string starts 0..64 bytes into a page whose predecessor
         //     is dead, so an aligned-down first probe is the thing under test.
         unsigned char* b = (unsigned char*)VirtualAlloc(NULL, pg*3, MEM_RESERVE, PAGE_NOACCESS);
         VirtualAlloc(b + pg, pg, MEM_COMMIT, PAGE_READWRITE);
@@ -180,7 +180,7 @@ int main(void)
 
     // ------------------------------------------------------------------------------------------
     // 4. Large randomized fuzz, FIXED seed. Random length up to 4095, random start offset,
-    //    random alphabet size (so matches are dense or sparse), random needle -- including
+    //    random alphabet size (so matches are dense or sparse), random needle, including
     //    values above 127 and int forms outside 0..255.
     // ------------------------------------------------------------------------------------------
     {

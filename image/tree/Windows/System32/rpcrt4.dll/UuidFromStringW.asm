@@ -5,12 +5,12 @@
 ;; changes/208-uuidfromstringw/impl.asm
 ; RPC_STATUS wia_uuidfromstringw(wchar_t* StringUuid, GUID* Uuid)   [rcx, rdx -> eax]
 ;
-; The wide sibling of change 205. rpcrt4!UuidFromStringW costs 23.33 ns -- a third of what the narrow
+; The wide sibling of change 205. rpcrt4!UuidFromStringW costs 23.33 ns, a third of what the narrow
 ; form cost before 205, because the narrow one was widening its input and calling this. So this is
 ; the function that was doing the real work all along, and it is still a scalar parse.
 ;
 ; CONTRACT: identical to change 205's in every respect, with UTF-16 cells. probes/ufs.c drove both
-; live exports over 200 000 generated strings -- valid, corrupted and truncated -- and found
+; live exports over 200 000 generated strings (valid, corrupted and truncated) and found
 ; 0 return-value differences and 0 output differences. So:
 ;   * exactly 36 characters, UNBRACED, hex any case, '-' at 8/13/18/23, NUL at [36];
 ;   * a BRACED string is REJECTED, 1705 (RPC_S_INVALID_STRING_UUID);
@@ -24,11 +24,11 @@
 ; That narrowing is safe precisely because it saturates. vpackuswb treats its inputs as signed words
 ; and clamps to 0..255, so
 ;       0000h-00FFh  pass through unchanged
-;       0100h-7FFFh  clamp to 0FFh   -- which the hex table marks invalid
-;       8000h-FFFFh  are NEGATIVE, so they clamp to 00h -- which the table also marks invalid
+;       0100h-7FFFh  clamp to 0FFh, which the hex table marks invalid
+;       8000h-FFFFh  are NEGATIVE, so they clamp to 00h, which the table also marks invalid
 ; and the only word that can become '-' is 002Dh itself. A non-ASCII character therefore cannot
 ; masquerade as a hex digit or a separator. The one thing saturation WOULD break is the terminator
-; test, since 8000h collapses to 00h and would look like a NUL -- so the length is checked on the
+; test, since 8000h collapses to 00h and would look like a NUL, so the length is checked on the
 ; Original wide data, before any narrowing, with vpcmpeqw.
 ;
 ; PAGE SAFETY: 37 characters plus the tail load is 80 bytes read before the length is known. Within
@@ -194,7 +194,7 @@ npe_scan:
 npe_found:
         cmp       eax, 36
         jne       bad
-        ; The bounded walk proves 37 characters (74 bytes) are readable -- but the SIMD narrowing
+        ; The bounded walk proves 37 characters (74 bytes) are readable, but the SIMD narrowing
         ; above reads 80. So this path narrows scalar-wise instead. Anything above 00FFh becomes
         ; 0FFh, which the hex table rejects and which can never equal '-', so every parse decision
         ; is identical to what vpackuswb's saturation would have produced.

@@ -4,7 +4,7 @@
  *
  *   * the comparison is PER CHARACTER over change 281's relation, not a collation over spans;
  *   * the FIRST match is returned;
- *   * a match may START only at a real character -- the highest start is hlen-1, never hlen;
+ *   * a match may START only at a real character; the highest start is hlen-1, never hlen;
  *   * past the terminator the haystack behaves as an endless run of NULs, and those NULs are never
  *     loaded: with non-zero memory after the terminator, {Q,SHY,SHY} is found and {Q,W} is not;
  *   * so a needle LONGER than the whole string can match;
@@ -16,7 +16,7 @@
  * It is deliberately written the DIRECT way: ask for the effective character at an index, which is a
  * NUL past the end. impl.asm instead bounds the candidate range by the needle's NUL-matching suffix
  * and then never looks past the end at all. Two different routes to the same rule, sharing only the
- * match predicate -- so a bug in the bound shows up as a disagreement rather than being reproduced on
+ * match predicate, so a bug in the bound shows up as a disagreement rather than being reproduced on
  * both sides. Change 283 is why that matters: there, both sides once encoded the same wrong
  * assumption and only the live export disagreed.
  */

@@ -4,7 +4,7 @@ Rem  live-run proof for change 283 (shlwapi!StrRStrIW).
 REM
 REM  The shipped export costs 21816.97 ns over 511 code units. Its comparison is
 Rem  per character, not a collation over spans -- "ab<SOFT HYPHEN>cd" does not
-REM  contain "abc" -- which is what makes this change writable on change 281's
+REM  contain "abc", which is what makes this change writable on change 281's
 REM  relation.
 REM
 Rem  Its shape is not StrRChrIW's: `end` bounds only where a match may start, the

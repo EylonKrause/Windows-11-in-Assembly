@@ -169,7 +169,7 @@ int main(void)
         chk(pbuf, 0x8000, L"",     "input-length limit, removal");
     }
 
-    /* ---- the 259 RESULT-length limit -- a SECOND limit, and a different code ------------------
+    /* ---- the 259 RESULT-length limit, a SECOND limit, and a different code ------------------
        The sweep above cannot reach it. It replaces a 4-character extension with a 4-character one,
        so the result length always EQUALS the input length: by the time the result could exceed
        259 the input already has, and item 3 has answered E_INVALIDARG. Crossing the result limit

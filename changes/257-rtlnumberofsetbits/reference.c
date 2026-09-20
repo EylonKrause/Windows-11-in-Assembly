@@ -7,8 +7,8 @@
  * partial words from bounds-checked 32-bit reads. This adds up one bit at a time.
  *
  * That is the right shape for an oracle here because everything difficult in the implementation is
- * an EDGE -- the mask below the start, the mask at the end, the partial word that must not be read
- * as sixty-four bits, the seam between the vector body and the scalar remainder -- and a
+ * an EDGE; the mask below the start, the mask at the end, the partial word that must not be read
+ * as sixty-four bits, the seam between the vector body and the scalar remainder, and a
  * bit-at-a-time loop has none of them.
  *
  * The refusal predicate is reproduced exactly as probes/contract.c measured it: the range forms

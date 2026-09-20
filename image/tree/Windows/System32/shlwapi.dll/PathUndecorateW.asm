@@ -6,20 +6,20 @@
 ; void wia_pathundecoratew(PWSTR psz)   [Win64: rcx]
 ;
 ; Reimplements shlwapi!PathUndecorateW: remove a "[n]" decoration from a file name, so
-; "file[1].txt" becomes "file.txt". shlwapi's is scalar -- 134 ns for a 254-char path.
+; "file[1].txt" becomes "file.txt". shlwapi's is scalar, 134 ns for a 254-char path.
 ;
 ; Contract (derived in probes/pud.c, fuzz-confirmed bit-exact against the live export over
 ; 2,000,000 cases). The decoration is removed only when ALL of the following hold, and each
 ; one was established by probe:
 ;
-;   (a) It is looked for only in the LAST COMPONENT -- after the last backslash.
+;   (a) It is looked for only in the LAST COMPONENT, after the last backslash.
 ;       "C:\dir[1]\file.txt" is left alone.
 ;   (b) The group must hug the extension. Its ']' has to be the character immediately before
-;       the LAST '.' of that component -- or immediately before the end of the string when the
+;       the LAST '.' of that component, or immediately before the end of the string when the
 ;       component has no '.' at all. This is the rule that decides the awkward cases, and it is
 ;       NOT "the first group that looks right":
 ;           "a[1].b[2]"    -> "a.b[2]"     (the group before the only dot)
-;           "a[1].b[2].c"  -> "a[1].b.c"   (the group before the LAST dot -- not the first one)
+;           "a[1].b[2].c"  -> "a[1].b.c"   (the group before the LAST dot, not the first one)
 ;           "a[1]x[2]"     -> "a[1]x"      (no dot, so the group before the end)
 ;           "file[1]x.txt" -> unchanged    (nothing hugs the dot)
 ;   (c) The contents must be decimal digits, and there may be none:
@@ -28,27 +28,27 @@
 ;   (d) The '[' must NOT be the first character of the component:
 ;           "[1].txt" and "x\[1].txt" are left alone; "file[1].txt" and "x\a[1].txt" are not.
 ;
-; The removal closes the gap by moving the remainder down, and -- like the shipped function --
+; The removal closes the gap by moving the remainder down, and, like the shipped function --
 ; leaves the stale tail past the new terminator untouched.
 ;
-; Method: ONE forward pass computes everything the rule needs -- the length, the last
-; backslash and the last dot -- with three vpcmpeqw results per 32-byte block. Tracking the
+; Method: ONE forward pass computes everything the rule needs, the length, the last
+; backslash and the last dot, with three vpcmpeqw results per 32-byte block. Tracking the
 ; LAST match rather than the first is why this is a forward pass with bsr, in the style of
 ; change 149. Everything after it is a short backward digit walk and one vectorised move.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the characters already
+; stays inside the cursor's own page, necessarily mapped, since the characters already
 ; scanned came from it. Within 32 bytes of a page end it steps one character and retries.
 ;
 ;
 ; ---- Corrected 2026-09-15: The space rule was missing -----------------------------------------------
-; Conjunct (b) below -- the group's ']' must sit immediately before the LAST '.' of the component --
+; Conjunct (b) below; the group's ']' must sit immediately before the LAST '.' of the component --
 ; is an extension position by another name, and it carried the same gap that change 132 shipped with:
 ; a space stops the extension scan exactly as a backslash does.
 ;
 ; This change never cited 132, which is why the first audit of that bug (changes 140, 143 and 144)
-; did not reach it. A second, STRUCTURAL sweep -- every landed oracle that computes an extension
-; position, whether or not it names its source -- found it. The smallest failing case is ". []":
+; did not reach it. A second, STRUCTURAL sweep, every landed oracle that computes an extension
+; position, whether or not it names its source, found it. The smallest failing case is ". []":
 ; the live export undecorates it to ". ", this implementation left it alone.
 ;
 ;     live PathUndecorateW vs the rule as landed : 1634 of 335923 mismatches
@@ -56,11 +56,11 @@
 ;     and the narrow sibling agrees with the wide one on every one of them
 ;
 ; The two uses of the backslash had to be separated. It was doing double duty here: delimiting the
-; COMPONENT for conjunct (d) -- the '[' may not be the component's first character -- and bounding
+; COMPONENT for conjunct (d) (the '[' may not be the component's first character) and bounding
 ; the extension search for conjunct (b). Only the second takes the space, so the scan now tracks two
 ; positions: `comp` past the last backslash, and `stop` past the last backslash OR space.
 
-; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt/lzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16
@@ -95,7 +95,7 @@ scan:
         test      eax, eax
         jnz       scan_last                      ; terminator in this block
         ; The overwhelmingly common block contains NONE of the three characters this scan cares
-        ; about. One OR and one extraction answer that for all of them at once -- which is fewer
+        ; about. One OR and one extraction answer that for all of them at once, which is fewer
         ; uops than the three separate mask/test/branch triples this loop ran before the space
         ; stopper was added, so paying for the correction actually made the loop cheaper.
         ; ymm3's terminator mask is already in eax, so ymm3 is free to be overwritten here.

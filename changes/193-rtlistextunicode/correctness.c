@@ -1,5 +1,5 @@
 // changes/193-rtlistextunicode/correctness.c
-// Gate 1: wia_istextunicode must be indistinguishable from ntdll!RtlIsTextUnicode -- both the
+// Gate 1: wia_istextunicode must be indistinguishable from ntdll!RtlIsTextUnicode, both the
 // BOOL and the rewritten *lpi. Three-way: our ASM vs the scalar oracle vs the LIVE export.
 //
 // The corpus is built around how the contract was derived: every early-exit length, the 256-unit

@@ -73,7 +73,7 @@ int main(void){
         }
     }
 
-    // every first character with "X:\" -- the drive-letter set must match change 171's exactly
+    // every first character with "X:\"; the drive-letter set must match change 171's exactly
     for(int c=1;c<65536;c++){
         s[0]=(wchar_t)c; s[1]=L':'; s[2]=L'\\'; s[3]=0;
         CHECK(one(s,260), "drive-letter sweep");

@@ -4,13 +4,13 @@
 //
 // Four guard-page sweeps, because this function can fail on three pointers and at two granularities:
 //
-//   * an unterminated destination -- the failure lstrcpy does not have at all, since lstrcat reads
+//   * an unterminated destination; the failure lstrcpy does not have at all, since lstrcat reads
 //     the destination before writing it. An implementation borrowed from lstrcpy would never think
 //     to bound that scan.
 //   * an unterminated SOURCE.
 //   * a destination too small for the append.
 //   * The split character: every destination width in bytes, odd and even. The export writes whole
-//     CHARACTERS only, so a clamp that rounds in bytes leaves one extra byte behind -- invisible to
+//     CHARACTERS only, so a clamp that rounds in bytes leaves one extra byte behind, invisible to
 //     every other test here, because nothing crashes and no return value differs.
 //
 // Odd-aligned destinations are driven throughout, not only at the guard. The destination scan uses
@@ -90,7 +90,7 @@ int main(void){
             }
         }
     }
-    // long destinations, where the scan dominates -- and the scan is the half that had to be
+    // long destinations, where the scan dominates, and the scan is the half that had to be
     // written with a page clamp instead of an align-down, for the odd-aligned case
     for (int oddbyte = 0; oddbyte < 2; ++oddbyte) {
         for (int dn = 200; dn <= 1800; dn += 57) {

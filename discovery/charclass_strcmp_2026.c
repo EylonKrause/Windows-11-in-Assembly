@@ -2,13 +2,13 @@
  *
  * Round two of the coverage sweep: the families ntdll does not own.
  *
- * discovery/ntdll_uncovered_2026.c found ntdll's remaining Rtl* surface largely exhausted -- the
+ * discovery/ntdll_uncovered_2026.c found ntdll's remaining Rtl* surface largely exhausted, the
  * bitmap writers already run at memory bandwidth (8 KB in 54 ns), the size calculators are O(1) and
  * never scan at all, and the memory primitives are forwarders to the optimised CRT. One outlier:
  * RtlUpperChar at 4.98 ns against RtlUpcaseUnicodeChar at 0.98.
  *
  * That outlier is the clue this file follows. a single-character operation that costs five
- * NANOSECONDS is not doing a table lookup; it is going somewhere -- a locale, a code page, a
+ * NANOSECONDS is not doing a table lookup; it is going somewhere, a locale, a code page, a
  * conversion. So: time every single-character classifier and converter Windows exports, and the
  * ordinal string comparisons in shlwapi, and see which ones are paying for a journey.
  *
@@ -120,7 +120,7 @@ int main(void)
             if (j) TIME("StrCmpNICW 511", 300000, j(A, C, 511));
         }
         {
-            /* StrRChrIW and StrRStrIW take a THREE-argument form -- (start, END, target) -- and
+            /* StrRChrIW and StrRStrIW take a THREE-argument form ((start, END, target)) and
                calling them with two crashed this probe at exit 5 on its first run. The
                one-past-the-end pointer is what makes them searches over a RANGE rather than over a
                NUL-terminated string. */

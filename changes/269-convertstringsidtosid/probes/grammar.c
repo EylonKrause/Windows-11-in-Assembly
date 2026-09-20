@@ -5,7 +5,7 @@
  * discovery/sid_inet_bstr.c measured it at 275.78 ns, about 45 ns per decimal number, and that is
  * the reason to build it. What it ACCEPTS is a separate question, and it cannot be answered from
  * the documentation: the documented form is `S-R-I-S-S…`, and the export also takes the two-letter
- * SDDL aliases, a hexadecimal identifier authority, and -- as this file establishes -- several
+ * SDDL aliases, a hexadecimal identifier authority, and (as this file establishes) several
  * things a careful reading would have said it refuses.
  *
  * Every line prints the input, the verdict, `GetLastError()` on refusal, and the SID formatted back
@@ -14,13 +14,13 @@
  *
  * THE QUESTIONS, in the order they decide the implementation:
  *
- *   1. the GRAMMAR -- which prefixes, separators, and counts are legal
- *   2. the NUMBER FORMATS -- decimal, hexadecimal, leading zeros, leading signs, overflow
+ *   1. the GRAMMAR, which prefixes, separators, and counts are legal
+ *   2. the NUMBER FORMATS, decimal, hexadecimal, leading zeros, leading signs, overflow
  *   3. the identifier authority, which is 48 bits and therefore not a dword
  *   4. CASE and WHITESPACE
  *   5. the FAILURE CODES, which a caller switches on
  *   6. the ALIASES, one of which resolves through the local machine and so cannot be a constant
- *   7. the ALLOCATION -- what the returned block is, and what frees it
+ *   7. the ALLOCATION, what the returned block is, and what frees it
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

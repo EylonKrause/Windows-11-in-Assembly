@@ -6,7 +6,7 @@ REM  This change was PARKED before gate 4 existed, so this is the first time the
 REM  shipped export is actually replaced by it.
 REM
 Rem  Every case compares the NTSTATUS and the caller's ulong, with that ulong
-REM  pre-poisoned to a sentinel -- because an invalid base must leave it
+REM  pre-poisoned to a sentinel, because an invalid base must leave it
 REM  COMPLETELY untouched, and zeroing the output first is the natural way to
 REM  write the code and would be wrong. A harness reading only the status would
 REM  pass that.
@@ -14,7 +14,7 @@ REM
 Rem  both invalid-base mechanisms are driven. The landing edit validates a
 REM  caller-supplied base with a range test plus a bitmask over bits 2, 8 and 16
 REM  instead of a four-compare ladder, which splits the illegal bases into two
-REM  populations -- above 16 (the range test) and below 16 but not in the set
+REM  populations, above 16 (the range test) and below 16 but not in the set
 REM  (the mask). A corpus using only base 36 would exercise one of them.
 REM
 REM  It also plants what the contract rules need: the three LOWERCASE-only

@@ -94,9 +94,9 @@ int main(void){
             for(int i=0;i<80;i++){ d1[i]=POISON; d2[i]=POISON; }
             for(int i=0;i<=len;i++){ d1[i]=in[i]; d2[i]=in[i]; }
 
-            /* candidate v2 -- three behaviours, all read off the cell maps in pra2.c:
+            /* candidate v2, three behaviours, all read off the cell maps in pra2.c:
                  * find the first U+0020 that is OUTSIDE double quotes (quotes toggle);
-                 * if one exists and something follows it, NUL it -- and ALSO NUL the LAST
+                 * if one exists and something follows it, NUL it, and ALSO NUL the LAST
                    space of that run when a non-space follows ("ab   c" writes cells 2 AND 4);
                  * if no unquoted space exists at all, fall back to trimming TRAILING blanks,
                    which is why '"' + ' ' is cut even though the space sits inside a quote. */

@@ -1,7 +1,7 @@
 // changes/174-pathundecoratew/bench.c
 // Gate 2: time wia_pathundecoratew against the live shlwapi!PathUndecorateW.
 // In-place, so each iteration restores the buffer; both sides pay the same restore.
-// Lengths are COMPUTED, never hardcoded -- a hardcoded length once cost a terminator and
+// Lengths are COMPUTED, never hardcoded; a hardcoded length once cost a terminator and
 // silently corrupted this project's measurements (see change 172's RESULTS.md).
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

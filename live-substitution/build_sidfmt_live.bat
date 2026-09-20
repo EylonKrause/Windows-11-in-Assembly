@@ -8,7 +8,7 @@ REM  the EDGE of the caller's buffer: at MaximumLength == Length+1 it succeeds
 REM  and writes NO terminator, and below that it refuses and leaves Out entirely
 REM  untouched. MaximumLength is therefore drawn from AROUND the boundary rather
 REM  than from "something ample", and the sub-authority count is drawn over its
-REM  whole byte range rather than 0..15 -- the two things the gate this replaces
+REM  whole byte range rather than 0..15, the two things the gate this replaces
 REM  could not express.
 REM
 REM  probe.c is linked in: the revision, the count and the last sub-authority are

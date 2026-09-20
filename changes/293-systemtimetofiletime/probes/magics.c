@@ -1,7 +1,7 @@
 // changes/293-systemtimetofiletime/probes/magics.c
 // Probe 3. Every constant divide in impl.asm is a multiply-high with a magic number. Verify each one
-// EXHAUSTIVELY over the whole 16-bit input range (not just the legal year range), so no input -- valid
-// or garbage -- can take a different branch than the oracle's true division.
+// EXHAUSTIVELY over the whole 16-bit input range (not just the legal year range), so no input, valid
+// or garbage, can take a different branch than the oracle's true division.
 //   (1461*yy) >> 2   == 365*yy + yy/4
 //   (5243*yy) >> 19  == yy/100
 //   (10486*yy) >> 22 == yy/400

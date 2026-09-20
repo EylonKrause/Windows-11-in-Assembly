@@ -100,7 +100,7 @@ int main(void){
 
             /* candidate: validate first (no partial fill), str[0]=0 on failure incl. bound 0,
                EINVAL 22; otherwise fill every cell before the terminator and keep it. */
-            /* candidate v2 -- the FILL family is NOT shaped like the case-fold family (178-181).
+            /* candidate v2; the FILL family is NOT shaped like the case-fold family (178-181).
                Measured: it performs a PARTIAL FILL of numberOfElements-1 cells and only THEN
                writes str[0] = 0; and at bound 0 it writes nothing at all.
                    "abcdef" n=6 -> 0 x x x x f      (5 cells filled, then emptied)

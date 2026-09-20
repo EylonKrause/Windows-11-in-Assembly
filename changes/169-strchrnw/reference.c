@@ -3,7 +3,7 @@
 // Contract derived in probes/scnw.c and fuzz-confirmed against the live export
 // (3,000,000 cases, 0 mismatches):
 //   scan i in [0, cchMax): the NUL test comes FIRST, so the terminator stops the search and
-//   can never itself match -- wMatch == 0 therefore always returns NULL.
+//   can never itself match, wMatch == 0 therefore always returns NULL.
 //   Ordinal / case-sensitive. cchMax is unsigned. First match wins.
 #include <wchar.h>
 

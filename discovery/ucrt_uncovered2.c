@@ -1,20 +1,20 @@
 /* discovery/ucrt_uncovered2.c
  *
  * ucrtbase carries 75 landed changes and STILL has uncovered exports that are plainly byte loops.
- * An earlier sweep took the obvious ones -- strlen, strcmp, wcschr, the _s-suffixed copies, the
- * integer conversions -- and left behind a set that this file measures properly rather than
+ * An earlier sweep took the obvious ones, strlen, strcmp, wcschr, the _s-suffixed copies, the
+ * integer conversions, and left behind a set that this file measures properly rather than
  * guessing at. The whole uncovered list was produced mechanically (enumerate ucrtbase's exports,
  * subtract image/tree's filenames, drop the _o__ ordinal aliases, the _l locale variants and the
  * _mbs code-page family) and this measures every survivor with a pinnable contract.
  *
  * What is deliberately not here:
- *   * the *coll / *xfrm family (strcoll, wcsxfrm, _stricoll, _wcsncoll ...) -- that is COLLATION,
+ *   * the *coll / *xfrm family (strcoll, wcsxfrm, _stricoll, _wcsncoll ...); that is COLLATION,
  *     the same category that puts StrCmpLogicalW, StrChrIW and StrStrIW out of reach. Locale sort
  *     order cannot be reproduced bit-exactly from an ordinal table, and this project has already
  *     established that four separate times.
- *   * the _mbs* family and mbstowcs/wcstombs -- their behaviour depends on the process code page,
+ *   * the _mbs* family and mbstowcs/wcstombs, their behaviour depends on the process code page,
  *     so the contract is machine state rather than a specification.
- *   * setlocale, _tzset, the _find* file walkers, the stdio and exception machinery -- those are
+ *   * setlocale, _tzset, the _find* file walkers, the stdio and exception machinery; those are
  *     not byte loops at all.
  *   * memcpy/memmove/memset/memcmp, which are the one part of the CRT Microsoft certainly did
  *     vectorise. They are measured ANYWAY, in one row each, because "already optimal" is a claim
@@ -133,7 +133,7 @@ int main(void)
     memcpy(a3, a1, NW + 1);            /* a TRUE copy, for the comparison rows */
     for (i = 0; i < 4096; ++i) sorted[i] = i;
 
-    /* a path with components INSIDE the legacy limits -- see the note on pth[] */
+    /* a path with components INSIDE the legacy limits, see the note on pth[] */
     strcpy(pth, "C:\\Program Files\\Some Vendor\\Some Product\\bin\\x64\\release\\component");
     for (i = 0; i < 10; ++i) strcat(pth, "\\sub");
     strcat(pth, "\\module.library.extension");

@@ -10,7 +10,7 @@
 // 2. The implementation narrows the 36 UTF-16 cells to bytes with a SATURATING vpackuswb before
 //    parsing. That is only sound because 0100h-7FFFh clamp to 0FFh and 8000h-FFFFh clamp to 00h,
 //    both invalid in the hex table, and because nothing but 002Dh can become '-'. So there is a
-//    dedicated sweep over characters ABOVE 0xFF at every position -- including U+0130 and U+FF21,
+//    dedicated sweep over characters ABOVE 0xFF at every position, including U+0130 and U+FF21,
 //    which a naive truncation would accept as '0' and '!', and U+802D and U+FF2D, which a careless
 //    narrowing could turn into a separator.
 // 3. The fast path reads 80 bytes before the length is known, guarded by a page-offset check whose
@@ -106,7 +106,7 @@ int main(void){
     }
 
     // ---- The wide sweep: characters above 0xFF at every position. This is what proves the
-    // ---- saturating narrow is sound -- a truncation would read U+0130 as '0'.
+    // ---- saturating narrow is sound; a truncation would read U+0130 as '0'.
     {
         static const wchar_t WIDE[] = {
             0x0100, 0x0130, 0x0141, 0x0161, 0x01FF, 0x1234, 0x2D2D, 0x3030,

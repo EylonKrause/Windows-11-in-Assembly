@@ -7,21 +7,21 @@
  *
  * So every row here is one of:
  *
- *   ASCII    one byte per character                     -- the 16-wide block
- *   2-byte   U+0080..U+07FF                             -- the one-or-two-byte block
+ *   ASCII    one byte per character, the 16-wide block
+ *   2-byte   U+0080..U+07FF, the one-or-two-byte block
  *   Cyrillic U+0410.. , which is what discovery/desktop-startup-timings.md measured the shipped
  *            export at 1.071 ns/byte on: the worst row it found anywhere
- *   3-byte   U+0800..U+FFFF non-surrogate               -- the general BMP block
- *   pairs    surrogate pairs                            -- the surrogate block
+ *   3-byte   U+0800..U+FFFF non-surrogate, the general BMP block
+ *   pairs    surrogate pairs, the surrogate block
  *   mixed    ASCII alternating with two-byte, which is what European and Middle Eastern prose
  *            looks like once it has spaces and punctuation in it
- *   lone     lone surrogates, each becoming U+FFFD      -- no block handles these, so the row
+ *   lone     lone surrogates, each becoming U+FFFD, no block handles these, so the row
  *            measures the scalar path on purpose
  *
  * and each class is run in all three MODES a real caller uses:
  *
  *   convert     an explicit cchWideChar and a generous destination
- *   measure     cbMultiByte = 0, the sizing half of the measure-then-convert idiom -- the shipped
+ *   measure     cbMultiByte = 0, the sizing half of the measure-then-convert idiom, the shipped
  *               export costs 476 ns for 4095 ASCII characters there, a quarter of the conversion
  *   cch = -1    a NUL-terminated source, which is how this function is most often called and which
  *               makes the length scan part of the measurement

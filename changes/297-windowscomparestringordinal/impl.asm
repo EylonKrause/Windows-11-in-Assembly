@@ -3,7 +3,7 @@
 ;   [rcx, rdx, r8 -> eax]
 ;
 ; Reimplements combase!WindowsCompareStringOrdinal. 83 ns to compare two EQUAL 254-character
-; HSTRINGs on bench #3 -- 0.177 ns per byte, against 0.038 ns per byte for this repository's
+; HSTRINGs on bench #3, 0.177 ns per byte, against 0.038 ns per byte for this repository's
 ; bounded UTF-16 compare (change 041). combase is bound across the whole WinRT surface; the sibling
 ; accessors WindowsGetStringLen and WindowsGetStringRawBuffer carry 109 and 113 desktop modules.
 ;
@@ -13,22 +13,22 @@
 ; collation tables to be bit-exact. A name is not evidence, so probes/wcso.c measured it: 400 000
 ; random pairs over an alphabet loaded with case pairs, ignorables, combining marks, sharp-s,
 ; U+0130/U+0131, lone and paired surrogates, PUA and non-characters produced ZERO differences from
-; a plain code-unit compare -- on a corpus where a LINGUISTIC CompareStringW disagrees 19.7% of the
-; time -- and nothing moved under en-US, tr-TR, lt-LT, az-Latn-AZ, el-GR or ja-JP. Ordering is by
+; a plain code-unit compare, on a corpus where a LINGUISTIC CompareStringW disagrees 19.7% of the
+; time, and nothing moved under en-US, tr-TR, lt-LT, az-Latn-AZ, el-GR or ja-JP. Ordering is by
 ; UTF-16 code unit and not code point: U+ffff compares greater than U+10000.
 ;
 ; What the shipped export actually does (see RESULTS.md for the disassembly). It is a shim: it
-; reads the two handles directly -- `mov r9d,[rdx+4]` length, `mov r8,[rdx+10h]` buffer -- and
+; reads the two handles directly (`mov r9d,[rdx+4]` length, `mov r8,[rdx+10h]` buffer) and
 ; forwards to kernelbase!CompareStringOrdinal through the api-ms-win-core-string-l1-1-0 IAT slot,
 ; then maps CSTR_LESS_THAN/EQUAL/GREATER_THAN onto -1/0/1. So the 83 ns is a cross-DLL indirect
 ; call plus a scalar-speed compare, and both of those are ours to delete.
 ;
 ; Why the handle is read directly rather than through the accessors. WindowsGetStringLen measures
 ; 1.90 ns and WindowsGetStringRawBuffer 2.20 ns, so routing two handles through them costs about
-; 8 ns -- which is nothing against 83 ns but is most of a 2 ns answer at the short sizes where this
+; 8 ns, which is nothing against 83 ns but is most of a 2 ns answer at the short sizes where this
 ; function has its largest ratio. The layout is not a guess: it is the body of the shipped export,
 ; it is the whole body of both accessors, and probes/wcso.c cross-checked [h+4] and [h+0x10]
-; against those accessors over 164 live handles of every kind combase can build -- heap, fast-pass
+; against those accessors over 164 live handles of every kind combase can build, heap, fast-pass
 ; reference, preallocated-and-promoted, and substring. correctness.c re-proves it on every run.
 ;
 ; CONTRACT, all of it measured:
@@ -41,14 +41,14 @@
 ;   * otherwise                   -> compare min(len1,len2) code units; on the first difference the
 ;                                    sign of the unsigned code-unit difference; if the prefix is
 ;                                    equal the SHORTER string is LESS. Embedded NULs are ordinary
-;                                    characters -- the scan runs to the declared length.
+;                                    characters, the scan runs to the declared length.
 ;   * a non-NULL handle whose BUFFER is NULL -> *result = 0 against ANYTHING, and
 ;     GetLastError() == 87. Unreachable through any documented creator; replicated anyway, because
 ;     the gate is exact and the corpus forges the header.
 ;   * GetLastError is untouched on every other path.
 ;
 ; No page checks are needed. The handle declares its length, so both buffers are guaranteed to hold
-; min(len1,len2) code units, and every load below lies inside that window -- including the two
+; min(len1,len2) code units, and every load below lies inside that window, including the two
 ; OVERLAPPING trailing windows, whose second load starts at n-8 (resp. n-4, n-2) and is therefore
 ; still inside a string that is at least that long. correctness.c proves it the hard way anyway,
 ; with both buffers ending exactly at a page boundary whose successor is PAGE_NOACCESS and with no
@@ -107,7 +107,7 @@ wia_WindowsCompareStringOrdinal PROC
         ;
         ; Hoisting the bound is the larger of the two and it is pure bookkeeping: written the
         ; obvious way the loop recomputes `remaining = n - i` and compares it with 16 every
-        ; iteration -- four instructions and two branches per 32 bytes. `limit = n - 32` computed
+        ; iteration, four instructions and two branches per 32 bytes. `limit = n - 32` computed
         ; once makes it one compare and one branch, and 4000 characters went 178 -> 133 ns.
         ;
         ; The unroll is worth most in the middle, which is not where an unroll is usually pitched:
@@ -121,7 +121,7 @@ loop32:
         ; in the high block" is a single AND. The halves are only separated on the iteration that
         ; actually finds a difference, so the common path pays for one mask, not two. One block per
         ; iteration measured 64 GB/s at 4000 characters against a ~93 GB/s two-loads-per-cycle
-        ; ceiling -- front-end bound, not load bound, which is what said an unroll would pay.
+        ; ceiling, front-end bound, not load bound, which is what said an unroll would pay.
         vmovdqu   ymm0, ymmword ptr [rcx + r11*2]
         vmovdqu   ymm1, ymmword ptr [rdx + r11*2]
         vmovdqu   ymm3, ymmword ptr [rcx + r11*2 + 32]
@@ -168,7 +168,7 @@ diff32:
 
         ;---------------- 0..15 left ----------------
         ; Two OVERLAPPING 8-code-unit windows finish any string of eight or more, and the trailing
-        ; one alone finishes a remainder of 1..7 -- everything before i is already proved equal, so
+        ; one alone finishes a remainder of 1..7, everything before i is already proved equal, so
         ; re-reading it cannot manufacture a difference, and the window stays inside the string so
         ; there is no page question. This is the shape changes 210, 265 and 266 use.
 tail:
@@ -204,7 +204,7 @@ diff16:
         ; The same overlapping-pair idea at 4 and at 2 code units, with plain integer loads. An
         ; HSTRING short enough to land here is a type-name fragment or a one-character key, and the
         ; shipped export still pays its cross-DLL call for it, so this is the class with the
-        ; largest ratio -- it is worth not walking character by character.
+        ; largest ratio; it is worth not walking character by character.
 tiny:
         cmp       eax, 4
         jb        tiny_lt4
@@ -294,23 +294,23 @@ no_result:
 wia_WindowsCompareStringOrdinal ENDP
 
 ; ====================================================================================================
-; The two cold paths are separate `proc frame` functions, and that is not tidiness -- it is a bug fix.
+; The two cold paths are separate `proc frame` functions, and that is not tidiness; it is a bug fix.
 ;
 ; Both of them call out. Written inline, as `sub rsp,40 / call / add rsp,40` inside the main PROC --
-; which is the shape change 150 uses for _invalid_parameter_noinfo -- the answers were all correct
+; which is the shape change 150 uses for _invalid_parameter_noinfo; the answers were all correct
 ; and `GetLastError()` came back **126, ERROR_MOD_NOT_FOUND**, where the live export leaves 0. It was
 ; reproducible, it survived three passes, and reversing the order of the three calls in the harness
 ; made it vanish, which is what said it was not arithmetic.
 ;
 ; RoOriginateErrorW captures the call stack for the error object it builds. a MASM `proc` without
 ; FRAME emits no `.pdata` entry, so the unwinder treats it as a LEAF and takes the return address
-; from `[rsp]` -- and we had just moved `rsp` down by 40 bytes, so it read forty bytes of our own
+; from `[rsp]`, and we had just moved `rsp` down by 40 bytes, so it read forty bytes of our own
 ; frame as a return address, handed that to the module lookup, and the lookup failed:
 ; ERROR_MOD_NOT_FOUND. The wrong answers were correct; the *byproduct* was wrong, and only a gate
 ; that compares `GetLastError()` on a path that returns the right HRESULT could ever have seen it.
 ;
 ; Entering these by `jmp` rather than `call` keeps `rsp` exactly as it was at our own entry, so to
-; the unwinder the helper simply IS the function our caller called -- and the helper has real unwind
+; the unwinder the helper simply IS the function our caller called, and the helper has real unwind
 ; data. The main PROC stays a genuine leaf, which is what makes ITS missing `.pdata` correct.
 ; ====================================================================================================
 

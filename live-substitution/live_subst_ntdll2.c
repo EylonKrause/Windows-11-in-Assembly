@@ -1,8 +1,8 @@
 // live-substitution/live_subst_ntdll2.c
 // LIVE-RUN PROOF for changes 192 (RtlAreBitsClear) and 193 (RtlIsTextUnicode).
 //
-// 193 is the reason this harness exists separately. Its contract was not derived black-box -- it
-// was read out of ntdll's own disassembly and then fuzz-confirmed -- so proving it under live
+// 193 is the reason this harness exists separately. Its contract was not derived black-box, it
+// was read out of ntdll's own disassembly and then fuzz-confirmed, so proving it under live
 // substitution is proving that the READING was right, on the real export, on inputs weighted onto
 // the two slots that were misread first: the post-loop high-byte test (which only shows up in
 // NULL_BYTES) and the CR/LF threshold (which only shows up past 40 bytes). Every case therefore
@@ -10,7 +10,7 @@
 //
 // FREEZE-SAFETY PROTOCOL (unchanged):
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of ntdll -- never a live system process, never the file on disk.
+//       copy-on-write copy of ntdll, never a live system process, never the file on disk.
 //       A user-mode fault cannot bugcheck; there is no kernel-mode code anywhere here.
 //   (1) Validate first against the live export over a fuzz corpus before any patch.
 //   (2) Patch only when idle: single-threaded, and neither routine is used by the loader or heap.

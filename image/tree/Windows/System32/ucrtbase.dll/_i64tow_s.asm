@@ -6,13 +6,13 @@
 ; errno_t wia_i64tow_s(__int64 Value, wchar_t* Buffer, size_t SizeInChars, int Radix)
 ;   [rcx, rdx, r8, r9d -> eax]
 ;
-; Reimplements ucrtbase!_i64tow_s -- the wide form of change 194 and the bounded form of change
+; Reimplements ucrtbase!_i64tow_s, the wide form of change 194 and the bounded form of change
 ; 075. 37.8 ns for a 19-digit value in the shipped version, one 64-bit `div` per digit.
 ;
 ; The contract is change 194's, and that is a MEASUREMENT rather than an inheritance: the probe in
 ; ../194-i64toa-s/probes/its.c ran the byte and wide forms side by side over 200 000 random
 ; (value, size, radix) triples and compared them character for character, including the untouched
-; cells past the terminator -- 0 differences. So every rule change 194 read out of the shipped
+; cells past the terminator, 0 differences. So every rule change 194 read out of the shipped
 ; disassembly holds here:
 ;
 ;   * Buffer == NULL or SizeInChars == 0 -> EINVAL (22), nothing written;
@@ -29,7 +29,7 @@
 ;   * the 2-digit decimal table holds a DWORD per entry (two wide characters), so radix 10 still
 ;     writes two digits per store and still divides only once per two digits;
 ;   * SizeInChars counts CHARACTERS, so the digit count, the fit test and both copy loops work in
-;     characters while the wide copy still moves 8 bytes -- four characters -- at a time.
+;     characters while the wide copy still moves 8 bytes (four characters) at a time.
 ;
 ; ISA: baseline x64.
 

@@ -1,7 +1,7 @@
-/* ip4tail.c -- exactly what does ntdll!RtlIpv4AddressToString{A,W} leave in the destination?
+/* ip4tail.c: exactly what does ntdll!RtlIpv4AddressToString{A,W} leave in the destination?
  *
  * The live-substitution harness found changes 059 and 061 diverging from the shipped exports on
- * 17462 of 20000 cases with the SAME rendered text and the SAME returned pointer -- the difference
+ * 17462 of 20000 cases with the SAME rendered text and the SAME returned pointer, the difference
  * being a single byte past the terminator. This asks the exports directly, on a poisoned buffer,
  * for addresses of every rendered length, and prints what each one wrote.
  */

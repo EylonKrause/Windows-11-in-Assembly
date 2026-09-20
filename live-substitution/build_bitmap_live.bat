@@ -3,7 +3,7 @@ REM ===========================================================================
 REM  Live substitution for the four ntdll bitmap routines:
 REM    023 RtlNumberOfSetBits       030 RtlAreBitsSet
 REM    123 RtlFindLongestRunClear   124 RtlNumberOfClearBits
-REM  All four are self-contained impl.asm -- no helper .c, no init call.
+REM  All four are self-contained impl.asm, no helper .c, no init call.
 REM ===========================================================================
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

@@ -1,7 +1,7 @@
 /* changes/283-strrstriw/correctness.c
  *
  * Gate 1 for shlwapi!StrRStrIW: Ours vs the scalar model vs the live export, on the returned
- * pointer compared as a BYTE offset -- because change 282 found a mutant that returned a pointer
+ * pointer compared as a BYTE offset, because change 282 found a mutant that returned a pointer
  * one byte into the middle of a wchar_t and survived both gates, since `p - base` on a wchar_t*
  * divides the odd byte away.
  *
@@ -20,7 +20,7 @@
  *     each other.
  *   * Ignorable characters, because a collation-based search would skip them and this one must
  *     match them: "ab<SOFT HYPHEN>cd" does NOT contain "abc".
- *   * And a guard page, with the terminator as the last readable code unit -- the export reads to
+ *   * And a guard page, with the terminator as the last readable code unit; the export reads to
  *     the terminator regardless of `end`, so that is where the scan must stop.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -214,8 +214,8 @@ int main(void)
      * prefixes of that period, so checking a subset of positions implies the whole match. Corpus 2
      * fills the haystack with 'z' and gives the needle a first character that occurs at exactly one
      * planted site, so the only candidate is already a full match. The single case that did catch
-     * it was corpus 4's intransitive triple -- the one needle in the whole corpus whose first and
-     * last characters match while its middle does not -- and that was an accident of a test written
+     * it was corpus 4's intransitive triple, the one needle in the whole corpus whose first and
+     * last characters match while its middle does not, and that was an accident of a test written
      * for an entirely different purpose.
      *
      * So the near-miss is now built on purpose: for every needle length and every interior index, a
@@ -258,11 +258,11 @@ int main(void)
          * The filler is 0x034F, not 0x200B, and that was a real mistake. This block was first written
          * with a 0x200B filler and a comment claiming that it and 0x00AD "are both ignorable and match
          * each other, so every position is a candidate". Change 285's relation probe measured the
-         * truth: n[0x200B] is 0 -- the zero width space matches only itself and is not one of the 3237
+         * truth: n[0x200B] is 0; the zero width space matches only itself and is not one of the 3237
          * ignorables at all, while match(0x00AD, 0x034F) is 1. So the filler matched nothing, NO
          * position was a candidate, and this family was quietly testing the empty case while its
          * comment claimed the opposite. The cases still passed, because all three sides agreed on the
-         * answer -- which is exactly what makes a test that measures nothing hard to notice. */
+         * answer, which is exactly what makes a test that measures nothing hard to notice. */
         for (j = 3; j <= 6; ++j) {
             n[0] = 0x00AD;
             for (m = 1; m < j; ++m) n[m] = (wchar_t)(L'a' + m);
@@ -349,7 +349,7 @@ int main(void)
          * is how it was found that (b) agrees for the wrong reason a second time: with the refusal
          * gone the search keys on the needle's first code unit, which for an empty needle is the
          * TERMINATOR, and then looks for a haystack character matching a NUL. Over a haystack of
-         * plain letters there is no such character, so it finds nothing and returns NULL -- the
+         * plain letters there is no such character, so it finds nothing and returns NULL, the
          * right answer, reached by a route that proves nothing. Put a soft hyphen in the haystack
          * and the unguarded code reports a match there while the live export still returns NULL.
          */
@@ -369,8 +369,8 @@ int main(void)
 
     /* 9. a match planted below `start`, at every alignment.
      *
-     * Dropping the bottom edge mask in the backward block scan -- the `and eax, edx` that clears the
-     * bits for code units lying below `start` -- SURVIVED everything above. The scan reads aligned
+     * Dropping the bottom edge mask in the backward block scan, the `and eax, edx` that clears the
+     * bits for code units lying below `start`, SURVIVED everything above. The scan reads aligned
      * 32-byte blocks, so the block containing `start` almost always extends below it, and the mask
      * is the only thing stopping a hit there from being accepted. Every corpus above begins its
      * haystack far from any planted needle, so there was never anything below `start` to find and
@@ -408,12 +408,12 @@ int main(void)
      * a single-broadcast path, up to four takes a four-register path, and more takes a WIDE path
      * that skips the vector filter. Moving that threshold from 4 to 200 SURVIVED the whole corpus,
      * because the only many-partner needle used anywhere above was an ignorable, and change 281
-     * stores the 3320 ignorables behind a count of 255 -- so they took the WIDE path either way and
+     * stores the 3320 ignorables behind a count of 255, so they took the WIDE path either way and
      * the moved threshold changed nothing.
      *
      * probes/partners.c measured which counts actually occur: 0, 2, 3, 4, 5, 6, 7, 8 and the 255
      * sentinel, nine in all. The representatives below drive one needle per class, and the haystack
-     * is planted with every member of the set in turn -- because a four-register path asked to hold
+     * is planted with every member of the set in turn, because a four-register path asked to hold
      * a five-member set must drop a member, and only the dropped one exposes it.
      */
     {
@@ -457,7 +457,7 @@ int main(void)
      * candidate has actually been rejected, and then it faults reading past the page.
      *
      * So here the needle's FIRST character occurs at almost every position while the whole needle
-     * matches low down or not at all -- forcing a long run of rejected candidates that starts right
+     * matches low down or not at all, forcing a long run of rejected candidates that starts right
      * next to the unreadable page.
      */
     {
@@ -487,7 +487,7 @@ int main(void)
     /* 12. Non-zero memory after the terminator: The virtual NUL, proved rather than assumed.
      *
      * Every haystack above lives in a static, zero-filled array, so the code units after a
-     * terminator are genuinely NUL -- and that makes two completely different rules indistinguishable:
+     * terminator are genuinely NUL, and that makes two completely different rules indistinguishable:
      *
      *   (A) the export READS the memory after the terminator and compares it;
      *   (B) the export treats the string as ending there and compares the needle's remaining
@@ -495,8 +495,8 @@ int main(void)
      *
      * Corpus 8 was written believing (A) was irrelevant and the whole match simply could not cross
      * the terminator; that was wrong. Then the implementation was rebuilt on (A), and the
-     * live-substitution gate -- which reuses ONE buffer across 30000 cases, so the code units after
-     * a terminator hold the previous case's letters -- found three disagreements at once. Only then
+     * live-substitution gate, which reuses ONE buffer across 30000 cases, so the code units after
+     * a terminator hold the previous case's letters, found three disagreements at once. Only then
      * did probes/pastnul2.c settle it as (B).
      *
      * So the deciding shape belongs in this corpus too: a buffer filled with a NON-ZERO character,
@@ -563,14 +563,14 @@ int main(void)
     /* 13. a needle whose first character matches a NUL, with `end` past the terminator.
      *
      * A match may start only at a REAL character: the highest candidate is hlen-1, never hlen. The
-     * mutant that caps at hlen instead -- letting a match start AT the terminator -- survived
+     * mutant that caps at hlen instead (letting a match start AT the terminator) survived
      * everything above, because that only becomes visible when the needle's FIRST character matches a
      * NUL and `end` reaches past the terminator, and no corpus above combines the two. Every needle
      * with a NUL-matching character had it in the TAIL (corpus 8) or was an ignorable in the WIDE
      * family whose `end` stopped inside the string (corpus 7).
      *
      * 0x00AD matches a NUL, so a needle of soft hyphens must find nothing in a string of letters
-     * however far `end` reaches -- and must still find a real soft hyphen when one is planted.
+     * however far `end` reaches, and must still find a real soft hyphen when one is planted.
      */
     {
         long before = cases;
@@ -591,7 +591,7 @@ int main(void)
                 for (e = len; e <= len + 6; ++e) one(h, h + e, n);
             }
 
-            /* and the control: plant a REAL soft hyphen, which must then be found -- at the highest
+            /* and the control: plant a REAL soft hyphen, which must then be found, at the highest
                such position, not at the terminator beyond it */
             if (len >= 3) {
                 h[1] = 0x00AD;

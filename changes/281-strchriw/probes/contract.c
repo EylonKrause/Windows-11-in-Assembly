@@ -3,7 +3,7 @@
  * What does shlwapi's case-insensitive search family actually consider equal?
  *
  * discovery/charclass_strcmp_2026.c measured StrChrIW at 21939.92 ns to scan 511 characters. That
- * is forty-three nanoseconds per character, which is not a table lookup and not a loop -- it is the
+ * is forty-three nanoseconds per character, which is not a table lookup and not a loop; it is the
  * cost of a full call per character. For scale, CompareStringOrdinal compares the same 511
  * characters in 85.91 ns, and change 277's vectorised CharUpperBuffW upcases 4000 of them in under
  * a microsecond.
@@ -12,10 +12,10 @@
  * this family treat as equal? There are three plausible answers and they are not the same function:
  *
  *   1. ASCII-only folding (a-z <-> A-Z and nothing else);
- *   2. the ORDINAL upcase table -- what CharUpperW and RtlUpcaseUnicodeChar use. Change 277 proved
+ *   2. the ORDINAL upcase table, what CharUpperW and RtlUpcaseUnicodeChar use. Change 277 proved
  *      that table is ntdll's and is NOT locale-aware, not even under a Turkish locale;
  *   3. a LINGUISTIC fold through CompareString/LCMapString, which is locale-dependent and which
- *      this project does not own -- change 276 parked for exactly that reason.
+ *      this project does not own, change 276 parked for exactly that reason.
  *
  * If the answer is (3) this change cannot be written. So this probe does not guess: it asks
  * StrChrIW itself, for every one of the 65536 UTF-16 code units, which partners it matches, and

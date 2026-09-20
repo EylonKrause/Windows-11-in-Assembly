@@ -26,7 +26,7 @@ static void one(fn sys, const GUID* g, USHORT maxlen){
         // WCHAR the caller's capacity allows, and probes/tail.c reproduces it on every capacity
         // it is asked about. A rule that a probe was too narrow to see is not the absence of a
         // rule. Everything else in the destination stays as the caller left it, so the three
-        // buffers must now agree byte-for-byte -- which tests the capacity terminator and
+        // buffers must now agree byte-for-byte, which tests the capacity terminator and
         // over-write safety in one comparison, with nothing excused.
         if(memcmp(bo,by,sizeof(bo))!=0) bad=1;
         if(memcmp(bo,br,sizeof(bo))!=0) bad=1;

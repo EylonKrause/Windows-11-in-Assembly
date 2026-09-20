@@ -15,7 +15,7 @@
  *     EXTENDED from sixteen bits.
  *   * When the common prefix is equal, the answer is len1 - len2, in characters: "abc" against
  *     "abcdef" is -3, not -1 and not -6. A difference inside the common part still wins over the
- *     lengths -- "abz" against "abcd" is 23.
+ *     lengths, "abz" against "abcd" is 23.
  *   * The lengths are in characters. The first run of the discovery probe passed 2 for a single
  *     character and every character came back different from itself.
  *   * Case-insensitive returns the upcased difference: `a` against `B` is -1, which is a - B. It is
@@ -23,8 +23,8 @@
  *     equality test.
  *   * a NULL pointer with length zero is never read.
  *
- * The fold is RtlUpcaseUnicodeChar exactly -- discovery/rtl_cmpstrings_probe.c enumerated a dense
- * sweep of character pairs and found no pair the table disagreed about in either direction -- so the
+ * The fold is RtlUpcaseUnicodeChar exactly, discovery/rtl_cmpstrings_probe.c enumerated a dense
+ * sweep of character pairs and found no pair the table disagreed about in either direction, so the
  * table is built from the OS once, which is what change 210 does for the same reason: a table
  * transcribed into the repository would be a second copy of Windows data that servicing could move.
  */

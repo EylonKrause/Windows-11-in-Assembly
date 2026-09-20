@@ -1,12 +1,12 @@
 ; changes/189-wcstoul/impl.asm
 ; unsigned long wia_wcstoul(const wchar_t* nptr, wchar_t** endptr, int base)  [rcx, rdx, r8d -> eax]
 ;
-; Reimplements ucrtbase!wcstoul -- the unsigned wide general integer parser, and the fourth
+; Reimplements ucrtbase!wcstoul, the unsigned wide general integer parser, and the fourth
 ; function unblocked by change 186's sweeps.
 ;
-; Contract: everything change 188 established for wcstol -- the 26 whitespace units, the 18 digit
+; Contract: everything change 188 established for wcstol, the 26 whitespace units, the 18 digit
 ; blocks, ASCII-only letters for values 10..35, the "0x" prefix zero being ANY block's zero while
-; the 'x' stays ASCII-only, the no-conversion quirk, and the invalid-base handler + EINVAL -- with
+; the 'x' stays ASCII-only, the no-conversion quirk, and the invalid-base handler + EINVAL, with
 ; change 111's UNSIGNED tail:
 ;
 ;   * a leading '-' is accepted and NEGATES MODULO 2^32, so "-1" returns 4294967295 with no error;
@@ -19,13 +19,13 @@
 ; the ASCII-only-prefix-zero variant for both of them on 1579 cases, so the quirk is not specific
 ; to the signed form.
 ;
-; Shape: identical to change 188 -- the digit loop has NO CALL on any path, with the classifier
+; Shape: identical to change 188; the digit loop has NO CALL on any path, with the classifier
 ; inlined in frequency order (ASCII digit, ASCII letter, fullwidth, then one AVX2 pass over the
 ; remaining 16 blocks), and the two prefix sites using the cheap `is_zero` helper. 188's RESULTS.md
 ; records the measurements that forced that shape; a call-per-character version regressed two size
 ; classes outright.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _errno:PROC
 EXTERN _invalid_parameter_noinfo:PROC
@@ -158,7 +158,7 @@ have_base:
         add       rsi, 4
 no_prefix:
 
-        ;================ digits -- no call on any path ================
+        ;================ digits, no call on any path ================
         mov       rbx, rsi                       ; digstart
         xor       r12, r12                       ; acc
         xor       r9d, r9d                       ; overflow flag
@@ -254,7 +254,7 @@ epilogue:
         ret
 
 ; ---------------------------------------------------------------------------
-; is_zero -- internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
+; is_zero, internal. In: r10d = code unit. Out: eax = 1 if it is a decimal digit with value 0
 ; (one of the 18 block zeros), else 0. Clobbers eax, xmm0-xmm2. Uses no stack.
 ; The prefix sites need only this question, not a full 0..35 classification.
 ; ---------------------------------------------------------------------------

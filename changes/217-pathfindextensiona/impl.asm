@@ -3,7 +3,7 @@
 ;
 ; Reimplements shlwapi!PathFindExtensionA: return a pointer to the '.' introducing the extension, or
 ; to the terminating NUL when there is none. The live export costs 183.00 ns for a 55-character path
-; against 37.64 ns for PathFindExtensionW on the SAME path -- 4.86x the wide cost for HALF the bytes,
+; against 37.64 ns for PathFindExtensionW on the SAME path, 4.86x the wide cost for HALF the bytes,
 ; the MBCS-walk signature the whole narrow shlwapi family has shown.
 ;
 ; ---- This target found a bug in landed code ---------------------------------------------------------
@@ -14,7 +14,7 @@
 ; wrong together.
 ;
 ; The two exports agree with each other on every one of those 2015539 strings, so the narrow form
-; inherits the CORRECTED rule -- but it was measured, not assumed: 0 mismatches for A and 0 for W,
+; inherits the CORRECTED rule, but it was measured, not assumed: 0 mismatches for A and 0 for W,
 ; over {a, '.', backslash, '/', ':', space} and again over {a, '.', backslash, space, tab, 0xE9}.
 ;
 ; Contract:
@@ -30,7 +30,7 @@
 ; Method: one forward AVX2 pass. Per 32-byte block the masks for '.', the STOPPERS and NUL are
 ; extracted; the running candidate is updated by the rule "a stopper clears the candidate, a later
 ; dot sets it",
-; which per block reduces to comparing the highest dot bit against the highest backslash bit -- no
+; which per block reduces to comparing the highest dot bit against the highest backslash bit, no
 ; per-character loop. Page-safe: the first load is aligned down to 32 bytes with the leading bytes
 ; shifted out of the masks, and every later load is 32-aligned.
 ;

@@ -12,7 +12,7 @@
 ; and hands it to a StringCchPrintfA clone that re-parses that format on every call. Measured at
 ; 263 ns per call on this machine to write 38 characters.
 ;
-; Contract -- measured, not inherited from 202. This is a separate export, and this project has
+; Contract, measured, not inherited from 202. This is a separate export, and this project has
 ; found A/W pairs carrying different conventions before, so probes/cgsa.c drove both exports over
 ; 200 000 random (GUID, length) pairs and compared character for character: 0 return-value
 ; differences, 0 buffer differences. The narrow contract is the wide one with byte cells:

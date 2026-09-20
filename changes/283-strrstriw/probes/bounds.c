@@ -2,7 +2,7 @@
  *
  * What does `end` actually bound, and where does the haystack stop?
  *
- * probes/contract.c settled the important thing -- the comparison is PER CHARACTER, not a collation
+ * probes/contract.c settled the important thing; the comparison is PER CHARACTER, not a collation
  * over spans, because "ab<SOFT HYPHEN>cd" does not contain "abc". That makes this change writable
  * on change 281's relation.
  *
@@ -21,7 +21,7 @@
  *
  * So `end` looks like a bound on where a match may START, and the haystack looks NUL-terminated.
  * Both of those change what the implementation may read, so both are measured here against a guard
- * page rather than inferred -- change 282's whole page-safety argument rested on its end pointer
+ * page rather than inferred, change 282's whole page-safety argument rested on its end pointer
  * being literal, and this one is evidently not.
  */
 #define WIN32_LEAN_AND_MEAN

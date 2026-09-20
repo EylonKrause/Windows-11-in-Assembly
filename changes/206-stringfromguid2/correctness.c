@@ -7,8 +7,8 @@
 //
 // 1. cchMax is SIGNED and every value below 39 is a flat refusal that must leave the buffer
 //    UNTOUCHED. An unsigned compare would read -1 as enormous and render into the caller's buffer,
-//    so the sweep covers negatives explicitly, and every case compares the whole buffer -- not just
-//    the return value -- so a refusal that scribbled anything would be caught.
+//    so the sweep covers negatives explicitly, and every case compares the whole buffer, not just
+//    the return value, so a refusal that scribbled anything would be caught.
 // 2. cchMax == 39 is the exact fit. One cell too few is a refusal; one too many is a success that
 //    must still write exactly 39 cells and no more, which the page-guard section proves.
 #define WIN32_LEAN_AND_MEAN

@@ -1,4 +1,4 @@
-// changes/003-wcschr/reference.c -- correctness oracle.
+// changes/003-wcschr/reference.c: correctness oracle.
 #include <wchar.h>
 wchar_t* ref_wcschr(const wchar_t* s, wchar_t c) {
     for (;;) {

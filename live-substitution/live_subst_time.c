@@ -8,7 +8,7 @@
 // Two of these write a struct and the third writes a counted string, so all four get the
 // comparison this directory exists for: the whole destination against a poison fill, not just the
 // fields the call was supposed to set. `TIME_FIELDS` is seven SHORTs and one of padding, and a
-// converter that leaves the eighth as it found it differs from one that zeroes it -- which is the
+// converter that leaves the eighth as it found it differs from one that zeroes it, which is the
 // distinction that mattered for the `RtlInit*String` descriptors.
 //
 // The corpus is the calendar's edges, not a uniform draw. a civil-from-days conversion is wrong at
@@ -25,7 +25,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ntdll -- never a live system process, never the file on disk.
+//       ntdll, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle: none of these four is used by the loader or the heap.
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.
@@ -192,14 +192,14 @@ static void run_all(ans_t* out){
     }
 }
 
-/* a negative Time is declared out of scope by change 126 Itself -- its header reads "Scope:
+/* a negative Time is declared out of scope by change 126 Itself; its header reads "Scope:
  * Time >= 0 (the whole representable domain: 1601-01-01 .. year ~30828). Negative Time is not"
  * in scope. The first run of this file drew negative FILETIMEs and reported 2809 divergences,
  * every one of them a negative input: ntdll clamps to 1601-01-01 with odd hour values, and this
  * implementation runs its era arithmetic straight through to a year of -5480.
  *
  * That is the harness asking a question the implementation declines to answer, for the third time
- * in this directory -- after routing CRYPT_STRING_NOCRLF to formats that never claimed it, and
+ * in this directory, after routing CRYPT_STRING_NOCRLF to formats that never claimed it, and
  * after driving malformed base64 at decoders whose scope says otherwise. The well-formed domain
  * carries the verdict and the negative cases are counted and printed. */
 static int negtime_diff;

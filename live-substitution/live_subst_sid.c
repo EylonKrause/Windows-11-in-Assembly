@@ -4,7 +4,7 @@
 // This export allocates, and that is the property no other gate can check. Every success hands the
 // caller a LocalAlloc block that the CALLER frees, through the process's ordinary, UNPATCHED
 // LocalFree. An implementation that returned a static buffer, a HeapAlloc block, or a LocalAlloc
-// block with the wrong flags would satisfy correctness.c -- which compares bytes -- and would
+// block with the wrong flags would satisfy correctness.c (which compares bytes) and would
 // corrupt the caller's heap here. So every allocated SID in this harness is freed, all 38000-odd of
 // them, and a bad block shows up as a crash or a heap check rather than as a diff.
 //
@@ -22,7 +22,7 @@
 // The corpus is regenerated from the case index on every pass, never carried in an array of
 // pointers and never advanced by a PRNG threaded through the three passes. Change 252's harness
 // carried PRNG state across its passes and reported 14285 differences with its patch counter at
-// ZERO -- the shipped export disagreeing with itself.
+// ZERO, the shipped export disagreeing with itself.
 //
 // The two os-derived tables are built before the patch exists, and they have to be: aliases.c and
 // classify.c both build themselves by ASKING ConvertStringSidToSidW several thousand questions. If
@@ -30,7 +30,7 @@
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded. It patches only its own per-process
-//       copy-on-write copy of the module -- never a live system process, never the file on disk.
+//       copy-on-write copy of the module, never a live system process, never the file on disk.
 //       Note that GetProcAddress resolves advapi32's forwarder, so the bytes actually patched are
 //       sechost's; the harness prints which module it landed in.
 //   (1) Validate first against the live export before any patch exists.

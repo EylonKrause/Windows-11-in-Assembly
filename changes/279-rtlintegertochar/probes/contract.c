@@ -13,7 +13,7 @@
  *     NTSTATUS RtlIntegerToChar(ULONG value, ulong base, long length, psz string)
  *     NTSTATUS RtlLargeIntegerToChar(PLARGE_INTEGER value, ulong base, long length, psz string)
  *
- * a length and a raw pointer, not a UNICODE_STRING -- so there is no Length field to set and the
+ * a length and a raw pointer, not a UNICODE_STRING, so there is no Length field to set and the
  * room rule is whatever `length` means. It could be "bytes available" or "exactly this many
  * characters, padded". The documentation for the pair is thin enough that guessing would be
  * reckless, and change 278's room rule turned out to differ from change 067's by one byte in the

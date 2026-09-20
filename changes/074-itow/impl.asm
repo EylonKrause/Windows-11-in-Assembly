@@ -3,7 +3,7 @@
 ;
 ; Wide sibling of 056 _itoa (ucrtbase _itow, which is the same code as _ltow). For Radix 10
 ; a negative Value is written as '-' + magnitude; for any other radix the 32-bit Value is
-; formatted UNSIGNED (bit pattern) -- e.g. _itow(-1,,16) -> "ffffffff". Radix 2..36,
+; formatted UNSIGNED (bit pattern), e.g. _itow(-1,,16) -> "ffffffff". Radix 2..36,
 ; lowercase digits > 9, NUL-terminated, returns Str. ISA: baseline x64. Validated on Zen3.
 
 EXTERN wia_dec2:WORD

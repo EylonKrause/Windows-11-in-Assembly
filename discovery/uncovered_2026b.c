@@ -9,14 +9,14 @@
  *     nn(A, A + 511, L'#')        labelled "range form"
  *
  * reusing StrRChrIW's three-argument typedef, when the real shape is (start, match, count). A wrong
- * argument order does not fault -- it just answers a different question -- so the sweep produced a
+ * argument order does not fault (it just answers a different question) so the sweep produced a
  * confident number for something that was not the function's cost. The real figure turned out to be
  * 16614 ns, an order of magnitude higher.
  *
  * So every candidate here carries a CHECK() that must pass before TIME() is allowed to run. The check
  * is not a smoke test: it asserts a specific documented result, so that a transposed or mis-sized
  * argument fails it. An export whose check fails is reported as UNVERIFIED and is NOT timed, because a
- * number from an unverified call is worse than no number at all -- it gets written into a README.
+ * number from an unverified call is worse than no number at all, it gets written into a README.
  *
  * Coverage as of change 286: ntdll 84 exports, ucrtbase 75, shlwapi 51, msvcrt 34, kernelbase 27. The
  * candidates below are the uncovered ones most likely to be worth a change: parsing (the inverse of the
@@ -169,7 +169,7 @@ s4:
     }
 s5:
     {
-        /* NOT REIMPLEMENTABLE -- do not pick this row up again. The 24x gap against RtlUniform below
+        /* NOT REIMPLEMENTABLE, do not pick this row up again. The 24x gap against RtlUniform below
            is real and it is not a target: RtlRandomEx's RETURN VALUE IS NOT A FUNCTION OF ITS SEED.
            The same seed gives different answers in one process, calls on an unrelated seed change the
            answers (the 128-entry shuffle table is process-global), and the FIRST call of a fresh
@@ -227,7 +227,7 @@ s9:
     {
         F_charupperw g = (F_charupperw)R(usr, "CharUpperBuffW");
         name = "user32!CharUpperBuffW (511 units)";
-        /* already covered by change 277 -- timed here only as a reference point */
+        /* already covered by change 277, timed here only as a reference point */
         if (!g) goto s10;
         {
             typedef DWORD (WINAPI *F_cub)(LPWSTR, DWORD);

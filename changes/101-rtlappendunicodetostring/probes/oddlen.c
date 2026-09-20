@@ -1,8 +1,8 @@
-/* appus2.c -- sweep the shape the live harness actually drives, and find the divergence.
+/* appus2.c: sweep the shape the live harness actually drives, and find the divergence.
  *
  * appus.c found nothing with a roomy destination, so the 1201 differing cases must come from the
  * harness's own parameters: MaximumLength 256 with a 512-byte buffer, Length anywhere from 0 to
- * 254, and a source of up to 599 characters -- so most appends overflow and some do not.
+ * 254, and a source of up to 599 characters, so most appends overflow and some do not.
  */
 #include <stdio.h>
 #include <string.h>

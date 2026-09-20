@@ -8,7 +8,7 @@
  * TRANSITIVE, and nothing has checked that it is.
  *
  * The gate is now pointing at exactly that hole. It reported 66 mismatches in 206096 where OURS
- * Agreed with live (both NULL) and the model claimed a match -- meaning the table says two code
+ * Agreed with live (both NULL) and the model claimed a match, meaning the table says two code
  * units share a class and the live export, asked directly, says they do not. probes/unfindable.c
  * ruled out the easy explanation: there are ZERO code units the export cannot find in a string of
  * themselves.

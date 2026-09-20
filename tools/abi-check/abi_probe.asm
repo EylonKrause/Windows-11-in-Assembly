@@ -3,8 +3,8 @@
 ;
 ; Calls thunk() with every Win64 non-volatile register holding a distinct sentinel and returns a
 ; bitmask of the registers the callee failed to preserve. The thunk is ordinary compiled C that
-; performs the real call with real arguments, so this one probe covers every signature -- two
-; arguments or seven -- without knowing anything about them.
+; performs the real call with real arguments, so this one probe covers every signature, two
+; arguments or seven, without knowing anything about them.
 ;
 ; Why this exists. Sixteen implementations in this repository quietly violated the Win64 ABI by
 ; using xmm6-xmm15 as scratch. Every one passed its correctness test, because a correctness test
@@ -16,7 +16,7 @@
 ;   volatile      rax rcx rdx r8 r9 r10 r11, xmm0-xmm5, and the UPPER half of ymm0-ymm15
 ;   non-volatile  rbx rbp rdi rsi rsp r12-r15, and the LOW 128 BITS of xmm6-xmm15
 ; ymm6's high lane is free; its low lane is not. That is why the comparison below is 128 bits wide
-; and not 256 -- a probe that checked the full ymm would report violations that are not violations.
+; and not 256; a probe that checked the full ymm would report violations that are not violations.
 ;
 ; Bits 0-7 = rbx rbp rdi rsi r12 r13 r14 r15;  bits 8-17 = xmm6..xmm15;
 ; bit 18 = stack pointer not restored;  bit 19 = direction flag left set.
@@ -233,13 +233,13 @@ wia_abi_probe ENDP
 ; ------------------------------------------------------------------------------------------------
 ; unsigned long long wia_abi_call4(void* fn, u64 a, u64 b, u64 c, u64 d)
 ;
-; The same check, armed around one call instead of around the whole thunk -- because the whole-thunk
+; The same check, armed around one call instead of around the whole thunk, because the whole-thunk
 ; form can be masked, and was. wia_abi_probe above fills the non-volatile registers, calls the C
 ; thunk and compares afterwards. But the thunk is compiled C: if the compiler uses r15 for a loop
 ; variable it SAVES r15 in its own prologue and RESTORES it in its epilogue, so an implementation
 ; that destroys r15 has its damage undone before the comparison ever happens. Proved rather than
-; suspected, on change 258: with `push r15` and its matching `pop` deleted from impl.asm -- an
-; implementation that provably destroys the caller's r15 -- the gate still reported PASS, and the
+; suspected, on change 258: with `push r15` and its matching `pop` deleted from impl.asm, an
+; implementation that provably destroys the caller's r15, the gate still reported PASS, and the
 ; thunk in that build begins `push rbx, push rbp, push rsi, push rdi, push r12, push r13, push r14,
 ; push r15`. The gate only ever saw registers the thunk happened not to want.
 ;
@@ -392,7 +392,7 @@ wia_abi_call4 ENDP
 ; unsigned long long wia_abi_call5(void* fn, u64 a, u64 b, u64 c, u64 d, u64 e)
 ; Exactly wia_abi_call4, for a target that takes FIVE arguments: the fifth goes on the stack
 ; at [rsp+20h], where the Win64 ABI puts it. It is a second copy rather than a C wrapper on
-; purpose -- a compiled adapter would save and restore xmm6 itself, which is precisely the
+; purpose; a compiled adapter would save and restore xmm6 itself, which is precisely the
 ; register change 263 destroyed in its first draft, and the gate would then have reported
 ; PASS on a function that was corrupting its caller.
 wia_abi_call5 PROC

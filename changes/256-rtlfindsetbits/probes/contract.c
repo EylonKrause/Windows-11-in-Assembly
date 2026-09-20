@@ -1,23 +1,23 @@
 /* changes/256-rtlfindsetbits/probes/contract.c
  *
- * ntdll!RtlFindSetBits and ntdll!RtlFindClearBits -- "find the first run of N consecutive set (or
+ * ntdll!RtlFindSetBits and ntdll!RtlFindClearBits, "find the first run of N consecutive set (or
  * clear) bits, starting the search at HintIndex".
  *
  * Why these two, and why together. discovery/ntdll_bitmap.c put RtlFindSetBits at 0.132 ns/byte on
- * a 64 Kbit bitmap -- the most expensive row left in the family after RtlFindLongestRunClear, which
- * became change 255 -- and its mirror RtlFindClearBits at 0.026, FIVE TIMES cheaper for the same
+ * a 64 Kbit bitmap, the most expensive row left in the family after RtlFindLongestRunClear, which
+ * became change 255, and its mirror RtlFindClearBits at 0.026, FIVE TIMES cheaper for the same
  * failing full scan.
  *
  * A CORRECTION, 2026-09-16: this paragraph used to explain that gap as "not an illusion of the
  * subject ... they are simply not the same code". The measurement reproduces; the explanation was
- * wrong. probes/topbit.c rotates the pattern by one bit and the two timings SWAP -- both exports
+ * wrong. probes/topbit.c rotates the pattern by one bit and the two timings SWAP, both exports
  * skip words with the same sign-bit-driven loop, and RtlFindSetBits inverts the word, so the same
  * data sends one of them down the fast path and the other down the slow one. The pair is still
  * worth one change, and for a better reason: both have a one-cycle-per-word path and a
  * five-cycle-per-word path, and the data picks.
  *
  * The hint is the whole contract question. The documented behaviour is "the search begins at
- * HintIndex", and the obvious reading -- search forward from the hint and stop at the end -- is one
+ * HintIndex", and the obvious reading (search forward from the hint and stop at the end) is one
  * of three possibilities. It might also WRAP, restarting at bit 0 and searching up to the hint;
  * and if it wraps, a run that STRADDLES the wrap point either counts or does not. Those three
  * behaviours are indistinguishable on any bitmap whose answer lies after the hint, which is most of

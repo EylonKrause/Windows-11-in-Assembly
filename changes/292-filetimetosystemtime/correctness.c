@@ -14,7 +14,7 @@
  * match at every position" are answered by exhausting the two axes the value actually has:
  *
  *   a. The calendar axis, exhaustive. The date fields depend on nothing but the day count, so
- *      every one of the 10 675 200 day boundaries in the domain is tested -- at midnight, at the
+ *      every one of the 10 675 200 day boundaries in the domain is tested, at midnight, at the
  *      last tick of the day, and at an interior instant. That is not a sample of the calendar, it
  *      is all of it.
  *
@@ -23,10 +23,10 @@
  *      floor(n/d) changes only at multiples of d, so testing rem = k*10000 and rem = k*10000 - 1
  *      for every k in [0, 86 400 000) hits every quotient boundary of every one of the four
  *      divisors. That is a proof of the four magic numbers over their whole operand range, not a
- *      sample -- the same standard change 126 held its constants to.
+ *      sample, the same standard change 126 held its constants to.
  *
  *   C. Edges: 0; 1 tick; 9999 and 10000 ticks; the last tick of day 0; the 1970 epoch;
- *      0x7FFFFFFFFFFFFFFF and 0x7FFFFFFFFFFFFFFE (year 30828, ACCEPTED -- there is no upper bound);
+ *      0x7FFFFFFFFFFFFFFF and 0x7FFFFFFFFFFFFFFE (year 30828, ACCEPTED; there is no upper bound);
  *      -1; 0x8000000000000000; and negative day and second multiples.
  *
  *   D. Alignment: the FILETIME placed at all 8 byte offsets of a qword, the SYSTEMTIME at all 16.

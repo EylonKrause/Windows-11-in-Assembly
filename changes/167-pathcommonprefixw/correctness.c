@@ -6,8 +6,8 @@
  *
  * The two formulations are different on purpose. Agreement between them is evidence that the
  * equivalence argument in impl.asm's header is right, not evidence that one model was compiled
- * twice. The place it would break is the terminator rule -- a NUL in one path against a '\' in the
- * other ends both components at the same length, so that component MATCHES -- and section 2's
+ * twice. The place it would break is the terminator rule, a NUL in one path against a '\' in the
+ * other ends both components at the same length, so that component MATCHES, and section 2's
  * exhaustive corpus is saturated with exactly that shape.
  *
  * Both observables, always: the returned int and the whole achPath buffer against a 0xBEEF fill.
@@ -16,7 +16,7 @@
  * terminator; and a result of 260 or more writes nothing at all.
  *
  * This change was parked at 99.3 %, so the exhaustive corpus below is the same 116281 pairs that
- * left 784 residuals -- kept identical on purpose, because the point is that they are now zero.
+ * left 784 residuals, kept identical on purpose, because the point is that they are now zero.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

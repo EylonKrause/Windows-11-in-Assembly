@@ -15,7 +15,7 @@
    WHAT THE CANDIDATE ENCODES, from change 242's feasibility probe:
      * an empty argument on either side is a no-op;
      * a drive-qualified or UNC `more` REPLACES the whole path ("C:\a" + "D:\b" -> "D:\b");
-     * a rooted `more` -- one leading separator -- is where the two functions differ, and it is the only
+     * a rooted `more` (one leading separator) is where the two functions differ, and it is the only
        place they differ over eight probed pairs: Append JOINS it ("C:\a" + "\b" -> "C:\a\b") and
        Combine treats it as rooted, replacing from base's ROOT ("C:\a" + "\b" -> "C:\b");
      * otherwise one separator goes between them, and never two.
@@ -104,7 +104,7 @@ static long rootlen_nosep(const wchar_t* s)
    "" + "\a" comes back as "a", with the separator GONE, which no "insert only if needed" rule can
    produce. A `more` with TWO leading separators is a UNC path and replaces instead, so the strip only
    ever removes one. */
-/* Does `more` REPLACE the base outright? Two leading separators usually mean yes -- "\\a", "\\.",
+/* Does `more` REPLACE the base outright? Two leading separators usually mean yes, "\\a", "\\.",
    "\\\a", "\\" and even "\\\" all replace -- but NOT "\\?" or "\\?a", which join with BOTH separators
    gone ("a" + "\\?a" is "a\?a" and "" + "\\?a" is "?a"). "\\?\" and everything under it replaces again.
    So the exception is exactly "\\?" followed by something that is not a separator: an INCOMPLETE

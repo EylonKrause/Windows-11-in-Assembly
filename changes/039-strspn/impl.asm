@@ -2,7 +2,7 @@
 ; size_t wia_strspn(const char* s, const char* set)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements ucrtbase!strspn: length of the initial run of characters that all appear in `set`.
-; The narrow version is NOT the naive O(n*m) loop its wide sibling is -- with only 256 possible byte
+; The narrow version is NOT the naive O(n*m) loop its wide sibling is, with only 256 possible byte
 ; values it builds a 256-bit bitmap of the set and then scans the string one byte at a time against
 ; it. That is 178 ns for 254 characters: the O(m) part is gone, but the O(n) part is still a byte at
 ; a time, and the bitmap has to be built on every call.
@@ -13,13 +13,13 @@
 ;
 ; The byte-granular twin of change 156, and the structure is the same: the first three set characters
 ; are broadcast ONCE into ymm2/ymm4/ymm5 before the block loop, so the loop body is straight-line.
-; When the set is shorter the spare registers get a DUPLICATE of member 0 -- harmless, because the
+; When the set is shorter the spare registers get a DUPLICATE of member 0, harmless, because the
 ; compares are OR-ed and `a OR a == a`. An empty set is answered up front (nothing is in it, so the
 ; span is 0), which is also what makes the duplicate well defined: member 0 exists past that point.
 ; Sets longer than three walk the remainder from memory, a tail costing two uops per block when it is
 ; empty.
 ;
-; The terminator needs no special case -- a set is itself NUL-terminated, so it can never contain
+; The terminator needs no special case; a set is itself NUL-terminated, so it can never contain
 ; NUL; the NUL therefore fails every compare and stops the span naturally. (The complement span in
 ; change 160 does not get that for free.)
 ;

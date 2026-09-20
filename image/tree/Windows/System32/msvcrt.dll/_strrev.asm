@@ -7,8 +7,8 @@
 ;
 ; Reverse a NUL-terminated byte string in place. ucrtbase's is fully scalar: a byte-at-a-
 ; time strlen then a scalar two-pointer inward swap (no vectors, no page checks). That is
-; near-optimal for SHORT strings -- a vector strlen can't amortise its ~10-cycle setup over
-; 8 bytes -- so we match its strlen there (a scalar probe over the first 16 bytes, breaking
+; near-optimal for SHORT strings; a vector strlen can't amortise its ~10-cycle setup over
+; 8 bytes, so we match its strlen there (a scalar probe over the first 16 bytes, breaking
 ; at the NUL so it never reads past the terminator, exactly as page-safe as ucrtbase) but
 ; BEAT its reverse: instead of scalar swaps we byte-reverse whole registers with `bswap`
 ; (8-byte chunks) and 16-byte lanes with `vpshufb`, writing only bytes inside [lo,hi) (all
@@ -31,7 +31,7 @@ wia_strrev PROC
         ; ---- unrolled scalar strlen probe: first 16 bytes. Independent lea+cmp+je per
         ; position (no serial pointer chain, no loop counter, one branch each). Each cmp
         ; only executes if the prior byte was non-zero, so it never *retires* a read past
-        ; the NUL -- exactly as page-safe as ucrtbase's scalar strlen. ----
+        ; the NUL, exactly as page-safe as ucrtbase's scalar strlen. ----
         lea       rax, [rcx]
         cmp       byte ptr [rax], 0
         je        sl_done
@@ -177,7 +177,7 @@ blk8:
         ; ---- tier 3: 8..15 bytes -> one OVERLAPPING bswap pair -----------------------------------
         ; The same overlap argument as tier 1, one size down: two 8-byte halves cover any length up
         ; to 16, and where they overlap they write the same bytes. This replaces up to seven scalar
-        ; byte-pair swaps -- which matters beyond the instruction count, because a caller that
+        ; byte-pair swaps, which matters beyond the instruction count, because a caller that
         ; reverses the same buffer repeatedly has those single-byte stores in flight when the next
         ; call's wide load arrives, and a narrow store feeding a wide load cannot forward.
 rem8:

@@ -1,12 +1,12 @@
 // changes/178-wcsupr-s/correctness.c
 // Gate 1: wia_wcsupr_s must be indistinguishable from ucrtbase!_wcsupr_s.
 // Three-way: our ASM vs the scalar oracle vs the LIVE export on this PC.
-// Return value AND whole buffer are compared, so the str[0]=0 on the error path -- and the
-// absence of any write past the terminator on success -- are both checked.
+// Return value AND whole buffer are compared, so the str[0]=0 on the error path, and the
+// absence of any write past the terminator on success, are both checked.
 //
 // The invalid-parameter handler is installed through ucrtbase's own
 // _set_invalid_parameter_handler so that both the live export and our ASM (which calls
-// ucrtbase's _invalid_parameter_noinfo) consult the SAME handler state -- the same care
+// ucrtbase's _invalid_parameter_noinfo) consult the SAME handler state, the same care
 // change 150 documents.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -90,7 +90,7 @@ int main(void){
         CHECK(one(s,(size_t)len+1), "mixed-case sweep");
     }
 
-    // every code unit, one character at a time -- pins the fold set to exactly a-z
+    // every code unit, one character at a time, pins the fold set to exactly a-z
     for(int c=1;c<65536;c++){
         s[0]=(wchar_t)c; s[1]=0;
         CHECK(one(s,4), "fold-set sweep");

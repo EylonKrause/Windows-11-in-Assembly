@@ -6,7 +6,7 @@ Rem  The shipped export costs 43 ns per character because its equality test is
 REM  CompareStringW with NORM_IGNORECASE, evaluated once per code unit. The
 REM  relation it computes is locale-invariant, decided one character at a time,
 Rem  symmetric but not transitive -- U+D7B0 matches U+D7A2 and U+D7B1 matches
-REM  U+D7A2, but U+D7B0 does not match U+D7B1 -- so it has no classes and is
+REM  U+D7A2, but U+D7B0 does not match U+D7B1, so it has no classes and is
 REM  stored per NEEDLE.
 REM
 REM  All four dispatch shapes are driven explicitly rather than by a uniform

@@ -2,14 +2,14 @@
 ;   BOOL wia_str2sida(const char* s, PSID* out)      [Win64: rcx, rdx -> eax]
 ;
 ; advapi32!ConvertStringSidToSidA. discovery/sid_inet_bstr.c measured it at 343.95 ns against
-; 269.14 ns for the wide form -- and probes/asciilen.c put the gap at 70.90 ns on the same SID, of
+; 269.14 ns for the wide form, and probes/asciilen.c put the gap at 70.90 ns on the same SID, of
 ; which MultiByteToWideChar itself is only 24.70 ns.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; The ANSI form is a widening and then the wide parser, and that was measured.
 ;
-; probes/codepage.c asks the ANSI export and the wide export the same question -- the wide one being
-; given MultiByteToWideChar(CP_ACP, 0, s, -1, ...) of the same bytes -- and compares the BOOL,
+; probes/codepage.c asks the ANSI export and the wide export the same question, the wide one being
+; given MultiByteToWideChar(CP_ACP, 0, s, -1, ...) of the same bytes, and compares the BOOL,
 ; GetLastError, the fate of the output pointer and every byte of the SID:
 ;
 ;     every byte 0x01..0xFF, leading and trailing, in all three fields    1530 cases, 0 differ
@@ -24,7 +24,7 @@
 ; ASSUMED.
 ;
 ; probes/asciilen.c asked whether every byte below 0x80 is the same code point under every code page
-; Windows can use as the system ANSI setting -- all 22 of them, including the four DBCS pages and
+; Windows can use as the system ANSI setting, all 22 of them, including the four DBCS pages and
 ; 65001, over every byte 0x00..0x7F. ZERO counterexamples. So when no byte of the input has its top
 ; bit set, VPMOVZXBW is the same answer as the code page would give, and no code page is consulted.
 ;
@@ -35,7 +35,7 @@
 ; The scan finds the length and answers that question in one pass. Vpmovmskb extracts the top bit of
 ; every byte, which IS the "at or above 0x80" test, so the same 32-byte load yields the terminator
 ; mask (through a compare with zero) and the non-ASCII mask. The first block is loaded ALIGNED DOWN
-; and the bits before the string are shifted out -- a 32-byte aligned load never crosses a page
+; and the bits before the string are shifted out, a 32-byte aligned load never crosses a page
 ; boundary, so it cannot touch a page the string does not already occupy. That is change 225's rule,
 ; and the reason for it is that reading past a string that ends near a page boundary faults.
 ;
@@ -58,7 +58,7 @@ EXTERN wia_sida_free_keep:PROC
 EXTERN wia_sida_err_nomem:PROC
 
 ;   [rsp+0..31]      shadow space for the calls out
-;   [rsp+32..2079]   the widened string -- 1024 characters
+;   [rsp+32..2079]   the widened string, 1024 characters
 ;   [rsp+2080]       the allocated temporary, or zero
 ;   [rsp+2088]       the parser's answer, across the free
 TMPW      EQU 32

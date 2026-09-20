@@ -2,31 +2,31 @@
 ; BOOL wia_pathquotespacesa(PSTR psz)   [Win64: rcx -> eax]
 ;
 ; Reimplements shlwapi!PathQuoteSpacesA: wrap a path in double quotes if it contains a space.
-; 19.21 ns against 15.50 ns for the wide form on the same character count -- 1.24x the wide cost for
+; 19.21 ns against 15.50 ns for the wide form on the same character count, 1.24x the wide cost for
 ; HALF the bytes. No SEH wrapper, for the reason below.
 ;
 ; The contract, re-derived against the narrow export in probes/pqsa.c rather than inherited from
 ; change 172:
 ;
 ;   * Exactly one byte value counts as a space: 0x20. Sweeping all 255 non-NUL values in the middle
-;     of a path, only that one makes it quote -- a TAB does not, and neither does anything else.
+;     of a path, only that one makes it quote; a TAB does not, and neither does anything else.
 ;   * The length cap is 257, measured by sweeping lengths 1..400 with one space: the last length
 ;     that quotes is 257 and the first that does not is 258. Same as the wide form, which was worth
-;     confirming rather than assuming -- 257 is a peculiar number and it is a property of a
+;     confirming rather than assuming, 257 is a peculiar number and it is a property of a
 ;     different function.
-;   * On failure the buffer is UNTOUCHED -- 0 of 143 over-long cases modified a byte, and neither
+;   * On failure the buffer is UNTOUCHED, 0 of 143 over-long cases modified a byte, and neither
 ;     did the no-space case.
 ;   * An ALREADY-QUOTED path is quoted AGAIN. There is no special case for it.
 ;   * NULL returns 0 without faulting.
 ;   * 0 mismatches over all 87381 strings of {a, SPACE, quote, TAB} to length 8.
 ;
 ; No wrapper: a buffer too small for the result faults rather than being swallowed, 37 of 37
-; distances (probes/pqsa.c). Quoting needs three bytes more than the string -- two quotes and a
-; terminator -- and when they do not fit, the shipped function faults like any other unbounded
+; distances (probes/pqsa.c). Quoting needs three bytes more than the string, two quotes and a
+; terminator, and when they do not fit, the shipped function faults like any other unbounded
 ; shlwapi path helper.
 ;
 ; One deliberate divergence, on a path that faults. probes/pqsa.c dumped the buffer after such a
-; fault and found the shipped function had changed indices 1..8 -- a contiguous run from the LOW
+; fault and found the shipped function had changed indices 1..8, a contiguous run from the LOW
 ; end, which a strict highest-byte-first shift cannot produce, because its very first write would be
 ; the one that faults. That is the signature of a chunked memmove whose 8-byte HEAD store lands
 ; before the tail store faults. This implementation shifts from the HIGH end in 32-byte chunks, so
@@ -34,15 +34,15 @@
 ;
 ; That is not reproduced, and deliberately so: the chunk schedule of the shipped move is not part of
 ; any contract, it is visible only to a caller that installs its own handler around a call it got
-; wrong, and it would change with any servicing update. Every case where the function RETURNS -- the
-; whole contract domain -- is bit-exact. correctness.c therefore asserts that both sides fault on a
+; wrong, and it would change with any servicing update. Every case where the function RETURNS, the
+; whole contract domain, is bit-exact. correctness.c therefore asserts that both sides fault on a
 ; short buffer and does NOT compare the bytes they leave behind, with the reason recorded there.
 ;
 ; Method: ONE forward pass finds the terminator and whether any space precedes it, from two
 ; vpcmpeqb per 32-byte block. The shift is then at most 257 bytes, done in 32-byte chunks from the
-; high end -- dst is src+1, so a chunk's write can never reach a byte a later chunk has yet to read.
+; high end, dst is src+1, so a chunk's write can never reach a byte a later chunk has yet to read.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512 -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

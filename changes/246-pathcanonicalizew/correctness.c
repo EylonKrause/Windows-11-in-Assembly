@@ -3,25 +3,25 @@
  * Gate 1 for change 246: wia_pathcanonicalizew must be indistinguishable from the live
  * shlwapi!PathCanonicalizeW.
  *
- * THREE-WAY on every case -- ours, an independent oracle (reference.c, which wraps change 243's
- * oracle) and the live export -- and four observables each time:
+ * THREE-WAY on every case, ours, an independent oracle (reference.c, which wraps change 243's
+ * oracle) and the live export, and four observables each time:
  *
  *   * the BOOL;
- *   * the destination buffer up to and including the terminator, against a poison fill -- both
+ *   * the destination buffer up to and including the terminator, against a poison fill, both
  *     failure paths clear pszDst[0] and write nothing else, which a string comparison cannot tell
  *     from writing the same bytes back;
- *   * that nothing is written at or past MAX_PATH, checked with a 32-character canary -- the envelope
+ *   * that nothing is written at or past MAX_PATH, checked with a 32-character canary, the envelope
  *     passes cch = MAX_PATH to a function whose result is capped at 259 characters, so a byte written
  *     at index 260 is a bug only a canary sees;
  *   * GetLastError(), which is the only place the underlying HRESULT survives at all;
- *   * and on the NULL-source case, that pszDst was CLEARED -- the clear happens between the two NULL
+ *   * and on the NULL-source case, that pszDst was CLEARED, the clear happens between the two NULL
  *     checks, so its presence is what proves the order.
  *
  * What is *not* compared, and it is change 243'S decision rather than a new one. The bytes between
  * the result's terminator and cch are not compared, because the shipped function canonicalises
  * directly in the caller's buffer and truncates as it pops, leaving its own scratch behind the answer
- * -- 243's RESULTS.md gives the example, `C:\a\..` coming back as `C:\` followed by the leftover `\`
- * of the `C:\a\` it built -- and, as it says there, demanding those bytes would forbid ANY vectorised
+ *, 243's RESULTS.md gives the example, `C:\a\..` coming back as `C:\` followed by the leftover `\`
+ * of the `C:\a\` it built, and, as it says there, demanding those bytes would forbid ANY vectorised
  * store, since a 32-byte store necessarily writes cells a per-character loop does not.
  *
  * This change's first correctness run compared the whole buffer, did not know that, and failed on
@@ -36,7 +36,7 @@
  *
  * That the ORACLE diverges identically is the useful part: it says the dead region is a property of
  * the model, deliberately not reproduced, and not an artefact of the assembly. So this file compares
- * exactly what 243 does -- and the no-write-past-cch guarantee, which is the part that could actually
+ * exactly what 243 does, and the no-write-past-cch guarantee, which is the part that could actually
  * corrupt a caller, IS checked here too.
  *
  * The corpus is the enumerated one, not a list of realistic paths, for the reason change 243

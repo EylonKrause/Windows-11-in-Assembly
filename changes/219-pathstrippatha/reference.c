@@ -4,7 +4,7 @@
 //
 // probes/strip.c verified the equivalence rather than assuming it, on both halves: over 87381
 // strings in {a, backslash, slash, colon} and again over 488281 in
-// {a, backslash, slash, colon, SPACE} -- of which 400900 contain a space -- the buffer left by the
+// {a, backslash, slash, colon, SPACE} (of which 400900 contain a space) the buffer left by the
 // live PathStripPathA is byte for byte what you get by copying the live PathFindFileNameA answer to
 // the front, with 0 mismatches, and the same holds for PathStripPathW.
 #include <windows.h>

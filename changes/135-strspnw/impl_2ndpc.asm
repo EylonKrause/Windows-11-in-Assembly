@@ -1,11 +1,11 @@
 ; changes/135-strspnw/impl_2ndpc.asm
 ;==============================================================================
-; 2ND PC VARIANT  --  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
+; 2ND PC VARIANT,  AMD Ryzen 9 8940HX (Zen 4), Win11 25H2 build 26200.9445
 ;==============================================================================
 ; The original `impl.asm` is UNTOUCHED and remains the 5950X (Zen 3)
 ; implementation of record. This is an ADDITIONAL variant tuned for the second
 ; PC. Same exported symbol (`wia_strspnw`), so this change's existing
-; correctness.c and bench.c validate it unmodified -- build with build_2ndpc.bat.
+; correctness.c and bench.c validate it unmodified, build with build_2ndpc.bat.
 ;
 ; Why a 2ND-PC variant is needed
 ; ------------------------------
@@ -20,16 +20,16 @@
 ;     254/set3-stop0       3.57        6.12   1.71x   BETTER
 ;     geomean 2.671x => PARKED (a size class regressed)
 ;
-; Cause: the Zen 3 implementation is still O(n*m) -- it does the m loop with
+; Cause: the Zen 3 implementation is still O(n*m); it does the m loop with
 ; vectors. For every 32-byte block it re-walks the whole set, broadcasting each
 ; member and OR-ing a compare into an accumulator that serialises them. A
 ; 16-char string spans two blocks, so it pays 46 broadcast/compare/or triples to
-; examine 16 characters -- barely less work than shlwapi's 368 scalar compares.
+; examine 16 characters, barely less work than shlwapi's 368 scalar compares.
 ;
 ; This is the weakness changes 035-040 fixed for the ucrtbase span/pbrk family
 ; ("set hoisted out of the block loop"); change 135 never received it.
 ;
-; The fix -- hybrid: per-member first block, O(n+m) nibble bitmap for the tail
+; The fix, hybrid: per-member first block, O(n+m) nibble bitmap for the tail
 ; ---------------------------------------------------------------------------
 ; A pure bitmap rewrite was tried first and is NOT what shipped, because it
 ; traded one regression for another. Measured, pure-bitmap:
@@ -42,8 +42,8 @@
 ;
 ; So this variant does both, choosing without ever having to measure the set:
 ;   * BLOCK 0 uses the original per-member compare, verbatim. Any string whose
-;     span ends in the first block -- which is every small-set/early-stop case,
-;     including 254/set3-stop0 -- returns from there having paid exactly what
+;     span ends in the first block, which is every small-set/early-stop case,
+;     including 254/set3-stop0, returns from there having paid exactly what
 ;     the original paid, and nothing more.
 ;   * Only if block 0 does NOT resolve the span is the bitmap built (one pass
 ;     over the set), and every REMAINING block is then tested with two
@@ -63,7 +63,7 @@
 ;     notmem  = vpcmpeqb(bitset & bitmask, 0)
 ;   `pow2lut` is {1,2,4,8,16,32,64,128, 0,0,0,0,0,0,0,0}: entries 8..15 are ZERO,
 ;   so any character >= 0x80 yields bitmask 0 -> "not a member" for free. Testing
-;   `& == 0` rather than `== bitmask` is what makes that work -- a zero bitmask
+;   `& == 0` rather than `== bitmask` is what makes that work, a zero bitmask
 ;   must read as not-a-member, and `== bitmask` would wrongly report a match.
 ;   Only EVEN byte lanes are meaningful (the low byte of each UTF-16 unit), so
 ;   the movemask is AND-ed with 0x55555555 before tzcnt; odd lanes hold a lookup
@@ -79,7 +79,7 @@
 ;
 ; Ascii-set restriction, handled safely
 ;   `1 << hi` needs hi <= 7, i.e. set members < 0x80. If ANY member is >= 0x80
-;   the bitmap cannot represent it, so this variant does not guess -- it falls
+;   the bitmap cannot represent it, so this variant does not guess, it falls
 ;   back to the original per-member loop, reproduced verbatim below, which
 ;   handles the full 16-bit range. Correctness is identical for every set; only
 ;   the fast path is restricted.
@@ -93,12 +93,12 @@
 ;     leading characters are shifted out of the mask; every later load is
 ;     32-aligned, and an aligned 32-byte load never crosses a page boundary.
 ;     Shifting in zeros means "in set", which merely continues into the next
-;     block -- it cannot end the span early.
+;     block, it cannot end the span early.
 ;   * Read-only. Writes nothing through either pointer, and (unlike the first
 ;     attempt) allocates no stack buffer at all.
 ;   * Uses only ymm0-ymm5: xmm6-xmm15 are CALLEE-SAVED under the Win64 ABI
 ;     (harness/README.md), so no save area is needed.
-;   * AVX2 only -- NO AVX-512, NO GFNI. Correct on the 5950X too.
+;   * AVX2 only, NO AVX-512, NO GFNI. Correct on the 5950X too.
 ;
 ; int wia_strspnw(PCWSTR psz, PCWSTR pszSet)   [Win64: rcx, rdx -> eax]
 ; ISA: AVX2 + BMI1 (tzcnt).
@@ -108,7 +108,7 @@ ALIGN 16
 pow2lut db 1,2,4,8,16,32,64,128, 0,0,0,0,0,0,0,0
 ; NOTE: .const has 16-byte segment alignment in MASM, so `ALIGN 32` is rejected.
 ; That is fine: nib0F is only ever a VEX memory SOURCE operand (vpand ymm,ymm,m256),
-; and VEX memory operands carry no alignment requirement -- only explicitly
+; and VEX memory operands carry no alignment requirement, only explicitly
 ; aligned moves such as vmovdqa do.
 ALIGN 16
 nib0F   db 32 dup(0Fh)
@@ -121,7 +121,7 @@ wia_strspnw PROC
         and       ecx, 31                           ; byte offset of the string within that block
 
         ;======================================================================
-        ; BLOCK 0 -- original per-member compare, verbatim. Small sets and early
+        ; BLOCK 0, original per-member compare, verbatim. Small sets and early
         ; stops resolve here and pay exactly what the original paid.
         ;======================================================================
         vmovdqa   ymm0, ymmword ptr [r9]
@@ -214,7 +214,7 @@ bm_next:
         ret
 
         ;======================================================================
-        ; FALLBACK -- the original per-member block loop, unchanged. Reached only
+        ; FALLBACK, the original per-member block loop, unchanged. Reached only
         ; when the set contains a character >= 0x80.
         ;======================================================================
 sp_next:

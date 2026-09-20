@@ -1,18 +1,18 @@
 ; changes/181-strupr-s/impl.asm
 ; errno_t wia_strupr_s(char* str, size_t numberOfElements)   [Win64: rcx, rdx -> eax]
 ;
-; Reimplements ucrtbase!_strupr_s -- the byte sibling of change 180 (_wcslwr_s) and the bounded
+; Reimplements ucrtbase!_strupr_s, the byte sibling of change 180 (_wcslwr_s) and the bounded
 ; form of change 048 (_strupr). ucrtbase's is scalar: 119.7 ns for a 254-byte string.
 ;
 ; Contract (derived in probes/sls.c, fuzz-confirmed bit-exact against the live export over
-; 1,000,000 cases -- confirmed on the first attempt):
+; 1,000,000 cases, confirmed on the first attempt):
 ;   * The fold is exactly the 26 ASCII letters a-z. Swept over all 255 byte values, exactly 26
 ;     change, and they match the plain ASCII rule with 0 differences. Bytes >= 0x80 never fold,
 ;     which the signed vpcmpgtb below gives for free.
 ;   * Success -> 0, lowercased in place, nothing past the terminator touched.
 ;   * If the string does not terminate STRICTLY inside numberOfElements -> EINVAL (22), and the
 ;     failure writes str[0] = 0. That write happens even when numberOfElements is ZERO.
-;   * Validate first, then fold: on the einval path nothing but str[0] is modified -- there is
+;   * Validate first, then fold: on the einval path nothing but str[0] is modified; there is
 ;     NO partial fold. Probed directly rather than inherited: change 178 behaves this way but
 ;     change 150's strcpy_s does the opposite, leaving an observable partial copy before ERANGE.
 ;     Two `_s` functions in the same CRT, opposite behaviours.
@@ -20,7 +20,7 @@
 ;     `_invalid_parameter_noinfo`, the convention changes 150-157 established.
 ;
 ; Method: pass 1 is a bounded terminator scan that writes nothing, 32 bytes per step. Pass 2
-; folds a KNOWN length, so it needs no terminator test -- change 048's fold (two vpcmpgtb form
+; folds a KNOWN length, so it needs no terminator test, change 048's fold (two vpcmpgtb form
 ; the A..Z mask, AND with 0x20, then vpaddb), 32 bytes per step.
 ;
 ; Page safety: pass 1's 32-byte load happens only when at least 32 bytes of the caller's
@@ -28,7 +28,7 @@
 ; within 32 bytes of a page end it steps one byte and retries. Pass 2 touches only the string
 ; whose length pass 1 established.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 EXTERN _invalid_parameter_noinfo:PROC
 

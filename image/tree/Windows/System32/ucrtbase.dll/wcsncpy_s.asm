@@ -7,9 +7,9 @@
 ;   [Win64: rcx, rdx, r8, r9]
 ;
 ; The wide twin of change 154, with `size` and `count` in wchar_t. ucrtbase!wcsncpy_s is the same
-; UCRT two-counter scalar loop, one wide character per iteration -- 63 ns for 254 wide characters.
+; UCRT two-counter scalar loop, one wide character per iteration, 63 ns for 254 wide characters.
 ;
-; Contract -- identical to strncpy_s in wide units, including all three of the traps 154 documents:
+; Contract, identical to strncpy_s in wide units, including all three of the traps 154 documents:
 ;   1. count == 0 AND dst == NULL AND size == 0 -> return 0, no handler, nothing written;
 ;   2. dst == NULL or size == 0                 -> handler, EINVAL (22), dst untouched;
 ;   3. count == 0                               -> dst[0] = 0, return 0, and NO handler even when
@@ -23,8 +23,8 @@
 ;
 ; ---- one wrinkle the narrow version does not have ----------------------------------------------
 ; `_TRUNCATE` is (size_t)-1, so doubling `count` to a byte count would wrap it to -2 and destroy the
-; sentinel. So count is compared against size in WIDE units first, and only the winner -- the bound
-; lim = min(count, size), which is at most `size` and therefore a real length -- is doubled. The
+; sentinel. So count is compared against size in WIDE units first, and only the winner, the bound
+; lim = min(count, size), which is at most `size` and therefore a real length, is doubled. The
 ; doubling itself uses the saturating `shl / sbb / or` from change 151, so an absurd size near 2^63
 ; clamps instead of wrapping into a spurious ERANGE. The original `count` stays untouched in r9,
 ; which is what the failure path later tests against -1 to pick between cases 6 and 7.

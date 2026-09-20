@@ -10,7 +10,7 @@
 ; Status: 0, 0x107 STATUS_SOME_NOT_MAPPED, or 0xC0000023 STATUS_BUFFER_TOO_SMALL.
 ;
 ; ------------------------------------------------------------------------------
-; a NULL destination is the measuring mode, added 2026-09-16 -- it was missing.
+; a NULL destination is the measuring mode, added 2026-09-16; it was missing.
 ;
 ; RtlUTF8ToUnicodeN(NULL, 0, &produced, src, srcLen) is the documented way to ask
 ; this function how many bytes of UTF-16 the output will need: the shipped export
@@ -23,7 +23,7 @@
 ; Why the gates did not catch it: this change is bit-exact against the live export
 ; over 400000 cases including every malformed class, and every one of them passes
 ; a real destination buffer. A NULL destination is not an edge of the LENGTH,
-; which is what the corpora sweep -- it is a different MODE of the same function.
+; which is what the corpora sweep; it is a different MODE of the same function.
 ;
 ; The counting rule is the one this decoder already implements, stated in the
 ; paragraph above and now also counted without converting: a stray continuation
@@ -32,8 +32,8 @@
 ; continuation but outside that lead's special range is one unit and TWO bytes;
 ; a truncated-but-valid prefix is one unit and however many bytes it had; and a
 ; complete four-byte sequence is TWO units. It was verified against the live
-; measuring mode over 400000 random strings -- ASCII, continuation runs, lead
-; runs, fully random bytes and valid UTF-8 -- with ZERO disagreements on the size
+; measuring mode over 400000 random strings, ASCII, continuation runs, lead
+; runs, fully random bytes and valid UTF-8, with ZERO disagreements on the size
 ; AND on the status, before any of it was written in assembly.
 ; ------------------------------------------------------------------------------
 ;
@@ -77,7 +77,7 @@ CQ3Fw   DW      16 dup(003Fh)
 ; Eight input positions produce between four and eight UTF-16 units, depending on how many of them
 ; are continuation bytes belonging to the position before. Each position's unit is computed in its
 ; own 16-bit lane and the lanes are then compacted by one VPSHUFB, so the only thing that varies is
-; the shuffle -- 256 of them, one per combination of which positions are KEPT.
+; the shuffle, 256 of them, one per combination of which positions are KEPT.
 ;
 ; A kept position contributes its two bytes; a continuation contributes nothing, because its
 ; character was already produced by the lead before it. correctness.c checks every entry against
@@ -182,12 +182,12 @@ ascii8:
 ;
 ; There are four vector blocks below and they are mutually exclusive: a run of two-byte sequences is
 ; not a run of three-byte ones. Chained, the block that finally matches is reached only after every
-; earlier one has loaded, tested and declined -- which cost `mixed` input, the last block in the
+; earlier one has loaded, tested and declined, which cost `mixed` input, the last block in the
 ; chain, about eighteen wasted instructions per eight characters, a third of its total.
 ;
 ; The byte at the current position already says which block can possibly apply, because it is the
 ; LEAD of the next character. Five comparisons replace three failed probes, and a stray
-; continuation or an overlong lead -- which no block decodes -- goes straight to the scalar path
+; continuation or an overlong lead (which no block decodes) goes straight to the scalar path
 ; instead of being discovered three blocks later.
 ; -------------------------------------------------------------------------------------------------
 dispatch:
@@ -218,7 +218,7 @@ dispatch:
 ;
 ; The validity test is two comparisons. Viewed as 16-bit words the input is [lead, continuation]
 ; per character, little-endian, so ANDing with 0xC0E0 and comparing against 0x80C0 says in one
-; VPCMPEQW that every even byte is 0xC0..0xDF and every odd byte is 0x80..0xBF -- the whole
+; VPCMPEQW that every even byte is 0xC0..0xDF and every odd byte is 0x80..0xBF, the whole
 ; structure of a two-byte run, tested in one instruction. The second comparison excludes 0xC0 and
 ; 0xC1, the overlong leads, which are the only bytes in 0xC0..0xDF whose low five bits are zero and
 ; which this decoder substitutes rather than decodes.
@@ -260,20 +260,20 @@ two8:
 ; The three-byte block: Twenty-four bytes, eight characters.
 ;
 ; Three-byte sequences are every CJK character, every arrow, dash, quotation mark and currency sign
-; above U+0800, and -- because this decoder substitutes u+fffd, which is itself ef bf bd -- the
+; above U+0800, and (because this decoder substitutes u+fffd, which is itself ef bf bd) the
 ; output of every malformed run that has already been substituted once. They were 0.37x.
 ;
 ; Twenty-four bytes is eight sequences, a fixed count, so again there is nothing to compact. What
 ; three does that two did not is that it divides neither 16 nor 32, so the bytes have to be SPREAD
 ; before they can be worked on: one VPSHUFB puts each three-byte group into its own 32-bit lane,
 ; with the same pattern in both halves of the register. The two halves are loaded twelve bytes
-; apart -- VPSHUFB cannot cross a 128-bit lane, so the second load starts where the first lane's
-; four sequences end -- which is why this block reads 28 bytes to consume 24.
+; apart, VPSHUFB cannot cross a 128-bit lane, so the second load starts where the first lane's
+; four sequences end, which is why this block reads 28 bytes to consume 24.
 ;
 ; After that the tests are single instructions again. ANDing a lane with 0x00C0C0F0 and comparing
 ; against 0x008080E0 says the lead is 0xE0..0xEF and both continuations are 0x80..0xBF. The lead's
 ; low nibble then excludes 0xE0 and 0xED, the two leads whose SECOND byte has a narrower range than
-; 0x80..0xBF -- 0xE0 forbids the overlong forms and 0xED forbids the encoded surrogates, and this
+; 0x80..0xBF, 0xE0 forbids the overlong forms and 0xED forbids the encoded surrogates, and this
 ; decoder substitutes both. Sending those two leads to the scalar path costs one sixteenth of the
 ; three-byte space and buys a validity test that is three instructions instead of a table.
 ; -------------------------------------------------------------------------------------------------
@@ -326,8 +326,8 @@ three8:
 ; sixteen bytes are four sequences exactly, and four surrogate pairs are exactly sixteen bytes out.
 ; This is the emoji and supplementary-plane path, and it was 0.52x.
 ;
-; The validity test is the same single comparison as the other blocks -- AND with 0xC0C0C0FC,
-; compare against 0x808080F0 -- which says the lead is 0xF0..0xF3 and all three continuations are
+; The validity test is the same single comparison as the other blocks, AND with 0xC0C0C0FC,
+; compare against 0x808080F0, which says the lead is 0xF0..0xF3 and all three continuations are
 ; 0x80..0xBF. Excluding lead 0xF0 then takes one more test on its low two bits, and leaves this
 ; block covering U+40000..U+FFFFF. The two leads it does not take are the two with narrower second
 ; bytes: 0xF0 forbids the overlong forms below U+10000 and 0xF4 stops at U+10FFFF. Both go to the
@@ -335,8 +335,8 @@ three8:
 ;
 ; The surrogate split is the only part that is not shared with the other blocks, and it is four
 ; instructions: a code point above 0x10000 becomes 0xD800 + (v >> 10) and 0xDC00 + (v & 0x3FF),
-; and the pair is assembled as ONE 32-bit lane -- high surrogate in the low half, low surrogate in
-; the high half -- so that a plain store puts them in the right order.
+; and the pair is assembled as ONE 32-bit lane, high surrogate in the low half, low surrogate in
+; the high half, so that a plain store puts them in the right order.
 ; -------------------------------------------------------------------------------------------------
 ALIGN 16
 four8:
@@ -355,7 +355,7 @@ four8:
         jne       scalar_win                        ; not four clean four-byte sequences
         ; 0xF0 Is the commonest four-byte lead, not a corner to skip: it carries U+10000 through
         ; U+3FFFF, which is every emoji there is. The first draft of this block excluded it to keep
-        ; the test to one comparison, and the emoji rows did not move at all -- 0.53x before and
+        ; the test to one comparison, and the emoji rows did not move at all, 0.53x before and
         ; 0.53x after, because the block was never entered. What 0xF0 actually needs is one extra
         ; condition on its SECOND byte: 0x80..0x8F would encode a value below U+10000, which is
         ; overlong, and every second byte in 0x80..0x8F is exactly the one with no 0x30 bits set.
@@ -399,21 +399,21 @@ four8:
 ; The mixed block: ASCII and two-byte sequences together, eight positions at a time.
 ;
 ; Every block above needs its eight or twenty-four bytes to be the SAME KIND of sequence, and that
-; is the one thing real text never is. `mixed` -- ASCII alternating with two-byte letters, which is
+; is the one thing real text never is. `mixed`, ASCII alternating with two-byte letters, which is
 ; what Greek, Cyrillic, Hebrew, Arabic or accented Latin prose looks like once it has spaces and
-; punctuation in it -- went through every one of those blocks, failed all of them, and walked one
+; punctuation in it, went through every one of those blocks, failed all of them, and walked one
 ; character at a time: 0.42x, the last class short of the shipped decoder and the commonest
 ; non-ASCII input there is.
 ;
 ; This block does not need the positions to agree. One BYTE per 16-bit lane, and a second copy of
 ; the same bytes shifted down by one, so each lane can see both a byte and the byte after it. Then:
 ;
-;   * anything at 0xE0 or above ends the block -- three- and four-byte sequences have their own;
+;   * anything at 0xE0 or above ends the block, three- and four-byte sequences have their own;
 ;   * 0xC0 and 0xC1 end it, because this decoder substitutes the overlong forms rather than
 ;     decoding them;
 ;   * the STRUCTURE is one comparison of two eight-bit masks: the set of positions holding a lead
 ;     must equal the set of positions whose NEXT byte is a continuation. That single CMP says every
-;     lead is followed by its continuation AND that no continuation is stranded -- and one more bit
+;     lead is followed by its continuation AND that no continuation is stranded, and one more bit
 ;     test says position 0 is not itself a continuation, which would belong to a character that
 ;     ended before this block began.
 ;
@@ -433,7 +433,7 @@ four8:
 ;
 ; Sixteen positions are classified in one 256-bit pass and then compacted as TWO halves, because the
 ; compaction table is indexed by eight bits and VPSHUFB cannot cross a 128-bit lane anyway. PEXT
-; turns each VPMOVMSKB result -- two identical bits per 16-bit lane -- into the one-bit-per-position
+; turns each VPMOVMSKB result (two identical bits per 16-bit lane) into the one-bit-per-position
 ; mask the tests and the table want.
 ;
 ; Everything else is exactly the eight-position rule: nothing at 0xE0 or above, no 0xC0 or 0xC1, the
@@ -485,7 +485,7 @@ mix16:
         ; The first position is a character start, and the dispatch above is the one place that
         ; says so: it sends every byte below 0xC2 that is not ASCII straight to the scalar path.
         ; An earlier draft tested it again here and in the eight-position block below, which looked
-        ; careful and was not -- the test could never fail, so the mutation that BREAKS the
+        ; careful and was not; the test could never fail, so the mutation that BREAKS the
         ; dispatch was caught by nothing and reported as harmless. One live check beats two dead
         ; ones.
 
@@ -585,7 +585,7 @@ mix8:
 
 ; -------------------------------------------------------------------------------------------------
 ; The scalar window, added 2026-09-16. Before it, every scalar character jumped back to `mainloop`
-; and paid for both vector blocks again -- two loads, two VPMOVMSKBs and four comparisons -- to
+; and paid for both vector blocks again (two loads, two VPMOVMSKBs and four comparisons) to
 ; discover once more that the byte in front of it is not ASCII. On a string that is entirely
 ; two-byte sequences that cost was paid on every character for the whole string, and on input that
 ; alternates ASCII with non-ASCII it was paid twice per character. discovery/utf8_nonascii_rows.c
@@ -594,7 +594,7 @@ mix8:
 ;
 ; This is change 263's rule, which this repository already wrote down and this file already broke:
 ; a scalar walk must not re-enter a vector loop. The window is the cheapest possible statement of
-; it -- once the blocks have failed, 32 source bytes are decoded one character at a time before
+; it, once the blocks have failed, 32 source bytes are decoded one character at a time before
 ; they are tried again, so the probe is amortised over a whole cache line of input instead of over
 ; one character. The two comparisons in `scalar_next` replace two vector loads.
 ; -------------------------------------------------------------------------------------------------
@@ -814,7 +814,7 @@ u82u_measure:
         jmp       w_test
 
 ; The ASCII block, added 2026-09-16 because a caller measured it. The first version of this mode
-; walked one byte at a time, which is the right shape for a path nothing calls in a loop -- and
+; walked one byte at a time, which is the right shape for a path nothing calls in a loop, and
 ; then change 268 called it on every allocating conversion and on every conversion into a tight
 ; destination, where the shipped code's own sizing pass is vectorised. On 4000 ASCII bytes that
 ; scalar walk cost more than the conversion it was sizing. Thirty-two bytes are tested at once

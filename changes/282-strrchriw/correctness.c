@@ -13,7 +13,7 @@
  *   * The last match, not the first. a forward scan that happened to return a match would pass any
  *     test with one match in it, so matches are planted at every position of every range.
  *   * Every needle 0..65535, each searched for against a real partner drawn from the measured
- *     relation rather than from a case function -- building a corpus from case functions is what
+ *     relation rather than from a case function, building a corpus from case functions is what
  *     made change 281's contract probe wrong.
  *   * EMBEDDED NULs, because this export has no terminator: probes/bounds.c measured that
  *     "abcd\0fghijk" with end = start+11 finds 'J' at 9. An implementation that stopped at a NUL
@@ -42,13 +42,13 @@ static long n_self = 0, n_small = 0, n_mid = 0, n_big = 0;
 
 /* The offset is measured in bytes, not code units, and that is not pedantry.
  *
- * A mutant that dropped `and ecx, -2` -- the rounding that turns BSR's high-byte index back into
- * the start of the word -- survived both gates. BSR reports the high byte of a matching word, so
+ * A mutant that dropped `and ecx, -2`, the rounding that turns BSR's high-byte index back into
+ * the start of the word, survived both gates. BSR reports the high byte of a matching word, so
  * without that rounding the returned pointer is off by ONE BYTE, into the middle of a wchar_t. And
  * `p - base` on a wchar_t* divides the difference by two, which throws the odd byte away: the two
  * pointers compare EQUAL as code-unit offsets while being different addresses.
  *
- * That is change 268's lesson in another costume -- 154 mismatches in change 016 that were nothing
+ * That is change 268's lesson in another costume, 154 mismatches in change 016 that were nothing
  * but a single 00 past the end of a string. Comparing the thing the caller actually receives, in
  * bytes, is the only way to see it. */
 static long off(const wchar_t* base, const wchar_t* p)
@@ -138,7 +138,7 @@ int main(void)
                cases - before);
     }
 
-    /* 3. embedded NULs -- this export has no terminator */
+    /* 3. embedded NULs; this export has no terminator */
     {
         long before = cases;
         static wchar_t emb[24];

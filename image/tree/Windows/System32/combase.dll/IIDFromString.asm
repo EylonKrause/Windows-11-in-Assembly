@@ -5,9 +5,9 @@
 ;; changes/207-iidfromstring/impl.asm
 ; HRESULT wia_iidfromstring(const wchar_t* lpsz, GUID* lpiid)   [rcx, rdx -> eax]
 ;
-; Reimplements combase!IIDFromString -- 32.96 ns to parse 38 characters. Two things make it that
+; Reimplements combase!IIDFromString, 32.96 ns to parse 38 characters. Two things make it that
 ; expensive, and both are visible at RVA 0x000E6C20:
-;   * the length check is a one-character-at-a-time strlen -- 38 iterations of a two-instruction
+;   * the length check is a one-character-at-a-time strlen, 38 iterations of a two-instruction
 ;     dependent loop before any parsing starts;
 ;   * each hex digit costs three range compares (0-9, A-F, a-f) plus a shift, an add and a store.
 ;
@@ -30,14 +30,14 @@
 ;     25..36           one more byte per hex pair
 ;     37  '}'          all 16               Data4[7] is stored BEFORE the brace is checked
 ;
-; So every field is stored only once it and its trailing separator have validated -- except Data1,
+; So every field is stored only once it and its trailing separator have validated, except Data1,
 ; which is progressive, and Data4[0], which has no trailing separator. An implementation that simply
 ; parsed into a scratch and stored on success would pass a return-value test and fail this one.
 ;
 ; Two different error codes, and they are not interchangeable:
-;   * 80070057h (E_INVALIDARG) -- lpiid is NULL, or the string length is not exactly 38. Nothing is
+;   * 80070057h (E_INVALIDARG), lpiid is NULL, or the string length is not exactly 38. Nothing is
 ;     written. This is a structural rejection, decided before the parser runs.
-;   * 800401F4h (CO_E_IIDSTRING) -- the length was right but the content is not. Partial writes as
+;   * 800401F4h (CO_E_IIDSTRING); the length was right but the content is not. Partial writes as
 ;     tabulated above.
 ; The shipped code produces the second with `neg eax / sbb eax,eax / not eax / and eax, 800401F4h`
 ; from the inner parser's boolean, which is why a content failure can never return E_INVALIDARG.
@@ -45,7 +45,7 @@
 ; lpsz == NULL is SUCCESS: it writes the nil GUID and returns S_OK.
 ;
 ; What we do instead:
-;   * the length check is one AVX2 pass -- two vpcmpeqw over chars 0..31 plus a 16-byte tail -- so
+;   * the length check is one AVX2 pass (two vpcmpeqw over chars 0..31 plus a 16-byte tail) so
 ;     the 38-iteration walk disappears;
 ;   * every digit is one 256-entry table lookup instead of three range compares. Data1 keeps a branch
 ;     per digit because its partial value depends on WHICH digit failed; every other field
@@ -163,7 +163,7 @@ len_ok:
         D1        7
         D1        8
 
-        ;================ Data2, chars 10..13 -- stored only after the separator at 14 ============
+        ;================ Data2, chars 10..13, stored only after the separator at 14 ============
         LIT       9, '-'
         xor       r9d, r9d
         HD        10
@@ -175,7 +175,7 @@ len_ok:
         LIT       14, '-'                      ; Data2 is still unwritten if THIS fails
         mov       word ptr [rdx + 4], r9w
 
-        ;================ Data3, chars 15..18 -- stored only after the separator at 19 ============
+        ;================ Data3, chars 15..18, stored only after the separator at 19 ============
         xor       r9d, r9d
         HD        15
         HD        16
@@ -186,7 +186,7 @@ len_ok:
         LIT       19, '-'
         mov       word ptr [rdx + 6], r9w
 
-        ;================ Data4[0], chars 20..21 -- no trailing separator, stored at once =========
+        ;================ Data4[0], chars 20..21, no trailing separator, stored at once =========
         xor       r9d, r9d
         HD        20
         HD        21
@@ -194,7 +194,7 @@ len_ok:
         jnz       f_content
         mov       byte ptr [rdx + 8], r9b
 
-        ;================ Data4[1], chars 22..23 -- waits for the separator at 24 ================
+        ;================ Data4[1], chars 22..23, waits for the separator at 24 ================
         xor       r9d, r9d
         HD        22
         HD        23

@@ -15,7 +15,7 @@
  *   2-byte       U+0080..U+07FF, the one-or-two-byte block
  *   3-byte       U+0800..U+FFFF non-surrogate, the general BMP block
  *   pairs        surrogate pairs, four bytes per pair, the surrogate block
- *   mixed        ASCII alternating with two-byte -- what European and Middle Eastern prose looks
+ *   mixed        ASCII alternating with two-byte, what European and Middle Eastern prose looks
  *                like once it has spaces and punctuation in it, and the commonest non-ASCII input
  *                there is
  *   lone         lone surrogates, each becoming U+FFFD with STATUS_SOME_NOT_MAPPED: the class no

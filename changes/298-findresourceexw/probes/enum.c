@@ -1,4 +1,4 @@
-/* probes/enum.c -- what resource directories actually look like on this machine.
+/* probes/enum.c: what resource directories actually look like on this machine.
  *
  * Question 1 of the target decision: is there any NAME (string) work in the real
  * corpus at all, and how deep are the levels the search has to binary-search?

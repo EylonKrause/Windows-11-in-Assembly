@@ -2,8 +2,8 @@
  *
  * OURS vs the LIVE ntdll!RtlNumberOfSetBits family.
  *
- * Counting does not care what the bits are -- there is no early exit and no data-dependent branch in
- * either implementation -- so the rows vary the two things that DO matter: the SIZE, which decides
+ * Counting does not care what the bits are; there is no early exit and no data-dependent branch in
+ * either implementation, so the rows vary the two things that DO matter: the SIZE, which decides
  * whether the vector body runs at all, and the ALIGNMENT of the range, which decides how much of
  * the work falls to the masked partial words at the ends.
  *

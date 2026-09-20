@@ -1,9 +1,9 @@
 /* changes/289-widechartomultibyte/probes/abi.c
  *
- * GATE 3, DYNAMIC. Drives probes/abi.asm over every path this change has -- the 16-wide ASCII
+ * GATE 3, DYNAMIC. Drives probes/abi.asm over every path this change has, the 16-wide ASCII
  * block, the one-or-two-byte block, the general BMP block, the surrogate block, the scalar window,
  * the overflow exit, the vectorised counting pass, the NUL scan, the overlap tail call and the
- * argument-validation tail call -- and reports any non-volatile register that did not survive.
+ * argument-validation tail call, and reports any non-volatile register that did not survive.
  *
  * It exists because the repository's own dynamic gate lives in tools/abi-check/check.bat, and
  * adding a change to it means editing that file and abi_check.c. This change may not modify an

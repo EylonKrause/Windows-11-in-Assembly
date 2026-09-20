@@ -1,5 +1,5 @@
 // live-substitution/live_subst_2ndpc.c
-// LIVE-RUN PROOF for the 2ND PC (Zen 4) variants -- changes 008, 047, 097, 135, 141.
+// LIVE-RUN PROOF for the 2ND PC (Zen 4) variants, changes 008, 047, 097, 135, 141.
 //
 // Proves Windows executes OUR assembly in place of the shipped export, for the five
 // functions whose Zen 3 implementation failed the speed gate on the 8940HX and was
@@ -12,7 +12,7 @@
 //
 // FREEZE-SAFETY PROTOCOL (unchanged from live_subst_new.c, per Eylon's directive):
 //   (0) Sacrificial child: a standalone single-threaded console exe. It patches only its
-//       OWN per-process (copy-on-write) copy of the DLL -- never a live system process,
+//       OWN per-process (copy-on-write) copy of the DLL, never a live system process,
 //       never the file on disk. A fault here kills only this process, never the PC. A
 //       user-mode fault cannot bugcheck: that needs kernel-mode code, of which there is
 //       none anywhere in this repository.
@@ -23,7 +23,7 @@
 //   (2) Patch only when idle: the process is single-threaded and does nothing else, so
 //       nothing can be mid-execution inside the 14-byte prologue while it is written. The
 //       window is tiny: patch -> verify loop -> unpatch. (Threads are deliberately NOT
-//       suspended -- suspending a lock-holder would deadlock.)
+//       suspended, suspending a lock-holder would deadlock.)
 //   (3) REVERSIBLE: original prologue bytes restored and re-verified before exit.
 //
 // Build: build_2ndpc_live.bat
@@ -57,7 +57,7 @@ typedef struct { void* target; unsigned char saved[16]; int on; } patch_t;
 
 // Explicit volatile byte copies rather than memcpy. memcpy here is a CRT routine that
 // may itself be dispatched or inlined, and one of the functions this harness patches
-// lives in the same CRT -- so the restore must not depend on any library routine.
+// lives in the same CRT, so the restore must not depend on any library routine.
 static void raw_copy(volatile unsigned char* dst, const volatile unsigned char* src, int n){
     for(int i=0;i<n;++i) dst[i] = src[i];
 }

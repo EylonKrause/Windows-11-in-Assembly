@@ -13,7 +13,7 @@
  *      eight NULs at a page edge           did NOT fault
  *
  * So exactly one NUL is stepped over, and only at the very start. That is a strange enough shape that
- * guessing the code behind it is a bad idea -- every guess so far has been contradicted by one of the
+ * guessing the code behind it is a bad idea; every guess so far has been contradicted by one of the
  * rows above. A `while (*s && (signed char)*s <= ' ')` loop stops at the first NUL and cannot produce 6.
  * A loop that consumes the NUL and then continues would produce 8 for `20 00 38`, and it does not. A
  * `do/while` that reads before testing loses the first character of "42", which the bench shows it does

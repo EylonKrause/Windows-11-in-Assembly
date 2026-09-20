@@ -2,8 +2,8 @@
  *
  * This function is division-bound, and the constants that fix it are proved here, not quoted.
  *
- * impl.asm formats every number -- the revision, the identifier authority and up to fifteen
- * sub-authorities -- through a subroutine `du` whose inner loop is:
+ * impl.asm formats every number, the revision, the identifier authority and up to fifteen
+ * sub-authorities, through a subroutine `du` whose inner loop is:
  *
  *     dul:    xor   edx, edx
  *             div   ecx              ; ecx = 10
@@ -16,7 +16,7 @@
  * One 32-BIT division per decimal digit. a sub-authority like 2596069104 is ten digits, so it is
  * ten divisions, and `div` on this core has a latency in the twenties. The digits are then written
  * to a scratch byte buffer and read back in reverse, so every character is touched twice. The file
- * even declares `EXTERN wia_dec2b` -- the two-digit table changes 054 and 202 use -- and then never
+ * even declares `EXTERN wia_dec2b` (the two-digit table changes 054 and 202 use) and then never
  * references it.
  *
  * The replacement is the usual one: divide by 100 with a multiply and a shift, and emit two

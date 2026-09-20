@@ -1,18 +1,18 @@
 /* changes/292-filetimetosystemtime/probes/contract.c
  *
- * Throwaway contract probe. Nothing here is a gate -- it exists to PIN what the live export
+ * Throwaway contract probe. Nothing here is a gate, it exists to PIN what the live export
  * actually does before reference.c is written, because change 289 proved MSDN wrong three times
  * this week. Every question below is answered by observation, not by documentation.
  *
  *   Q1  what does a NEGATIVE FILETIME do?  return value, last error, is *lpSystemTime touched?
  *   Q2  is the last error touched on SUCCESS?  (sentinel written before every call)
  *   Q3  is wDayOfWeek filled in, and with what?
- *   Q4  FILETIME == 0, and FILETIME == 0x7FFFFFFFFFFFFFFF (year > 30827) -- accepted or rejected?
+ *   Q4  FILETIME == 0, and FILETIME == 0x7FFFFFFFFFFFFFFF (year > 30827), accepted or rejected?
  *   Q5  is kernel32's export the same code as kernelbase's?
  *   Q6  is the answer identical to ntdll!RtlTimeToTimeFields, permuted?  (change 126 is that engine)
  *   Q7  is leap-second support live on this machine?  PEB.LeapSecondData / LeapSecondFlags decide
  *       which body RtlpTimeToTimeFields runs, so read them rather than assume.
- *   Q8  NULL arguments -- fault, or handled?
+ *   Q8  NULL arguments, fault, or handled?
  *
  * cl /nologo /O2 contract.c
  */
@@ -91,7 +91,7 @@ int main(void)
     for (i = 0; i < 6; ++i) printf(" %02X", ((unsigned char*)k32)[i]);
     printf("\n\n");
 
-    /* Q7 -- PEB.LeapSecondData (+0x7B8) and PEB.LeapSecondFlags (+0x7C0) on this build. */
+    /* Q7, PEB.LeapSecondData (+0x7B8) and PEB.LeapSecondFlags (+0x7C0) on this build. */
     peb = (unsigned char*)__readgsqword(0x60);   /* gs:[0x60] IS the PEB pointer */
     printf("Q7 leap seconds: PEB=%p  LeapSecondData=%p  LeapSecondFlags=%08X\n",
            (void*)peb, *(void**)(peb + 0x7B8), *(unsigned*)(peb + 0x7C0));
@@ -135,7 +135,7 @@ int main(void)
     }
     printf("\n\n");
 
-    /* Q8 -- NULL arguments. */
+    /* Q8, NULL arguments. */
     printf("Q8 -- NULL arguments:\n");
     __try {
         SYSTEMTIME st; BOOL r;

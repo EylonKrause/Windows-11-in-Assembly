@@ -6,11 +6,11 @@
 ; wchar_t* wia_wcspbrk(const wchar_t* s, const wchar_t* set)   [Win64: rcx, rdx -> rax]
 ;
 ; Reimplements ucrtbase!wcspbrk: pointer to the first character of `s` that appears in `set`, or NULL.
-; The live one is the naive O(n*m) scalar loop -- 346 ns for 254 characters against a 3-character
+; The live one is the naive O(n*m) scalar loop, 346 ns for 254 characters against a 3-character
 ; set, against 130 ns for the narrow `strpbrk`, which can bitmap its 256 possible values.
 ;
 ; Contract: a probe confirmed this export and shlwapi!StrPBrkW (change 137) agree on every edge case
-; that could distinguish them -- empty set -> NULL, empty string -> NULL, no match -> NULL, and a set
+; that could distinguish them, empty set -> NULL, empty string -> NULL, no match -> NULL, and a set
 ; member with a zero low byte.
 ;
 ; Same hoisted block scan as changes 156/157: the first three set members are broadcast ONCE into

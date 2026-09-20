@@ -3,11 +3,11 @@
  * Where does inet_ntoa put its answer, and whose buffer is it?
  *
  * discovery/sid_inet_bstr.c measured it at 7.56 ns for a four-byte address. That is four numbers, at
- * most three digits each, and three dots -- change 067's rewrite formats a 32-bit number in 3.76 ns,
+ * most three digits each, and three dots, change 067's rewrite formats a 32-bit number in 3.76 ns,
  * so 7.56 ns for four small ones is not obviously beatable and the contract had better be cheap.
  *
  * The contract is the buffer. inet_ntoa returns `char*` and the documentation says the storage is
- * allocated by Winsock and is per-thread, freed when the thread ends -- which is the only reason
+ * allocated by Winsock and is per-thread, freed when the thread ends, which is the only reason
  * this function is convertible at all where SysAllocString was not (change 274 is parked because its
  * allocator is private and cannot be imitated). If the buffer is a plain thread-local array, an
  * implementation can have one of its own and nothing observable changes. If it is something else --
@@ -22,7 +22,7 @@
  *   3. Does the previous answer survive an unrelated Winsock call, or does something else write
  *      over it?
  *   4. Does it need WSAStartup, and what happens without it?
- *   5. And only then: the text -- every byte value in every position, and what it does with the
+ *   5. And only then: the text; every byte value in every position, and what it does with the
  *      four bytes it is given, which is a struct passed BY VALUE and so is really a 32-bit integer.
  *
  * Nothing is asserted. Every line prints what the live export returned.

@@ -48,7 +48,7 @@ no_dot:
         cmp       r9d, 4
         jb        oct_loop
         mov       word ptr [r8], 0
-        ; The shipped export writes a second terminator, at the end of the field -- exactly as its
+        ; The shipped export writes a second terminator, at the end of the field, exactly as its
         ; narrow sibling 059 does, at the same INDEX, which for a UTF-16 destination is byte 30.
         ; RtlIpv4AddressToStringW always stores a zero at destination character 15, the last of the
         ; 16-character maximum, as well as the one after the text; for "255.255.255.255" they

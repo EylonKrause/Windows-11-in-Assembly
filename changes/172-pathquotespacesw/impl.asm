@@ -2,10 +2,10 @@
 ; BOOL wia_pathquotespacesw(PWSTR psz)   [Win64: rcx -> eax]
 ;
 ; Reimplements shlwapi!PathQuoteSpacesW: if the path contains a space, wrap the whole thing in
-; double quotes. shlwapi's is scalar throughout -- 105 ns for a 254-char path.
+; double quotes. shlwapi's is scalar throughout, 105 ns for a 254-char path.
 ;
 ; Contract (derived in probes/pqs.c, fuzz-confirmed bit-exact against the live export over
-; 1,000,000 cases -- confirmed on the first attempt):
+; 1,000,000 cases, confirmed on the first attempt):
 ;   n = wcslen(psz)
 ;   hasSpace = any psz[i] == U+0020, i < n
 ;   hasSpace AND n <= 257  ->  shift the string (terminator included) up by one character,
@@ -13,17 +13,17 @@
 ;   otherwise              ->  buffer left COMPLETELY untouched, return FALSE
 ;
 ; Pinned by exhaustive sweep, and both are load-bearing:
-;   * "Space" is exactly U+0020 -- one of 65535 code units triggers quoting. Tab does not, and
+;   * "Space" is exactly U+0020; one of 65535 code units triggers quoting. Tab does not, and
 ;     neither does any other Unicode whitespace. A predicate like iswspace would be wrong.
 ;   * The MAX_PATH rule is n <= 257 (so the quoted result, terminator included, fits 260).
 ;     Measured directly: quoting happens for lengths 1..257 and stops at 258.
-;   * An ALREADY-QUOTED path is quoted AGAIN -- "a b" becomes ""a b"". There is no
+;   * An ALREADY-QUOTED path is quoted AGAIN; "a b" becomes ""a b"". There is no
 ;     already-quoted special case, and adding one would be wrong.
 ;
 ; Method: ONE pass finds both the length and the space, using a dual compare per 32-byte block
 ; (one vpcmpeqw against zero, one against a broadcast U+0020). A space only counts if it
 ; precedes the terminator, which is decided without building a mask: compare tzcnt(spacemask)
-; against tzcnt(zeromask) in the block that holds the terminator -- tzcnt of an empty mask
+; against tzcnt(zeromask) in the block that holds the terminator, tzcnt of an empty mask
 ; yields 32, which is conveniently "later than any terminator in this block".
 ; The insert is a backward 32-byte-at-a-time move by one character, which is correct despite
 ; the two-byte overlap because it runs high-to-low.
@@ -32,11 +32,11 @@
 ;   * The scan aligns down to 32 bytes and shifts the leading characters out of both masks; an
 ;     aligned 32-byte block containing the start of a mapped string is itself mapped, and each
 ;     later block is reached only because the string continued into it.
-;   * The move reads only within [psz, psz + 2n+2) -- the string and its terminator. Its widest
+;   * The move reads only within [psz, psz + 2n+2), the string and its terminator. Its widest
 ;     store reaches byte 2n+4, which is exactly the last byte the shipped function writes (the
 ;     terminator at index n+2), so it needs no more buffer room than the real one does.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

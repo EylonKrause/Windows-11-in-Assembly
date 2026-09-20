@@ -5,8 +5,8 @@
 //
 // The case mix is the point. lstrcat is a length scan of the destination plus a copy of the source,
 // and those two halves scale with different inputs. Appending 64 bytes to a 4000-byte buffer costs
-// almost as much as copying the whole buffer -- the accidental quadratic a caller hits appending in
-// a loop -- so the "onto 4000" rows matter more than the raw throughput rows.
+// almost as much as copying the whole buffer, the accidental quadratic a caller hits appending in
+// a loop, so the "onto 4000" rows matter more than the raw throughput rows.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>
@@ -17,7 +17,7 @@ extern char* wia_lstrcata(char*, const char*);
 typedef char* (WINAPI *FN)(char*, const char*);
 static FN sys;
 
-/* The restore's address, not its cost. The restore is already minimal -- one store putting back the
+/* The restore's address, not its cost. The restore is already minimal, one store putting back the
    destination's terminator -- but it landed on the buffer the next call was about to read, and for the
    short-onto-short rows that store sits INSIDE the first 32-byte block the destination scan loads. A
    wide load overlapping a just-retired narrow store cannot use store-to-load forwarding: it waits for

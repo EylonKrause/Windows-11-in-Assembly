@@ -58,11 +58,11 @@ int main(void){
         int lead[300], nlead = 0, trail[300], ntrail = 0;
         for (int b = 1; b < 256; ++b) {
             char t[16];
-            /* leading: "<b>ab" -- if b is a blank the result is "ab" */
+            /* leading: "<b>ab", if b is a blank the result is "ab" */
             t[0]=(char)b; t[1]='a'; t[2]='b'; t[3]=0;
             rb(t);
             if (strlen(t) == 2 && t[0]=='a') { if (nlead < 300) lead[nlead++] = b; }
-            /* trailing: "ab<b>" -- if b is a blank the result is "ab" */
+            /* trailing: "ab<b>", if b is a blank the result is "ab" */
             t[0]='a'; t[1]='b'; t[2]=(char)b; t[3]=0;
             rb(t);
             if (strlen(t) == 2) { if (ntrail < 300) trail[ntrail++] = b; }
@@ -140,7 +140,7 @@ int main(void){
         for (int b = 1; b < 256; ++b) {
             if (b == ' ') continue;
             char t[16];
-            /* "  <b>x  " -- the leading run must stop AT b, whatever b is */
+            /* "  <b>x  "; the leading run must stop AT b, whatever b is */
             t[0]=' '; t[1]=' '; t[2]=(char)b; t[3]='x'; t[4]=' '; t[5]=' '; t[6]=0;
             rb(t);
             if (!(strlen(t) == 2 && (unsigned char)t[0] == (unsigned char)b && t[1] == 'x')) {

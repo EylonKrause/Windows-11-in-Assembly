@@ -6,22 +6,22 @@
 ; void wia_pathremoveargsw(PWSTR psz)   [Win64: rcx]
 ;
 ; Reimplements shlwapi!PathRemoveArgsW: strip command-line arguments from a path. shlwapi's is
-; scalar -- 215 ns for a 254-char path, the slowest of everything left in the survey with a
+; scalar, 215 ns for a 254-char path, the slowest of everything left in the survey with a
 ; derivable contract.
 ;
 ; Contract (derived in probes/pra.c + probes/pra2.c, fuzz-confirmed bit-exact against the live
 ; export over 2,000,000 cases). It has THREE behaviours, and the cell-by-cell maps in pra2.c
-; were needed to see all of them -- the obvious "terminate at the first unquoted space" rule
+; were needed to see all of them, the obvious "terminate at the first unquoted space" rule
 ; is refuted on 265 039 of 2 000 000 cases:
 ;
 ;   1. Find the first U+0020 that is OUTSIDE double quotes (each '"' toggles the state).
-;      The split character is exactly U+0020 -- swept over all 65535 code units, exactly one
+;      The split character is exactly U+0020, swept over all 65535 code units, exactly one
 ;      qualifies. a tab does not split ("prog.exe<tab>arg" comes back untouched).
-;   2. If such a space exists AND something follows it, write NUL over it -- and ALSO write NUL
+;   2. If such a space exists AND something follows it, write NUL over it, and ALSO write NUL
 ;      over the LAST space of that run when a non-space follows. This is real and observable:
 ;           "ab c"     -> cell 2 written
 ;           "ab  c"    -> cells 2 AND 3 written
-;           "ab   c"   -> cells 2 AND 4 written      (not 3 -- the LAST space of the run)
+;           "ab   c"   -> cells 2 AND 4 written      (not 3, the LAST space of the run)
 ;           "ab    c"  -> cells 2 AND 5 written
 ;      When only spaces follow, just the first cell is written: "ab  " -> cell 2 only.
 ;   3. If there is NO unquoted space at all, fall back to trimming TRAILING blanks. This is
@@ -33,8 +33,8 @@
 ;      '"' + "  " writes cell 1, not cell 2.
 ;
 ; Method: an EVENT scan. One vector pass looks for the first character that is any of
-; {terminator, U+0020, '"'} -- three vpcmpeqw results OR-ed into one mask, so a single tzcnt
-; locates it -- and only those events run the quote state machine. Paths contain few spaces and
+; {terminator, U+0020, '"'}, three vpcmpeqw results OR-ed into one mask, so a single tzcnt
+; locates it, and only those events run the quote state machine. Paths contain few spaces and
 ; almost never a quote, so the sequential part costs almost nothing while the skipping is done
 ; 16 characters at a time. Everything after the scan is a short scalar walk.
 ;
@@ -43,10 +43,10 @@
 ; three constants plus three results would not fit.
 ;
 ; Page safety: every 32-byte load is issued only when (cursor & 4095) <= 4064, proving the read
-; stays inside the cursor's own page -- necessarily mapped, since the characters already
+; stays inside the cursor's own page, necessarily mapped, since the characters already
 ; scanned came from it. Within 32 bytes of a page end it tests one character and retries.
 ;
-; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI -- runs on Zen 3 and Zen 4 alike.
+; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, no GFNI, runs on Zen 3 and Zen 4 alike.
 
 .const
 ALIGN 16

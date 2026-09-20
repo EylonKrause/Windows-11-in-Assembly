@@ -11,8 +11,8 @@
 ; terminator. In-register fold (A-Z via two signed vpcmpgtb, +0x20), constants from memory.
 ; ISA: AVX2. Validated on Zen3.
 
-; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64 -- their low 128 Bits are,
-; the upper halves are volatile -- so an earlier cut of this function, which parked its fold
+; Only ymm0-ymm5 may be used. xmm6-xmm15 are callee-saved under Win64; their low 128 Bits are,
+; the upper halves are volatile, so an earlier cut of this function, which parked its fold
 ; constants in ymm6/ymm7, silently destroyed any double the caller had live. That is invisible to a
 ; correctness test, which compares integers, and invisible to a benchmark unless the benchmark
 ; happens to keep its accumulators there. See tools/abi-check.
@@ -30,7 +30,7 @@ c40b db 40h
 c5Ab db 5Ah
 ; Measured and rejected: 32-byte forms of both bounds, so the two vpbroadcastb in the prologue
 ; could be dropped and the compares could take the bound as a memory operand. It looked free --
-; after the ABI rewrite both compares already take the CHARACTER first -- and the prologue really is
+; after the ABI rewrite both compares already take the CHARACTER first, and the prologue really is
 ; pure overhead on a short string. But three memory operands per iteration instead of one costs the
 ; hot loop far more than the prologue saves: 4096 bytes went 63.8 ns -> 91.6 and 32000 went 506 ->
 ; 750, while the 8-byte class did not improve at all (5.78 -> 5.97). The broadcasts stay.
@@ -67,7 +67,7 @@ loop0:
 
         ;================ the terminator is inside this 32-byte window ================
         ; The chunk is already loaded and the window was already proven not to cross a page, so the
-        ; tail needs no second load and no second page check -- which is what the old try8 -> step1
+        ; tail needs no second load and no second page check, which is what the old try8 -> step1
         ; chain spent on every short string.
         ;
         ; Nothing is re-read after it is stored. a first attempt covered the tail with two

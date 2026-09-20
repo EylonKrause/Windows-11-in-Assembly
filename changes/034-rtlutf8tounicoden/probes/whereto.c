@@ -1,8 +1,8 @@
-/* whereto.c -- WHERE do the missing stores land?
+/* whereto.c: WHERE do the missing stores land?
  *
  * badmap.c showed the variant writes the first 64 units correctly, never writes the rest, and
  * still returns the correct byte count. A correct count means the output cursor advanced, so the
- * stores were issued -- against some address other than the caller's buffer. That is memory
+ * stores were issued, against some address other than the caller's buffer. That is memory
  * corruption, not a missing write, and this locates it.
  *
  * The destination is placed in the middle of a large region pre-filled with a sentinel. After the

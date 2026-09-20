@@ -2,7 +2,7 @@
 ; errno_t wia_strncat_s(char* dst, rsize_t size, const char* src, rsize_t count)
 ;   [Win64: rcx, rdx, r8, r9]
 ;
-; Reimplements ucrtbase!strncat_s -- the last of the bounded string family (150-155). The live one is
+; Reimplements ucrtbase!strncat_s; the last of the bounded string family (150-155). The live one is
 ; a bounded strlen over dst followed by the same two-counter scalar loop as strncpy_s, 72 ns to
 ; append 254 characters.
 ;
@@ -10,13 +10,13 @@
 ; from change 154 and each was confirmed directly.
 ;   1. count == 0 AND dst == NULL AND size == 0 -> return 0, no handler, nothing written;
 ;   2. dst == NULL or size == 0                 -> handler, EINVAL (22), dst untouched;
-;   3. count == 0 And src == NULL               -> return 0, nothing written and no handler -- not
+;   3. count == 0 And src == NULL               -> return 0, nothing written and no handler, not
 ;      even the terminator, and the dst walk does not run, so an unterminated dst is not reported;
 ;   4. src == NULL (count != 0)                 -> dst[0] = 0, handler, EINVAL;
 ;   5. no terminator in dst[0..size)            -> dst[0] = 0, handler, EINVAL, and only dst[0] is
 ;      written. This is reached with count == 0 too, as long as src is non-NULL;
 ;   6. it fits                                  -> exactly n+1 bytes written at dst+L, return 0.
-;      count == 0 lands here with n = 0, so it rewrites the existing terminator -- a write, but not
+;      count == 0 lands here with n = 0, so it rewrites the existing terminator, a write, but not
 ;      an observable change;
 ;   7. does not fit, count != _TRUNCATE         -> `available` bytes appended FIRST, then dst[0] = 0
 ;      on the ORIGINAL dst, handler, ERANGE (34);
@@ -35,8 +35,8 @@
 ;     no NUL, lim == count  ->  n = count, and count < available here, so also a success
 ;     no NUL, lim == available -> it does not fit
 ;
-; The failure paths need an address the scan is about to clobber -- dst for ERANGE, dst+size-1 for
-; STRUNCATE -- and which one is known BEFORE the scan runs, because it depends only on `count`. So
+; The failure paths need an address the scan is about to clobber, dst for ERANGE, dst+size-1 for
+; STRUNCATE, and which one is known BEFORE the scan runs, because it depends only on `count`. So
 ; the branch is taken first and the surviving address parked in r9, which is how eight contract paths
 ; fit in the volatile registers with no stack frame and no non-volatile saves.
 ;
@@ -183,15 +183,15 @@ nc_c0_dst:
         ; a NULL source with count == 0 Still validates the destination, and skipping that was a
         ; real divergence. Rule 3 in the header above said "return 0, nothing WRITTEN and no
         ; handler", which is right only when the destination is ALREADY a valid string within
-        ; `size`. The shipped export with dst = "A" and size = 1 -- no terminator in dst[0..size)
-        ; -- returns EINVAL, sets dst[0] = 0 and calls the handler, and this returned 0 in silence.
+        ; `size`. The shipped export with dst = "A" and size = 1, no terminator in dst[0..size)
+        ; returns EINVAL, sets dst[0] = 0 and calls the handler, and this returned 0 in silence.
         ;
         ; probes/ncat0.c drives the whole small grid and the rule is exact: with count == 0 and a
         ; NULL src the answer is 0 only when size != 0 and a terminator lies within dst[0..size);
         ; otherwise it is the ordinary not-terminated refusal. dst = "A" size >= 2 returns 0 and
         ; leaves the string alone; dst = "" size >= 1 returns 0; size == 0 is EINVAL either way.
         ;
-        ; Found by live substitution on 3 of 16000 cases -- the return code, the destination byte
+        ; Found by live substitution on 3 of 16000 cases, the return code, the destination byte
         ; AND the invalid-parameter handler count all disagreed, and only driving the handler made
         ; the third observable at all.
         vpxor     ymm1, ymm1, ymm1

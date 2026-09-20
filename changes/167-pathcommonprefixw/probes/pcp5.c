@@ -1,4 +1,4 @@
-/* PathCommonPrefixW round 5 -- test the ROOT model.
+/* PathCommonPrefixW round 5, test the ROOT model.
    The residual disagreements all involve leading backslash runs ("\" vs "\\", "\\" vs "\\a"),
    which is the same shape that parked change 163. Hypothesis: the shipped code computes a
    ROOT length (PathSkipRootW-style) and the answer is clamped to it -- 0 when the common

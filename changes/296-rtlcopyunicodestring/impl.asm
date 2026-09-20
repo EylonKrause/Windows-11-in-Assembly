@@ -6,7 +6,7 @@
 ; What the shipped one does (ntdll.dll 10.0.26100.9278, rva 0xDA540; excerpt in RESULTS.md):
 ;   it builds a 0x28-byte frame, homes rbx and rsi into the caller's shadow space, clamps
 ;   n = min(src->Length, dst->MaximumLength) with a cmov, stores dst->Length, and then CALLS
-;   ntdll's memmove -- an SSE-only routine that aligns the destination to 16 and runs a
+;   ntdll's memmove, an SSE-only routine that aligns the destination to 16 and runs a
 ;   4 x movups/movaps loop, i.e. 16 bytes per store. On return it RE-READS dst->Length and
 ;   dst->MaximumLength from memory to decide whether a terminating wide NUL fits.
 ;
@@ -14,13 +14,13 @@
 ; about 64 bytes), and the 16-byte store width (the whole cost above about 2 KB). This is a
 ; frameless leaf that inlines the copy.
 ;
-; CONTRACT -- every rule was PROVED against the live export by probes/contract.c, not assumed.
+; CONTRACT; every rule was PROVED against the live export by probes/contract.c, not assumed.
 ; reference.c carries the same list with the evidence beside each one.
 ;   src == NULL                       -> dst->Length = 0 and nothing else is touched
 ;   n = min(src->Length, dst->Max)    -> a RAW byte clamp. MaximumLength = 7 copies SEVEN bytes
 ;                                        and reports Length = 7; it does NOT round to a WCHAR
 ;   dst->Length = n always;  dst->MaximumLength is never written
-;   the copy is a MEMMOVE -- the shipped callee tests src-dst and runs backwards
+;   the copy is a MEMMOVE, the shipped callee tests src-dst and runs backwards
 ;   a wide NUL is written iff n + 2 <= MaximumLength, at BYTE offset (n & ~1), so for an ODD n
 ;                                        the NUL overwrites the last byte copied
 ;   src->MaximumLength is never read
@@ -29,22 +29,22 @@
 ; bounded by the caller's own declared length. Each arm touches only [buf, buf+n), because a wide
 ; access is either at offset 0 with n >= width, or at offset n-width. The only byte written
 ; outside [dst, dst+n) is the NUL at (n & ~1), and that arm runs only when n + 2 <= MaximumLength.
-; The corpus proves it with the destination -- and separately the source -- ending exactly at a
+; The corpus proves it with the destination (and separately the source) ending exactly at a
 ; PAGE_NOACCESS boundary, for every length 0..200.
 ;
 ; Overlap is in contract, because the shipped code's callee is a real memmove (probes/contract.c
 ; matches C memmove byte for byte at n = 512 with dst = src + 8). Below 64 bytes every arm issues
 ; ALL of its loads before ANY of its stores, so it is memmove-correct for free at any delta. At 64
-; and above, the one ordering a forward copy cannot do -- the destination sitting INSIDE the
-; source -- is detected with an unsigned (dst - src) < n test and served by a reverse loop.
+; and above, the one ordering a forward copy cannot do, the destination sitting INSIDE the
+; source, is detected with an unsigned (dst - src) < n test and served by a reverse loop.
 ;
 ; ISA: AVX2, this repository's baseline on all three benches, plus ERMS `rep movsb` above 2560
 ; bytes. Both are unconditional rather than CPUID-dispatched: AVX2 is the baseline, and `rep movsb`
-; is correct on every x86-64 -- without ERMS it is merely slow, which is a tuning question and not
+; is correct on every x86-64, without ERMS it is merely slow, which is a tuning question and not
 ; a correctness one. The threshold is the only thing that is Tiger-Lake-specific; see RESULTS.md.
 ;
 ; ABI: frameless leaf except inside the ERMS arm, which pushes and pops the two non-volatile
-; registers `rep movsb` is hard-wired to (rdi, rsi) -- the same thing change 130's Tiger Lake
+; registers `rep movsb` is hard-wired to (rdi, rsi), the same thing change 130's Tiger Lake
 ; variant does for `rep stosb`. Everything else is rax rcx rdx r8 r9 r10 r11 and ymm0-ymm4, all
 ; volatile under Win64.
 
@@ -139,7 +139,7 @@ ge64:   mov       rdx, r11
         ;
         ; A 32-byte store whose address is not 32-aligned straddles a 64-byte cache line on every
         ; other block, and the penalty is 1.7x. malloc hands back 16-byte alignment, so half of
-        ; all destinations landed on the slow column -- which is why the first bench run had the
+        ; all destinations landed on the slow column, which is why the first bench run had the
         ; same code reading 1.38x and 0.84x on neighbouring size classes. ntdll's memmove aligns
         ; its destination to 16 for the same reason; this aligns to 32, one step wider.
         ;
@@ -148,7 +148,7 @@ ge64:   mov       rdx, r11
         ; needs its own store; if that store went FIRST it would land on source bytes the loop has
         ; yet to read whenever the destination sits just below the source. The same argument
         ; applies to the overlapping tail: an earlier draft read it AFTER the loop and failed the
-        ; corpus on 1,799 cases -- at n = 65 with the destination 62 bytes below the source, the
+        ; corpus on 1,799 cases, at n = 65 with the destination 62 bytes below the source, the
         ; loop's store of dst[0,64) lands on src[1]. Holding both in registers costs nothing
         ; (ymm2/ymm3/ymm4 are volatile and otherwise idle) and makes every store in this path
         ; happen strictly after every load it could disturb.
@@ -176,7 +176,7 @@ fwd_tail:
         vmovdqu   ymmword ptr [r11], ymm4
         vzeroupper
         jmp       tail_nul                       ; ecx is untouched here and still holds n
-                                                 ; (eax is NOT -- it was reused as the index)
+                                                 ; (eax is NOT; it was reused as the index)
 
         ; ---- >= WIA_ERMS : rep movsb ---------------------------------------------------------
         ; A 32-byte-granular copy loop is hostage to (dst - src) mod 32 and there is no way to
@@ -199,7 +199,7 @@ fwd_tail:
         ; ordering `rep movsb` can do.
         ;
         ; The 64-byte head is aligned away first because ERMS is sensitive to the alignment of its
-        ; destination -- change 130 found the same thing, as a bimodal distribution with a steady
+        ; destination, change 130 found the same thing, as a bimodal distribution with a steady
         ; comparand. The head is LOADED before the rep and STORED after it, for the same
         ; overlap reason as the vector path: with the destination one byte below the source, a
         ; head store issued first lands on bytes the rep has not read yet. That is the bug the
@@ -207,7 +207,7 @@ fwd_tail:
         ; exists to catch exactly it.
         ;
         ; rdi and rsi are NON-VOLATILE under Win64 and `rep movsb` is hard-wired to both, so they
-        ; are pushed and popped -- the same trade change 130's variant makes.
+        ; are pushed and popped; the same trade change 130's variant makes.
 erms:   vmovdqu   ymm2, ymmword ptr [r9]
         vmovdqu   ymm3, ymmword ptr [r9 + 32]
         mov       edx, r11d
@@ -244,7 +244,7 @@ bwd32:  sub       edx, 32
         ; ---- the wide NUL. room = MaximumLength - n was computed before the copy. ------------
         ; only the ERMS arm enters at tail_nul_n. `rep movsb` counts rcx down to zero, and that arm
         ; leaves eax alone, so eax is where n survives. The forward VECTOR arm is the opposite way
-        ; round -- it reuses eax as its loop index and leaves ecx alone -- and entering here would
+        ; round (it reuses eax as its loop index and leaves ecx alone) and entering here would
         ; write the NUL at the loop index instead of at n. That was a real bug, caught by the
         ; corpus at n = 64: the terminator landed at byte 16.
 tail_nul_n:

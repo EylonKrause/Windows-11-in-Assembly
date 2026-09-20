@@ -4,7 +4,7 @@ Rem  live-run proof for change 270 (advapi32!ConvertSidToStringSidW).
 REM
 REM  This export ALLOCATES. Every success hands the caller a LocalAlloc block
 REM  that the caller frees through the ordinary, UNPATCHED LocalFree, so the
-REM  harness frees every one of them -- and compares LocalSize and LocalFlags as
+REM  harness frees every one of them, and compares LocalSize and LocalFlags as
 REM  well as the bytes, because a block that is right but too big is still wrong.
 REM
 REM  Five things per case: the BOOL, GetLastError (which on success becomes ZERO

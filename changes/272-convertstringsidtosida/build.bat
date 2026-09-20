@@ -1,10 +1,10 @@
 @echo off
-REM changes/272-convertstringsidtosida/build.bat -- assemble, gate on correctness, benchmark.
+REM changes/272-convertstringsidtosida/build.bat: assemble, gate on correctness, benchmark.
 REM
 Rem  change 269 Is linked, not copied. probes/codepage.c established that ConvertStringSidToSidA(s)
 REM  is exactly ConvertStringSidToSidW(MultiByteToWideChar(CP_ACP, 0, s, -1, ...)) over every byte in
 REM  every field, every printable ASCII pair against the alias table, and the sequences that do not
-REM  translate -- so the parser is 269's, and this change is the widening. 269's two OS-derived
+REM  translate, so the parser is 269's, and this change is the widening. 269's two OS-derived
 REM  tables come with it.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

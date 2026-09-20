@@ -10,7 +10,7 @@
 ; 0xC0000023 STATUS_BUFFER_TOO_SMALL (output did not fit).
 ;
 ; ------------------------------------------------------------------------------
-; a NULL destination is the measuring mode, added 2026-09-16 -- it was missing.
+; a NULL destination is the measuring mode, added 2026-09-16; it was missing.
 ;
 ; RtlUnicodeToUTF8N(NULL, 0, &produced, src, srcLen) is the documented way to ask
 ; this function how many bytes the output will need: the shipped export returns
@@ -22,19 +22,19 @@
 ; Why the gates did not catch it: this change is bit-exact against the live export
 ; over large corpora, and every case in them passes a real destination buffer. A
 ; NULL destination is not an edge of the LENGTH, which is what those corpora
-; sweep -- it is a different MODE of the same function, and nothing asked for it.
+; sweep; it is a different MODE of the same function, and nothing asked for it.
 ; The same shape as the SPACE bug that sat in four landed changes at once.
 ;
 ; It was found by change 268, whose allocating path has to size the output before
 ; it can allocate a buffer for it, and which cannot be built until this works.
 ;
 ; The counting rule below was verified against the live measuring mode over
-; 200000 random strings -- ASCII, two-byte, surrogate-heavy and fully random --
+; 200000 random strings, ASCII, two-byte, surrogate-heavy and fully random --
 ; with ZERO disagreements on the size AND on the status, and measuring.c gates it
 ; here over 122006 more.
 ;
 ; What it costs, measured rather than waved away: the two-instruction test at the
-; entry costs 0.12 ns on the 8-byte row -- 2.93 ns before, 3.05 after -- which is
+; entry costs 0.12 ns on the 8-byte row (2.93 ns before, 3.05 after) which is
 ; about 4% of the smallest call and moves the geomean from 2.68x to 2.63x. Moving
 ; the test AFTER the prologue, so it might issue alongside the seven pushes, was
 ; tried and measured WORSE at 3.13 ns; the entry is the better of the two places.
@@ -75,9 +75,9 @@ C80C0w  DW      8 dup(080C0h)                      ; the 0xC0 lead / 0x80 contin
 ; two. The table is therefore indexed by the eight-bit mask of which characters are single bytes,
 ; and the block that uses it is about eighteen instructions.
 ;
-; This is not a micro-optimisation of a rare case. `mixed` -- ASCII alternating with two-byte
+; This is not a micro-optimisation of a rare case. `mixed`, ASCII alternating with two-byte
 ; characters, which is what Hebrew, Greek, Cyrillic or accented Latin prose actually looks like once
-; it has spaces and punctuation in it -- was the ONE class still at parity after the general block
+; it has spaces and punctuation in it, was the ONE class still at parity after the general block
 ; landed, at 0.91x to 1.01x. It is the commonest non-ASCII input there is.
 ;
 ; A lane holds the two-byte form as a 16-bit word, little-endian, so byte 2i is the lead and 2i+1 is
@@ -130,24 +130,24 @@ ENDM
 ;
 ; Both packing blocks compute sixteen bytes and then advance by however many of them were WANTED.
 ; Storing all sixteen is the cheap way to finish, and inside the destination's capacity it is not a
-; memory error -- but it puts ZEROS in the caller's buffer past the end of the string, and the
+; memory error, but it puts ZEROS in the caller's buffer past the end of the string, and the
 ; shipped export leaves those bytes exactly as the caller left them.
 ;
 ; Nothing here noticed. This change's own gate compared only the bytes up to the produced LENGTH,
 ; which is the natural thing to compare and is not enough. CHANGE 268's gate compares its whole
-; destination, because that wrapper's contract includes what a FAILING call leaves behind -- and the
+; destination, because that wrapper's contract includes what a FAILING call leaves behind, and the
 ; first time 268 was built against these blocks it reported 154 mismatches, every one of them a
 ; single 00 where ntdll had left the caller's fill. Both gates now compare the whole capacity.
 ;
 ; The first fix was to blend, and it was measured and thrown away. Reading the sixteen bytes back,
 ; keeping whatever the output did not reach, and storing the result is four instructions and no
-; table -- and it cost 2.9x on three-byte input, because every iteration's read overlaps the
+; table, and it cost 2.9x on three-byte input, because every iteration's read overlaps the
 ; previous iteration's store by a few bytes. A partially overlapping load cannot be forwarded from
 ; the store buffer, so each one waits for the store to reach L1: about fifteen cycles, every
 ; iteration, to preserve bytes that the NEXT iteration usually overwrites anyway.
 ;
 ; What is here instead never reads the destination. Exactly L bytes are written as two overlapping
-; stores -- the first eight bytes and the last eight -- which together cover [0, L) precisely when
+; stores (the first eight bytes and the last eight) which together cover [0, L) precisely when
 ; L is at least 8. The table below is what makes the second store possible: entry k shuffles byte
 ; k+i down to position i, so the last eight bytes of the vector can be brought to where an 8-byte
 ; store will emit them. Under eight bytes the same trick works with two 4-byte stores, which is the
@@ -179,13 +179,13 @@ PUBLIC wia_u2u8_shift_table
 ; A block of four characters produces between four and twelve UTF-8 bytes, and which bytes they are
 ; depends on each character's length. The block below builds each character's THREE-byte form in its
 ; own 32-bit lane and then compacts the lanes with a single VPSHUFB, so the only thing that varies
-; is the shuffle -- 256 of them, one per combination of four lengths at two bits each.
+; is the shuffle, 256 of them, one per combination of four lengths at two bits each.
 ;
 ; Four bytes are laid out per lane:  [0] 0xE0|(c>>12)   [1] 0x80|((c>>6)&0x3F)
 ;                                    [2] 0x80|(c&0x3F)  [3] c
 ; and a character of length 1 takes lane byte 3, length 2 takes bytes 1 and 2, length 3 takes 0, 1
-; and 2. Byte 3 exists because 0x80|(c&0x3F) is NOT c for an ASCII character above 0x3F -- it drops
-; bit 6 -- so the one-byte form has to be carried separately rather than masked out of the
+; and 2. Byte 3 exists because 0x80|(c&0x3F) is NOT c for an ASCII character above 0x3F, it drops
+; bit 6, so the one-byte form has to be carried separately rather than masked out of the
 ; three-byte one. That is a bug this table's first draft had, and it would have mangled every
 ; capital letter in a string that also contained a non-ASCII character.
 ;
@@ -240,7 +240,7 @@ ENDM
 PUBLIC wia_u2u8_pack_table
 PUBLIC wia_u2u8_pack_len
 
-; Storex -- write exactly eax bytes of `xdata` at [rbx + r15], using `xtmp` and edx as scratch and
+; Storex, write exactly eax bytes of `xdata` at [rbx + r15], using `xtmp` and edx as scratch and
 ; Rcx as the base of shiftr. Two overlapping stores, no read of the destination. Eax is left alone
 ; so the caller can advance the position with it.
 STOREX  MACRO xdata, xtmp
@@ -358,8 +358,8 @@ ascii8:
 ; Everything under 0x800 is a lead byte and at most one continuation byte, which makes the whole
 ; thing a 16-bit word per character and a single VPSHUFB to drop the bytes that are not wanted.
 ; The general block below can do this too, and does it in forty-seven instructions; `mixed` input
-; -- prose in any European or Middle Eastern script, which is ASCII spaces and punctuation
-; alternating with two-byte letters -- is common enough to be worth its own path.
+; prose in any European or Middle Eastern script, which is ASCII spaces and punctuation
+; alternating with two-byte letters, is common enough to be worth its own path.
 ;
 ; The 0xF800 test rejects surrogates for free: every surrogate is 0xD800 or above.
 ; -------------------------------------------------------------------------------------------------
@@ -403,7 +403,7 @@ lat8:
 ; block above handles the one case where every character is one byte, and everything else walked one
 ; character at a time while ntdll converted the same text at about a cycle and a half per character.
 ;
-; The block takes eight characters -- ANY eight characters that are not surrogates, so it covers the
+; The block takes eight characters, ANY eight characters that are not surrogates, so it covers the
 ; two-byte, three-byte and mixed classes together rather than one of them at a time. Each character
 ; is expanded into its own 32-bit lane holding all three candidate bytes plus the character itself,
 ; two comparisons give each character's LENGTH, PDEP packs those lengths into a two-bit-per-character
@@ -424,7 +424,7 @@ lat8:
 ALIGN 16
 bmp8:
         ; The surrogate test comes before the room test, and the order is deliberate. Written the
-        ; other way round -- room first -- this block's 32-byte guard would also be guarding the
+        ; other way round (room first) this block's 32-byte guard would also be guarding the
         ; surrogate block below it, whose own 16-byte guard would then be unreachable: a check that
         ; can never fail, which reads like a safeguard and is not one. The mutation that halves it
         ; was the one mutant of fourteen that the correctness gate could not catch, and that was the
@@ -496,7 +496,7 @@ bmp8:
 ; The surrogate-pair block: Four pairs, sixteen bytes, no shuffle.
 ;
 ; The block above rejects surrogates wholesale, which left emoji and every other supplementary-plane
-; character on the scalar path -- 0.92x against ntdll on 32000 characters of surrogate pairs, the one
+; character on the scalar path, 0.92x against ntdll on 32000 characters of surrogate pairs, the one
 ; class still short after the BMP block landed. Pairs are worth their own block precisely BECAUSE
 ; they are irregular in the other block's terms and perfectly regular in their own: every valid pair
 ; is exactly two characters in and exactly four bytes out, so four of them are sixteen bytes with no
@@ -511,7 +511,7 @@ bmp8:
 ; Alignment takes care of itself and is worth saying out loud, because it looks like it should not.
 ; The lanes are relative to the current index, not to the start of the string, so a run of pairs
 ; that begins at an ODD character offset is still high-low-high-low from the moment the index
-; reaches its first high surrogate -- and the index can only arrive there after whatever preceded it
+; reaches its first high surrogate, and the index can only arrive there after whatever preceded it
 ; was consumed. There is no odd-alignment case to handle.
 ;
 ; The arithmetic is VPMADDWD doing the surrogate algebra: subtracting the [D800, DC00] pattern
@@ -552,7 +552,7 @@ surr8:
 
 ; -------------------------------------------------------------------------------------------------
 ; The scalar window, added 2026-09-16. Before it, every scalar character jumped back to `mainloop`
-; and paid for both vector blocks again -- two loads, two VPTESTs and four comparisons -- to
+; and paid for both vector blocks again (two loads, two VPTESTs and four comparisons) to
 ; discover once more that the character in front of it is not ASCII. On a string that is entirely
 ; two-byte characters that cost was paid on every character for the whole string, and on input that
 ; alternates ASCII with non-ASCII it was paid twice per character.
@@ -561,7 +561,7 @@ surr8:
 ;
 ; This is change 263's rule, which this repository already wrote down and this file already broke:
 ; a scalar walk must not re-enter a vector loop. The window is the cheapest possible statement of
-; it -- once the blocks have failed, 16 source characters are encoded one at a time before they are
+; it, once the blocks have failed, 16 source characters are encoded one at a time before they are
 ; tried again, so the probe is amortised over a cache line of input instead of over one character.
 ; The two comparisons in `scalar_next` replace two vector loads.
 ; -------------------------------------------------------------------------------------------------
@@ -731,10 +731,10 @@ epi:
 ;
 ;   r8 = &produced,  r9 = src,  [rsp+40] = srcBytes  (the fifth argument, with no pushes yet)
 ;
-; One character at a time, because this path is not the performance case -- the conversion is.
+; One character at a time, because this path is not the performance case; the conversion is.
 ; The rule: below 0x80 is one byte, below 0x800 is two, a HIGH surrogate followed by a LOW one is
-; four and consumes both, and everything else -- including a lone surrogate, which becomes U+FFFD
-; -- is three. A lone surrogate also makes the status STATUS_SOME_NOT_MAPPED, exactly as the
+; four and consumes both, and everything else, including a lone surrogate, which becomes U+FFFD
+; is three. A lone surrogate also makes the status STATUS_SOME_NOT_MAPPED, exactly as the
 ; conversion path reports it.
 ; ---------------------------------------------------------------------------------------------
 u2u8_measure:

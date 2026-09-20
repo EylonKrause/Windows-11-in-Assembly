@@ -2,7 +2,7 @@
  *
  * The scalar model for oleaut32!VarBstrCmp.
  *
- * It calls CompareStringW, deliberately and always -- no fast path, no threshold. What the gate
+ * It calls CompareStringW, deliberately and always, no fast path, no threshold. What the gate
  * needs a second opinion about is not the collation, which is the OS's and which nothing outside it
  * can have; it is the WRAPPER: the empty rules, the validation, the error mapping, and above all
  * whether the fast path in impl.asm ever answers something the plain delegation would not.
@@ -11,7 +11,7 @@
  *
  *   * a NULL BSTR is the same as an empty one, both ways round;
  *   * if either side is empty the answer comes from the LENGTHS ALONE and the locale and flags are
- *     never looked at -- `"" vs ""` with a bad locale is EQ, `"abc" vs ""` with a bad flag is GT;
+ *     never looked at, `"" vs ""` with a bad locale is EQ, `"abc" vs ""` with a bad flag is GT;
  *   * otherwise CompareStringW decides, with the BSTR's counted length (embedded NULs and all), and
  *     its 1/2/3 becomes VARCMP_LT/EQ/GT by subtracting one;
  *   * a failure is E_INVALIDARG, for a bad locale and for an undefined flag bit alike.

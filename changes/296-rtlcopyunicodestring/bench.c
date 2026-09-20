@@ -1,15 +1,15 @@
-/* changes/296-rtlcopyunicodestring/bench.c -- wia_copyus vs the LIVE ntdll export.
+/* changes/296-rtlcopyunicodestring/bench.c: wia_copyus vs the LIVE ntdll export.
  *
  * FOUR tables, and the change lands only if none of them reports a regression.
  *
  *   [1] the ordinary call, malloc'd buffers: the whole source fits, so n = src->Length and a wide
  *       NUL is written. This is the shape every one of the 31 live modules that bind this export
  *       makes, and the one discovery/ntdll_tier3.c timed (3.55 ns at 8 wchars, 12.50 at 254,
- *       113.30 at 4095 -- about 40 GB/s at 254 characters). Same allocation style as the rest of
+ *       113.30 at 4095, about 40 GB/s at 254 characters). Same allocation style as the rest of
  *       this tree, so the numbers are comparable with its neighbours.
  *
  *   [2] the TRUNCATING call, with dst->MaximumLength ODD and smaller than src->Length. That path
- *       copies MaximumLength bytes exactly -- an odd byte count -- and writes no NUL, so it lands
+ *       copies MaximumLength bytes exactly (an odd byte count) and writes no NUL, so it lands
  *       on ladder arms case [1] never touches. A size class that exists only on a contract edge
  *       still has to not regress.
  *
@@ -17,9 +17,9 @@
  *       out was most of the work in this change. A wide copy's speed depends on two properties of
  *       the caller's buffers that malloc picks by accident:
  *
- *          dst & 31            -- a 32-byte store that is not 32-aligned splits a cache line on
+ *          dst & 31; a 32-byte store that is not 32-aligned splits a cache line on
  *                                 every other block. impl.asm fixes this by aligning its stores.
- *          (dst - src) % 4096  -- 4K aliasing. A load is stalled behind an in-flight store that
+ *          (dst - src) % 4096, 4K aliasing. A load is stalled behind an in-flight store that
  *                                 shares its low 12 address bits. NOT fixable in software, and it
  *                                 costs a 32-byte loop more than ntdll's 16-byte one because the
  *                                 alias window is as wide as the access.
@@ -30,14 +30,14 @@
  *       6.14, 6.30, 6.34, 6.66 and 7.41 ns. So both axes are put IN the gate instead:
  *
  *       [3] sweeps the destination through a 64-byte line with both buffers page-aligned, which
- *           forces (dst - src) % 4096 into [0,64) -- the aliasing regime, the adversarial one.
+ *           forces (dst - src) % 4096 into [0,64), the aliasing regime, the adversarial one.
  *       [4] is the same sweep with the source moved to page offset 2048, which is the ordinary
  *           regime two unrelated allocations land in.
  *
  *       Each row holds its alignment FIXED for the whole timing loop, which is how every other
  *       bench in this repository measures and the only way the number means anything: mixing
  *       alignments inside one loop measures the microcode's reaction to the mixing. (It is a real
- *       effect -- rotating the destination offset every call costs `rep movsb` 3x -- but it is a
+ *       effect (rotating the destination offset every call costs `rep movsb` 3x) but it is a
  *       different question from "is this faster for a caller", and it is recorded in RESULTS.md
  *       rather than smuggled into the gate.)
  */

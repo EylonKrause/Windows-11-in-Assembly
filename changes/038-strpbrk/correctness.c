@@ -77,7 +77,7 @@ int main(void)
         }
     }
 
-    /* a member on each side of the terminator inside the SAME 32-byte block -- the case the two
+    /* a member on each side of the terminator inside the SAME 32-byte block, the case the two
        separate masks exist for: a member past the terminator must still return NULL */
     for (int align = 0; align < 32 && fails < 20; ++align)
         for (int len = 1; len <= 140 && fails < 20; ++len)

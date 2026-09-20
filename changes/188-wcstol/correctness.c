@@ -1,5 +1,5 @@
 // changes/188-wcstol/correctness.c
-// Gate 1: wia_wcstol must be indistinguishable from ucrtbase!wcstol -- value, *endptr, errno AND
+// Gate 1: wia_wcstol must be indistinguishable from ucrtbase!wcstol, value, *endptr, errno AND
 // the invalid-parameter handler hit count. Three-way against the scalar oracle and the live
 // export.
 //

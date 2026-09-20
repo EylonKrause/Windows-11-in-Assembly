@@ -14,17 +14,17 @@
 //
 // That is also why the call counters are reported rather than asserted to an exact number for
 // `strlen`: once it is patched, anything else in the process that reaches it is counted too. The
-// count must be AT LEAST the corpus size -- a smaller number would mean the corpus did not go
-// through us -- and for the eight functions the CRT does not call internally it must be exact.
+// count must be AT LEAST the corpus size; a smaller number would mean the corpus did not go
+// through us, and for the eight functions the CRT does not call internally it must be exact.
 //
 // Why this batch. An audit of live coverage found 135 of 270 Landed changes with their export
 // hot-patched and 135 without. These nine are the cleanest block in the uncovered half: pure
-// functions, no allocation, no tables, no locale state, and signatures the C library defines -- so
+// functions, no allocation, no tables, no locale state, and signatures the C library defines, so
 // the oracle is the shipped export itself and the corpus needs no model.
 //
 // FREEZE-SAFETY PROTOCOL:
 //   (0) Sacrificial child: standalone, single-threaded; patches only its own copy-on-write copy of
-//       ucrtbase -- never a live system process, never the file on disk.
+//       ucrtbase, never a live system process, never the file on disk.
 //   (1) Validate first against the live exports over the whole corpus before any patch.
 //   (2) Patch only when idle, and emit nothing while patched (see above).
 //   (3) REVERSIBLE: original bytes restored and VERIFIED byte-for-byte.

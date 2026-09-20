@@ -3,7 +3,7 @@
  * Gate 2: time wia_str2sid against the live advapi32!ConvertStringSidToSidW.
  *
  * The rows are the shapes the implementation distinguishes, not a size sweep, because this function
- * has no size in the usual sense -- it has a COUNT, and a handful of paths that a count does not
+ * has no size in the usual sense; it has a COUNT, and a handful of paths that a count does not
  * reach:
  *
  *   1..8 sub-authorities   the cost per number, which is the whole point: discovery measured the

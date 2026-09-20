@@ -2,7 +2,7 @@
  *
  * Capture the exact ISA of the machine this repository is being validated on, in the same
  * vocabulary docs/PLATFORM.md uses. Written because the project's bench (Zen 3 / 5950X) has
- * NO AVX-512 and NO GFNI, while other validation machines do -- and a change's dispatch story
+ * NO AVX-512 and NO GFNI, while other validation machines do, and a change's dispatch story
  * is only meaningful against a precisely known feature set.
  *
  * Prints one "name=0/1" per line so a script can diff two machines mechanically.

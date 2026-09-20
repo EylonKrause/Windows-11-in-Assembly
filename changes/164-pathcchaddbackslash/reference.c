@@ -1,6 +1,6 @@
 // changes/164-pathcchaddbackslash/reference.c
 // Oracle for kernelbase!PathCchAddBackslash. The ORDER matters: the termination check, then the
-// S_FALSE check, then the room check -- all three measured.
+// S_FALSE check, then the room check, all three measured.
 #include <windows.h>
 #include <wchar.h>
 

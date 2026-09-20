@@ -15,7 +15,7 @@
 ;       RtlNumberOfClearBits, whole map          415.07 ns   0.051
 ;       RtlNumberOfSetBitsInRange 100..60100     381.03 ns   0.051
 ;
-; 0.050 ns/byte is about two cycles per 64-BIT word, and the interesting part is why -- because the
+; 0.050 ns/byte is about two cycles per 64-BIT word, and the interesting part is why, because the
 ; shipped code is not missing the right instruction. It already uses it:
 ;
 ;     000F2F33  popcnt rax, rax
@@ -24,7 +24,7 @@
 ; Two cycles per word is what a serial accumulator chain costs: POPCNT has about three cycles of
 ; latency against one per cycle of throughput, so `total += popcnt(w)` in a single register can
 ; never run faster than its own dependency. The room here is not a better instruction, it is
-; removing the chain -- and the cheapest way to remove it entirely is to leave the general-purpose
+; removing the chain, and the cheapest way to remove it entirely is to leave the general-purpose
 ; registers and count nibbles with VPSHUFB, which has no carried dependency at all and handles
 ; thirty-two bytes at a time.
 ;
@@ -33,7 +33,7 @@
 ;
 ;   * The range is (start, length), not (start, end). On an all-ones bitmap (100, 300) counts 300.
 ;   * The range forms refuse rather than clamp. They return 0xFFFFFFFF when the length is zero or
-;     when start + length runs past SizeOfBitMap -- (0,0), (100,10) on a 100-bit map and (0,101)
+;     when start + length runs past SizeOfBitMap, (0,0), (100,10) on a 100-bit map and (0,101)
 ;     all return -1, not 0 and not a clamped count. Verified over all 111 x 111 combinations of
 ;     start and length with zero disagreements.
 ;   * clear == SizeOfBitMap - set exactly, over 20000 random bitmaps, and for a valid range
@@ -82,7 +82,7 @@ c_0f    DB 32 DUP(0Fh)
 
 .code
 
-; -- Read the 64 bits of word r10d into rdx WITHOUT reading past the ULONG array. --
+; Read the 64 bits of word r10d into rdx WITHOUT reading past the ULONG array. --
 ; A MACRO and not a procedure: it is used at three sites, all of them on the EDGE path where a
 ; bitmap may be only a few words long, and a call at each of them cost more than the load did.
 ; In: r10d = word index, rsi = buffer, r11d = nw32.  Clobbers rax, rdx, r9.
@@ -103,7 +103,7 @@ done:
 ENDM
 
 ; ---------------------------------------------------------------------------------------------
-; nsb_count -- count the set bits in [r8d, r12d) of the bitmap in rsi (nw32 ULONGs), into rax.
+; nsb_count, count the set bits in [r8d, r12d) of the bitmap in rsi (nw32 ULONGs), into rax.
 ; A LEAF. Clobbers rax, rcx, rdx, r8, r9, r10, r11, rbx, rdi and ymm0-ymm5.
 ; ---------------------------------------------------------------------------------------------
 nsb_count PROC
@@ -235,7 +235,7 @@ nsb_body PROC FRAME
         .endprolog
         mov       r13d, r10d                  ; the selector, moved out of the VOLATILE register
                                               ; the stub used. Setting it in r13 BEFORE this
-                                              ; prologue destroyed the caller r13 -- correct at /Od,
+                                              ; prologue destroyed the caller r13, correct at /Od,
                                               ; where everything is spilled, and an access violation
                                               ; at /O2, where the caller keeps live values there.
         ; r13d carries WHICH export this is: bit 0 = count clear rather than set,
@@ -309,7 +309,7 @@ nsb_body ENDP
 
 ; LEAF entry stubs with no unwind data that TAIL-JUMP, so the framed body is entered exactly as a
 ; call would leave it.
-; -- The single-word fast path. a leaf: no frame, no saved registers, no call. --
+; The single-word fast path. a leaf: no frame, no saved registers, no call. --
 ; A bitmap of sixty-four bits or fewer is one masked load and one POPCNT, and routing it through the
 ; framed body cost five pushes, a stack adjustment and two calls to do that. Measured at 0.58x on a
 ; one-bit bitmap before this existed. rcx, rdx and r8 are left untouched so anything this path
@@ -354,7 +354,7 @@ nsb_s_zero:
         xor       eax, eax
         ret
 
-; -- and the same for a RANGE that lies inside one 64-bit word, which is most short ranges. --
+; and the same for a RANGE that lies inside one 64-bit word, which is most short ranges. --
 ; Every jump back to nsb_body below happens while rcx, rdx and r8 still hold the arguments exactly
 ; as they arrived; rcx is only consumed after the last of them.
 nsb_s_range:

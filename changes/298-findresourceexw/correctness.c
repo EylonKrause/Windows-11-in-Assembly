@@ -1,4 +1,4 @@
-/* changes/298-findresourceexw/correctness.c -- GATE 1.
+/* changes/298-findresourceexw/correctness.c: GATE 1.
  *
  * Three-way: our assembly vs reference.c vs the LIVE kernel32!FindResourceExW
  * resolved with GetProcAddress. A single mismatch fails the gate.
@@ -21,7 +21,7 @@
  * The slack contract, stated explicitly because the corpus enforces it:
  * wia_resname_upcase writes whole 32-byte blocks, so it may write up to 31 bytes
  * past the terminator it stores. That is the contract of the code that ships --
- * its one caller hands it a buffer with that slack -- so the corpus checks the
+ * its one caller hands it a buffer with that slack, so the corpus checks the
  * real bound rather than a bound the shipped code does not honour: nothing is
  * written before dst, and nothing at or beyond dst + 2*len + 32.
  */
@@ -137,7 +137,7 @@ static void corpus_normaliser(void)
         s[0] = (wchar_t)i; s[1] = 0;
         check_norm(s, "single code unit");
     }
-    /* and one non-ASCII at every position of an ASCII run -- the bail-out has to
+    /* and one non-ASCII at every position of an ASCII run; the bail-out has to
        trigger wherever it appears, including in the last vector block */
     for (L = 1; L <= 70; ++L) {
         for (pos = 0; pos < L; ++pos) {
@@ -194,7 +194,7 @@ static void corpus_normaliser(void)
 
 /* ------------------------------------------------------------------ [2] ---- */
 
-/* Why every tuple is warmed first -- probes/mui_state.c proved it.
+/* Why every tuple is warmed first, probes/mui_state.c proved it.
  * The live export is NOT a pure function of its arguments. For a language that
  * the image does not carry, ntdll tries to load an alternate (MUI) resource
  * module for that image, fails, and CACHES the failure per image. So the very
@@ -376,7 +376,7 @@ static void corpus_calls(void)
  * The first call on a freshly mapped image, where the mui cache is empty. Three
  * byte-identical copies of the same DLL are mapped, and the first call on copy A
  * goes to the live export, on copy B to the reference, on copy C to our assembly.
- * All three must report the same thing -- otherwise our implementation differs
+ * All three must report the same thing, otherwise our implementation differs
  * exactly where the shipped one is stateful. */
 static void corpus_first_call(void)
 {

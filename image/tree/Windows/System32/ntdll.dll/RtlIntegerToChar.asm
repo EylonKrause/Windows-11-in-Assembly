@@ -10,7 +10,7 @@
 ; digits and 6.84 for eight hexadecimal, against change 278's 4.28 ns for the same ten.
 ;
 ; This is the ANSI, raw-pointer sibling of the export change 278 replaced, and it uses the same
-; proved machinery -- but its CONTRACT is different in two ways that had to be measured, and one of
+; proved machinery, but its CONTRACT is different in two ways that had to be measured, and one of
 ; them is a feature nobody would guess.
 ;
 ; --------------------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@
 ;
 ; That is change 067's rule for RtlConvertSidToUnicodeString. It is NOT change 278's rule for
 ; RtlIntegerToUnicodeString, which demands Length+2 and always writes a terminator. THREE FORMATTERS
-; In one DLL, two rules -- and the only way to know which is which is to ask each one, one byte at a
+; In one DLL, two rules, and the only way to know which is which is to ask each one, one byte at a
 ; time. probes/contract.c does.
 ;
 ; 2. a negative `length` is a zero-padded field width.
@@ -32,21 +32,21 @@
 ;     length -11   ten digits   "03735928559"       <-- padded on the left, and NO terminator
 ;     length -13   ten digits   "0003735928559"
 ;     length -100               pads to a hundred characters, and FAULTS on a 64-byte buffer
-;     length INT_MIN            STATUS_BUFFER_OVERFLOW -- it cannot be negated
+;     length INT_MIN            STATUS_BUFFER_OVERFLOW, it cannot be negated
 ;
 ; probes/negative.c found that by sweeping every negative length against a guard page. A positive
 ; length does NOT pad: value 7 with length 8 is "7" and a terminator, not "00000007". An
 ; implementation that treated a negative length as an error, or as room, would be wrong on a
 ; documented feature that a single hand-written test would never have reached.
 ;
-; 3. The bases are change 278's five -- 0, 2, 8, 10 and 16, with 0 meaning 10 -- and everything else
+; 3. The bases are change 278's five (0, 2, 8, 10 and 16, with 0 meaning 10) and everything else
 ;    is STATUS_INVALID_PARAMETER. The value is unsigned. A refusal leaves the buffer untouched.
 ;
 ; --------------------------------------------------------------------------------------------------
 ; 4. This change supersedes change 097, which is wrong on every negative length.
 ;
-; 097 landed this same export at 1.39x. Its capacity test is `cmp edx, r10d / ja overflow` -- an
-; UNSIGNED compare -- so a negative length reads as the largest possible room, and it writes the
+; 097 landed this same export at 1.39x. Its capacity test is `cmp edx, r10d / ja overflow`, an
+; UNSIGNED compare, so a negative length reads as the largest possible room, and it writes the
 ; digits left-justified with a terminator where the export writes a zero-padded field. Swept against
 ; live over every negative length from -1 to -60 in five bases, it differs in 171600 of 171600
 ; cases, including returning SUCCESS and writing to the buffer on calls the export REFUSES with
@@ -105,8 +105,8 @@ HEXCH   LABEL BYTE                           ; +120 : uppercase
         DB      '0123456789ABCDEF'
 ALIGN 16
 ; The power-of-two bases emit more than one digit per store, for the same reason base 10 does.
-; A shift-and-mask loop is one digit per iteration, and change 097 -- the landed change this one
-; supersedes -- beat exactly that loop by writing hex and binary MSB-first with no temp. Neither is
+; A shift-and-mask loop is one digit per iteration, and change 097, the landed change this one
+; supersedes, beat exactly that loop by writing hex and binary MSB-first with no temp. Neither is
 ; as good as not iterating: a byte of the value is TWO hexadecimal digits, TWO octal digits fit in
 ; six bits, and a byte is EIGHT binary digits that are one 8-byte store.
 TABS2   LABEL BYTE
@@ -157,13 +157,13 @@ HOFF    EQU 120
 .code
 
 ; The register budget is seven and the job needs eight, which is why the field width is consumed
-; before the table base is loaded. Everything lives in volatile registers -- nothing is saved, there
+; before the table base is loaded. Everything lives in volatile registers; nothing is saved, there
 ; is no frame and there are no calls:
 ;
 ;   r9   the buffer            rax  the write cursor, running backwards from the end of the field
 ;   r10d the value             rdx  the base, then scratch
 ;   r11d the digit count, then the mask   rcx  scratch, and the shift for SHR
-;   r8d  the field width, then the table base -- the width is finished with by then
+;   r8d  the field width, then the table base; the width is finished with by then
 ;
 ; The first draft loaded the table into r9 and lost the buffer, which the padding loop needs.
 
@@ -188,12 +188,12 @@ have_base:
 ; ---- how many digits, into r11d
 d_pow2:
         ; The digit count is arithmetic, not a table lookup, and that is worth a paragraph.
-        ; The first version indexed a table by BSR(base)*32 + BSR(value) -- correct, and checked
+        ; The first version indexed a table by BSR(base)*32 + BSR(value), correct, and checked
         ; against its definition, but a shift, an add and a LOAD hang off the BSR before the first
         ; character can be written. The A/B against change 097 showed it: eight hexadecimal digits
         ; came out at 0.93x of the change being superseded, which is a regression whichever way it
         ; is measured. 097 sizes its output with LZCNT and arithmetic and pays no load at all.
-        ; Here BSR gives the index of the top set bit -- one less than the bit length -- so the
+        ; Here BSR gives the index of the top set bit (one less than the bit length) so the
         ; digit count is that index divided by the shift, plus one. Division by 4 is a shift;
         ; division by 3 is a multiply, and the index is at most 31 so `(n * 0AAABh) >> 17` is
         ; floor(n/3) over the whole domain that can occur. correctness.c re-derives every digit
@@ -283,7 +283,7 @@ b2_one:
         jnz       b2_one
         jmp       pad
 
-; ---- base 16: TWO digits per store -- one byte of the value is exactly two hexadecimal characters
+; ---- base 16: TWO digits per store; one byte of the value is exactly two hexadecimal characters
 w_hex:
         lea       r8, TABS2
 h16_next:
@@ -306,7 +306,7 @@ h16_last:
         mov       byte ptr [rax], cl
         jmp       pad
 
-; ---- base 8: TWO digits per store -- six bits of the value are exactly two octal characters
+; ---- base 8: TWO digits per store, six bits of the value are exactly two octal characters
 w_oct:
         lea       r8, TABS2
 o8_next:
@@ -357,11 +357,11 @@ pad:
         ; asked for. A positive length leaves none, because the field was set to the digit count.
         ;
         ; This is the loop that parked the first bench run. Written a byte at a time it cost 182 ns
-        ; to pad a hundred-character field against the export's 115 -- the only regressing row in a
+        ; to pad a hundred-character field against the export's 115, the only regressing row in a
         ; table of sixteen, and it regressed for the plainest possible reason: ntdll fills the field
         ; with a wide store and this wrote ninety separate bytes. Sixteen at a time, with the two
         ; ends OVERLAPPING so that no count between 16 and 31 needs a loop at all, turned 0.63x into
-        ; a win. The whole-field constant is SSE2, which is baseline on x64 -- no YMM is touched, so
+        ; a win. The whole-field constant is SSE2, which is baseline on x64; no YMM is touched, so
         ; there is no upper state to clear and no VZEROUPPER on any path.
         mov       rcx, rax
         sub       rcx, r9
@@ -388,7 +388,7 @@ pad_ends:
         movups    xmmword ptr [r9 + rcx - 16], xmm0
         jmp       done
 pad_small:
-        ; 1..15 bytes, again as two overlapping stores -- no loop, no branch per byte
+        ; 1..15 bytes, again as two overlapping stores, no loop, no branch per byte
         cmp       rcx, 8
         jb        pad_le7
         mov       qword ptr [r9], rdx
@@ -401,7 +401,7 @@ pad_le7:
         mov       dword ptr [r9 + rcx - 4], edx
         jmp       done
 pad_le3:
-        ; 1, 2 or 3: the first byte, the last byte, and the middle one -- which for a count of 1 or
+        ; 1, 2 or 3: the first byte, the last byte, and the middle one, which for a count of 1 or
         ; 2 is one of the other two, written twice with the same value
         mov       byte ptr [r9], dl
         mov       byte ptr [r9 + rcx - 1], dl

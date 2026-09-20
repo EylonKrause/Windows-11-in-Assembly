@@ -1,11 +1,11 @@
 // live-substitution/live_subst_fmt32_s.c
-// LIVE-RUN PROOF for changes 198-201 -- the bounded 32-bit integer formatter family:
+// LIVE-RUN PROOF for changes 198-201, the bounded 32-bit integer formatter family:
 //   _itoa_s / _ltoa_s, _ultoa_s, _itow_s / _ltow_s, _ultow_s.
 //
 // SIX exports, four implementations. _ltoa_s and _ltow_s are separate ucrtbase exports at different
 // addresses that the compiler laid out with the branch inverted, but they are the same function as
 // _itoa_s / _itow_s: same shared worker, same arguments, same behaviour. That is an ASSUMPTION, so
-// this harness does not take it on trust -- it patches and drives each of the six exports
+// this harness does not take it on trust, it patches and drives each of the six exports
 // independently, including the two aliases.
 //
 // What has to be proved live is not the happy path, it is the ERANGE path: ucrtbase leaves PARTIAL,
@@ -15,7 +15,7 @@
 // weighted onto sizes that fail.
 //
 // The one contract difference from changes 194-197 is width: the magnitude is 32 bits, so for any
-// radix other than 10 the value formats as an UNSIGNED 32-BIT quantity -- _itoa_s(-1, b, n, 16) is
+// radix other than 10 the value formats as an UNSIGNED 32-BIT quantity, _itoa_s(-1, b, n, 16) is
 // "ffffffff", eight f's, not the sixteen the 64-bit family produces. The corpus below feeds
 // negative values at non-decimal radixes specifically to exercise that.
 //

@@ -10,13 +10,13 @@
 ;   [Win64: ecx, edx, r8, r9d, [rsp+28h], [rsp+30h], [rsp+38h], [rsp+40h] -> eax]
 ;
 ; Reimplements kernelbase!WideCharToMultiByte for the UTF-8 code page. The shipped export is bound
-; by 310 desktop modules and 126 startup modules on this machine -- the highest fan-in genuinely
-; convertible function there is -- and discovery/desktop-startup-timings.md measures its CP_UTF8
+; by 310 desktop modules and 126 startup modules on this machine, the highest fan-in genuinely
+; convertible function there is, and discovery/desktop-startup-timings.md measures its CP_UTF8
 ; path at 0.235 ns/byte on ASCII and 1.071 ns/byte on Cyrillic, which is about 0.93 GB/s on the
 ; input UTF-8 exists for.
 ;
 ; =================================================================================================
-; The dispatch boundary -- exactly which inputs run this code.
+; The dispatch boundary, exactly which inputs run this code.
 ;
 ; Our code runs if and only if all five of these hold:
 ;
@@ -27,7 +27,7 @@
 ;       and the call passes the shipped argument validation, namely
 ;             cchWideChar != 0, cbMultiByte >= 0, lpWideCharStr != NULL, and when
 ;             cbMultiByte != 0 also lpMultiByteStr != NULL and lpMultiByteStr != lpWideCharStr;
-;       and the destination does not OVERLAP the source -- see the overlap note below, which is
+;       and the destination does not OVERLAP the source, see the overlap note below, which is
 ;             there because the gate caught a real divergence and not because it looked risky.
 ;
 ; Every other input tail-calls the real export with `jmp qword ptr [__imp_WideCharToMultiByte]`,
@@ -39,7 +39,7 @@
 ; code pages are OS data tables; the best-fit mapping behind WC_NO_BEST_FIT_CHARS / lpDefaultChar
 ; is more OS data; UTF-7 is a different encoder with its own state machine. Reimplementing those
 ; bit-exactly is not tractable and guessing at them is how a "faster" function corrupts text. For
-; those inputs correctness.c compares identical code against itself and passes trivially -- which is
+; those inputs correctness.c compares identical code against itself and passes trivially, which is
 ; the point, and the gate still drives all 8 code pages x 9 flag sets x every pointer shape through
 ; this function to prove the boundary is where this comment says it is.
 ;
@@ -58,7 +58,7 @@
 ; then PROVED against the running export by probes/contract.c. See RESULTS.md for the transcript.
 ;
 ; The whole CP_UTF8 path is argument validation wrapped around ONE call to ntdll!RtlUnicodeToUTF8N
-; -- confirmed by reading the IAT slot the call goes through and comparing it with GetProcAddress:
+; confirmed by reading the IAT slot the call goes through and comparing it with GetProcAddress:
 ;
 ;       status = RtlUnicodeToUTF8N(cbMultiByte ? lpMultiByteStr : NULL, cbMultiByte, &produced,
 ;                                  lpWideCharStr, (ULONG)(cchWideChar * 2))
@@ -67,7 +67,7 @@
 ; 016 and 034 shipped without that mode and FAULTED on it; this file has it from the first commit,
 ; and it is a vectorised counting pass rather than the character-at-a-time walk 016 first shipped.
 ;
-; A NEGATIVE cchWideChar -- ANY negative value, not only -1, proved for -2, -1000 and INT_MIN --
+; A NEGATIVE cchWideChar, ANY negative value, not only -1, proved for -2, -1000 and INT_MIN --
 ; means the string is NUL-terminated, and the count becomes length+1, so the terminator is converted
 ; and counted.
 ;
@@ -76,13 +76,13 @@
 ;     code checks that only for CP_UTF7 (65000).
 ;   * lpUsedDefaultChar is ACCEPTED for CP_UTF8 and WRITTEN: *p = (a lone surrogate was replaced).
 ;     MSDN says it must be NULL.
-;   * dwFlags accepts exactly 0x000006F0 for CP_UTF8 -- WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR|
-;     WC_ERR_INVALID_CHARS|WC_COMPOSITECHECK|WC_NO_BEST_FIT_CHARS -- and rejects every other bit
+;   * dwFlags accepts exactly 0x000006F0 for CP_UTF8, WC_DISCARDNS|WC_SEPCHARS|WC_DEFAULTCHAR|
+;     WC_ERR_INVALID_CHARS|WC_COMPOSITECHECK|WC_NO_BEST_FIT_CHARS, and rejects every other bit
 ;     with ERROR_INVALID_FLAGS. Only WC_ERR_INVALID_CHARS does anything: a lone surrogate then fails
 ;     the call with ERROR_NO_UNICODE_TRANSLATION (1113) AFTER its U+FFFD bytes have already been
 ;     written into the caller's buffer. All five of those flags tail-call here.
 ;
-; On success the last error is left exactly as the caller had it -- no SetLastError(0) -- and
+; On success the last error is left exactly as the caller had it (no SetLastError(0)) and
 ; correctness.c checks that on every one of its cases by writing a sentinel before each call.
 ;
 ; STATUS_SOME_NOT_MAPPED is not tracked here, and that is a consequence of the dispatch boundary
@@ -111,7 +111,7 @@
 ;   Exactly `produced` bytes are written and not one more. The packing blocks compute sixteen bytes
 ;   and want fewer; storing all sixteen puts zeros in the caller's buffer past the end of the string
 ;   and the shipped export leaves those bytes alone. Change 268 found that in 016 after a year.
-;   STOREX writes exactly L bytes as two OVERLAPPING stores and never reads the destination -- the
+;   STOREX writes exactly L bytes as two OVERLAPPING stores and never reads the destination, the
 ;   read-modify-write version was measured and cost 2.9x on three-byte input, because a partially
 ;   overlapping load cannot be forwarded from the store buffer. correctness.c here compares the
 ;   whole destination window, past cbMultiByte, on every case.
@@ -124,14 +124,14 @@
 ; Page safety. a wide read happens only when that many characters of the caller's declared source
 ; remain: the 32-byte load needs 16 characters left, the 16-byte loads need 8, and both counts are
 ; checked against cchWideChar before the load issues. The destination is guarded the same way --
-; every block compares dstPos + (the most it can store) against cbMultiByte first -- so nothing is
+; every block compares dstPos + (the most it can store) against cbMultiByte first, so nothing is
 ; ever written at or past cbMultiByte. correctness.c puts a PAGE_NOACCESS page immediately after the
 ; source AND after the destination and sweeps every length against it.
 ;
 ; The one read that is not bounded by a count is the NUL scan for a negative cchWideChar, and it is
 ; page-safe the other way: it aligns DOWN to 32 bytes and masks off the bytes before the string, so
 ; every load lies inside a page the string already occupies. A byte-misaligned wchar_t* cannot be
-; scanned that way at all -- the word lanes would not line up with the caller's characters -- so an
+; scanned that way at all (the word lanes would not line up with the caller's characters) so an
 ; odd pointer takes a scalar scan, which correctness.c drives explicitly.
 ;
 ; Isa: AVX2 + BMI1 (tzcnt) + BMI2 (pdep) + POPCNT. No AVX-512: this is the implementation of record
@@ -253,7 +253,7 @@ ENDM
 ; The general packing table. Four bytes are laid out per 32-bit lane:
 ;       [0] 0xE0|(c>>12)   [1] 0x80|((c>>6)&0x3F)   [2] 0x80|(c&0x3F)   [3] c
 ; and a character of length 1 takes lane byte 3, length 2 takes 1 and 2, length 3 takes 0, 1 and 2.
-; Byte 3 exists because 0x80|(c&0x3F) is NOT c for an ASCII character above 0x3F -- it drops bit 6 --
+; Byte 3 exists because 0x80|(c&0x3F) is NOT c for an ASCII character above 0x3F, it drops bit 6 --
 ; so the one-byte form has to be carried separately rather than masked out of the three-byte one.
 ; That was a real bug in change 016's first draft and it would have mangled every capital letter in
 ; a string that also contained a non-ASCII character.
@@ -309,7 +309,7 @@ PUBLIC wia_wc2mb_lat_len
 PUBLIC wia_wc2mb_shift_table
 PUBLIC wia_wc2mb_fallback
 
-; Storex -- write exactly eax bytes of `xdata` at [rbx + r15], using `xtmp` and edx as scratch and
+; Storex, write exactly eax bytes of `xdata` at [rbx + r15], using `xtmp` and edx as scratch and
 ; Rcx as the base of shiftr. Two overlapping stores, no read of the destination. Eax is left alone
 ; so the caller can advance the position with it.
 STOREX  MACRO xdata, xtmp
@@ -455,7 +455,7 @@ wc_have:
         jz        wc_measure                        ; cbMultiByte == 0: nothing is written at all
 
 ; ------------------------------------------------------------------------------------------------
-; An overlapping destination tail-calls, and this is not caution -- correctness.c caught a real
+; An overlapping destination tail-calls, and this is not caution, correctness.c caught a real
 ; divergence here and it is the reason the check exists.
 ;
 ; The shipped code rejects only EXACT pointer equality (proved), so a destination that merely
@@ -464,7 +464,7 @@ wc_have:
 ; before reading the next sees its own output when the destination is ahead of the read cursor,
 ; while a block that reads sixteen characters and then stores does not. Both are "correct" UTF-8 of
 ; something; they are not the same bytes. With lpMultiByteStr = (char*)lpWideCharStr + 2 and eight
-; ASCII characters, ours and the shipped export produced different buffers -- same return value,
+; ASCII characters, ours and the shipped export produced different buffers, same return value,
 ; same last error, different text, which is exactly the shape of bug that ships.
 ;
 ; There is no way to be bit-exact here except by being the same implementation, so overlapping
@@ -472,7 +472,7 @@ wc_have:
 ;
 ; The count is handed over RESOLVED. If the caller passed a negative cchWideChar the scan above has
 ; already replaced it with length+1, and converting exactly that many characters is what the shipped
-; code would do with the negative value anyway -- it would simply rescan the same, still-unmodified,
+; code would do with the negative value anyway; it would simply rescan the same, still-unmodified,
 ; string. CodePage and dwFlags are restored by value because the dispatch above proved what they
 ; are; nothing else has been touched, and nothing has been written.
 ; ------------------------------------------------------------------------------------------------
@@ -553,7 +553,7 @@ ascii8:
 
 ; -------------------------------------------------------------------------------------------------
 ; The one-or-two-byte block: eight characters under 0x800, in about eighteen instructions. This is
-; the block that carries `mixed` input -- ASCII spaces and punctuation alternating with two-byte
+; the block that carries `mixed` input, ASCII spaces and punctuation alternating with two-byte
 ; letters, which is what Hebrew, Greek, Cyrillic or accented Latin prose actually looks like, and
 ; the commonest non-ASCII input there is. The 0xF800 test rejects surrogates for free.
 ; -------------------------------------------------------------------------------------------------
@@ -597,7 +597,7 @@ lat8:
 ;
 ; The surrogate test comes before the room test, and the order is deliberate. Written the other way
 ; round, this block's 32-byte guard would also be guarding the surrogate block below, whose own
-; 16-byte guard could then never fail -- a check that cannot fail reads like a safeguard and is not
+; 16-byte guard could then never fail; a check that cannot fail reads like a safeguard and is not
 ; one. In change 016 that was the single mutant of nineteen the gate could not catch.
 ;
 ; The destination is guarded by 32 Bytes, not by the 24 the block can produce: each half stores
@@ -705,7 +705,7 @@ surr8:
 ; -------------------------------------------------------------------------------------------------
 ; The scalar window. Once the blocks have failed, sixteen characters are encoded one at a time
 ; before the blocks are probed again, so the probe is amortised over a cache line of input rather
-; than over one character. Without it -- change 263's rule broken -- alternating input costs two
+; than over one character. Without it (change 263's rule broken) alternating input costs two
 ; vector loads and two tests PER CHARACTER and this function runs at 0.21x while its table says 2.6x.
 ;
 ; This is also where the exact overflow semantics live: the first sequence that does not fit stops
@@ -885,21 +885,21 @@ wc_c_err:
 ; The measuring mode: cbMultiByte == 0 asks how many bytes the output would need, and the
 ; destination pointer is not read. r8 = src, r9d = characters.
 ;
-; This is a leaf -- no pushes, nothing but the volatile registers and the caller's shadow space,
+; This is a leaf, no pushes, nothing but the volatile registers and the caller's shadow space,
 ; which holds the scalar window's end.
 ;
 ; It is vectorised, and it has to be. Change 016's first measuring mode walked one character at a
 ; time because nothing was expected to call it in a loop; then change 268 called it on every
 ; allocating conversion and that row came out at 0.47x. Here it is the FIRST of the two calls in the
 ; measure-then-convert idiom that every caller of this function uses, so it is on the hot path by
-; construction -- discovery/desktop-startup-timings.md times the shipped one at 476 ns for 4095
+; construction, discovery/desktop-startup-timings.md times the shipped one at 476 ns for 4095
 ; characters, which is a quarter of the cost of the conversion it precedes.
 ;
 ; The counting rule for sixteen characters with no surrogate among them is exact arithmetic, not a
 ; walk: bytes = 3*16 - (how many are < 0x800) - (how many are < 0x80), because a character under
 ; 0x80 is counted out of both sets and lands on 1, one under 0x800 out of one set and lands on 2,
 ; and anything else stays at 3. Two VPCMPEQWs and two POPCNTs give both counts. Surrogates are the
-; only irregular case -- a valid pair is four bytes from TWO characters -- and they go to the scalar
+; only irregular case (a valid pair is four bytes from TWO characters) and they go to the scalar
 ; walk, which has its own window so it never re-enters the block per character.
 ; =================================================================================================
 ALIGN 16
@@ -939,7 +939,7 @@ wc_m_a16:
         jmp       wc_m_test
 
 ; Sixteen characters that are eight surrogate pairs. The counting block above rejects surrogates
-; wholesale, which left supplementary-plane text -- every emoji there is -- counting one character
+; wholesale, which left supplementary-plane text (every emoji there is) counting one character
 ; at a time, and that measured a TIE against ntdll's own sizing pass (0.94x-1.03x) while every other
 ; class was 3x to 8x. Pairs are worth their own test for the same reason change 016's converter gave
 ; them their own block: they are irregular in the other block's terms and perfectly regular in their

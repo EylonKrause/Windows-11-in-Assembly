@@ -12,7 +12,7 @@
  * obvious:
  *
  *   * everything before the stop matched, and '\' upcases to itself, so p1[j] == '\' exactly when
- *     p2[j] == '\' for every j before the stop -- which is why one backward scan of p1 finds a
+ *     p2[j] == '\' for every j before the stop, which is why one backward scan of p1 finds a
  *     boundary that is valid for both;
  *   * the two component terminators need NOT be the same terminator. A NUL in one against a '\' in
  *     the other ends both components at the same length, so that component MATCHES. That single
@@ -28,7 +28,7 @@
  *   * otherwise achPath, if given, is cleared to L"" before anything else is decided;
  *   * The only root handling is a doubled leading backslash. If either path starts with "\\" then
  *     both must, or the answer is 0; and each such path's cursor skips its own two characters.
- *     There is no root parser, and PathSkipRootW is never called -- which is what this change was
+ *     There is no root parser, and PathSkipRootW is never called, which is what this change was
  *     parked on the assumption of.
  *   * the case-fold is exactly RtlUpcaseUnicodeChar (0 differences over 65534 code-unit pairs,
  *     against 947 for a plain ASCII fold);
@@ -37,7 +37,7 @@
  *   * a computed length of exactly 2 Is reported as 3. Any length, not just drive letters, not just
  *     identical strings;
  *   * achPath receives that many characters of pszFile1, stopping at pszFile1's own terminator --
- *     which is why a result of 3 can still write only 2 -- and nothing at all if the result is 260
+ *     which is why a result of 3 can still write only 2, and nothing at all if the result is 260
  *     or more.
  */
 #define WIN32_LEAN_AND_MEAN

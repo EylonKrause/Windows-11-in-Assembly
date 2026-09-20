@@ -4,13 +4,13 @@
 ;
 ; Reimplements ntdll!RtlCrc64 (reverse-engineered): reflected CRC-64, poly
 ; 0x9A6C9329AC4BC9B5, internal accumulator = ~Init, output = ~crc.
-;   * Len < 128: slicing-by-8 (8 bytes/iter, 8-table lookup) + byte tail -- beats ntdll's
+;   * Len < 128: slicing-by-8 (8 bytes/iter, 8-table lookup) + byte tail, beats ntdll's
 ;     slicing at small sizes (its per-call overhead is heavy: ~0.9 GB/s at 32 B).
 ;   * Len >= 128: VPCLMULQDQ fold. Reflected-fold constants (derived from the scalar recurrence
 ;     and validated vs the live export over 300k inputs): advancing a 128-bit lane by D bits is
 ;     clmul(lane.lo, x^D) ^ clmul(lane.hi, x^(D-64)). We fold TWO 16-byte blocks per iteration
 ;     with a 256-bit ymm accumulator (each 128-bit lane advanced 256 bits, K256={x^256,x^192})
-;     -- Zen3's ymm vpclmulqdq is ~1.7x the xmm clmul throughput -- then combine the two lanes
+;     (Zen3's ymm vpclmulqdq is ~1.7x the xmm clmul throughput) then combine the two lanes
 ;     (advance the low lane 128 bits, xor the high lane) and fold any last 16-byte block with
 ;     K128={x^128,x^64}. Final reduce of the 128-bit accumulator is
 ;     crc = SLICE8(SLICE8(X.lo)) ^ SLICE8(X.hi), where SLICE8(v) = mulx^64(v) is one

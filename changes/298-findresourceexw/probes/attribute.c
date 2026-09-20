@@ -1,4 +1,4 @@
-/* probes/attribute.c -- where do the nanoseconds go?
+/* probes/attribute.c: where do the nanoseconds go?
  *
  * kernelbase!FindResourceExW normalises both arguments BEFORE it calls
  * ntdll!LdrFindResource_U.  So if the TYPE is an integer that does not exist in
@@ -7,7 +7,7 @@
  * separates "byte work we could vectorise" from "loader machinery we cannot".
  *
  * Also measures the pieces directly: RtlAllocateHeap+RtlFreeHeap of the same
- * size, and RtlUpcaseUnicodeChar per character -- both of which the disassembly
+ * size, and RtlUpcaseUnicodeChar per character, both of which the disassembly
  * says kernelbase uses, the second once PER CHARACTER through the IAT.
  */
 #define WIN32_LEAN_AND_MEAN

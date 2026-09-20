@@ -4,7 +4,7 @@
 // Every rule re-derived against the NARROW export in probes/pqsa.c, not inherited from change 172:
 //
 //   * exactly ONE byte value counts as a space: 0x20. Sweeping all 255 non-NUL values in the middle
-//     of a path, only that one makes it quote -- a TAB does not.
+//     of a path, only that one makes it quote; a TAB does not.
 //   * The length cap is 257, measured by sweeping lengths 1..400 with one space: the last length
 //     that quotes is 257, the first that does not is 258.
 //   * On failure the buffer is UNTOUCHED (0 of 143 over-long cases modified a byte; nor did the

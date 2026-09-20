@@ -2,7 +2,7 @@
 // Gate 1: wia_WindowsCompareStringOrdinal must be indistinguishable from the LIVE
 // combase!WindowsCompareStringOrdinal, resolved with GetProcAddress on this PC.
 //
-// Three-way on every case -- our assembly, the scalar oracle in reference.c, and the live export --
+// Three-way on every case, our assembly, the scalar oracle in reference.c, and the live export --
 // and every case compares FOUR things, not one:
 //
 //      the HRESULT, *result, GetLastError(), and on the NULL-result path the
@@ -14,9 +14,9 @@
 // right HRESULT would silently drop. Only comparing IRestrictedErrorInfo::GetErrorDetails field by
 // field can see that.
 //
-// The handles are mostly forged, and that is the point. The layout is proved -- section 1 re-checks
+// The handles are mostly forged, and that is the point. The layout is proved, section 1 re-checks
 // [h+4] and [h+0x10] against WindowsGetStringLen and WindowsGetStringRawBuffer on every kind of
-// handle combase can build -- and a forged header is the only way to reach three things a real one
+// handle combase can build, and a forged header is the only way to reach three things a real one
 // cannot: a buffer at an arbitrary alignment, a buffer that ends exactly at a PAGE_NOACCESS
 // boundary with NO terminator anywhere, and the length-0 / NULL-buffer corners the shipped body
 // still has branches for. Real handles from WindowsCreateString, WindowsCreateStringReference and

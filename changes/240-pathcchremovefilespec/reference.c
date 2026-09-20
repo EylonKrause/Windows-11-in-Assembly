@@ -10,14 +10,14 @@
    Three of the four rules were found by isolating a derived quantity and enumerating it, rather than
    by reasoning about the implementation:
 
-     * the protected root, as the fixed point of the function itself -- apply it until S_FALSE and what
+     * the protected root, as the fixed point of the function itself, apply it until S_FALSE and what
        is left is exactly what it refuses to cut into. That is what showed PathCchSkipRoot to be the
        wrong source: SkipRoot INCLUDES the root's trailing separator and this function's protected
        prefix does not, a consistent difference of one on every UNC path (793 disagreements over
        21 845 strings, and SkipRoot declines outright on 15 355 of them).
      * the WRITE SET, by dumping the buffer instead of comparing strings. It writes a NUL over each
        separator it removes, not one terminator at the cut.
-     * the cch BOUND, as min_cch(P) -- the smallest cch that is not rejected. It equals (the highest
+     * the cch BOUND, as min_cch(P); the smallest cch that is not rejected. It equals (the highest
        index written) + 1 on all 87 381 strings swept, which is neither "result+1" nor "input+1". */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -27,7 +27,7 @@
 
 static int is_sep(wchar_t c){ return c == L'\\'; }
 
-/* 114 values, not 52: the ASCII letters plus the CP1252 accented letters, with 0xD7 and 0xF7 -- the
+/* 114 values, not 52: the ASCII letters plus the CP1252 accented letters, with 0xD7 and 0xF7, the
    multiplication and division signs -- correctly absent. Derived by sweeping all 65 536 wchar values,
    because this is a WIDE function and 1..255 is not a sweep. It is the mirror of change 232, which
    found the NARROW PathRemoveBackslashA taking ASCII only where its wide sibling takes Latin-1. */
@@ -41,7 +41,7 @@ static int is_drive_letter(wchar_t c)
     return 0;
 }
 
-/* whether the root came from the server/share parse -- it decides the extra cleared slot below */
+/* whether the root came from the server/share parse, it decides the extra cleared slot below */
 static int unc_root;
 
 static int unc_parse(const wchar_t* p, int base)

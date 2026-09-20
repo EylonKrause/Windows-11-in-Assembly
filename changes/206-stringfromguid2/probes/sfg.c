@@ -6,7 +6,7 @@
    and the buffer-too-small behaviour is a separate question. Nothing is assumed.
 
    What has to be settled:
-     * the return value on success -- 39 (chars written including the NUL) or 38;
+     * the return value on success, 39 (chars written including the NUL) or 38;
      * what happens when cchMax is exactly 39, 38, 1, 0, and negative;
      * whether the buffer is written at all when it is too small;
      * whether the hex is upper-case (it must match 202's output exactly for the renderer to be

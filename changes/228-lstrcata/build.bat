@@ -1,5 +1,5 @@
 @echo off
-REM changes/228-lstrcata/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/228-lstrcata/build.bat: assemble, gate on correctness, then benchmark.
 REM /EHa is required: the wrapper in seh.c converts an access violation into NULL, which is the
 REM measured behaviour of the shipped export (see probes/cata.c).
 setlocal

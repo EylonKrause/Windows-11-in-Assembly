@@ -8,7 +8,7 @@
 ; Reimplements shlwapi!StrSpnA: the number of leading characters of pszStr that ARE in pszSet.
 ;
 ; This is the slowest single routine the narrow survey measured anywhere: 166503.08 ns to span 4000
-; characters -- 166 MICROSECONDS -- against 22141.23 ns for StrSpnW over the same character count.
+; characters (166 MICROSECONDS) against 22141.23 ns for StrSpnW over the same character count.
 ; That is 7.52x the wide cost for HALF the bytes, and the wide form was itself slow enough to be
 ; worth converting (change 135). An MBCS walk with a per-character search of the set is quadratic in
 ; the set size on top of everything else.
@@ -19,7 +19,7 @@
 ; ---- what the probe settled (probes/span.c) ---------------------------------------------------------
 ;   * BYTE-WISE, and so are its two siblings. Every byte value 0x01..0xFF was placed where a lead byte
 ;     would swallow the character after it: 0 of 254 misbehave for StrCSpnA, StrPBrkA and StrSpnA
-;     alike. The SET string is byte-wise too -- 0 of 252 values cannot be a member -- so any byte can
+;     alike. The SET string is byte-wise too (0 of 252 values cannot be a member) so any byte can
 ;     belong to the set and a 256-bit membership test reproduces all of it exactly.
 ;   * a NULL set is not the empty set. StrCSpnA("abc", NULL) is 0, while StrCSpnA("abc", "") is 3.
 ;     A reimplementation that treated NULL as "no members" would return 3 and be wrong.
@@ -27,7 +27,7 @@
 ;
 ; ---- the observation that makes this cheap ----------------------------------------------------------
 ; The set string is NUL-TERMINATED, so the set can never contain a NUL, so the subject's own
-; terminator is never a member -- which means it is a NON-member, which means the inverted mask
+; terminator is never a member, which means it is a NON-member, which means the inverted mask
 ; Stops there on its own. StrSpnA is therefore exactly:
 ;
 ;     the index of the first NON-member
@@ -37,18 +37,18 @@
 ; instructions SHORTER than 214's despite computing the same thing.
 ;
 ; The `not` that inverts the mask is also what makes the aligned first load safe in this direction.
-; Bits shifted in at the top of the mask are 0, which after inversion reads as "member" -- i.e. "no
-; stop here" -- so the scan simply moves on to the next block and re-examines those bytes properly,
+; Bits shifted in at the top of the mask are 0, which after inversion reads as "member", i.e. "no
+; stop here", so the scan simply moves on to the next block and re-examines those bytes properly,
 ; exactly as it does for 214 where 0 means "no stop" directly.
 ;
 ; ---- method ----------------------------------------------------------------------------------------
-; The set becomes a 256-BIT bitmap in the caller's shadow space -- which is 32 bytes, exactly the
+; The set becomes a 256-BIT bitmap in the caller's shadow space, which is 32 bytes, exactly the
 ; size of the bitmap, and is ours to use, so nothing is pushed and no frame is set up. Each set
 ; character sets bit b of that region: byte b>>3, bit b&7.
 ;
 ; Membership for 32 characters at once is then the standard two-table vpshufb test, and the bitmap's
 ; natural layout is exactly what it wants:
-;     idx   = (v >> 3) & 15      -- which bitmap byte, within a 16-byte half
+;     idx   = (v >> 3) & 15, which bitmap byte, within a 16-byte half
 ;     rows  = vpshufb(tabL, idx) or vpshufb(tabH, idx), selected by v's BIT 7 (i.e. v >= 128,
 ;             i.e. bitmap byte >= 16) using vpblendvb, which keys on exactly that bit
 ;     bits  = vpshufb(POW2, v & 7)
@@ -107,8 +107,8 @@ wia_strspna PROC
         xor       r8d, r8d
 sp_bld:
         ; `bts dword ptr [r11], eax` expresses this in ONE instruction and was the first cut, but a
-        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded -- it is a
-        ; read-modify-write whose address depends on the offset -- and the set-13 class paid for it.
+        ; bit-test-and-set with a REGISTER bit offset and a memory operand is microcoded; it is a
+        ; read-modify-write whose address depends on the offset, and the set-13 class paid for it.
         ; Splitting it into an explicit byte index and a table-driven bit does the same work in
         ; simple ops.
         movzx     eax, byte ptr [rdx + r8]

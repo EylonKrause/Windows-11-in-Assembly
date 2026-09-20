@@ -2,25 +2,25 @@
 // Gate 2: time wia_pathisprefixw against the live shlwapi!PathIsPrefixW.
 //
 // The row this change exists for is "254 true": discovery measured the shipped export at 606 ns on
-// it, and the identity explains why -- it is paying for PathCommonPrefixW's per-component walk and
+// it, and the identity explains why; it is paying for PathCommonPrefixW's per-component walk and
 // then comparing a length.
 //
 // The case mix. Both implementations walk only as far as the two paths agree, so the rows vary that
 // and nothing else:
 //
-//   * TRUE rows at 8, 32, 128 and 254 characters -- the prefix IS the path, so the walk runs to the
+//   * TRUE rows at 8, 32, 128 and 254 characters, the prefix IS the path, so the walk runs to the
 //     end and the comparison succeeds. These are the rows that pay for everything.
 //   * FALSE rows where the divergence is early (8) or late (128 of 254): the same function, stopped
 //     at different points, which separates the walk from the fixed cost.
-//   * "254, trailing sep" -- the prefix is the path plus a '\'. The walk runs the whole way and the
+//   * "254, trailing sep"; the prefix is the path plus a '\'. The walk runs the whole way and the
 //     answer is still FALSE, because the common prefix is 254 and wcslen(prefix) is 255. That is
 //     the case the original probing found surprising, and it is the worst combination of "does all
 //     the work" and "returns FALSE".
-//   * "254 case-differing" -- a genuine prefix that differs from the path only in case, so change
+//   * "254 case-differing", a genuine prefix that differs from the path only in case, so change
 //     167's block-fold path runs on every block. That row was this project's own worst case in 167
 //     until the fold filter landed, and it is carried forward here rather than dropped.
 //
-// Nothing to restore: both inputs are read-only and there is no output buffer at all -- this
+// Nothing to restore: both inputs are read-only and there is no output buffer at all, this
 // function returns a BOOL. The rotation that other benchmarks need for their output slots is
 // therefore absent by construction, and with it the 4K-aliasing trap that made change 250's table
 // report a regression that was not there.
@@ -48,7 +48,7 @@ static uint64_t op_sys(void* c){
 }
 #pragma optimize("", on)
 
-/* page-aligned subjects, one per slot -- a buffer's ADDRESS has decided this project's verdicts
+/* page-aligned subjects, one per slot; a buffer's ADDRESS has decided this project's verdicts
    before (changes 142, 228, 230, 241, 245 and 250), so none of them share a cache line here */
 static wchar_t* pool;
 static unsigned long cur;

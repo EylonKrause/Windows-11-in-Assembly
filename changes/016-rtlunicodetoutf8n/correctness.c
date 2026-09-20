@@ -5,11 +5,11 @@
  * The random fuzz below is not enough on its own, and the vector blocks added on 2026-09-16 are
  * why. It draws each character's class independently, so a run of eight characters that are ALL
  * under 0x800, or ALL non-surrogate, or four clean surrogate pairs in a row, happens by accident or
- * not at all -- four consecutive valid pairs has a probability of about 4e-11 per position. The
+ * not at all, four consecutive valid pairs has a probability of about 4e-11 per position. The
  * surrogate-pair block would have been completely untested by it, and the block passed the gate the
  * first time it was assembled for exactly that reason. So the corpora are now explicit:
  *
- *   1. the original randomised fuzz, unchanged -- 80000 cases, every class mixed;
+ *   1. the original randomised fuzz, unchanged, 80000 cases, every class mixed;
  *   2. RUNS: pure ASCII, pure two-byte, pure three-byte, pure surrogate pairs, ASCII alternating
  *      with two-byte, and pairs alternating with ASCII, at every length from 0 to 200, so that
  *      every block boundary falls inside every run at some length;
@@ -19,7 +19,7 @@
  *   5. the two assembler-generated packing tables, checked against the same rule written in C.
  *
  * (5) deserves a word. The tables are built by REPT/IF at assembly time, which is better than 4096
- * pasted numbers because it states the rule instead of its output -- but it is still arithmetic
+ * pasted numbers because it states the rule instead of its output, but it is still arithmetic
  * done by a tool nobody checked. A wrong entry would be a wrong byte in the output for one
  * combination of lengths out of 256, which the random fuzz would find only by luck.
  */
@@ -43,7 +43,7 @@ static long cases=0;
  * The old comparison stopped at min(len, dstMax) and the destination was a 3000-byte array, so an
  * implementation that wrote eight bytes past the capacity it was given wrote them into slack that
  * no assertion looked at. The mutation that halves the surrogate block's room guard does exactly
- * that, and it was the ONE mutant of fourteen that this gate did not catch -- an out-of-bounds
+ * that, and it was the ONE mutant of fourteen that this gate did not catch, an out-of-bounds
  * write, which is the most serious kind of defect a converter can have and the kind a fuzz corpus
  * is least likely to stumble on, because it corrupts a caller's memory rather than its own output.
  * The fill below is checked from dstMax to the end of the buffer on every case. */
@@ -76,7 +76,7 @@ static int one(fn sys, const wchar_t* src, int n, ULONG dstMax){
      * writes a full sixteen bytes and then advances by however many of them were WANTED leaves
      * zeros in the caller's buffer past the end of the string, and ntdll leaves those bytes
      * untouched. Inside the capacity that is not memory corruption, but it is a difference a
-     * caller can see -- and it is exactly what change 268's gate found, because that one compares
+     * caller can see, and it is exactly what change 268's gate found, because that one compares
      * its whole destination and this one did not. Every byte the caller lent us, up to dstMax, has
      * to look the way ntdll left it. */
     cmp = dstMax < DBUF ? dstMax : DBUF;

@@ -2,7 +2,7 @@
 // LIVE-RUN PROOF for change 287 (kernelbase!GetStringTypeW).
 //
 // One hazard is specific to this change and has to be handled explicitly. Our implementation's tables
-// are derived from the live export at init -- tables.c calls it 65536 times per info type and then
+// are derived from the live export at init, tables.c calls it 65536 times per info type and then
 // re-checks the result. If the patch were already installed when that happened, the tables would be
 // built from our own code and the whole gate would be comparing us against ourselves, which is the most
 // comfortable possible way to pass and would prove nothing. So wia_gst_init() is called and asserted
@@ -15,7 +15,7 @@
 //
 // THE CONTRACT, from changes/287-getstringtypew/probes/contract.c:
 //
-//   * exactly one info type at a time -- CT_CTYPE1 (1), CT_CTYPE2 (2) or CT_CTYPE3 (4); 1|2, 0 and 8 are
+//   * exactly one info type at a time, CT_CTYPE1 (1), CT_CTYPE2 (2) or CT_CTYPE3 (4); 1|2, 0 and 8 are
 //     all refused;
 //   * the classification is CONTEXT-FREE (20000 random strings, 0 disagreements) and LOCALE-INVARIANT
 //     (seven thread locales, 0 differing entries), which is the only reason a table is legal at all;

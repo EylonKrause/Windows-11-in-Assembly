@@ -13,14 +13,14 @@
  *     length -100    -> STATUS_SUCCESS, and the buffer starts "00"
  *
  * For the value 3735928559 that "00" is not the answer to anything. Two negatives, two different
- * outcomes, and one of them a success that wrote something wrong -- so `length` is not simply being
+ * outcomes, and one of them a success that wrote something wrong, so `length` is not simply being
  * compared as signed, and it is not simply being cast to unsigned either, because -1 as unsigned is
  * the largest possible room and would have succeeded.
  *
  * This matters because the gate compares against live. If the behaviour is deterministic, the
  * implementation has to reproduce it. If it is an out-of-bounds write, the corpus must not contain
  * it and this file is the record of why. Either way the answer has to be measured before a line is
- * written -- guessing is what changes 067 and 278 were each caught by.
+ * written, guessing is what changes 067 and 278 were each caught by.
  *
  * So: every negative length from -1 to -40, and a few far ones, with the buffer poisoned and a
  * GUARD PAGE immediately after it, so that a write past the end is a fault this probe survives

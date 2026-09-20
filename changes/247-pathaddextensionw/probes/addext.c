@@ -5,7 +5,7 @@
  * Why this function. discovery/shlwapi_url_str.c timed it at 0.52 ns per character, and the long row
  * is the interesting one: 518 ns to decide it will do nothing, because a 1000-character path's result
  * cannot fit in MAX_PATH. A disassembly fan-out then rated it a good target and built a C prototype
- * that measured 1.34x to 5.74x on change 132's size classes -- with a reproducible regression at an
+ * that measured 1.34x to 5.74x on change 132's size classes, with a reproducible regression at an
  * EMPTY path and marginal rows at two to six characters, which is the shape change 244 had to solve
  * with a leaner path rather than a faster one.
  *
@@ -23,7 +23,7 @@
  *     00100E43  call 0x45580                          a bounded copy into (point, 260 - n)
  *     00100E48  mov  eax, 1                           TRUE
  *
- * and the bytes at that default-extension address are 2E 00 65 00 78 00 65 00 00 00 -- L".exe".
+ * and the bytes at that default-extension address are 2E 00 65 00 78 00 65 00 00 00, L".exe".
  *
  * What has to be settled, and each one is a decision an implementation must get right:
  *
@@ -33,13 +33,13 @@
  *      repository has already been wrong about it once: change 132 shipped with only the backslash
  *      stopping the backward scan and needed a SPACE to stop it too, which is why changes 132 and 217
  *      are proved together against an exhaustive corpus. So the rule is re-measured here rather than
- *      inherited -- including whether PathAddExtensionW agrees with PathFindExtensionW on every
+ *      inherited, including whether PathAddExtensionW agrees with PathFindExtensionW on every
  *      string, which is the composition this change would be built on.
  *   3. The length rule, exactly. a signed `jge` against 0x104 says the result must be at most 259
- *      characters -- but whether the bound is on the result, the input, or the extension is the kind
+ *      characters, but whether the bound is on the result, the input, or the extension is the kind
  *      of thing change 224 had to measure rather than assume.
  *   4. What a refusal writes. Nothing at all, or a terminator? Only a poison fill can tell.
- *   5. The empty and NULL extension. An empty extension appends nothing -- but does it return TRUE,
+ *   5. The empty and NULL extension. An empty extension appends nothing, but does it return TRUE,
  *      and does it write the terminator it already has?
  *   6. An extension without a leading dot. Appended verbatim, or corrected?
  *

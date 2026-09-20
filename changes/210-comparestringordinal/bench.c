@@ -4,10 +4,10 @@
 // Both modes are timed, because they are different code: case-sensitive is a plain code-unit
 // compare, while ignore-case folds ASCII in the vector path and drops to the 64K ordinal upcase
 // table whenever a chunk holds anything above 0x7F. The NON-ASCII class exists precisely to keep
-// that fallback honest -- an implementation that only ever benchmarked ASCII would hide it.
+// that fallback honest; an implementation that only ever benchmarked ASCII would hide it.
 //
 // And until 2026-09-16 the row that said so did not do it. Every pair here was built with
-// `B[i] = A[i]` -- the two strings IDENTICAL -- and the implementation's first tier is
+// `B[i] = A[i]` (the two strings IDENTICAL) and the implementation's first tier is
 //
 //      equal raw  =>  equal folded, in any alphabet  =>  advance 16
 //
@@ -34,7 +34,7 @@ typedef struct { const wchar_t* a; const wchar_t* b; int n; int ic; int reps; } 
 /* The short rows are timed x16, which is change 261's remedy for this harness's own floor.
  *
  * An empty call through wia_bench_compare costs 2.32 ns on this machine (261's probes/floor.c
- * proved it), so a 13-character compare -- whose real work is about three nanoseconds -- is more
+ * proved it), so a 13-character compare (whose real work is about three nanoseconds) is more
  * than forty percent harness. It shows: adding two rows to the END of this file moved the 13-row
  * from 5.36 to 6.12 ns and both 4000-character ci rows from 121 to 152, on inputs and code that had
  * not changed at all. Sixteen calls per timed iteration puts the work above the floor and the row

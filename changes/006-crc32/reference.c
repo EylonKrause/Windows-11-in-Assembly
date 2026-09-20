@@ -1,4 +1,4 @@
-// changes/006-crc32/reference.c -- oracle: standard CRC-32 (matches ntdll!RtlComputeCrc32).
+// changes/006-crc32/reference.c: oracle: standard CRC-32 (matches ntdll!RtlComputeCrc32).
 #include <stdint.h>
 #include <stddef.h>
 static uint32_t T[256]; static int T_ready;

@@ -7,7 +7,7 @@
  * The observable is a BOOL, so the corpus has to carry the weight instead: the same exhaustive
  * 116281-pair set change 167 was parked on, a second alphabet that exercises the case-fold, the
  * shapes the original probes found surprising, and fuzz weighted so that half the pairs really are
- * prefixes -- because a corpus of random pairs is almost all FALSE, and an implementation that
+ * prefixes, because a corpus of random pairs is almost all FALSE, and an implementation that
  * returned FALSE unconditionally would pass it.
  */
 #define WIN32_LEAN_AND_MEAN

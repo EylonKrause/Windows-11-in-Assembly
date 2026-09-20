@@ -1,5 +1,5 @@
 @echo off
-REM changes/298-findresourceexw/build.bat -- assemble, gate on correctness, then benchmark.
+REM changes/298-findresourceexw/build.bat: assemble, gate on correctness, then benchmark.
 REM The correctness gate is hard: the bench is never built if it fails.
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.50 >nul 2>&1

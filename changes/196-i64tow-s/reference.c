@@ -3,7 +3,7 @@
 //
 // The contract is change 194's, and that is a MEASUREMENT: ../194-i64toa-s/probes/its.c ran the
 // byte and wide forms side by side over 200 000 random (value, size, radix) triples and compared
-// them character for character, untouched cells past the terminator included -- 0 differences.
+// them character for character, untouched cells past the terminator included, 0 differences.
 // SizeInChars counts CHARACTERS here, not bytes.
 //
 // The success path is ordinary. The ERROR path is not, and it could not be fitted from probing:
