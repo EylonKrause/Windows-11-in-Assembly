@@ -18,8 +18,23 @@ OUT = os.path.join(ROOT, 'image')
 TREE = os.path.join(OUT, 'tree', 'Windows', 'System32')
 
 # CRT exports that msvcrt.dll ALSO ships (legacy CRT), scalar/SWAR there too -> our impl beats
-# both ucrtbase and msvcrt. (_strrev/_strset verified bit-exact + faster vs live msvcrt; the
-# rest disassembled as SWAR/SSE2/scalar in msvcrt.)
+# both ucrtbase and msvcrt.
+#
+# AUDITED 2026-09-20, because this set used to rest on a disassembly. Its justification was
+# "_strrev/_strset verified bit-exact + faster vs live msvcrt; the rest disassembled as
+# SWAR/SSE2/scalar in msvcrt" -- two of the names tested and thirty-six READ. A disassembly tells
+# you how fast something is, not what it answers, and discovery/msvcrt_vs_ucrt.c had just found the
+# two CRTs disagreeing on 27 parser cases: `atoi` WRAPS in msvcrt where the UCRT saturates with
+# ERANGE, `strtoul` on a huge negative returns 1 where the UCRT returns ULONG_MAX.
+#
+# So discovery/msvcrt_also_audit.c drives every name in this set through a differential corpus,
+# exhaustively wherever that is possible: all 256 byte values and all 65536 wchars for the case
+# folders, all 255x255 byte pairs for _stricmp, all 256x256 for _memicmp, every base 2..36 for the
+# integer formatters with the WHOLE destination compared. 400353 cases, **0 differences**.
+#
+# The claim is sound, and the boundary it sits on is worth stating: BETWEEN THE TWO CRTs,
+# FORMATTING AGREES AND PARSING DOES NOT. int->string is identical; string->int is not, which is
+# why no parser appears in this set and why none may be added without re-running that audit.
 MSVCRT_ALSO = {
     'wcslen','strlen','memchr','wcschr','wcscmp','strcmp','wcsncmp','_strrev','_wcsrev',
     '_strset','_strnset','_wcsset','_wcsnset','_strlwr','_strupr','_wcsupr','_wcslwr',

@@ -34,6 +34,7 @@ semantics rather than sloppiness.
 | [`oleaut32_bstr.c`](oleaut32_bstr.c) | oleaut32 was the last DLL in the default set with **zero** conversions — 417 exports, none replaced. Every allocating row is measured against `SysAllocStringLen(NULL, n)`, which performs the same allocation and no conversion, so the remainder is the only part assembly could replace. **Four negative results** and one target |
 | [`oleaut32_sysallocstring.c`](oleaut32_sysallocstring.c) | the follow-up that turned the one unexplained row into a target: `SysAllocString` against its own two documented parts, at matched allocation sizes, from 0 to 4096 characters. The excess is **0.41 ns per character, constant** — a scalar `while (*p++)` |
 | [`msvcrt_vs_ucrt.c`](msvcrt_vs_ucrt.c) | **negative result** — 41 functions are converted for `ucrtbase` and not for `msvcrt`, and the existing assembly cannot simply be pointed at msvcrt's exports: the two CRTs **disagree on 27 cases**. Also two probe bugs worth the file: the invalid-parameter handler and `errno` are both PER-CRT |
+| [`msvcrt_also_audit.c`](msvcrt_also_audit.c) | **audit** — the 38 exports `image/materialize.py` already writes into msvcrt's folder rested on a *disassembly* of msvcrt, not a differential test. Driven exhaustively where possible (every byte, every wchar, every byte pair): **400353 cases, 0 differences**. The claim holds, and the boundary is now stated: between the two CRTs, **formatting agrees and parsing does not** |
 
 ### What `shlwapi_url_str.c` found
 
@@ -577,3 +578,34 @@ something other than what it claimed to compare:
    after an msvcrt call reads a variable msvcrt never touched. Every `errno` comparison would have
    been meaningless while looking perfectly reasonable. Each CRT's `_errno()` is now resolved and
    read through its own pointer — which is what made the `atoi` disagreement visible.
+
+
+### The follow-up: auditing what was already shipped on that basis
+
+Finding that the two CRTs disagree raised an immediate question about work already done.
+`image/materialize.py` writes this repository's assembly into **msvcrt.dll's folder** for 38 exports,
+and its justification was *"_strrev/_strset verified bit-exact + faster vs live msvcrt; the rest
+disassembled as SWAR/SSE2/scalar in msvcrt"* — two tested, thirty-six **read**.
+
+Thirteen of those 38 are case-folding or case-insensitive (`_strlwr`, `_strupr`, `_wcslwr`,
+`_wcsupr`, `_stricmp`, `_wcsicmp`, `_strnicmp`, `_wcsnicmp`, `_memicmp`). Case is locale data, the
+two CRTs initialise their locales independently, and this repository has ruled functions out for
+exactly that reason. If they folded differently anywhere, assembly written against ucrtbase was
+already sitting in msvcrt's folder being wrong.
+
+[`msvcrt_also_audit.c`](msvcrt_also_audit.c) drives every name exhaustively where exhaustive is
+possible:
+
+```
+  _strlwr           255 cases  identical      _stricmp        65025 cases  identical
+  _strupr           255 cases  identical      _wcsicmp       131070 cases  identical
+  _wcslwr         65535 cases  identical      _memicmp        65536 cases  identical
+  _wcsupr         65535 cases  identical      _itoa family     1400 cases  identical
+                                              pure scanners    5742 cases  identical
+  TOTAL DIFFERENCES: 0   (400353 cases)
+```
+
+**The claim holds.** It is now tested rather than read, and the audit draws the line the parser
+result implied: **between the two CRTs, formatting agrees and parsing does not.** `int -> string`
+is identical across all 35 bases; `string -> int` is not. No parser is in `MSVCRT_ALSO`, and none
+may be added without re-running this.
