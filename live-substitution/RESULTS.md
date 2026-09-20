@@ -951,3 +951,105 @@ conventions fed to all seven entries rather than assumed to agree.
   [post]       20000 cases through the RESTORED exports, 0 differ
 LIVE SUBSTITUTION: PASS
 ```
+
+## The nine path manipulators (140/158/161/162 + 143/144/159/160/164) — 2026-09-20, a tenth defect, and an eleventh found by suspicion
+
+`build_pathw_live.bat` / [`live_subst_pathw.c`](live_subst_pathw.c). 108000 calls, across **two
+DLLs** — `shlwapi` and, for the first time in this directory, `kernelbase`.
+
+### The tenth defect: `PathCchRenameExtension` has a second 259 limit, with a different code
+
+Change 159's contract recorded a 259-character limit on the **input** path, and
+`STRSAFE_E_INSUFFICIENT_BUFFER` (0x8007007A) for a result that will not fit in `cch`. There is a
+second limit, on the **result**, and it reports `ERROR_FILENAME_EXCED_RANGE` (0x800700CE). A
+255-character path renamed to `".obj"` is 259 and succeeds; a 256-character one is 260 and fails —
+with `cch` set to 300, where nothing about the buffer is wrong at all. **355 of 12000 cases.**
+
+[`probes/which.c`](../changes/159-pathcchrenameextension/probes/which.c) separates the regions with
+`limit = min(cch - 1, 259)`:
+
+| | binding limit | code |
+|---|---|---|
+| result ≤ limit | — | `S_OK` |
+| result > limit, `cch-1` < 259 | `cch` | `0x8007007A` |
+| result > limit, `cch-1` ≥ 259 | 259 | `0x800700CE` |
+
+The tie at `cch-1 == 259` goes to `0x800700CE`, measured rather than reasoned. Both failures perform
+the same truncating write — the result clamped to `limit`, terminated at `limit` — and, unlike
+change 160's, this one writes a real dot rather than a NUL where the dot would go. Two sibling
+functions, the same job, three differences in how they fail.
+
+**Why the gate could not see it, exactly.** Change 159's correctness harness is one of the most
+thorough in the repository: 16 alignments × path lengths 0..40 × dot positions × extension lengths
+0..6 × *every* `cch` from 1 to plen+12, both page-guard sweeps, an exhaustive 335923-string
+alphabet sweep, and a deliberate 250..266 walk across the 259 boundary. That last one is the near
+miss. It sets `pbuf[plen-4] = '.'` and renames to `".obj"` — **a 4-character extension replacing a
+4-character extension, so the result length always equals the input length.** By the time the
+result could exceed 259 the input already has, and `E_INVALIDARG` has answered first. Reaching the
+result limit requires the new extension to be *longer* than the one it replaces, or the path to
+have no extension at all. Neither was ever drawn against a long path.
+
+The live corpus found it because it draws length and extension independently and multiplies them,
+which is the same reason it found the ninth defect one harness earlier. That is now twice.
+
+### The eleventh: an extension-length limit nobody had recorded, in *two* changes
+
+While probing the above, one line of [`probes/which.c`](../changes/159-pathcchrenameextension/probes/which.c)
+came back `E_INVALIDARG` where `0x800700CE` was expected: a 300-character extension. Nothing in
+either change's contract mentioned a limit on the extension.
+
+[`probes/extlen.c`](../changes/159-pathcchrenameextension/probes/extlen.c) walks it and finds the
+boundary at **the same extension length in every run** — path lengths 6, 100 and 250, `cch` of 20,
+1000 and minimal — so it depends on neither the path nor the buffer.
+[`probes/extlen2.c`](../changes/159-pathcchrenameextension/probes/extlen2.c) pins what is being
+measured: with a leading dot the boundary is a total of 257, without one it is 256, and both are a
+**body of 256**. The rule is *the extension body, after the one permitted leading dot, may be at
+most 255 characters*; 256 or more is `E_INVALIDARG`, and it beats every size failure — a
+257-character extension with `cch` at its minimum still answers `E_INVALIDARG`.
+
+**Change 160 has the identical rule and had the identical gap**, and nothing was failing there. It
+was found by asking the sibling export on suspicion, because 159 and 160 share their validation
+machinery — the same reasoning that the 2026-09-15 space-rule sweep used to find seven more changes
+after the first. For 160 the ordering matters too, since it has an `S_FALSE` that 159 does not:
+section (5) of `extlen2.c` drives a path that *already has* an extension and gets `S_FALSE` for a
+body of 256 and `E_INVALIDARG` for 257, so the length check wins. That was measured rather than
+inferred from 160's documented check order, which had been written before this rule was known.
+
+**The live harness could not have found this one**: its longest extension is 24 characters. It is
+recorded here because it belongs with the defect that led to it, not because this harness caught it.
+Both changes' oracles were wrong in the same way as their implementations, so all four agreed and
+all four disagreed with Windows.
+
+### The other seven were clean on the first run
+
+`PathRemoveExtensionW`, `PathRenameExtensionW`, `PathFindFileNameW`, `PathStripPathW`,
+`PathCchFindExtension`, `PathCchRemoveExtension` and `PathCchAddBackslash` — including 162's stale
+tail past the new terminator (stripping `"C:\dir\file.txt"` leaves `"file.txt\0"` followed by
+`"le.txt\0"`), which only a whole-buffer comparison can check, and 164's interleaved check order,
+where an unterminated path loses to the size check but a trailing backslash beats it.
+
+### The corpus
+
+Every start alignment 0..15; lengths on the block boundary and at **258/259/260/261**, straddling
+MAX_PATH; `cch` drawn *at and around* the path length — 0, exactly `len` (unterminated),
+`len+1`, the partial-write zone, `PATHCCH_MAX_CCH` and one past it, which is `E_INVALIDARG` for
+159/160 and a perfectly valid call for 164, which has no such ceiling; extensions containing a
+space, a backslash and a non-leading dot (all rejected) against one containing a slash (accepted);
+a NULL `pszExt`; and a path alphabet containing both separators, the colon whose meaning depends on
+its run, and the **space** that stops the extension scan.
+
+`pszPath` is never NULL: 159 and 160 answer `E_INVALIDARG`, but 164 has no NULL check and faults by
+design, and reproducing that is the implementation's job rather than something to fire at a shared
+corpus.
+
+```
+  [patched]    12000 cases, 0 differ (every HRESULT, both BOOL/pointer results, and for
+               all six in-place routines the WHOLE 320-wchar buffer including the stale
+               tail past the new terminator)
+                 PathRemoveExtensionW / PathRenameExtensionW / PathFindFileNameW /
+                 PathStripPathW / PathCchFindExtension / PathCchRemoveExtension /
+                 PathCchRenameExtension / PathCchAddExtension / PathCchAddBackslash
+                 -- calls 12000 each, diverged 0
+  [post]       12000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```

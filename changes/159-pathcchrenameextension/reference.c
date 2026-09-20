@@ -9,6 +9,7 @@
 #include <wchar.h>
 
 #define WIA_STRSAFE_E_INSUFFICIENT_BUFFER ((HRESULT)0x8007007AL)
+#define WIA_ERROR_FILENAME_EXCED_RANGE   ((HRESULT)0x800700CEL)
 
 static const wchar_t* ref_findext(const wchar_t* p)
 {
@@ -35,12 +36,35 @@ HRESULT ref_pathcchrenameext(wchar_t* path, size_t cch, const wchar_t* ext)
         wchar_t c = body[m];
         if (c == L' ' || c == L'\\' || c == L'.') return E_INVALIDARG;
     }
+    /* AND THE BODY HAS A LENGTH LIMIT: at most 255 characters. 256 or more is E_INVALIDARG, and it
+       beats every size failure -- a 257-character extension with cch at its minimum still answers
+       E_INVALIDARG rather than STRSAFE_E_INSUFFICIENT_BUFFER. It is the BODY that is limited, not
+       the whole argument: with a leading dot the boundary is a total of 257, without one it is
+       256, and both are a body of 256. It moves with neither the path length nor cch. Measured in
+       probes/extlen.c and probes/extlen2.c. Changes 159 and 160 share this validation and shared
+       the omission; neither oracle knew about it either, so both agreed with both implementations
+       and both disagreed with the export. */
+    if (m > 255) return E_INVALIDARG;
 
     size_t pos = (size_t)(ref_findext(path) - path);
-    size_t avail = cch - 1 - pos;                 /* cch > len >= pos, so this cannot underflow */
+
+    /* TWO size limits bind, not one, and which of them binds decides the code. This oracle used
+       to know only about cch, so it agreed with an implementation that also knew only about cch
+       and disagreed with the export on every result longer than 259 characters. The 259 checked
+       above is a limit on the INPUT length; this is a second one on the RESULT.
+
+            limit = min(cch - 1, 259)
+
+       and a result longer than it is truncated to it and reported as 0x8007007A when cch - 1 is
+       the smaller, or 0x800700CE when 259 is -- with the tie at exactly 259 going to 0x800700CE.
+       probes/which.c separates the three regions; probes/maxpath.c found the case at all. */
+    size_t limit = (cch - 1 < 259) ? (cch - 1) : 259;
+    HRESULT toobig = (cch - 1 < 259) ? WIA_STRSAFE_E_INSUFFICIENT_BUFFER
+                                     : WIA_ERROR_FILENAME_EXCED_RANGE;
+    size_t avail = limit - pos;                   /* cch > len >= pos and len <= 259, so >= 0 */
     size_t need = m ? m + 1 : 0;
     HRESULT hr = S_OK;
-    if (need > avail) { need = avail; hr = WIA_STRSAFE_E_INSUFFICIENT_BUFFER; }
+    if (need > avail) { need = avail; hr = toobig; }
 
     wchar_t* d = path + pos;
     if (need) {

@@ -86,6 +86,57 @@ character at six positions with and without a leading dot, plus 14 characters th
 path and the extension, the latter including a *rejected* extension so the bad-character scan is
 exercised at a page edge too.
 
+## Corrections found by live substitution (2026-09-20)
+
+`live-substitution/build_pathw_live.bat` hot-patched this export and ran 12000 cases through it.
+**355 differed**, and chasing them turned up two rules this change did not have.
+
+### 1. A second 259 limit, on the RESULT, with a different code
+
+The contract above records 259 as a limit on the **input** length, and `STRSAFE_E_INSUFFICIENT_BUFFER`
+for a result that will not fit in `cch`. There is a second 259, on the **result**, and it reports
+`ERROR_FILENAME_EXCED_RANGE` (0x800700CE). A 255-character path renamed to `".obj"` is 259 and
+succeeds; a 256-character one is 260 and fails, with `cch` at 300 — nothing wrong with the buffer.
+
+With `limit = min(cch - 1, 259)` ([`probes/which.c`](probes/which.c)):
+
+| | binding limit | code |
+|---|---|---|
+| result <= limit | — | `S_OK` |
+| result > limit, `cch-1` < 259 | `cch` | `0x8007007A` |
+| result > limit, `cch-1` >= 259 | 259 | `0x800700CE` |
+
+The tie at `cch-1 == 259` goes to `0x800700CE` — measured, not reasoned. Both failures perform the
+same truncating write: the result clamped to `limit`, terminated at `limit`. Unlike change 160's,
+this one writes a real dot rather than a NUL where the dot would have gone.
+
+**Why the gate missed it.** It swept 250..266 across the boundary already — but with
+`pbuf[plen-4] = '.'` renamed to `".obj"`, a 4-character extension replacing a 4-character one, so
+**the result length always equalled the input length**. By the time the result could exceed 259 the
+input already had, and `E_INVALIDARG` answered first. Reaching this limit needs a new extension
+*longer* than the one it replaces, or no extension at all. `correctness.c` now sweeps exactly that,
+across all three regions.
+
+### 2. The extension has a length limit of its own — and so does change 160
+
+Found from a single line of a probe written for the above, which answered `E_INVALIDARG` where
+`0x800700CE` was expected. [`probes/extlen.c`](probes/extlen.c) walks the boundary and finds it at
+the same place for path lengths 6, 100 and 250 and for `cch` of 20, 1000 and minimal — so it depends
+on neither. [`probes/extlen2.c`](probes/extlen2.c) pins what is measured: with a leading dot the
+boundary is a total of 257, without one 256, and **both are a body of 256**.
+
+> The extension body, after the one permitted leading dot, may be at most **255** characters.
+> 256 or more is `E_INVALIDARG`, and it beats every size failure.
+
+[Change 160](../160-pathcchaddextension/) shares this validation machinery and had the identical
+gap, with nothing failing there; it was found by asking that export on suspicion. Both oracles were
+wrong in the same way as both implementations, so all four agreed and all four disagreed with
+Windows.
+
+## Live substitution
+[`live-substitution/build_pathw_live.bat`](../../live-substitution/): **PASS** after the fixes —
+12000 cases, 0 differ, then reverted and re-verified.
+
 ## Benchmark — vs live `kernelbase!PathCchRenameExtension`
 geomean **3.37×**, every size class better:
 

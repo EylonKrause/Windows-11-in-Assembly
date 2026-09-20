@@ -36,6 +36,13 @@ HRESULT ref_pathcchaddext(wchar_t* path, size_t cch, const wchar_t* ext)
         wchar_t c = body[m];
         if (c == L' ' || c == L'\\' || c == L'.') return E_INVALIDARG;
     }
+    /* AND THE BODY HAS A LENGTH LIMIT: at most 255 characters; 256 or more is E_INVALIDARG. It is
+       checked here, with the rest of the validation, so it beats the S_FALSE below as well as
+       every size failure. It is the BODY that is limited, not the whole argument: with a leading
+       dot the boundary is a total of 257, without one 256, and both are a body of 256. Measured in
+       changes/159-pathcchrenameextension/probes/extlen2.c, whose section (4) drives this export.
+       159 and 160 share this validation and shared the omission. */
+    if (m > 255) return E_INVALIDARG;
 
     if (*ref_findext(path) == L'.') return S_FALSE;     /* already has one; nothing written */
     if (m == 0) return S_OK;                            /* "" and "." add nothing */

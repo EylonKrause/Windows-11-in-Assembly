@@ -87,6 +87,38 @@ lengths 0..5 × every `cch` from 1 to `plen+10`**; both 259 boundaries (input le
 length) at three `cch` shapes each; and NOACCESS page-guard sweeps on both the path and the
 extension.
 
+## Correction found by live substitution (2026-09-20)
+
+### The extension has a length limit of its own
+
+> The extension body, after the one permitted leading dot, may be at most **255** characters.
+> 256 or more is `E_INVALIDARG`.
+
+Nothing here recorded it and neither did `reference.c`, so the two agreed with each other and both
+disagreed with the export from the day this landed.
+
+**It was not found by anything failing.** It turned up in the sibling
+[change 159](../159-pathcchrenameextension/), which shares this validation machinery, while probing
+an unrelated limit — and was then asked of *this* export on suspicion. That is the same reasoning
+the 2026-09-15 space-rule sweep used: when one change in a family is wrong about a shared rule, ask
+the rest before waiting for a failure. The live harness could not have found it either way, since
+its longest extension is 24 characters.
+
+The boundary does not move with the path length or with `cch`, and it is the **body** that is
+limited, not the whole argument: with a leading dot the boundary is a total of 257, without one 256.
+Measured in [`../159-pathcchrenameextension/probes/extlen.c`](../159-pathcchrenameextension/probes/extlen.c)
+and [`extlen2.c`](../159-pathcchrenameextension/probes/extlen2.c).
+
+**It also beats `S_FALSE`**, which is the ordering question this change has and 159 does not.
+Section (5) of `extlen2.c` drives a path that *already has* an extension: a body of 256 gives
+`S_FALSE`, 257 gives `E_INVALIDARG`. Measured rather than inferred from the documented check order
+above, which was written before this rule was known.
+
+## Live substitution
+[`live-substitution/build_pathw_live.bat`](../../live-substitution/): **PASS** — 12000 cases through
+our assembly hot-patched over the real `kernelbase!PathCchAddExtension`, 0 differ, then reverted and
+re-verified.
+
 ## Benchmark — vs live `kernelbase!PathCchAddExtension`
 geomean **3.37×**, every size class better:
 

@@ -18,7 +18,7 @@ static int fails = 0;
 
 #define BW 700
 static wchar_t bsys[BW], bour[BW], bref[BW];
-static wchar_t extbuf[128], pbuf[700];
+static wchar_t extbuf[600], pbuf[700];   /* extbuf holds a 257+ character extension: see the length sweep */
 static int g_align = 0;
 
 static void chk(const wchar_t* path, size_t cch, const wchar_t* ext, const char* what)
@@ -142,6 +142,32 @@ int main(void)
         }
     }
 
+    /* ---- the EXTENSION's own length limit ----------------------------------------------------
+       The extension body -- what is left after the one permitted leading dot -- may be at most 255
+       characters; 256 or more is E_INVALIDARG. It beats every size failure AND the S_FALSE for a
+       path that already has an extension, which is measured rather than assumed: section (5) of
+       changes/159-pathcchrenameextension/probes/extlen2.c drives a path that already has one and
+       gets S_FALSE for a body of 256 and E_INVALIDARG for 257.
+
+       This change's contract had nothing about it and neither did the oracle, so the two agreed
+       with each other and both disagreed with the export. It was not found by anything failing
+       here -- it was found in the sibling change 159, which shares this validation, and then asked
+       of this export on suspicion. */
+    for (int el = 250; el <= 262 && fails < 15; ++el)
+    {
+        extbuf[0] = L'.';
+        for (int i = 1; i <= el; ++i) extbuf[i] = L'x';
+        extbuf[el + 1] = 0;                        /* body = el, total = el + 1 */
+        chk(L"C:\\a\\f",     0x8000, extbuf, "ext length, no extension yet");
+        chk(L"C:\\a\\f",     10,     extbuf, "ext length beats the size failure");
+        chk(L"C:\\a\\f.txt", 0x8000, extbuf, "ext length vs S_FALSE");
+        chk(L"C:\\a\\f.txt", 8,      extbuf, "ext length vs S_FALSE, cch minimal");
+        for (int i = 0; i < el; ++i) extbuf[i] = L'x';
+        extbuf[el] = 0;                            /* body = el, total = el */
+        chk(L"C:\\a\\f",     0x8000, extbuf, "ext length, no leading dot");
+        chk(L"C:\\a\\f.txt", 0x8000, extbuf, "ext length, no leading dot, vs S_FALSE");
+    }
+
     /* ---- path ending at a page boundary ------------------------------------------------------ */
     {
         SYSTEM_INFO si; GetSystemInfo(&si);
@@ -219,7 +245,9 @@ int main(void)
                "  stop the search); the measured PRECEDENCE of all five outcomes; every rejected extension\n"
                "  character at six positions plus 14 that must be accepted; 16 path alignments x lengths 0..40\n"
                "  x dot positions x extension lengths 0..5 x every cch from 1 to plen+10; both 259 boundaries\n"
-               "  (input length and result length) at three cch shapes each; and NOACCESS page-guard sweeps on\n"
+               "  (input length and result length) at three cch shapes each; the EXTENSION's own 255-character\n"
+               "  body limit, with and without a leading dot, against both a path that has an extension and one\n"
+               "  that does not; and NOACCESS page-guard sweeps on\n"
                "  both the path and the extension)\n");
     else printf("CORRECTNESS: FAIL (%d)\n", fails);
     return fails ? 1 : 0;

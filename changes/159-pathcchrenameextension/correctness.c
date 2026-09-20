@@ -17,7 +17,7 @@ static int fails = 0;
 
 #define BW 700
 static wchar_t bsys[BW], bour[BW], bref[BW];
-static wchar_t extbuf[128], pbuf[700];
+static wchar_t extbuf[600], pbuf[700];   /* extbuf holds a 257+ character extension: see the length sweep */
 
 static int g_align = 0;      /* where inside the buffers the path is placed */
 
@@ -132,6 +132,32 @@ int main(void)
     }
     g_align = 0;
 
+    /* ---- the EXTENSION's own length limit ----------------------------------------------------
+       A third limit, on the extension body -- what is left after the one permitted leading dot.
+       At most 255 characters; 256 or more is E_INVALIDARG, and it beats every size failure. This
+       change's contract had nothing about it, the oracle had nothing about it, and the extension
+       sweeps above stop at six characters, so implementation and oracle agreed with each other and
+       both disagreed with the export from the day it landed. It surfaced from one line of a probe
+       written for the MAX_PATH result limit, which answered E_INVALIDARG where 0x800700CE was
+       expected. probes/extlen.c walks the boundary; probes/extlen2.c pins it to the BODY and shows
+       the same rule in change 160. */
+    for (int el = 250; el <= 262 && fails < 15; ++el)
+    {
+        extbuf[0] = L'.';
+        for (int i = 1; i <= el; ++i) extbuf[i] = L'x';
+        extbuf[el + 1] = 0;                        /* body = el, total = el + 1 */
+        chk(L"C:\\a\\f.txt", 0x8000, extbuf, "ext length, cch generous");
+        chk(L"C:\\a\\f.txt", 300,    extbuf, "ext length, cch 300");
+        chk(L"C:\\a\\f.txt", 10,     extbuf, "ext length beats INSUFFICIENT_BUFFER");
+        chk(L"C:\\a\\f.txt", 8,      extbuf, "ext length, cch minimal");
+        /* the same without a leading dot, where the boundary sits one character lower because the
+           body is then the whole argument */
+        for (int i = 0; i < el; ++i) extbuf[i] = L'x';
+        extbuf[el] = 0;                            /* body = el, total = el */
+        chk(L"C:\\a\\f.txt", 0x8000, extbuf, "ext length, no leading dot");
+        chk(L"C:\\a\\f.txt", 8,      extbuf, "ext length, no dot, cch minimal");
+    }
+
     /* ---- the 259 input-length limit, swept exactly ------------------------------------------- */
     for (int plen = 250; plen <= 266 && fails < 15; ++plen)
     {
@@ -141,6 +167,48 @@ int main(void)
         chk(pbuf, 0x8000, L".obj", "input-length limit");
         chk(pbuf, 0x8000, L".o",   "input-length limit, shorter result");
         chk(pbuf, 0x8000, L"",     "input-length limit, removal");
+    }
+
+    /* ---- the 259 RESULT-length limit -- a SECOND limit, and a different code ------------------
+       The sweep above cannot reach it. It replaces a 4-character extension with a 4-character one,
+       so the result length always EQUALS the input length: by the time the result could exceed
+       259 the input already has, and item 3 has answered E_INVALIDARG. Crossing the result limit
+       with a legal input requires the new extension to be LONGER than the one it replaces, or the
+       path to have no extension at all. That combination was never drawn here, and the defect --
+       0x800700CE (ERROR_FILENAME_EXCED_RANGE) rather than 0x8007007A, on results past 259 -- lived
+       in exactly the gap. Live substitution found it on 355 of 12000 cases.
+
+       limit = min(cch - 1, 259); the code is 0x8007007A when cch-1 is the smaller and 0x800700CE
+       when 259 is, with the tie at cch-1 == 259 going to 0x800700CE. All three regions below. */
+    for (int plen = 248; plen <= 259 && fails < 15; ++plen)
+    {
+        for (int i = 0; i < plen; ++i) pbuf[i] = (wchar_t)(L'a' + (i % 23));
+        pbuf[plen] = 0;
+        for (int el = 0; el <= 12 && fails < 15; ++el)
+        {
+            extbuf[0] = L'.';
+            for (int i = 1; i <= el; ++i) extbuf[i] = L'x';
+            extbuf[el + 1] = 0;
+            /* no dot in the path: the extension is APPENDED, so result = plen + el + 1 and it
+               crosses 259 while the input stays legal */
+            chk(pbuf, 0x8000,      extbuf, "result limit, cch generous");   /* 259 binds  */
+            chk(pbuf, 300,         extbuf, "result limit, cch 300");        /* 259 binds  */
+            chk(pbuf, 261,         extbuf, "result limit, cch 261");        /* 259 binds  */
+            chk(pbuf, 260,         extbuf, "result limit, cch-1 == 259");   /* the TIE    */
+            chk(pbuf, 259,         extbuf, "result limit, cch-1 == 258");   /* cch binds  */
+            chk(pbuf, (size_t)plen + 1, extbuf, "result limit, cch minimal");
+            chk(pbuf, (size_t)plen + 3, extbuf, "result limit, cch tight");
+        }
+        /* and with a dot present, so the extension is REPLACED by a longer one */
+        for (int dot = plen - 8; dot <= plen - 1 && dot > 3 && fails < 15; ++dot)
+        {
+            wchar_t save = pbuf[dot];
+            pbuf[dot] = L'.';
+            chk(pbuf, 0x8000, L".objxxxxxx", "result limit, replace with longer");
+            chk(pbuf, 260,    L".objxxxxxx", "result limit, replace, cch-1 == 259");
+            chk(pbuf, 258,    L".objxxxxxx", "result limit, replace, cch binds");
+            pbuf[dot] = save;
+        }
     }
 
     /* ---- path ending at a page boundary ------------------------------------------------------ */
@@ -215,13 +283,18 @@ int main(void)
 
     if (!fails)
         printf("CORRECTNESS: PASS (PathCchRenameExtension vs live + oracle, comparing the HRESULT and every\n"
-               "  buffer byte so the two failure modes are separated: E_INVALIDARG leaves the buffer untouched,\n"
-               "  STRSAFE_E_INSUFFICIENT_BUFFER leaves exactly cch-1 characters plus a terminator. Covers all\n"
+               "  buffer byte so the THREE failure modes are separated: E_INVALIDARG leaves the buffer\n"
+               "  untouched, while both size failures leave exactly min(cch-1, 259) characters plus a\n"
+               "  terminator and differ only in the code -- STRSAFE_E_INSUFFICIENT_BUFFER when cch-1 is the\n"
+               "  smaller limit, ERROR_FILENAME_EXCED_RANGE (0x800700CE) when 259 is, the tie going to\n"
+               "  0x800700CE. Covers all\n"
                "  five argument-validation paths; every rejected character (space, backslash, non-leading dot)\n"
                "  at six positions with and without a leading dot, plus 14 characters that must be ACCEPTED\n"
                "  including '/' and the other reserved ones; 16 path ALIGNMENTS x path lengths 0..40 x dot\n"
-               "  positions x extension lengths 0..6 x EVERY cch from 1 to plen+12; the 259 input-length\n"
-               "  limit swept exactly; and\n"
+               "  positions x extension lengths 0..6 x EVERY cch from 1 to plen+12; the 259 INPUT-length\n"
+               "  limit swept exactly; the 259 RESULT-length limit swept with extensions LONGER than the\n"
+               "  ones they replace, across all three cch-1 </==/> 259 regions; the EXTENSION's own\n"
+               "  255-character body limit, with and without a leading dot, at four cch shapes; and\n"
                "  NOACCESS page-guard sweeps on both the path and the extension)\n");
     else printf("CORRECTNESS: FAIL (%d)\n", fails);
     return fails ? 1 : 0;

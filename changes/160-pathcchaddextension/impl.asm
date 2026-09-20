@@ -8,8 +8,9 @@
 ;
 ; Contract (probed exhaustively against the live export). FOUR distinct return codes, in this order:
 ;   1. pszPath == NULL, pszExt == NULL, cch == 0, cch > 32768, the path is not NUL-terminated within
-;      cch, its length exceeds 259, or the extension contains a space, a backslash or a non-leading
-;      dot                                     -> E_INVALIDARG (0x80070057);
+;      cch, its length exceeds 259, the extension contains a space, a backslash or a non-leading
+;      dot, or the extension BODY (what follows the one permitted leading dot) is longer than 255
+;      characters                              -> E_INVALIDARG (0x80070057);
 ;   2. the path ALREADY has an extension       -> S_FALSE (0x00000001), nothing written. This is
 ;      checked AFTER all of the above -- an invalid extension or a bad cch still wins -- but BEFORE
 ;      the buffer-size and MAX_PATH checks, so a path that already has an extension returns S_FALSE
@@ -196,6 +197,21 @@ pa_eblock:
         add       rcx, r11
         shr       rcx, 1
         mov       r14, rcx                          ; extension body length, in characters
+        ; THE EXTENSION HAS A LENGTH LIMIT OF ITS OWN: the body -- what is left after the one
+        ; permitted leading dot -- may be at most 255 characters; 256 or more is E_INVALIDARG, and
+        ; it beats every size failure. Measured in the sibling change's probes, which drive this
+        ; export too: changes/159-pathcchrenameextension/probes/extlen2.c section (4) shows a
+        ; 257-character extension giving 80070057 here where this code answered 800700CE.
+        ;
+        ; It is the BODY that is limited: with a leading dot the boundary is at a total of 257,
+        ; without one at 256, and both are a body of 256. It does not move with the path length or
+        ; with cch.
+        ;
+        ; 159 and 160 share their validation machinery and shared this omission. The rule was found
+        ; while probing 159's MAX_PATH result limit and then asked of this export on suspicion --
+        ; which is the only reason it was caught here at all, since nothing was failing.
+        cmp       r14, 255
+        ja        pa_einval
         jmp       pa_efound
 pa_ebad_only:
         test      r10d, r10d
