@@ -62,9 +62,70 @@ def read_partial(cdir_abs):
     return (lines[0].strip(), lines[1:]) if lines else None
 
 
+def sweep_stale(generated):
+    """Remove only the files under tree/ that this run did NOT regenerate.
+
+    This replaces an `shutil.rmtree(tree)` that used to run BEFORE anything was written, which is
+    both destructive and non-atomic: if the rebuild fails for any reason, the tree is already gone.
+    That is not hypothetical. On a machine where the repository lives under a Drive-synced folder,
+    the sync client holds handles on files it is uploading, and the rmtree died with
+
+        PermissionError: [WinError 5] Access is denied: ...\\tree\\Windows\\System32\\advapi32.dll
+
+    AFTER having already deleted the four .asm files and the manifest inside it. The only reason
+    nothing was lost is that they were committed; an uncommitted tree would simply have been gone.
+
+    Writing first and sweeping afterwards is idempotent and survives a partial failure with the tree
+    still usable.
+
+    A caveat, so nobody reads a clean run as a clean diff: this script writes LF, and the committed
+    tree carries CRLF blobs, so `git status` reports every regenerated file as modified even when
+    the content is identical. That is pre-existing and is a property of how the tree was committed,
+    not of this run. Check drift with `git diff --ignore-cr-at-eol` rather than by counting files.
+    """
+    if not os.path.isdir(TREE):
+        return 0
+    removed = 0
+    for dirpath, _dirnames, filenames in os.walk(TREE):
+        for fn in filenames:
+            full = os.path.join(dirpath, fn)
+            if full not in generated:
+                try:
+                    os.remove(full)
+                    removed += 1
+                except OSError as e:
+                    print('  warn: could not remove stale %s (%s)' % (full, e))
+    # prune directories that are now empty, deepest first; a failure here is harmless
+    for dirpath, _dirnames, _filenames in sorted(os.walk(TREE), key=lambda t: -len(t[0])):
+        try:
+            if dirpath != TREE and not os.listdir(dirpath):
+                os.rmdir(dirpath)
+        except OSError:
+            pass
+    return removed
+
+
+def write_if_changed(path, text):
+    """Write only when the content differs, so an unchanged tree is not touched at all.
+
+    Rewriting 295 identical files would give every one a new mtime, which on a synced folder means
+    295 uploads, and in git means nothing -- but it also destroys the ability to run this as a drift
+    check, because you could no longer tell "regenerated" from "changed".
+    """
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding='utf-8') as f:
+                if f.read() == text:
+                    return False
+        except OSError:
+            pass
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(text)
+    return True
+
+
 def main():
-    if os.path.isdir(TREE):
-        shutil.rmtree(os.path.join(OUT, 'tree'))
     entries = []
     with open(README, encoding='utf-8') as f:
         for line in f:
@@ -117,6 +178,8 @@ def main():
             groups[key].append((e, src))
 
     per_dll = {}
+    generated = set()          # every path this run is responsible for; the sweep at the end
+                               # removes anything under tree/ that is NOT in here
     copied = 0
     multi = []
     partials = []
@@ -153,6 +216,7 @@ def main():
                 body = sf.read()
             with open(dst, 'w', encoding='utf-8', newline='\n') as df:
                 df.write(hdr + body)
+            generated.add(dst)
             per_dll.setdefault(dll, []).append((export, e['spd'], e['cdir']))
         else:
             multi.append((dll, export, [m[0]['cdir'] for m in members]))
@@ -180,12 +244,14 @@ def main():
                 parts.append(body)
             with open(dst, 'w', encoding='utf-8', newline='\n') as df:
                 df.write(''.join(parts))
+            generated.add(dst)
             best = next((m[0]['spd'] for m in members if m[0]['spd']), '')
             per_dll.setdefault(dll, []).append(
                 (export, best, ' + '.join(m[0]['cdir'] for m in members)))
         copied += 1
     # per-DLL manifests
     for dll, fns in sorted(per_dll.items()):
+        generated.add(os.path.join(TREE, dll, 'MANIFEST.md'))
         with open(os.path.join(TREE, dll, 'MANIFEST.md'), 'w', encoding='utf-8', newline='\n') as f:
             f.write(f"# {dll} — reimplemented exports ({len(fns)})\n\n")
             f.write("| export | speedup | source |\n|---|---|---|\n")
@@ -230,6 +296,9 @@ def main():
               f"NOT drop-in replacements):")
         for dll, export, cdir, note in sorted(partials):
             print(f"    {dll}!{export}  <- {cdir}  covers: {note}")
+    stale = sweep_stale(generated)
+    if stale:
+        print(f"  swept {stale} stale file(s) that this run did not regenerate")
     for dll, fns in sorted(per_dll.items(), key=lambda kv: -len(kv[1])):
         print(f"  {dll:16s} {len(fns)}")
 
