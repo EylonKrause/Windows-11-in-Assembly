@@ -67,13 +67,21 @@ BENCH = {
 
 
 def derive_build(text: str, suffix: str) -> str:
-    """The parent's build.bat with only the four generated artifact names changed."""
+    """The parent's build.bat with only the four generated artifact names changed.
+
+    THE PATH-QUALIFIED FORMS ARE LEFT ALONE, and skipping that check produced a build that could
+    not run. Some changes assemble a DEPENDENCY from another change -- 254-findstringordinal does
+    `ml64 ... "%C%-wcslen\impl.asm"` -- and a blind replace rewrote that to
+    `001-wcslen\impl_tgl.asm`, which does not exist, so build_tgl.bat failed at the second line
+    with nothing but "BUILD/RUN ERROR". Only THIS change's own artifacts are forked, and a name
+    preceded by a path separator belongs to someone else.
+    """
     out = text
     for a, b in (("impl.asm", "impl_%s.asm" % suffix),
                  ("impl.obj", "impl_%s.obj" % suffix),
                  ("correctness.exe", "correctness_%s.exe" % suffix),
                  ("bench.exe", "bench_%s.exe" % suffix)):
-        out = out.replace(a, b)
+        out = re.sub(r"(?<![\\/\w])" + re.escape(a), b, out)
     header = (
         "@echo off\r\n"
         "REM ===========================================================================\r\n"
