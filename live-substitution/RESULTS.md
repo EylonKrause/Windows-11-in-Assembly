@@ -745,3 +745,40 @@ What those 688 show, for whoever narrows the scope later: on a refusal the expor
 and `*pdwFlags` (both 0) and sets `ERROR_INVALID_DATA`, while these implementations leave all three
 as the caller had them — and the two disagree about which malformed strings are refusable at all.
 
+## The eight string-to-address parsers (115–122) — 2026-09-20, a sixth defect and one unresolved finding
+
+`build_parseaddr_live.bat` / [`live_subst_parseaddr.c`](live_subst_parseaddr.c). 160000 calls across
+twenty input shapes — dotted quads, the 1/2/3-part `inet_addr` forms, hex and octal, MAC in both
+separators, IPv6 with scope and port, GUIDs braced and bare, and junk.
+
+**The terminator pointer is why this family is worth a harness.** Five of these write a `Terminator`
+out-parameter, and a parser can return the right NTSTATUS and the right address while stopping in
+the wrong place. It is compared as an **offset**, because the same logical answer has a different
+address in every run.
+
+**The defect (fixed): `RtlEthernetStringToAddress{A,W}` write nothing on a failed parse.** Not even
+the groups they read successfully first — `"00-11-22-33-44-55-66"` parses six groups cleanly, fails
+on the seventh, and the export still leaves all six bytes as the caller had them. Changes 119/120
+stored each group as parsed, so **our partial result reached the caller's buffer on every failing
+input**: `"182.77.169.58"` left `18`, `"4c-24-f2-2a-59"` left `4C 24 F2 2A 59`. Status and terminator
+were right throughout; 10678 of 20000 cases. The six groups now accumulate in the **caller's shadow
+space**, which a leaf may use, and commit with two stores only on success — so the routine stays
+frameless.
+
+**The unresolved finding (not fixed, printed every run): the IPv6 pair, in the opposite direction.**
+On a failed parse the *shipped* export writes partial data and 121/122 leave the buffer untouched —
+`RtlIpv6StringToAddressA("182.77.169.58", ...)` leaves `B6 4D A9` in ntdll and nothing in ours, with
+the same status and the same terminator. **13822 of 40000 calls.** That is the *safe* direction, and
+matching it means reproducing ntdll's abandonment behaviour across a grammar with compression,
+embedded IPv4, scope ids and ports — a piece of reverse engineering in its own right. It is counted
+apart from the verdict and printed on every run rather than folded in or quietly dropped, so the
+counter drops to zero when somebody gets it right.
+
+```
+  [patched]    20000 cases, 0 differ (NTSTATUS, the TERMINATOR as an offset, the port,
+               the scope id and every byte of a poisoned address buffer);  20000 calls each
+               UNRESOLVED FINDING: IPv6 failure-path buffer -- 13822 of 40000
+  [post]       20000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+

@@ -31,3 +31,24 @@ geomean **6.29×** (6.24×–6.35×); ours ~11 ns vs ntdll ~70 ns.
 ```
 changes\119-rtlethernetstringtoaddress\build.bat
 ```
+
+## Correction — nothing is written to the caller's address on a failed parse (2026-09-20)
+
+`RtlEthernetStringToAddressA` writes **nothing** to the caller's address buffer when the parse fails — not
+even the groups it read successfully first. `"00-11-22-33-44-55-66"` parses six groups cleanly and
+fails on the seventh, and the export still leaves all six bytes as the caller had them.
+
+This implementation stored each group as it was parsed, so **our partial result reached the
+caller's buffer on every failing input**: `"182.77.169.58"` left `18`, `"4c-24-f2-2a-59"` left
+`4C 24 F2 2A 59`. That is a write into a caller's memory on a path the caller was told had failed,
+which is the more serious direction of this class of divergence.
+
+The status and the terminator were right in every case, so only a whole-destination comparison
+could see it: [`live-substitution/live_subst_parseaddr.c`](../../live-substitution/live_subst_parseaddr.c)
+found it on **10678 of 20000 cases**, and [`probes/failbuf.c`](probes/failbuf.c) shows the bytes.
+
+The six groups now accumulate in the **caller's shadow space** — which a leaf may use — and are
+committed with two stores only once the parse has actually succeeded, so the routine stays
+frameless. There is no spare volatile register here, and pushing one would cost more than the two
+stores it saves. Correctness still PASSES and the change still LANDS.
+

@@ -67,7 +67,23 @@ lo_sep:
 lo_ok:
         shl       r11b, 4
         or        r11b, al
-        mov       [r8 + r10], r11b
+        ; THE SIX BYTES ARE BUFFERED AND COMMITTED ONLY ON SUCCESS.
+        ;
+        ; ntdll writes NOTHING to the caller's address on a failed parse -- not even the groups it
+        ; read successfully first. "00-11-22-33-44-55-66" parses six groups cleanly and fails on
+        ; the seventh, and the export still leaves all six bytes as the caller had them. Storing
+        ; each group as it was parsed put OUR partial result into the caller's buffer on every
+        ; failing input: "182.77.169.58" left 18, "4c-24-f2-2a-59" left 4C 24 F2 2A 59.
+        ;
+        ; That is a write into a caller's memory on a path the caller was told failed, which is the
+        ; more serious direction of this divergence. The status and the terminator were right, so
+        ; only a whole-destination comparison could see it: live substitution found it on 10678 of
+        ; 20000 cases and probes/failbuf.c shows the bytes.
+        ;
+        ; The groups accumulate in the CALLER'S SHADOW SPACE, which a leaf may use, so this stays
+        ; frameless -- there is no spare volatile register here and pushing one would cost more
+        ; than the two stores it saves.
+        mov       byte ptr [rsp + r10 + 8], r11b      ; addr[g], staged
         add       rcx, 2
         cmp       r10d, 5
         je        after6
@@ -92,6 +108,11 @@ after6:
         cmp       al, 0FFh
         jne       err
 ok:
+        ; commit all six bytes, now that the parse has actually succeeded
+        mov       eax, dword ptr [rsp + 8]
+        mov       dword ptr [r8], eax
+        movzx     eax, word ptr [rsp + 12]
+        mov       word ptr [r8 + 4], ax
         mov       [rdx], rcx
         xor       eax, eax
         ret

@@ -80,3 +80,28 @@ over all 65536 units. The `Ex` forms (`[addr]:port` / `%zone`) remain a separate
 ```
 changes\121-rtlipv6stringtoaddress\build.bat
 ```
+
+## Unresolved finding — the caller's buffer after a FAILED parse (2026-09-20)
+
+**Not fixed. Measured, named, and printed on every live run so it cannot be forgotten.**
+
+On a parse that fails, the shipped export **writes partial data** into the caller's address buffer
+and this implementation leaves it untouched. `RtlIpv6StringToAddressA("182.77.169.58", ...)` returns
+`STATUS_INVALID_PARAMETER` with the same terminator either way, and ntdll has left `B6 4D A9` —
+182, 77, 169 — in the first three bytes.
+[`probes/failbuf.c`](probes/failbuf.c) shows it directly.
+
+[`live-substitution/live_subst_parseaddr.c`](../../live-substitution/live_subst_parseaddr.c) counts
+it separately from its verdict: **13822 of 40000 calls**, with the NTSTATUS and the terminator
+agreeing on every one of them. The successful parses are byte-exact and do carry the verdict.
+
+**Why it is left alone, for now.** This is the *safe* direction — we do not write to memory the
+caller was told we failed on, where the Ethernet pair (119/120) had the dangerous direction and was
+fixed the same day. Matching it means reproducing ntdll's *abandonment* behaviour exactly rather
+than its success behaviour: how far it got before giving up, on every malformed shape in a grammar
+with compression, embedded IPv4, scope ids and ports. That is a piece of reverse engineering in its
+own right and is not attempted here.
+
+Anyone narrowing this should start from `probes/failbuf.c` and the counter in the live harness,
+which will drop to zero when it is right.
+
