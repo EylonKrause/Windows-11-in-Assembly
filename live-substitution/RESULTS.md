@@ -1206,6 +1206,14 @@ plus 0..80 one at a time against a fixed 32-element source, on both the in-regis
 path — and compare the **whole destination buffer**, with `Length` and `MaximumLength`, against the
 live export *and* the oracle.
 
+**And the rewritten gates were shown to be able to FAIL**, which is not the same thing as
+watching them pass. Four of the five were generated from one template, and a template that
+compares the wrong thing produces four gates that agree and prove nothing. So change 020's
+oracle was deliberately mutated — the single line that writes the terminator removed — and the
+gate was re-run: it failed on the **first** case, `n=0` with a generous `MaximumLength`, where the
+status and both lengths agree and only the buffer differs. That is precisely the class of defect
+the rewrite exists to catch. The oracle was then restored and the gate passes again.
+
 ### What the live harness added over the gates
 
 These six converters are driven by 256- and 65536-entry translation tables **built from the running
