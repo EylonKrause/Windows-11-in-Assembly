@@ -203,9 +203,20 @@ int main(void) {
     {
         pfn_FindResourceExW pFRE = (pfn_FindResourceExW)sym(L"kernel32.dll", "FindResourceExW");
         pfn_GetFullPathNameW pGFP = (pfn_GetFullPathNameW)sym(L"kernel32.dll", "GetFullPathNameW");
-        HMODULE u = GetModuleHandleW(L"user32.dll");
+        /* LoadLibraryW, not GetModuleHandleW. Linking user32.lib does NOT load user32 -- the
+         * linker only emits an import for a symbol something actually references, and nothing in
+         * this file calls a user32 function directly. So GetModuleHandleW returned NULL here, the
+         * `if (pFRE && u)` guard was false, and the FindResourceExW row SILENTLY DID NOT RUN:
+         * discovery/momentary-tier2-timings.md recorded it as "not yet timed cleanly" when the
+         * truth was that the probe never asked. Change 298 found this. A guard that skips a
+         * measurement without saying so is worse than one that crashes. */
+        HMODULE u = LoadLibraryW(L"user32.dll");
         static wchar_t out[1024]; wchar_t* fp;
 
+        if (!u) printf("  WARN: user32.dll not loaded -- FindResourceExW row SKIPPED
+");
+        if (!pFRE) printf("  WARN: FindResourceExW not resolved -- row SKIPPED
+");
         if (pFRE && u) TIME_BLOCK("FindResourceExW  [fan-in 112]", 0,
                                   sink += (uintptr_t)pFRE(u, (LPCWSTR)RT_STRING, MAKEINTRESOURCEW(45), 0));
         if (pGFP) {

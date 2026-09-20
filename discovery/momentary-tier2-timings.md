@@ -85,3 +85,23 @@ without reproducing the SEH contract would be faster and wrong.
 | `lstrcmpW`, `lstrcmpiW`, `LCMapStringW`, `CompareStringW` | linguistic — [`lstrcmp_is_linguistic.c`](lstrcmp_is_linguistic.c) settled it |
 | `SetThreadpoolTimer`, the token and handle calls, the ETW registrations | kernel objects and transitions; the cost is the ring change |
 | `ApiSetQueryApiSetPresence` (fan-in 240) | apiset resolution, a loader data-structure walk |
+
+
+## Correction — one row in this table never ran
+
+`FindResourceExW` (fan-in 112) is absent above, and the reason was a defect in the probe rather than
+anything about the subject. [`momentary_tier2.c`](momentary_tier2.c) reached for its module with
+`GetModuleHandleW(L"user32.dll")`, and **linking `user32.lib` does not load user32** — the linker
+emits an import only for a symbol something actually references, and nothing in that file calls a
+user32 function directly. So the handle was NULL, the `if (pFRE && u)` guard was false, and the row
+was skipped **without saying so**.
+
+Change [298](../changes/298-findresourceexw/) found it, timed the function properly, and parked it —
+on much stronger grounds than a missing row: it built the change, measured 1.2×–5.4× on the
+string-name path, and then ran the harness with **the live export on both sides** and found that a
+function compared with itself scores a size class WORSE 23 times in 180 and passes "no size class
+regressed" in only 8 runs of 20. The gate is unsatisfiable on that subject by any implementation.
+
+The probe now calls `LoadLibraryW` and **prints a warning when it skips a row**. A guard that drops
+a measurement silently is worse than one that crashes, and this table asserted a negative result it
+had not actually measured.
