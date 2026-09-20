@@ -182,6 +182,22 @@ measurement.
 `revalidate.ps1` needs nothing else: it already skips its own hardcoded vcvars lookup when
 `VSCMD_VER` is set, which `vsenv.ps1` sets.
 
+#### Splitting the sweep
+
+A full sweep is two phases -- 288 change directories, then the live-substitution harnesses -- and on
+a laptop the first takes well over an hour. They are worth running separately, because a benchmark
+measured while something else is compiling is not a benchmark.
+
+```powershell
+.	oolsevalidate-here.ps1 -SkipLive         # phase 1: the 288 changes
+.	oolsevalidate-here.ps1 -Only __none__    # phase 2: live substitution only
+```
+
+The second line is not a special mode. `-Only` filters the change directories by substring, and
+`__none__` matches none of them, so the change loop does nothing and the run proceeds straight to the
+ABI audit and the live harnesses. Worth knowing before adding a `-LiveOnly` switch that would do the
+same thing.
+
 ### Results that belong to a machine
 
 A ratio is a statement about hardware. `docs/PLATFORM.md` describes bench #1 (Ryzen 9 5950X, Zen 3)

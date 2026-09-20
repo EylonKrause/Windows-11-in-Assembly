@@ -195,11 +195,27 @@ foreach ($d in $dirs) {
     Set-Content -Path $log -Value $txt -Encoding utf8
     Remove-Item $so, $se -EA SilentlyContinue
 
+    # Classify the harness's own output. The order matters, and so does rule 2.
+    #
+    # The last rule used to be a bare 'MISMATCH|mismatch', which fires on the word inside
+    # "0 mismatches" -- the phrase a PASSING harness prints. Changes 167 (PathCommonPrefixW) and
+    # 177 (PathIsPrefixW) report their result as "407443 cases, 0 mismatches -- bit-exact" and
+    # never print a bare "PASS", so both were reported as CORRECTNESS_FAIL on every sweep, on
+    # every machine, while actually being bit-exact and landing at 14.9x and 27.9x. That is the
+    # worst kind of harness bug: it manufactures exactly the signal the sweep exists to detect,
+    # which trains you to ignore it.
+    #
+    # Rule 2 therefore looks for a NON-ZERO count and comes BEFORE the PASS rules, so a log that
+    # prints "PASS" somewhere and real mismatches elsewhere still fails. Rule 5 accepts the
+    # "0 mismatches" / "bit-exact" phrasing as the positive result it is, leaving the bare-word
+    # rule as a last resort for a harness that says neither.
     $corr = 'n/a'
-    if     ($txt -match 'CORRECTNESS[^\r\n]*FAILED')      { $corr = 'FAIL' }
-    elseif ($txt -match 'CORRECTNESS[^\r\n]*:?\s*PASS')   { $corr = 'PASS' }
-    elseif ($txt -match '(?m)^\s*PASS\b')                 { $corr = 'PASS' }
-    elseif ($txt -match 'MISMATCH|mismatch')              { $corr = 'FAIL' }
+    if     ($txt -match 'CORRECTNESS[^\r\n]*FAILED')             { $corr = 'FAIL' }
+    elseif ($txt -match '(?<![\d.])[1-9]\d*\s+mismatch')         { $corr = 'FAIL' }
+    elseif ($txt -match 'CORRECTNESS[^\r\n]*:?\s*PASS')          { $corr = 'PASS' }
+    elseif ($txt -match '(?m)^\s*PASS\b')                        { $corr = 'PASS' }
+    elseif ($txt -match '(?<![\d.])0\s+mismatch|bit-exact')      { $corr = 'PASS' }
+    elseif ($txt -match 'MISMATCH|mismatch')                     { $corr = 'FAIL' }
 
     $geo = '-'
     if ($txt -match 'geomean[^)]*\)\s*:\s*([\d.]+)x') { $geo = $matches[1] }
