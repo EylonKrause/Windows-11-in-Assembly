@@ -173,7 +173,7 @@ the real `ucrtbase.dll` exports in a running process so calls to them execute ou
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
 cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap.
 
-### The 2026-09-20 coverage push — from 135 of 270 to **277 of 277**, and twelve defects in twenty-nine landed changes
+### The 2026-09-20 coverage push — from 135 of 270 to **277 of 277**, and twelve defects in **thirty** landed changes
 
 An audit found that only **135 of the 270 LANDED changes** had their export hot-patched anywhere.
 Twenty new harnesses closed the gap completely: **every landed change now runs live inside Windows**,
@@ -194,7 +194,7 @@ missed every module-qualified title, and a `build_*.bat` filter that excluded th
 `build.bat` and its fourteen changes.)
 
 Every one of the new harnesses compares the **whole destination** rather than the answer. Twelve
-found something, across **twenty-nine landed changes**:
+found something, across **thirty landed changes** (counted from the table below, not from memory):
 
 | what was wrong | changes | why no per-change gate could see it |
 |---|---|---|

@@ -1273,3 +1273,100 @@ the live export — **0 of 5840 differ**.
 be assumed: 018 and 020 are twins too, with the same signature and the same job, and they have
 *opposite* failure disciplines. Twins are not evidence.
 
+
+## The last seven (076/100/295/288/292/293/297) - 2026-09-20, and coverage reaches 100%
+
+`build_last7_live.bat` / [`live_subst_last7.c`](live_subst_last7.c). 56000 calls across **four
+DLLs** - ntdll, kernelbase, kernel32 and combase - all seven clean on the first run that got as far
+as running. With this, **every one of the 277 landed changes has a live gate.**
+
+Three things in this harness are worth more than the result.
+
+### A 14-byte patch over a 6-byte thunk would have corrupted the next export
+
+`kernel32!FileTimeToSystemTime` is not a function. It is `jmp qword ptr [rip+disp32]` onto
+kernelbase - **six bytes** - and the 14-byte stub every harness here installs would have run eight
+bytes into whatever follows it, which is the next export's thunk. Nothing would have failed at
+patch time. The damage would have shown up later, in an unrelated function, as the kind of bug that
+costs a day.
+
+`follow_thunk()` decodes an `FF 25` jump once and patches what it points at. The harness still
+*calls* the kernel32 export, so the path exercised is thunk to our assembly, exactly what a caller
+of kernel32 gets, and it prints the target it chose for every routine so the substitution is
+auditable:
+
+```
+     FileTimeToSystemTime   call 00007FF8F82F7620  patch 00007FF8F6C43660   <- thunk followed
+```
+
+Only one of the seven needed it, and that is the point: it was found by *looking*, not by a crash.
+
+### A circular initialisation that would have made the harness agree with itself
+
+Change 288's digit table is **built by calling the live `FoldStringW`**. Install the patch first and
+`wia_fold_init()` builds its table by asking *our* implementation - whose table is empty at that
+moment - producing a table of zeros and an implementation that agrees with itself perfectly.
+
+The first run omitted the call entirely, which is the same failure seen from outside: FoldStringW
+differed on **4347 of 8000** cases with the **right return value** and a destination full of zeros.
+The return value being right is what makes it interesting - a gate comparing only return values
+would have passed a function that wrote nothing at all. The whole-buffer comparison caught it, and
+the fix is one call in the right place, before any patch.
+
+`wia_fold_init()` returns **0 for success**. Reading it as a boolean made a healthy table look like
+a failure on the next attempt; it is a status, not a predicate.
+
+### A cold path pre-flighted instead of assumed
+
+Change 297 implements the NULL-`result` case as its own cold `PROC`, so the export presumably
+handles it - but "presumably" is how a harness takes the whole run down. The NULL-result path is
+driven **once**, inside a `__try`, before the corpus commits to it; if the export faulted the
+harness would say so and drop those cases. It tolerates it, so they are driven, and the run prints
+which way it went.
+
+### Declared scope, counted
+
+`FoldStringW` is five functions behind one entry point. Change 288 implements `MAP_FOLDDIGITS` -
+the only strictly 1:1 flag - and declines the rest with `ERROR_INVALID_FLAGS`. A slice of the corpus
+asks for `MAP_FOLDCZONE` and `MAP_COMPOSITE` anyway: **340 cases**, tallied, printed every run,
+never counted as failures. The same discipline as change 082's malformed base64 and change 126's
+negative `Time`.
+
+```
+  [patched]    8000 cases, 0 differ
+                 RtlCrc64 / RtlLargeIntegerToChar / RtlUnicodeStringToInteger /
+                 FoldStringW / FileTimeToSystemTime / SystemTimeToFileTime /
+                 WindowsCompareStringOrdinal -- calls 8000 each, diverged 0
+                 DECLARED OUT OF SCOPE: 340 FoldStringW flag cases
+  [post]       8000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+---
+
+# Coverage: 277 of 277 (100%)
+
+`py tools/live-coverage.py` - every landed change in this repository has been run **inside Windows,
+in place of the shipped export**, and compared byte for byte against what Windows itself produced.
+
+The campaign that got here found **twelve defects across thirty landed changes**, every one of them
+in code whose own correctness gate passed. (Thirty is counted from the table in the top-level
+README, not from memory — an earlier draft of this paragraph said twenty-nine, and the sentence it
+replaced in the README said "seven defects in twenty-two landed changes" where its own table listed
+twenty-one. A repository that insists on measured claims should count its own.)
+
+They fall into three kinds:
+
+1. **An observable nobody compared** - the answer was right and the bytes or flags left in the
+   caller's memory were not. Eight of the twelve: end-of-field terminators, a capacity terminator,
+   `errno`, a last-error, a partial write on failure.
+2. **A case nobody constructed** - change 134's `wMatch == 0` *with* an overrunning range. Both
+   halves were in the corpus; their product was not. Independent random knobs multiply; hand-written
+   case lists do not.
+3. **A rule the gate was told to ignore** - change 058's `correctness.c` carried a comment
+   explaining why the export's extra NULs did not matter. They followed an exact rule. That is the
+   most dangerous of the three, because it looks like diligence.
+
+What the whole exercise argues for, in one line: **compare the entire destination, vary every
+parameter, and make anything excluded a declared, counted, printed exclusion rather than a narrowed
+comparison.**
