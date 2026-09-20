@@ -173,11 +173,28 @@ the real `ucrtbase.dll` exports in a running process so calls to them execute ou
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
 cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap.
 
-### The 2026-09-20 coverage push — twelve new harnesses, and **seven defects in twenty-two landed changes**
+### The 2026-09-20 coverage push — from 135 of 270 to **277 of 277**, and twelve defects in twenty-nine landed changes
 
 An audit found that only **135 of the 270 LANDED changes** had their export hot-patched anywhere.
-Twelve new harnesses took that past **215**, and every one of them compares the **whole destination**
-rather than the answer. Seven of them found something:
+Twenty new harnesses closed the gap completely: **every landed change now runs live inside Windows**,
+in place of the shipped export, compared byte for byte against what Windows itself produced.
+
+```
+py tools/live-coverage.py
+  landed changes           277
+  with a live gate         277   (100%)
+  WITHOUT a live gate        0
+  harnesses                 73
+```
+
+[`tools/live-coverage.py`](tools/live-coverage.py) answers that mechanically rather than in prose
+that goes stale the moment a harness is added. (Three undercounts of its own were found and fixed
+while standing it up — a directory regex that stopped at the second hyphen, an export pattern that
+missed every module-qualified title, and a `build_*.bat` filter that excluded the original
+`build.bat` and its fourteen changes.)
+
+Every one of the new harnesses compares the **whole destination** rather than the answer. Twelve
+found something, across **twenty-nine landed changes**:
 
 | what was wrong | changes | why no per-change gate could see it |
 |---|---|---|
@@ -188,10 +205,29 @@ rather than the answer. Seven of them found something:
 | `CryptBinaryToString{A,W}` set **`ERROR_INVALID_PARAMETER` when `cb == 0`** | 081, 083, 085, 087, 090, 091, 092, 093 | return value, both sizes and every byte matched — only `GetLastError` differed |
 | `RtlEthernetStringToAddress{A,W}` write **nothing on a failed parse** — we wrote the groups already read | 119, 120 | status and terminator were right; our partial result reached the caller's buffer |
 | the `strtoX` family treat an **invalid base** as a reported error (`EINVAL` + an invalid-parameter report), not a failed parse | 110, 111, 112, 113 | value and endptr agreed; only `errno` and the handler count differed — and without an installed handler an invalid base *terminates the process* |
+| `RtlStringFromGUIDEx` terminates **twice** — again at `Buffer[MaximumLength/2 - 1]`, the last WCHAR the buffer can hold | 058 | status, `Length` and the rendered string all matched; 13333 of 20000. Its gate had a comment calling the extra NULs *"an internal artifact with no clean rule"* and narrowed the comparison on the strength of it — the rule is exact, and a probe too narrow to see it is not the absence of one |
+| `StrRChrW`'s **`wMatch == 0` → NULL** belongs to the NUL-terminated form only; a raw range finds a NUL like any other character | 134 | 364 of 20000, every one `wMatch == 0` **and** an end past the terminator. The gate already asked for a NUL (only unbounded) and already spanned NULs (only for `'b'`) — both halves were present, their **product** was not |
+| `PathCchRenameExtension` has a **second 259 limit, on the RESULT**, reporting `ERROR_FILENAME_EXCED_RANGE` rather than `STRSAFE_E_INSUFFICIENT_BUFFER` | 159 | 355 of 12000. Its gate swept 250..266 across the boundary — but replaced a 4-character extension with a 4-character one, so the result length always *equalled* the input length and could never cross it |
+| the extension body passed to `PathCchRenameExtension`/`PathCchAddExtension` may be at most **255 characters** | 159, 160 | found in 159 from one line of a probe written for something else, then asked of 160 **on suspicion** because they share their validation — nothing was failing there |
+| the ntdll ANSI/OEM converters **NUL-terminate**, so they need one element more than the conversion, and `RtlUnicodeStringToAnsiString` alone **truncates** rather than refusing | 018, 019, 020, 024, 025 | every gate ran `MaximumLength` at a fixed generous constant, so the size rule never bound, and compared only up to `Length`, so the terminator was outside the comparison **by construction**. Each gate's one overflow assertion checked only that *our* function returned `0x80000005` — no live call, no buffer comparison |
 
 Every one of those gates was **correct about everything it compared**. That is the whole argument
 for this directory: a per-change gate checks the answer, and a live gate checks what the caller's
 memory looks like afterwards.
+
+The twelve fall into three kinds, and the third is the one worth naming:
+
+1. **An observable nobody compared** — the answer right, the bytes or flags left behind wrong. Eight
+   of the twelve.
+2. **A case nobody constructed** — change 134. Both halves of the failing input were in the corpus;
+   their product was not. Independent random knobs multiply; hand-written case lists do not.
+3. **A rule the gate was told to ignore** — change 058, whose `correctness.c` carried a comment
+   explaining why the export's extra NULs did not matter. They followed an exact rule. That is the
+   most dangerous of the three, because it looks like diligence.
+
+Two were found by **structural suspicion** rather than by a failure: change 160, asked because it
+shares validation code with 159, and the negative results for 015, 052, 053 and 158, recorded so the
+next person does not have to re-derive them.
 
 **One finding is deliberately left open**, counted apart from its verdict and printed on every run:
 on a *failed* parse the IPv6 entries (121/122) leave the caller's buffer untouched where ntdll
@@ -232,8 +268,8 @@ evalidate-here.ps1 -Only __none__`: `-Only` filters change directories by
 substring and `__none__` matches none of them, so the change loop does nothing and the run goes
 straight to the ABI audit and the live harnesses.
 
-**Fifty-one harnesses** now cover the landed exports across `ucrtbase`, `ntdll`, `combase`, `rpcrt4`,
-`iphlpapi`, `shlwapi` and `kernelbase` — the shlwapi driver proves **33 functions** in a single run and
+**Seventy-three harnesses** now cover the landed exports across `ucrtbase`, `ntdll`, `combase`,
+`rpcrt4`, `iphlpapi`, `shlwapi`, `kernelbase`, `kernel32` and `crypt32` — the shlwapi driver proves **33 functions** in a single run and
 the kernelbase driver **eighteen**, each one patched, validated against the live export and reverted
 byte-for-byte before the next begins. Between them:
 the compares, the integer formatters, a transform that writes an upcased output string through the
