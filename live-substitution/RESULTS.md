@@ -708,3 +708,40 @@ without failing — and over 320 shortfall calls it reported **0 differing**. Th
 found; it is not a claim that the approximation is exact everywhere, and the changes' own statement
 stands.
 
+## CryptStringToBinaryA/W — the decode half, eight more changes (2026-09-20)
+
+`build_s2b_live.bat` / [`live_subst_s2b.c`](live_subst_s2b.c). Same dispatcher shape as the
+encoders: `CRYPT_STRING_BASE64` (082/084), `BASE64HEADER` (104/105), `BASE64_ANY` (106/107) and
+`HEXRAW` (086/088), with a trap for the rest.
+
+**The decoder has three output parameters, which is why it gets its own harness.** Besides the BOOL
+it writes `*pcbBinary`, `*pdwSkip` and `*pdwFlags` — bytes produced, header characters stepped over,
+and which format it decided the input actually was. The last two are pure bookkeeping a decoder can
+get wrong while producing perfectly correct bytes, and `BASE64_ANY` exists precisely to make
+`*pdwFlags` meaningful. All three are compared, with the whole output buffer and `GetLastError`.
+
+**The corpus is built by the encoder** — random binary through the live `CryptBinaryToString` for the
+matching format — so every well-formed case is well-formed by construction. The encoder is never
+patched, so building the corpus is unaffected by the substitution.
+
+```
+  [patched]    6000 cases, 0 differ (BOOL, *pcbBinary, *pdwSkip, *pdwFlags, last error
+               AND the whole 512-byte output, both widths);  6000 our-code calls each
+               unclaimed-format TRAP 0
+               DECLARED OUT OF SCOPE (malformed input): 688 of the 1200 damaged cases differ
+  [post]       6000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+**688 of 1200 is not a defect — it is a declared limit, measured for the first time.** Change 082's
+header says *"Scope: valid base64; malformed-input quirks out of scope (RESULTS.md)"*, and its
+RESULTS repeats it. The first run of this harness damaged a fifth of the corpus on purpose and
+reported 688 divergences, **every one of them a damaged case** — the harness asking a question the
+implementations decline to answer, exactly the mistake its sibling made by routing
+`CRYPT_STRING_NOCRLF` to formats that never claimed it. The well-formed cases now carry the verdict
+and the damaged ones are counted and printed, so the scope limit has a number instead of a sentence.
+
+What those 688 show, for whoever narrows the scope later: on a refusal the export writes `*pdwSkip`
+and `*pdwFlags` (both 0) and sets `ERROR_INVALID_DATA`, while these implementations leave all three
+as the caller had them — and the two disagree about which malformed strings are refusable at all.
+
