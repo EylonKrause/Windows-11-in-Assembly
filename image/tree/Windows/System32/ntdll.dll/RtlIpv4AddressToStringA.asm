@@ -58,6 +58,20 @@ no_dot:
         cmp       r9d, 4
         jb        oct_loop
         mov       byte ptr [r8], 0                   ; NUL
+        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD.
+        ;
+        ; RtlIpv4AddressToStringA always stores a zero at destination byte 15 -- the last byte of
+        ; the 16-character maximum an IPv4 address can render to -- as well as the one after the
+        ; text. For "255.255.255.255" the two are the same byte; for anything shorter they are not,
+        ; and this implementation wrote only the first. The live-substitution harness caught it on
+        ; 17462 of 20000 cases WITH THE SAME TEXT AND THE SAME RETURNED POINTER; probes/tail.c
+        ; then asked the export directly at every rendered length and the index never moved.
+        ;
+        ; It is inside the buffer the caller is required to provide (RtlIpv4AddressToStringA
+        ; documents a minimum of 16 characters), so nothing a conforming caller owns is at risk --
+        ; but this project's standard is the whole destination, not the string, which is the same
+        ; standard that found change 016 leaving a stray 00 where ntdll left the caller's fill.
+        mov       byte ptr [rdx + 15], 0
         mov       rax, r8                            ; -> terminating NUL
         ret
 wia_ip4fmt ENDP

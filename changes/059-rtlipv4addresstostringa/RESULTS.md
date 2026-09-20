@@ -25,3 +25,25 @@ and the returned end-pointer offset match ntdll and the scalar oracle.
 ```
 changes\059-rtlipv4addresstostringa\build.bat
 ```
+
+## Correction — a second terminator this implementation was not writing (2026-09-20)
+
+`RtlIpv4AddressToStringA` **always stores a zero at destination byte 15** — the end of the 16-character
+maximum an IPv4 address can render to — in addition to the terminator after the text. For
+`255.255.255.255` the two are the same position; for every shorter address they are not, and this
+implementation wrote only the first.
+
+It was invisible to this change's own gate, which compares the rendered string and the returned
+pointer. It was found by [`live-substitution/live_subst_addrfmt.c`](../../live-substitution/live_subst_addrfmt.c)
+on its **first run**, which compares the whole destination against a poison fill: **17462 of 20000
+cases differed, with the same text and the same returned pointer every time**.
+[`probes/tail.c`](probes/tail.c) then asked the export directly at every rendered length and the
+index never moved.
+
+The byte is inside the buffer the caller is required to provide, so nothing a conforming caller owns
+was at risk — but this project's standard is the whole destination, not the string, and it is the
+same standard that found change 016 leaving a stray `00` where ntdll left the caller's fill.
+
+One store fixes it. Correctness still PASSES and the change still LANDS; the live harness that found
+it now reports **0 of 20000 differing**.
+

@@ -482,3 +482,41 @@ Comparisons are made on the **sign** of the ordering functions, not the magnitud
 what the C library specifies. The corpus pairs strings that are equal, differ only in case, differ
 at one random position, or end early — and draws the span sets partly *from* the subject string, so
 `strspn`/`strcspn` have a non-trivial answer rather than 0 or the whole length.
+
+## Five address formatters (changes 059/060/061/062/066) — added 2026-09-20, and it found a defect
+
+`build_addrfmt_live.bat` / [`live_subst_addrfmt.c`](live_subst_addrfmt.c).
+
+**On its first run this harness failed, and it was right to.** 17462 of 20000 cases diverged on
+`RtlIpv4AddressToStringA` and the same 17462 on `RtlIpv4AddressToStringW` — **with the same rendered
+text and the same returned pointer every time**. The difference was one byte:
+
+```
+case 0: text "100.9.100.99", terminator at 12
+  live: 31 30 30 2E 39 2E 31 30 30 2E 39 39 00 B6 B6 00 B6   <- zero at 12 AND at 15
+  ours: 31 30 30 2E 39 2E 31 30 30 2E 39 39 00 B6 B6 B6 B6   <- zero at 12 only
+```
+
+`RtlIpv4AddressToString{A,W}` **always writes a second terminator at index 15** — the end of the
+16-character maximum an IPv4 address can render to — as well as the one after the text. The two
+coincide only for `255.255.255.255`, which is exactly the 2538 cases that agreed.
+[`probes/tail.c`](../changes/059-rtlipv4addresstostringa/probes/tail.c) confirmed it against the
+export directly at every rendered length; the index never moved. Changes 059 and 061 now write it,
+their own gates still pass, and this harness reports **0 of 20000 differing**.
+
+Neither change's own correctness gate could see it: both compare the rendered string and the
+returned pointer, and both were right about both. That is the whole argument for a live gate that
+compares the **whole destination** — the same argument change 268 made when its gate found change
+016 leaving a stray `00` where ntdll left the caller's fill.
+
+```
+  [pre-patch]  20000 cases x 5 formatters recorded from the SHIPPED exports
+  [patched]    20000 cases, 0 differ (returned POINTER, the whole 64-byte buffer,
+               and the Ex form's NTSTATUS and length);  20000 our-code calls each
+  [post]       20000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+The IPv6 formatters (063/064/068/069) are **not** in this harness, and that is a link constraint
+rather than a choice: change 063's `tables.c` and change 059's `dec2b.c` both define `wia_dec2b`, so
+they cannot share an image. They want a second harness.
