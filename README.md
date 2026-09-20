@@ -173,6 +173,36 @@ the real `ucrtbase.dll` exports in a running process so calls to them execute ou
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
 cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap.
 
+### The 2026-09-20 coverage push — eight new harnesses, and **five defects in sixteen landed changes**
+
+An audit found that only **135 of the 270 LANDED changes** had their export hot-patched anywhere.
+Eight new harnesses closed most of that gap, and every one of them compares the **whole
+destination** rather than the answer. Five of them found something:
+
+| what was wrong | changes | why no per-change gate could see it |
+|---|---|---|
+| `RtlIpv4AddressToString{A,W}` write a **second terminator at index 15** — the end of the 16-character field | 059, 061 | same text, same returned pointer; 17462 of 20000 cases |
+| the same, at **index 45** for IPv6's 46-character field | 063, 064 | same text, same returned pointer; all 20000 cases |
+| `RtlAppendUnicodeToString` with an **odd `Length`** appends at a *character* boundary, not the byte | 101 | same status, same resulting `Length`; 8255 of 153856 in the follow-up probe |
+| `strncat_s`/`wcsncat_s` with a **NULL source and `count == 0`** still validate the destination | 156, 157 | needed an installed invalid-parameter handler to observe at all |
+| `CryptBinaryToString{A,W}` set **`ERROR_INVALID_PARAMETER` when `cb == 0`** | 081, 083, 085, 087, 090, 091, 092, 093 | return value, both sizes and every byte matched — only `GetLastError` differed |
+
+Every one of those gates was **correct about everything it compared**. That is the whole argument
+for this directory: a per-change gate checks the answer, and a live gate checks what the caller's
+memory looks like afterwards.
+
+Two of the harnesses also had to be fixed before their results could be trusted, and the same check
+caught both — **the post-restore pass differing from the pre-patch pass**, which is impossible if
+the harness is measuring the subject rather than itself. A third over-claimed coverage: its
+dispatcher routed `CRYPT_STRING_NOCRLF` to formats whose implementations never mention it, reported
+2013 differences, and the fix belonged in the harness.
+
+The `CryptBinaryToString` harness is also the first here to **assemble a whole export**: four
+changes implement `CryptBinaryToStringA`, one per format, and none of them *is* the export — so a
+dispatcher reads `dwFlags` and routes, with a trap stub for the six formats this project does not
+implement, asserted never to be entered by the corpus and asserted to decline the two documented
+unclaimed flag combinations.
+
 **Swept clean on bench #3 (2026-09-20): 51 of 51 harnesses PASS, 188 individual live-patch proofs,
 zero failures.** A "proof" here is one export for which all four of these held in the same run: the
 patched prologue began `FF 25` (the jump we wrote); calling the **real** function pointer afterwards
