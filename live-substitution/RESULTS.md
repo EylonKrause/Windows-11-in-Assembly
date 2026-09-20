@@ -1234,3 +1234,42 @@ counts cases per routine.
   [post]       10000 cases through the RESTORED exports, 0 differ
 LIVE SUBSTITUTION: PASS
 ```
+
+### The structural follow-up, and its negative result
+
+Finding one rule in five changes makes the next question obvious: does any OTHER landed change that
+fills a caller's counted-string descriptor have it too? That reasoning is what found the eleventh
+defect (change 160, by asking its sibling on suspicion) and what the 2026-09-15 space-rule sweep
+used to find seven changes after the first, so it gets asked every time now.
+
+Three candidates, all covered by the ORIGINAL `live_subst.c` -- whose comparison has **both** of the
+blind spots the converter gates had, plus a third:
+
+```c
+U_STR du = {0, (unsigned short)(n*2), o1};        // MaximumLength never varied
+for(int i=0;i<du.Length/2 && !bad;i++) ...        // comparison bounded by Length
+long rs = sys(&du,&us,FALSE), rr = ref_upcasestr(&dr,&us,0);   // patched vs REFERENCE, not vs export
+```
+
+That third line is the worst of them: after the patch, `sys` *is* our code, so the comparison is
+ours against our own oracle. An implementation and an oracle that are wrong together look right.
+**Being "live covered" is binary and says nothing about what the corpus asks** -- which is why
+`tools/live-coverage.py` says so in its own header.
+
+[`probes/descterm.c`](probes/descterm.c) asks all three directly:
+
+| change | export | rule | verdict |
+|---|---|---|---|
+| 015 | `RtlUpcaseUnicodeString` | needs `2n` exactly, **no terminator** | clean — same as its twin 017 |
+| 052 | `RtlIntegerToUnicodeString` | needs `Length+2`, **writes a WCHAR NUL** | already implemented |
+| 053 | `RtlInt64ToUnicodeString` | needs `Length+2`, **writes a WCHAR NUL** | already implemented |
+
+052 and 053 *do* have the terminator rule, and their headers documented it from the start. A stated
+rule is not an implemented one, so [`probes/i2u_check.c`](probes/i2u_check.c) checks rather than
+reads: value × base × **every** `MaximumLength` from 0 to 72, whole 80-byte buffer compared against
+the live export — **0 of 5840 differ**.
+
+015 is the interesting negative. It is the twin of 017 and behaves identically, but that could not
+be assumed: 018 and 020 are twins too, with the same signature and the same job, and they have
+*opposite* failure disciplines. Twins are not evidence.
+
