@@ -1053,3 +1053,53 @@ corpus.
   [post]       12000 cases through the RESTORED exports, 0 differ
 LIVE SUBSTITUTION: PASS
 ```
+
+## The last seven ucrtbase routines (048/050/145/146/147/148/149) — 2026-09-20, and the first STATEFUL gate
+
+`build_crtmisc_live.bat` / [`live_subst_crtmisc.c`](live_subst_crtmisc.c). **202880 calls**, all
+seven clean on the first run. With this, `ucrtbase` has no uncovered landed change left.
+
+**The two tokenizers are the first stateful functions this directory has gated, and one call would
+have proved almost nothing.** `strtok_s` and `wcstok_s` have a contract that is a *sequence*: the
+first call takes the string, every call after it takes NULL and continues from the context pointer.
+So each case here runs a **full tokenization to exhaustion** — 47725 and 47155 calls across 15000
+cases, about 3.2 per case — recording every token offset, the token count, and the final state of
+the buffer. Three ways to be wrong become visible that a single call cannot separate:
+
+* the right tokens at the wrong offsets;
+* the right tokens with the wrong NULs left behind — the contract is specific, *leading delimiters
+  are skipped but left intact and only the delimiter that ends a token is overwritten*, so
+  `",,a,,b,,"` must come back as `",,a\0,b\0,"`;
+* the right first token and a wrong continuation, which is exactly what a one-shot gate misses.
+
+**`_swab`'s overlap rule is the one a vector loop cannot reproduce.** For `dest > src` the export
+behaves as a strict forward, pair-by-pair copy and therefore re-reads bytes it has already written:
+`src="abcdefgh"`, `dest=src+2`, `n=6` gives `"abbaabba"`. The corpus puts source and destination in
+**one buffer** at controlled offsets so that fully-overlapping, forward-overlapping (including the
++1 odd case), backward-overlapping and disjoint all occur — with odd `n`, which leaves the final
+destination byte untouched and can only be checked by comparing the whole buffer.
+
+**The case folders were asked to prove a negative.** `_strupr` and `_wcsupr` fold *only* ASCII
+`a-z` in the C locale. A corpus of ASCII cannot distinguish that from a locale-aware folder, so a
+quarter of the characters drawn here are Latin-1 accented letters — precisely the range a
+locale-aware implementation *would* touch — and `setlocale` is never called. "Folds only a-z" is
+tested rather than assumed.
+
+**And one deliberate side-by-side.** `wcsrchr` with `c == 0` returns a pointer to the **terminator**;
+`shlwapi!StrRChrW` returns **NULL** for the same search. Two reverse-character-searches, opposite
+answers, and change 134 turned out to have a defect in exactly that corner one harness earlier — so
+this corpus asks `wcsrchr` for the NUL on one case in six rather than by accident.
+
+`_memccpy` is driven with a delimiter of `0x1263` (only the low byte counts, so it matches `'c'`),
+with `-1` (matches `0xFF`), and with NUL, against a destination of its own that starts poisoned, so
+"wrote the right bytes" and "wrote the right number of bytes" are separate observations.
+
+```
+  [patched]    15000 cases, 0 differ (whole buffers for all five that write, the
+               _memccpy return, and for both tokenizers the FULL token sequence --
+               every offset, the count, and the NULs left in the buffer)
+                 _strupr 15000 | _wcsupr 15000 | _swab 15000 | _memccpy 15000
+                 strtok_s 47725 | wcstok_s 47155 | wcsrchr 15000   -- diverged 0
+  [post]       15000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
