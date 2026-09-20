@@ -79,6 +79,43 @@ below parity. Across a final eight runs at two blocks, **0 of 8 were clean**. Ex
 phase relocates which class loses; it does not remove the loss. That is the definition of a
 **dispatch floor**.
 
+## The probe that settled it properly — six variants, four alignments, eighteen lengths
+
+The experiment above varied one parameter against `bench.c`'s single fixed buffer alignment.
+[`probes/blockcount.c`](probes/blockcount.c) does it correctly, and its own header says why:
+
+> Chooses the number of 128-bit blocks in the prologue, and the width of the wide loop, by measuring
+> the **WORST (length, start-alignment) pair** each variant produces against the live export —
+> because that worst pair *is* the speed gate, and it is not the pair `malloc` happens to hand a
+> benchmark.
+
+Six variants (`nN` = N 128-bit prologue blocks, `/512` or `/256` = the wide loop's width), worst
+ratio over the four start alignments, median of three sweeps:
+
+| len | n4/512 | n5/512 | n6/512 | n8/512 | n6/256 | n8/256 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 31 | 0.979 | 0.989 | 1.005 | 1.000 | 0.989 | 0.905 |
+| 49 | 0.838 | 0.965 | 0.965 | 0.965 | 0.963 | 0.933 |
+| 64 | 0.814 | 0.975 | 1.000 | 0.977 | 0.972 | 0.973 |
+| 80 | 0.946 | **0.802** | 0.969 | 0.950 | 0.952 | 0.942 |
+| 112 | 1.082 | 0.956 | 0.861 | 0.966 | **0.774** | 0.939 |
+| 128 | 1.184 | 1.043 | 0.919 | **0.832** | 0.826 | 0.873 |
+| 255 | 1.709 | 1.529 | 1.373 | 1.234 | 1.039 | 1.090 |
+| 1023 | 3.138 | 3.523 | 2.921 | 2.861 | 1.722 | 1.727 |
+| 8191 | 3.366 | 3.240 | 3.220 | 3.249 | 1.746 | 1.816 |
+| **WORST** | **0.814** | **0.802** | **0.840** | **0.832** | **0.774** | **0.873** |
+
+**The last row is the speed gate, and not one of the six reaches 1.0.** The best worst-case is
+`n8/256` at 0.873; the best *large-size* behaviour is the `/512` variants at 3.1×–3.5× where `/256`
+manages 1.7×–1.8×, and they pay for it with a worse small band. Every variant passed the correctness
+screen first (80,000 fuzz cases plus 400 page-guard tails, all six).
+
+This is the same conclusion the by-hand experiment reached, arrived at properly: the losing class
+moves between variants and never disappears. The shipped implementation keeps the simple `n2/256`
+shape that was measured and written up; a future attempt on this class should start from `n6/512`
+if it cares about throughput or `n8/256` if it cares about the floor, and should know before it
+starts that neither clears the gate.
+
 ## Precedent, so this verdict is consistent rather than convenient
 
 Three changes in this repository are parked for exactly this, and the same words fit here:
