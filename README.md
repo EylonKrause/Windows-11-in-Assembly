@@ -173,7 +173,20 @@ the real `ucrtbase.dll` exports in a running process so calls to them execute ou
 results stay identical across a fuzz corpus (with a counter confirming our code ran), then reverts
 cleanly. Per-process, runtime, reversible — not a global on-disk DLL swap.
 
-Fifteen harnesses now cover the landed exports across `ucrtbase`, `ntdll`, `combase`, `rpcrt4`,
+**Swept clean on bench #3 (2026-09-20): 51 of 51 harnesses PASS, 188 individual live-patch proofs,
+zero failures.** A "proof" here is one export for which all four of these held in the same run: the
+patched prologue began `FF 25` (the jump we wrote); calling the **real** function pointer afterwards
+incremented our counter by exactly the number of calls made, so our code executed and not the
+shipped code; every one of those results matched the reference and the live export; and after
+unpatching the counter froze and the original function worked again. The second of those is the one
+that carries the argument — without the counter this would only show that *something* produced the
+right answers, which a harness that silently failed to patch would also show.
+
+Reproduce with `.	oolsevalidate-here.ps1 -Only __none__`: `-Only` filters change directories by
+substring and `__none__` matches none of them, so the change loop does nothing and the run goes
+straight to the ABI audit and the live harnesses.
+
+**Fifty-one harnesses** now cover the landed exports across `ucrtbase`, `ntdll`, `combase`, `rpcrt4`,
 `iphlpapi`, `shlwapi` and `kernelbase` — the shlwapi driver proves **33 functions** in a single run and
 the kernelbase driver **eighteen**, each one patched, validated against the live export and reverted
 byte-for-byte before the next begins. Between them:
