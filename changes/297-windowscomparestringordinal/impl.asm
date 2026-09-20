@@ -56,7 +56,7 @@
 ;
 ; NOTHING IS PUSHED. The two lengths live in the CALLER'S SHADOW SPACE, which is ours to use, so a
 ; four-character comparison does not pay two pushes and two pops it has no way to amortise. Only
-; xmm0-xmm2 are touched; xmm6-xmm15 are callee-saved under Win64 (tools/abi-check).
+; xmm0-xmm4 are touched; xmm6-xmm15 are callee-saved under Win64 (tools/abi-check).
 ;
 ; ISA: AVX2 + BMI1 (tzcnt). No AVX-512, so this file is portable to benches #1 and #2 unchanged.
 
@@ -95,20 +95,33 @@ wia_WindowsCompareStringOrdinal PROC
         cmova     eax, r10d                     ; eax = n = min(len1,len2), UNSIGNED
         xor       r11d, r11d                    ; r11d = i
 
-        ;---------------- 16 code units per iteration ----------------
-        ; THE BOUND IS HOISTED. Written the obvious way -- recompute `remaining = n - i`, compare it
-        ; with 16 and branch to the tail -- the loop body carries four instructions and two branches
-        ; per 32 bytes; `limit = n - 32` computed once turns that into one instruction and one
-        ; branch. It is worth 8% at 4000 characters on this part and costs nothing anywhere else.
+        ;---------------- 32 code units per iteration ----------------
+        ; TWO THINGS HAPPEN HERE AND THEY WERE MEASURED SEPARATELY, because a combined edit that
+        ; wins says nothing about which half earned it. Both variants passed the same 618 035-case
+        ; corpus; each row is the range over three runs, against the same live export.
+        ;
+        ;                                         128 ch      254 ch      1024 ch     4000 ch  geomean
+        ;   recompute the bound, one 32B block   9.5-10.0   13.9-14.6   53.0-53.9   169-184   3.13-3.21
+        ;   HOIST the bound,      one 32B block  9.5-10.3   14.5-14.9   44.9-46.0   132-134   3.31-3.37
+        ;   hoist + TWO 32B blocks (this file)       7.78       12.24        33.8       114        3.62
+        ;
+        ; HOISTING THE BOUND is the larger of the two and it is pure bookkeeping: written the
+        ; obvious way the loop recomputes `remaining = n - i` and compares it with 16 every
+        ; iteration -- four instructions and two branches per 32 bytes. `limit = n - 32` computed
+        ; once makes it one compare and one branch, and 4000 characters went 178 -> 133 ns.
+        ;
+        ; THE UNROLL is worth most in the MIDDLE, which is not where an unroll is usually pitched:
+        ; 1024 characters gained 24% and 128 characters 18%, against 14% at 4000. At 4000 the loop
+        ; is closer to load-bound; at 128-1024 it was the loop's own overhead that dominated.
         mov       r9d, eax
         sub       r9d, 32
         jb        tail_entry                    ; fewer than 32 code units: skip the unrolled loop
 loop32:
-        ; TWO 32-BYTE BLOCKS PER ITERATION. One block per iteration measured 45 GB/s at 4000
-        ; characters against a ~93 GB/s two-loads-per-cycle ceiling, i.e. the loop was front-end
-        ; bound rather than load bound. Four loads and two compares feed ONE vpmovmskb, because
-        ; `equal in the low block AND equal in the high block` is a single AND -- the halves are
-        ; only separated on the iteration that actually finds a difference.
+        ; Four loads and two compares feed ONE vpmovmskb, because "equal in the low block AND equal
+        ; in the high block" is a single AND. The halves are only separated on the iteration that
+        ; actually finds a difference, so the common path pays for one mask, not two. One block per
+        ; iteration measured 64 GB/s at 4000 characters against a ~93 GB/s two-loads-per-cycle
+        ; ceiling -- front-end bound, not load bound, which is what said an unroll would pay.
         vmovdqu   ymm0, ymmword ptr [rcx + r11*2]
         vmovdqu   ymm1, ymmword ptr [rdx + r11*2]
         vmovdqu   ymm3, ymmword ptr [rcx + r11*2 + 32]
