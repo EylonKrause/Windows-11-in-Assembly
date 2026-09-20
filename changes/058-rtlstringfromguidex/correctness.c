@@ -18,13 +18,18 @@ static void one(fn sys, const GUID* g, USHORT maxlen){
     int bad=(so!=sy)||(so!=sr);
     if(so==0){
         if(uo.Length!=uy.Length||uo.Length!=ur.Length) bad=1;
-        // the meaningful output: the 38 GUID chars + the NUL terminator. (ntdll writes
-        // extra stray NULs PAST the terminator in some MaximumLength cases -- an internal
-        // artifact with no clean rule; we match the string + terminator, which is the contract.)
-        int lim=uo.Length/2 + 1;
-        for(int i=0;i<lim && !bad;i++) if(bo[i]!=by[i]||bo[i]!=br[i]) bad=1;
-        // over-write safety: OURS must not touch anything past the terminator.
-        for(int i=lim;i<64 && !bad;i++) if(bo[i]!=0x2A2A) bad=1;
+        // WHOLE-BUFFER, not just the string. This check used to compare only the 38 GUID chars
+        // plus their terminator, and to excuse the rest with a comment calling ntdll's further
+        // NULs "an internal artifact with no clean rule". That was wrong, and the wrongness is
+        // the whole reason the divergence survived to be found by live substitution instead of
+        // here: the export writes a SECOND NUL at Buffer[MaximumLength/2 - 1], the last whole
+        // WCHAR the caller's capacity allows, and probes/tail.c reproduces it on every capacity
+        // it is asked about. A rule that a probe was too narrow to see is not the absence of a
+        // rule. Everything else in the destination stays as the caller left it, so the three
+        // buffers must now agree byte-for-byte -- which tests the capacity terminator and
+        // over-write safety in one comparison, with nothing excused.
+        if(memcmp(bo,by,sizeof(bo))!=0) bad=1;
+        if(memcmp(bo,br,sizeof(bo))!=0) bad=1;
     } else {
         if(memcmp(bo,br,sizeof(bo))!=0) bad=1;      // failure: String left untouched
         if(memcmp(bo,by,sizeof(bo))!=0) bad=1;
@@ -46,7 +51,7 @@ int main(void){
     }
     // all-0 and all-FF GUIDs
     { GUID g; memset(&g,0,16); one(sys,&g,80); memset(&g,0xFF,16); one(sys,&g,80); }
-    if(!failures) printf("CORRECTNESS: PASS (RtlStringFromGUIDEx alloc=FALSE: 200000 random GUIDs + every maxlen 0..80 + all-0/all-FF, string+terminator match + over-write-safe, vs ntdll)\n");
+    if(!failures) printf("CORRECTNESS: PASS (RtlStringFromGUIDEx alloc=FALSE: 200000 random GUIDs + every maxlen 0..80 + all-0/all-FF, WHOLE destination buffer byte-identical incl. the capacity terminator at MaximumLength/2-1, vs ntdll)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",failures);
     return failures?1:0;
 }

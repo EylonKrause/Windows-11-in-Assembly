@@ -818,3 +818,73 @@ fall into it.
 LIVE SUBSTITUTION: PASS
 ```
 
+
+## Three time conversions and the GUID formatter (126/127/128/058) — 2026-09-20, an eighth defect
+
+`build_time_live.bat` / [`live_subst_time.c`](live_subst_time.c). 80000 calls.
+
+**The defect: `RtlStringFromGUIDEx` terminates twice.** Once after the 38 GUID characters, which
+change 058 already did, and once at **`Buffer[MaximumLength/2 - 1]`** — the last whole WCHAR the
+caller's capacity allows. **13333 of 20000 cases**, and on every one of them the `NTSTATUS`, the
+`Length` and the rendered string were identical. Only the bytes past the string differed: the eighth
+instance of the class this directory exists to find.
+
+**The rule had to be measured, not guessed, and the first measurement was too narrow to see it.**
+[`changes/058-rtlstringfromguidex/probes/tail.c`](../changes/058-rtlstringfromguidex/probes/tail.c)
+poisons a destination, varies `MaximumLength` and prints every zero position. Asked about 78, 79,
+80, 82, 90, 100, 120, 160 the second index looked irregular — and change 058's `correctness.c` had
+already written that impression down as fact, in a comment calling these *"stray NULs … an internal
+artifact with no clean rule"*, and had narrowed its own comparison to the string and its terminator
+on the strength of it. Widening the probe to sixteen capacities **including the odd ones** makes it
+obvious: it is `MaximumLength/2 - 1` under integer division, exactly, at every capacity —
+
+| `MaximumLength` | 78 | 79 | 80 | 81 | 82 | 83 | 90 | 91 | 100 | 101 | 120 | 121 | 160 | 161 | 200 | 398 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| second NUL at | 38 | 38 | 39 | 39 | 40 | 40 | 44 | 44 | 49 | 49 | 59 | 59 | 79 | 79 | 99 | 198 |
+
+At 78 and 79 it lands on 38 — the string's own terminator — so the two smallest capacities hide it
+completely. **The gate did not miss this defect by accident; it had been told not to look.** A rule
+a probe is too narrow to see is not the absence of a rule, and "semantically irrelevant" was a
+judgement about what callers *ought* to read rather than a measurement of what the export *does*.
+`correctness.c` now compares the **whole destination buffer** byte for byte, with nothing excused,
+and `reference.c` models the second terminator too, so the scalar oracle and the export agree.
+
+**And the fix needed a second attempt, for the same reason as the IPv6 one before it.** The store
+first used `eax`, on the assumption it still held `MaximumLength` from the entry check. It does not
+— the hex loop converts every byte through `eax` — and the write went wherever that left it. The
+gate caught it as an access violation on the first build. It now re-reads `MaximumLength` from
+`[rdx+2]`. *A register that holds an argument at entry is not a register that holds it at the exit*,
+which is now twice in two changes.
+
+**Declared scope, counted rather than dropped.** `RtlTimeToTimeFields` differs on **2809 of 20000**
+cases, all of them negative `Time`. Change 126's header states its domain as `Time >= 0` — the whole
+representable range, 1601-01-01 to year ~30828 — so these are outside the contract, not failures.
+They are counted, labelled and printed on every run, the same discipline as change 082's malformed
+Base64 and 121/122's failed IPv6 parses. Silently dropping them would make the harness claim a
+coverage it does not have.
+
+**The corpus.** Century years either side of 1600/1700/1800/1900/2000/2100/2400 (the 100/400 leap
+rules, where a naive implementation disagrees with the calendar), 29 February in leap and non-leap
+years, the 1970 epoch both directions, negative and saturating `FILETIME`s, impossible field
+combinations that must be refused, and destinations too small for the GUID string.
+
+```
+  [patched]    20000 cases, 0 differ (the WHOLE TIME_FIELDS struct including its padding,
+               the BOOLEAN, both 64-bit results, and the GUID string's status, Length,
+               MaximumLength and every one of 80 destination bytes)
+                 RtlTimeToTimeFields          calls  20000   diverged      0
+                 RtlTimeFieldsToTime          calls  20000   diverged      0
+                 RtlSecondsSince1970ToTime    calls  20000   diverged      0
+                 RtlStringFromGUIDEx          calls  20000   diverged      0
+                 DECLARED OUT OF SCOPE: 2809 negative-Time cases differ. Change 126
+                 states Time >= 0; measured and printed, not failed.
+  [post]       20000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+**Eight defects now, and this one is the first found in a change whose gate was deliberately
+weakened.** The previous seven were gates that never thought to look at a given observable. This
+one looked, saw the difference, and had a comment written explaining why it did not matter. That is
+a more dangerous failure than an oversight, and it argues for the rule the other harnesses arrived
+at independently: **compare the whole buffer, and make anything excluded a declared, counted,
+printed exclusion rather than a narrowed comparison.**
