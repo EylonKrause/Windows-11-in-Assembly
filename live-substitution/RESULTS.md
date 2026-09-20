@@ -1103,3 +1103,50 @@ with `-1` (matches `0xFF`), and with NUL, against a destination of its own that 
   [post]       15000 cases through the RESTORED exports, 0 differ
 LIVE SUBSTITUTION: PASS
 ```
+
+## The four ntdll bitmap routines (023/030/123/124) — 2026-09-20
+
+`build_bitmap_live.bat` / [`live_subst_bitmap.c`](live_subst_bitmap.c). 90000 calls, all four clean
+on the first run.
+
+**The corpus is built around one trap: bits at index >= `SizeOfBitMap` must be IGNORED.** All four
+contracts say so, and it is the easiest rule in the world to satisfy by accident on a buffer that
+happens to be zero past the declared size. So every bitmap here carries **garbage beyond
+`SizeOfBitMap`** — eight extra words, and the unused high bits of the final partial word — chosen
+so that an implementation reading one word too far, or forgetting to mask the tail, produces a
+*different* answer rather than the same one. Half the cases use all-ones for that garbage and half
+use random, because all-ones is the value that makes a missing mask maximally wrong.
+
+The sizes are picked the same way: 0, 1, and every value on and either side of the 32-bit word, the
+64-bit word the POPCNT loops step by, and the 256-bit AVX2 chunk that 030 and 123 bulk-skip with. A
+masked-final-word bug is invisible at a multiple of 64 and obvious one bit either side.
+
+**A free cross-check, made explicit.** 023 and 124 are exact complements, so `set + clear` must
+equal `SizeOfBitMap` for every case. The harness asserts it on our answers — 0 violations over
+15000 bitmaps. Two implementations can agree with each other and both be wrong about where the
+bitmap ends; this catches that without needing a third opinion.
+
+`RtlAreBitsSet` gets **three queries per case** rather than one, since its answer depends on a
+`(start, len)` pair and most pairs are uninteresting: one inside a set run, one straddling bit 32,
+and one degenerate — `len == 0`, which is **FALSE** by ntdll convention rather than the vacuous TRUE
+a fresh implementation produces, or a start at the end, or a range running off it.
+
+`RtlFindLongestRunClear` is the only one that writes, and its `*StartingIndex` is **poisoned with
+0xDEADBEEF before every call**, so "left it alone" is distinguishable from "wrote zero" — the same
+distinction that mattered for the `RtlInit*String` descriptors and the GUID formatter's capacity
+terminator.
+
+A note on step (2) of the freeze-safety protocol, because these four look load-bearing in a way the
+earlier ones did not: RTL bitmaps are what the heap and the handle table are built on. The
+*functions*, though, are leaf routines over a caller-supplied struct — nothing in the loader or the
+allocator calls them during this harness, the process is single-threaded, and nothing allocates
+while the patch is in place.
+
+```
+  [patched]    15000 cases, 0 differ
+                 RtlNumberOfSetBits     15000 | RtlAreBitsSet          45000
+                 RtlFindLongestRunClear 15000 | RtlNumberOfClearBits   15000
+                 cross-check: set + clear == SizeOfBitMap, violated 0 times
+  [post]       15000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
