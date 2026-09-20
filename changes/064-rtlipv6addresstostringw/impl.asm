@@ -21,6 +21,9 @@ wia_v6fmtw PROC
         sub       rsp, 48
         mov       rsi, rcx
         mov       r8, rdx
+        mov       rbx, rdx                            ; a copy that SURVIVES: rdx does not --
+                                                      ; the group emitters write its low half --
+                                                      ; and rbx is pushed and otherwise unused.
         xor       r9, r9
 rg:
         movzx     eax, byte ptr [rsi + r9*2]
@@ -148,6 +151,11 @@ htail:
 
 finish:
         mov       word ptr [r8], 0
+        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD -- at the same
+        ; INDEX as its narrow sibling 063, which for a UTF-16 destination is byte 90. Measured,
+        ; not assumed to be symmetric: probes/tail.c prints the zero positions for both forms
+        ; and both report exactly 45 in CHARACTER units at every address shape.
+        mov       word ptr [rbx + 90], 0
         mov       rax, r8
         add       rsp, 48
         pop       r14

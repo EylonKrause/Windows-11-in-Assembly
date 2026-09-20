@@ -25,6 +25,12 @@ wia_v6fmt PROC
         sub       rsp, 48                             ; g[8] dwords at [rsp]
         mov       rsi, rcx                            ; Addr
         mov       r8, rdx                             ; write ptr
+        mov       rbx, rdx                            ; ... and a COPY THAT SURVIVES, for the
+                                                      ; end-of-field terminator at the exit.
+                                                      ; rdx does NOT survive: `mov dx, word ptr`
+                                                      ; in the group emitters below writes its
+                                                      ; low half, and using it there faulted.
+                                                      ; rbx is pushed and otherwise unused.
         ; read 8 big-endian groups
         xor       r9, r9
 rg:
@@ -159,6 +165,17 @@ htail:
 
 finish:
         mov       byte ptr [r8], 0
+        ; THE SHIPPED EXPORT WRITES A SECOND TERMINATOR, AT THE END OF THE FIELD.
+        ;
+        ; RtlIpv6AddressToStringA always stores a zero at destination byte 45 -- the end of the
+        ; 46-character maximum an IPv6 address can render to -- as well as the one after the
+        ; text. probes/tail.c asks the export at six address shapes and finds EXACTLY TWO zeros
+        ; every time: one at the returned offset and one at 45, which never moves.
+        ;
+        ; This implementation wrote only the first, and live substitution caught it on ALL 20000
+        ; cases with the same text and the same returned pointer -- the identical defect its
+        ; IPv4 sibling 059 had, found by the identical means.
+        mov       byte ptr [rbx + 45], 0
         mov       rax, r8                             ; -> terminating NUL
         add       rsp, 48
         pop       r14

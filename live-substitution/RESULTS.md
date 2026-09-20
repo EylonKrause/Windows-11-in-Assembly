@@ -520,3 +520,34 @@ LIVE SUBSTITUTION: PASS
 The IPv6 formatters (063/064/068/069) are **not** in this harness, and that is a link constraint
 rather than a choice: change 063's `tables.c` and change 059's `dec2b.c` both define `wia_dec2b`, so
 they cannot share an image. They want a second harness.
+
+## Four IPv6 formatters (changes 063/064/068/069) — added 2026-09-20, and it found the same defect again
+
+`build_v6fmt_live.bat` / [`live_subst_v6fmt.c`](live_subst_v6fmt.c).
+
+Written immediately after the IPv4 harness found its defect, and looking for the same shape. It
+found it: **`RtlIpv6AddressToString{A,W}` always write a second terminator at index 45** — the end
+of the 46-character maximum — and changes 063 and 064 wrote only the one after the text. **All
+20000 cases diverged**, with the same rendered text and the same returned pointer in every one. The
+Ex forms (068/069) were byte-exact from the start.
+
+```
+  DIFF case 0: RtlIpv6AddressToStringA    byte  45  live 00  ours D3
+      live: 3A 3A 00 D3 D3 ...      <- "::" then a zero at 2 AND at 45
+      ours: 3A 3A 00 D3 D3 ...      <- zero at 2 only
+```
+
+[`probes/tail.c`](../changes/063-rtlipv6addresstostringa/probes/tail.c) confirmed it directly: six
+address shapes, **exactly two zero positions every time**, one tracking the text and one fixed at
+45 — and the wide form's index was **measured rather than assumed symmetric**, which is what the
+IPv4 case would have invited.
+
+**The first fix attempt faulted**, and the per-change gate caught it in seconds. It used `rdx` on
+the reasoning that worked for the IPv4 pair — destination in `rdx`, read once into `r8`, never
+written — but here the group emitters use `mov dx, word ptr [...]`, writing its low half. The
+pointer is now kept in `rbx`, which these functions push and never use. After the fix: **0 of 20000
+differing**, all four at 20000 our-code calls, clean restore.
+
+Two harnesses, two defects of the same class, in four landed changes whose own gates were all
+correct about everything they compared. That is the argument for this directory.
+
