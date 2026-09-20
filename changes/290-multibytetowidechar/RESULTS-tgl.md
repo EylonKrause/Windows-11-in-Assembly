@@ -113,3 +113,32 @@ change 034's exact bug (the clamp removed) was built and run: `longbad.c` catche
 at many offsets of subjects up to 96 bytes rather than only at the midpoint, so a full 64-byte block
 is reachable. That is the property 034's corpus lacked, and it is why this change could adopt the
 block safely.
+
+## Gate 4 — proved live, as the variant
+
+A bench number says the code is fast; it does not say Windows will run it. So the variant was
+hot-patched over the real export, by
+[`live-substitution/build_cvt_tgl_live.bat`](../../live-substitution/build_cvt_tgl_live.bat) — which
+is `build_cvt_live.bat` with exactly one line changed, `impl.asm` → `impl_tgl.asm`, so that what
+runs in the process is this file and not the implementation of record.
+
+```
+[WideCharToMultiByte / MultiByteToWideChar] live substitution
+  patched prologue bytes: FF 25 (expect FF 25 = jmp [rip])
+  correctness under live patch: all match;  our-code calls = 45/45 over 45 rounds
+  unpatched cleanly; originals restored and working.
+
+LIVE SUBSTITUTION: PASS - Windows ran OUR assembly for all 3 converted exports
+```
+
+`45/45` is the part that matters: a counting wrapper proves every call reached **our** code rather
+than the original, so "all match" cannot be satisfied by the export quietly answering for itself.
+The results are identical including the whole destination buffer and the last-error value, and the
+patch reverts cleanly.
+
+The fallback-trap reasoning in
+[`live_subst_cvt.c`](../../live-substitution/live_subst_cvt.c)'s header applies unchanged: 289 and
+290 are driven with fast-path input only, because their dispatch boundary tail-calls the real
+export, and under a patch that would re-enter our own entry point. 290's fallback is pointed at a
+trap stub that records being entered, so "the corpus never left the fast path" is **proved rather
+than asserted**.
