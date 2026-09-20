@@ -888,3 +888,66 @@ one looked, saw the difference, and had a comment written explaining why it did 
 a more dangerous failure than an oversight, and it argues for the rule the other harnesses arrived
 at independently: **compare the whole buffer, and make anything excluded a declared, counted,
 printed exclusion rather than a narrowed comparison.**
+
+## The seven shlwapi string scanners (131/133/134/136/137/138/139) — 2026-09-20, a ninth defect
+
+`build_shlwstr_live.bat` / [`live_subst_shlwstr.c`](live_subst_shlwstr.c). 140000 calls.
+
+**The defect: `StrRChrW`'s "`wMatch == 0` → NULL" is a rule of the NUL-terminated form only.** The
+export takes either a NUL-terminated string (`pszEnd == NULL`) or a **raw range** `[pszStart,
+pszEnd)` that it scans literally — embedded NULs ignored, running past the terminator if the range
+says so. Change 134 implemented the zero-match early-out as its first instruction pair, *above* the
+test that picks the form, so it applied to both; `reference.c` did the same thing one line earlier.
+Implementation and oracle agreed with each other and neither agreed with the export.
+**364 of 20000 cases**, every one of them `wMatch == 0` **with** an end past the terminator.
+
+[`changes/134-strrchrw/probes/nulmatch.c`](../changes/134-strrchrw/probes/nulmatch.c) settles what the export
+actually does, with three NULs at 3, 7 and 11:
+
+| range | `[0,16)` | `[0,12)` | `[0,11)` | `[0,8)` | `[0,4)` | `[0,3)` |
+|---|---|---|---|---|---|---|
+| seeking NUL → | 11 | 11 | 7 | 7 | 3 | NULL |
+
+The **last** occurrence, **half-open** — identical to how the same probe answers for `'x'`. A NUL in
+a raw range is not special. In the NUL-terminated form the rule needs no code at all: a scan that
+stops *at* the terminator can never match it, so NULL falls out for free, which is why the line
+looked right and read right for as long as it did.
+
+**Why this one needed a live gate, stated precisely.** Change 134's correctness harness already
+asked for a NUL — only with `pszEnd == NULL`. It already scanned ranges spanning embedded NULs —
+only for `'b'`. **Both halves of the failing case were in the corpus; the product of them was not.**
+The live harness found it because its two corpus knobs are independent and get multiplied: the
+zero `wMatch` fires on one case in eleven, the overrunning end on one in five, and 20000/55 = 364 —
+which is exactly the divergence count, and is how the failing combination identified itself before
+any probe was written.
+
+That is a different lesson from the previous eight. Those were observables nobody thought to
+compare. This was a **case nobody thought to construct**, in a gate that was otherwise thorough —
+lengths 0..200 × 16 alignments × every match position, two-match strings, `end <= start`, and
+NOACCESS page guards on both sides. Thoroughness along each axis separately is not coverage of the
+product, and a corpus built from independent random knobs explores products that a hand-written
+list of cases does not.
+
+**The other six were clean on the first run**, which is worth recording too: `StrChrW`'s NULL for a
+zero `wMatch`, `StrStrW`'s NULL for an empty needle (both departures from the C library),
+`StrCSpnW`, `StrPBrkW`, `PathIsFileSpecW`'s rejection of `':'` and `'\'` but *not* `'/'`, and
+`StrTrimW` compared over its whole buffer — including everything past the new terminator, since its
+own header records that the export terminates first and moves the remainder afterwards, which is
+what determines the leftover bytes.
+
+**The corpus.** Every start alignment 0..15 inside a 64-byte-aligned buffer, because each of these
+is an AVX2 block scan whose masked aligned prologue is a different path at each one. Lengths on and
+either side of the 16-wchar block boundary (0, 1, 15, 16, 17, 31, 32, 33) rather than drawn
+uniformly. One case in seven shaped like a real path — UNC, drive-relative, `C:\`, `.gitignore`,
+trailing separators, multiple dots — and all three of the DLL's *three different* separator
+conventions fed to all seven entries rather than assumed to agree.
+
+```
+  [patched]    20000 cases, 0 differ (result pointers as offsets, both integer results,
+               and for StrTrimW the WHOLE 96-wchar buffer including everything past
+               the new terminator)
+                 StrChrW / StrStrW / StrRChrW / StrCSpnW / StrPBrkW /
+                 PathIsFileSpecW / StrTrimW -- calls 20000 each, diverged 0
+  [post]       20000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```

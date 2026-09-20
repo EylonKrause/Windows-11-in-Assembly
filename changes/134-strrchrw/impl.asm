@@ -9,7 +9,10 @@
 ;   pszEnd != NULL -> search the RAW range [pszStart, pszEnd), ignoring embedded NULs and running past
 ;                     the terminator if asked (verified: a range spanning a NUL still finds a match
 ;                     beyond it).
-;   pszEnd <= pszStart -> NULL.   wMatch == 0 -> NULL.
+;   pszEnd <= pszStart -> NULL.
+;   wMatch == 0 -> NULL **in the NUL-terminated form only**. In the raw-range form a NUL is an
+;                    ordinary character: it is found, at its LAST occurrence, if the half-open
+;                    range contains it. Measured in probes/nulmatch.c; see the note at the PROC.
 ;
 ; Two AVX2 paths. The bounded form scans BACKWARD from the end so it exits at the first match (the
 ; common "last separator in a path" use); the unbounded form scans forward tracking the last match,
@@ -21,13 +24,29 @@
 
 .code
 wia_strrchrw PROC
-        test      r8w, r8w
-        jz        rc_null                          ; seeking NUL -> NULL
+        ; THE "wMatch == 0 -> NULL" RULE BELONGS TO THE NUL-TERMINATED FORM ALONE, and this early-out
+        ; used to sit here, above the test that picks the form, so it fired for both. In the raw-range
+        ; form the range is scanned LITERALLY -- the contract above says so itself, "ignoring embedded
+        ; NULs and running past the terminator if asked" -- and a NUL inside that range is an ordinary
+        ; character that can be found. probes/nulmatch.c puts three NULs in a buffer and asks the export:
+        ; [0,16) -> 11, [0,12) -> 11, [0,11) -> 7, [0,8) -> 7, so it is the LAST occurrence; [0,3) ->
+        ; NULL and [0,4) -> 3, so the range is half-open; and seeking 'x' over the same ranges answers
+        ; identically. A NUL in a raw range is not special in any way.
+        ;
+        ; In the NUL-terminated form it needs no rule at all: a scan that stops AT the terminator can
+        ; never match it, so NULL falls out for free -- which is why the original line looked correct
+        ; and read correct. It was right about the form it was written for and applied to both.
+        ;
+        ; Found by live substitution on 364 of 20000 cases, every one of them wMatch == 0 with a
+        ; pszEnd past the terminator -- exactly the 1-in-55 overlap of the corpus's two knobs, which
+        ; is what made it obvious the two conditions had to occur TOGETHER to expose it. The change's
+        ; own correctness gate never drew that combination.
         vmovd     xmm2, r8d
-        vpbroadcastw ymm2, xmm2
+        vpbroadcastw ymm2, xmm2                     ; a broadcast zero is exactly what the raw-range
+                                                    ; form needs in order to find NULs
         mov       r11, rcx                          ; start
         test      rdx, rdx
-        jz        rc_fwd
+        jz        rc_fwd_chk
         cmp       rdx, rcx
         jbe       rc_null                           ; end <= start
 
@@ -71,6 +90,9 @@ rc_bk_next:
         jmp       rc_bk
 
         ; ---- unbounded: forward, tracking the last match, stopping at the terminator ----
+rc_fwd_chk:
+        test      r8w, r8w
+        jz        rc_null                           ; NUL-terminated form only: seeking NUL -> NULL
 rc_fwd:
         vpxor     ymm3, ymm3, ymm3
         xor       eax, eax                          ; last match = NULL

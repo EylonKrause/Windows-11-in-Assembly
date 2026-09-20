@@ -26,6 +26,37 @@ int main(void){
     { static wchar_t b[16]; b[0]=L'a';b[1]=L'b';b[2]=0;b[3]=L'c';b[4]=L'b';b[5]=0;b[6]=0;
       chk(b,0,L'b',"embedded-NUL unbounded"); chk(b,b+5,L'b',"range spans NUL");
       chk(b,b+2,L'b',"range before NUL");     chk(b,b+6,L'b',"range past both NULs"); }
+    // SEEKING THE NUL ITSELF, IN THE BOUNDED FORM. This is the combination the gate never drew:
+    // it asked for a NUL only with end == NULL, and it scanned ranges spanning NULs only for 'b'.
+    // Both halves were here; the product of them was not, and live substitution found the defect
+    // that lived in exactly that product -- 364 of 20000 cases, every one of them (wMatch == 0,
+    // end past the terminator). A raw range is scanned literally, so the NULs in it are findable,
+    // at their LAST occurrence, half-open. See probes/nulmatch.c.
+    { static wchar_t b[32]; int i;
+      for(i=0;i<32;i++) b[i]=L'x';
+      b[3]=0; b[7]=0; b[11]=0; b[31]=0;
+      chk(b,0,   0,"seek-NUL unbounded");        // NULL: the form the old rule was written for
+      chk(b,b+16,0,"seek-NUL range past three"); // 11
+      chk(b,b+12,0,"seek-NUL range past three-b");
+      chk(b,b+11,0,"seek-NUL range excludes 11");// 7  -- half-open
+      chk(b,b+8, 0,"seek-NUL range past two");
+      chk(b,b+4, 0,"seek-NUL range includes 3");
+      chk(b,b+3, 0,"seek-NUL range excludes 3"); // NULL -- half-open at the low end too
+      chk(b,b,   0,"seek-NUL empty range");
+      chk(b,b+32,0,"seek-NUL whole buffer"); }
+    // and the same product over every length and alignment: a terminator inside the range must be
+    // found, one exactly at the range's end must not.
+    { static wchar_t g[600]; int align,len,i;
+      for(align=0; align<16 && fails<20; ++align){
+        wchar_t* p=g+align;
+        for(len=0; len<=64 && fails<20; ++len){
+            for(i=0;i<len;i++) p[i]=L'a'+(i%23);
+            p[len]=0; p[len+1]=L'z'; p[len+2]=L'z'; p[len+3]=0;
+            chk(p,p+len,  0,"bnd-NUL end-on-terminator");   // excluded: NULL
+            chk(p,p+len+1,0,"bnd-NUL end-past-terminator"); // found at len
+            chk(p,p+len+4,0,"bnd-NUL two terminators");     // the LATER one, at len+3
+        }
+      } }
     // every length x alignment x match position, both forms
     static wchar_t buf[700];
     for(int align=0; align<16 && fails<20; align++){
@@ -62,7 +93,7 @@ int main(void){
         chk(q,0,L'z',"guard-lo-miss"); chk(q,q+len,L'z',"guard-lo-bnd");
         chk(q,q+1,L'a',"guard-lo-tiny");
     }
-    if(!fails) printf("CORRECTNESS: PASS (StrRChrW vs live + oracle: bounded+unbounded, lengths 0..200 x 16 alignments x every match position, embedded NULs, end<=start, NOACCESS guards both sides)\n");
+    if(!fails) printf("CORRECTNESS: PASS (StrRChrW vs live + oracle: bounded+unbounded, lengths 0..200 x 16 alignments x every match position, embedded NULs, SEEKING THE NUL ITSELF in the bounded form at every length x alignment, end<=start, NOACCESS guards both sides)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",fails);
     return fails?1:0;
 }
