@@ -782,3 +782,39 @@ counter drops to zero when somebody gets it right.
 LIVE SUBSTITUTION: PASS
 ```
 
+## The six integer parsers (108–113) — 2026-09-20, a seventh defect
+
+`build_parseint_live.bat` / [`live_subst_parseint.c`](live_subst_parseint.c). 180000 calls.
+
+**Three observables, not one.** The four `strtoX` entries write an `endptr` and set `errno` to
+ERANGE on overflow. A parser can return the right number, stop in the wrong place and say nothing
+about the overflow, and a gate comparing only the value would pass all three mistakes. The endptr is
+compared as an **offset**; `errno` is seeded with a sentinel before every call, so *left alone* is
+distinguishable from *set to zero*.
+
+**The defect: an invalid base is a reported error, not a failed parse.** The valid set is 0 and
+2..36; ucrtbase answers anything else with value 0, `*endptr = nptr`, **`errno = EINVAL`** and **one
+invalid-parameter report**, for every input. Changes 110–113 simply failed to parse — right value,
+right endptr on most inputs, `errno` untouched, and on `"0x0"` with base 1 the endptr advanced by
+one. **567 of 30000 cases**, all base 1.
+
+**The harness died before it could report it**, and that is the part worth keeping. Without an
+installed handler an invalid base **terminates the process** — `STATUS_STACK_BUFFER_OVERRUN`, no
+output, exit `0xC0000409`. Three things were needed to get a measurement out of it: install
+`_set_invalid_parameter_handler` (and actually include `<stdlib.h>` — the first attempt silently
+compiled without the call), count the handler invocations as a compared observable, and add a
+`/DTRACE_CASES` build that names each subject before parsing it. The last of those located the
+crash in one run: the final line printed the case, and the case named the base.
+
+**And the fix needed a second attempt.** Placing the invalid-base exit just before `epilogue:` put
+it in the path of the overflow branch, which had always fallen straight through — the change's own
+gate caught that on the first build. It now sits **after the epilogue's `ret`**, where nothing can
+fall into it.
+
+```
+  [patched]    30000 cases, 0 differ (value, endptr as an offset, and errno)
+               atoi / _atoi64 / strtol / strtoul / _strtoi64 / _strtoui64 -- 30000 calls each
+  [post]       30000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+

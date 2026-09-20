@@ -13,6 +13,7 @@
 ; branchless mul-based overflow guard (no div). Bit-exact vs the live export on Zen3.
 
 EXTERN _errno:PROC
+EXTERN _invalid_parameter_noinfo:PROC
 
 .const
 ALIGN 16
@@ -47,6 +48,23 @@ wia_strtoi64 PROC
         mov       rdi, rcx
         mov       r14, rdx
         mov       r15d, r8d
+        ; ---- AN INVALID BASE IS A REPORTED ERROR, NOT A FAILED PARSE ----
+        ;
+        ; The valid set is 0 and 2..36. ucrtbase answers anything else -- 1, 37, a negative, 100 --
+        ; with value 0, *endptr = nptr, errno = EINVAL (22) AND one invalid-parameter report, for
+        ; every input, which probes/badbase.c measured across all four entries and both widths of
+        ; result. This implementation simply failed to parse: it returned 0 with the right endptr
+        ; on most inputs and left errno alone, and on "0x0" with base 1 it even advanced endptr by
+        ; one. Nothing in the header claimed the invalid-base case; nothing handled it either.
+        ;
+        ; Found by live substitution on 567 of 30000 cases -- every one of them base 1, with the
+        ; value and the endptr agreeing and only errno and the handler count differing. The handler
+        ; is only observable because that harness installs one: without it an invalid base
+        ; TERMINATES THE PROCESS, which is how the first run of that harness died.
+        cmp       r15d, 1
+        je        bad_base
+        cmp       r15d, 36
+        ja        bad_base                           ; unsigned: also catches every negative base
 ws:
         movzx     eax, byte ptr [rsi]
         cmp       al, 20h
@@ -165,5 +183,22 @@ epilogue:
         pop       rsi
         pop       rbx
         ret
+
+; ---- the invalid-base exit, placed AFTER the epilogue's ret so no normal
+;      path can fall into it (the first attempt sat before `epilogue:` and
+;      the overflow path fell straight through into it) ----
+bad_base:
+        test      r14, r14
+        jz        bb_noend
+        mov       qword ptr [r14], rdi               ; *endptr = the ORIGINAL nptr
+bb_noend:
+        sub       rsp, 28h
+        call      _invalid_parameter_noinfo
+        call      _errno
+        mov       dword ptr [rax], 22                ; EINVAL
+        add       rsp, 28h
+        xor       eax, eax
+        xor       edx, edx
+        jmp       epilogue
 wia_strtoi64 ENDP
 END
