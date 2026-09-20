@@ -1150,3 +1150,87 @@ while the patch is in place.
   [post]       15000 cases through the RESTORED exports, 0 differ
 LIVE SUBSTITUTION: PASS
 ```
+
+## The eight remaining ntdll string converters (017/018/019/020/024/025/029/165) — 2026-09-20, a twelfth defect across FIVE changes
+
+`build_ntconv2_live.bat` / [`live_subst_ntconv2.c`](live_subst_ntconv2.c). 80000 calls. **Five of
+the eight diverged**, all for the same two reasons, and this is the widest single finding in this
+directory so far.
+
+### The defect: they NUL-terminate, and nobody knew
+
+`RtlUnicodeStringToAnsiString`, `RtlAnsiStringToUnicodeString`,
+`RtlUpcaseUnicodeStringToAnsiString`, `RtlUnicodeStringToOemString` and
+`RtlOemStringToUnicodeString` all write a terminator at `[Length]`, and therefore all require
+**one element more than the conversion itself needs**. Two rules, and each hid the other: a
+too-small `MaximumLength` produced the wrong status, and a large one produced the right status with
+a missing byte.
+
+`RtlDowncaseUnicodeString` — Unicode to Unicode — does **not** terminate and needs exactly `2n`.
+That is why it alone was clean, and it is the reason the other five could not be inferred from it.
+
+| export | needs | on success | on overflow |
+|---|---|---|---|
+| `RtlUnicodeStringToAnsiString` | `Max >= n+1` | NUL at `[Length]` | **truncates**: `Max-1` chars + NUL, `Length = Max-1` |
+| `RtlUpcase…ToAnsiString` | `Max >= n+1` | NUL at `[Length]` | writes **nothing**, `Length` untouched |
+| `RtlUnicodeStringToOemString` | `Max >= n+1` | NUL at `[Length]` | writes nothing |
+| `RtlAnsiStringToUnicodeString` | `Max >= 2n+2` | WCHAR NUL | writes nothing |
+| `RtlOemStringToUnicodeString` | `Max >= 2n+2` | WCHAR NUL | writes nothing |
+| `RtlDowncaseUnicodeString` | `Max >= 2n` | **no terminator** | writes nothing |
+
+**`RtlUnicodeStringToAnsiString` is the odd one out and it is worth dwelling on.** It does not
+refuse a short buffer — it fills what it can and says so: an 8-character source with
+`MaximumLength` 4 comes back as `"ABC\0"` with `Length` 3 and `STATUS_BUFFER_OVERFLOW`. Its four
+siblings, doing the same job in the same family with the same signature, refuse outright and leave
+the destination untouched. There is no way to derive one from the others; each had to be walked
+across its whole `MaximumLength` range.
+
+### Why five gates missed the same thing
+
+All five `correctness.c` files shared one design, and it was blind to both rules *by construction*:
+
+* **`MaximumLength` was a fixed, generous constant in every single case** — 300 or 600 — so the
+  size rule never bound. Each gate did have one overflow assertion, and every one of them checked
+  only that **our** function returned `0x80000005`: no live call, no oracle call, no buffer
+  comparison. An assertion about ourselves is not a test.
+* **The comparison ran `i < n`** — up to `Length` — so the byte at `[Length]`, the only place a
+  terminator can be, was outside the comparison by construction.
+
+Either blind spot alone would have hidden one rule. Together they hid both, in five landed changes,
+through however many thousand fuzz cases each ran. **A corpus that never varies a parameter is not
+fuzzing that parameter**, and a comparison bounded by the function's own reported output cannot see
+anything the function failed to report.
+
+All five gates now sweep `MaximumLength` across the neighbourhood of the boundary for every length —
+plus 0..80 one at a time against a fixed 32-element source, on both the in-register and the table
+path — and compare the **whole destination buffer**, with `Length` and `MaximumLength`, against the
+live export *and* the oracle.
+
+### What the live harness added over the gates
+
+These six converters are driven by 256- and 65536-entry translation tables **built from the running
+OS**. A benchmark proves the table matches; running our code *as* the export proves the table **and**
+the block scan that decides when to use it. Each of these routines checks a 16-element block for
+"all ASCII" and converts in-register if so, so the corpus places the single high character at the
+first, middle and last element of a block rather than scattering it — the block decision tested at
+its edges, not on average.
+
+`alloc == TRUE` is **not** driven, and that is a stated exclusion rather than a quiet one: all six
+descriptor converters declare it out of scope and answer `STATUS_INVALID_PARAMETER`, while the
+shipped exports allocate from the process heap and overwrite `dst->Buffer`. Driving it would leak
+60000 blocks in the pre-patch phase alone and compare nothing meaningful.
+
+### A harness bug found and fixed on the way
+
+The first run reported `RtlUnicodeStringToAnsiString` diverging on **14945 of 10000 cases**. The
+per-routine counter incremented once for the status triple and again for the buffer, so a routine
+wrong in both ways counted twice. A count that cannot be a count is worse than no count; it now
+counts cases per routine.
+
+```
+  [patched]    10000 cases, 0 differ (every NTSTATUS, every descriptor's Length AND
+               MaximumLength, and every destination buffer compared whole)
+                 all eight routines -- calls 10000 each, diverged 0
+  [post]       10000 cases through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```

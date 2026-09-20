@@ -1,30 +1,101 @@
+// changes/019-rtlansistringtounicodestring/correctness.c
+//
+// Bit-exact fuzz of wia_a2u vs live ntdll!RtlAnsiStringToUnicodeString + oracle.
+//
+// REWRITTEN 2026-09-20. The previous version could not see either of the two rules this change
+// turned out to be missing, and the shape of that blindness is more useful than the bug itself:
+//
+//   * every case ran with MaximumLength fixed and generous, so the size rule never bound and the
+//     OVERFLOW path was never compared against ntdll at all -- the single overflow assertion it
+//     had checked only that OUR function returned 0x80000005, with no live call and no buffer
+//     comparison;
+//   * the comparison stopped at Length, so the terminator the export writes at [Length] was
+//     outside it by construction.
+//
+// Now MaximumLength is swept across the whole interesting neighbourhood for every length, and the
+// WHOLE destination buffer is compared byte for byte against both the live export and the oracle,
+// poison included. The export needs 2n+2 bytes; on overflow it writes NOTHING and leaves Length as
+// the caller had it.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
+#include <string.h>
+typedef LONG NTSTATUS;
 typedef struct { unsigned short Length, MaximumLength; wchar_t* Buffer; } USTR;
 typedef struct { unsigned short Length, MaximumLength; char* Buffer; } ASTR;
-typedef LONG NTSTATUS;
 extern NTSTATUS wia_a2u(USTR*, const ASTR*, unsigned char);
-long ref_a2u(USTR*, const ASTR*, int);
+long ref_a2u(void*, const void*, int);
 void wia_a2umap_init(void);
-typedef NTSTATUS (WINAPI *fn)(USTR*,const ASTR*,BOOLEAN);
+typedef NTSTATUS (WINAPI *fn)(USTR*, const ASTR*, BOOLEAN);
+static fn sys;
 static int failures=0;
-int main(void){
-    wia_a2umap_init();
-    HMODULE h=LoadLibraryW(L"ntdll.dll"); fn sys=(fn)GetProcAddress(h,"RtlAnsiStringToUnicodeString");
-    static char src[300]; static wchar_t d1[300], d2[300], dr[300]; unsigned long seed=1;
-    for(int n=0;n<=280;++n){
-        int rng=(n%3)?128:256;
-        for(int i=0;i<n;i++){seed=seed*1103515245u+12345u; src[i]=(char)((seed>>16)%rng);}
-        ASTR us={(unsigned short)n,(unsigned short)n,src};
-        USTR u1={0,600,d1}, u2={0,600,d2}, ur={0,600,dr};
-        long yo=sys(&u1,&us,FALSE), oo=wia_a2u(&u2,&us,0), ro=ref_a2u((void*)&ur,(void*)&us,0);
-        int bad=(yo!=oo)||(oo!=ro)||(u1.Length!=u2.Length)||(u2.Length!=ur.Length);
-        for(int i=0;i<n && !bad;i++) if(d2[i]!=d1[i]||d2[i]!=dr[i]) bad=1;
-        if(bad){ printf("FAIL n=%d: ntdll st=%lx len=%u ours st=%lx len=%u\n",n,yo,u1.Length,oo,u2.Length); if(++failures>8)return 1; }
+
+#define DBYTES 900
+#define POISON 0x71
+
+static void one(const char* src, int n, unsigned short maxlen)
+{
+    static char d1[DBYTES], d2[DBYTES], dr[DBYTES];
+    ASTR us; USTR u1,u2,ur;
+    long yo,oo,ro; int bad=0, i;
+    if(failures>8) return;
+    memset(d1,POISON,DBYTES); memset(d2,POISON,DBYTES); memset(dr,POISON,DBYTES);
+    us.Length=(unsigned short)(n); us.MaximumLength=us.Length; us.Buffer=(char*)src;
+    u1.Length=0x5A5A; u1.MaximumLength=maxlen; u1.Buffer=(wchar_t*)d1;
+    u2.Length=0x5A5A; u2.MaximumLength=maxlen; u2.Buffer=(wchar_t*)d2;
+    ur.Length=0x5A5A; ur.MaximumLength=maxlen; ur.Buffer=(wchar_t*)dr;
+    yo=sys(&u1,&us,FALSE);
+    oo=wia_a2u(&u2,&us,0);
+    ro=ref_a2u((void*)&ur,(void*)&us,0);
+    if(yo!=oo||yo!=ro) bad=1;
+    if(u1.Length!=u2.Length||u1.Length!=ur.Length) bad=1;
+    if(u1.MaximumLength!=u2.MaximumLength||u1.MaximumLength!=ur.MaximumLength) bad=1;
+    if(memcmp(d1,d2,DBYTES)||memcmp(d1,dr,DBYTES)) bad=1;   /* the WHOLE buffer */
+    if(bad){
+        printf("FAIL n=%d max=%u: ntdll st=%08lX len=%u | ours st=%08lX len=%u | ref st=%08lX len=%u\n",
+               n,maxlen,yo,u1.Length,oo,u2.Length,ro,ur.Length);
+        for(i=0;i<DBYTES;i++)
+            if(d1[i]!=d2[i]){ printf("  first byte diff at %d: ntdll=%02X ours=%02X ref=%02X\n",
+                                     i,(unsigned char)d1[i],(unsigned char)d2[i],(unsigned char)dr[i]); break; }
+        ++failures;
     }
-    { ASTR us={40,40,src}; USTR u2={0,20,d2}; if(wia_a2u(&u2,&us,0)!=(long)0x80000005){printf("FAIL overflow\n");++failures;} }
-    if(!failures) printf("CORRECTNESS: PASS (ANSI->UTF-16 n=0..280, ASCII+highbytes + overflow, vs ntdll)\n");
+}
+
+int main(void){
+    static char src[300];
+    unsigned long seed=1;
+    int n,i,k,need;
+    wia_a2umap_init();
+    { HMODULE h=LoadLibraryW(L"ntdll.dll"); sys=(fn)GetProcAddress(h,"RtlAnsiStringToUnicodeString"); }
+    if(!sys){ printf("no RtlAnsiStringToUnicodeString\n"); return 2; }
+
+    for(n=0;n<=280 && failures<=8;++n){
+        int rng=(n%3)?128:255;
+        for(i=0;i<n;i++){ seed=seed*1103515245u+12345u; src[i]=(char)((seed>>16)%rng+1); }
+        need = n*2 + 2;
+        one(src,n,800);                       /* generous, as the old gate always was */
+        one(src,n,0);
+        one(src,n,1);
+        one(src,n,(unsigned short)(need-2 > 0 ? need-2 : 0));
+        one(src,n,(unsigned short)(need-1));
+        one(src,n,(unsigned short)need);       /* exactly enough, including the terminator */
+        one(src,n,(unsigned short)(need+1));
+        if(n>8) one(src,n,(unsigned short)(need/2));
+    }
+
+    /* every MaximumLength from 0 to 80 against a fixed 32-element source, so the boundary is
+       swept one byte at a time -- including the ODD values, which matter for the wide direction */
+    for(i=0;i<32;i++) src[i]=(char)('A'+(i%26));
+    for(k=0;k<=80 && failures<=8;++k) one(src,32,(unsigned short)k);
+    /* and again with high elements, which take the table path rather than the in-register path */
+    for(i=0;i<32;i++) src[i]=(char)(0xC0+(i%32));
+    for(k=0;k<=80 && failures<=8;++k) one(src,32,(unsigned short)k);
+
+    if(!failures)
+        printf("CORRECTNESS: PASS (RtlAnsiStringToUnicodeString n=0..280, MaximumLength swept across the\n"
+               "  2n+2 bytes boundary and 0..80 against a 32-element source on both the in-register\n"
+               "  and the table path, WHOLE destination buffer compared so the NUL terminator and\n"
+               "  the untouched-on-overflow rule are both in scope, vs ntdll + oracle)\n");
     else printf("CORRECTNESS: FAIL (%d)\n",failures);
     return failures?1:0;
 }
