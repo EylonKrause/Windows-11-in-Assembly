@@ -448,3 +448,37 @@ from one byte upward, because that is where a converter's interesting behaviour 
 `STATUS_BUFFER_OVERFLOW`, the partial write, and whether a multi-byte sequence is split or withheld
 when one byte of room remains. The wide corpus includes ASCII, Latin-1, CJK, **lone surrogates** and
 uniformly random code units; the narrow one is raw bytes, including sequences valid in no code page.
+
+## Nine ucrtbase string primitives (changes 032–045) — added 2026-09-20
+
+`build_crtstr_live.bat` / [`live_subst_crtstr.c`](live_subst_crtstr.c).
+
+```
+  [pre-patch]  20000 cases x 9 primitives recorded from the SHIPPED exports
+  patched prologue bytes were FF 25 (jmp [rip]); nothing was printed while patched
+  [patched]    180000 comparisons, 0 differ
+                 strlen / strcmp / wcsspn / wcscspn / strspn / strcspn /
+                 wcsncmp / _wcsnicmp / _strnicmp  -- 20000 our-code calls each
+  [post]       180000 comparisons through the RESTORED exports, 0 differ
+LIVE SUBSTITUTION: PASS
+```
+
+**Nothing is printed while the patch is on, and that is a safety requirement rather than tidiness.**
+Unlike every other harness here, this one patches primitives **the C runtime itself uses**: `printf`
+formats through code that calls `strlen`, so a `printf` between `patch_on` and `patch_off` would run
+our assembly inside the CRT's own formatting path, on strings this corpus never chose, while the
+process is mid-patch. The patched pass accumulates its results in memory and prints them only after
+every prologue has been restored and verified.
+
+That is also why `strlen`'s counter is asserted as **at least** the corpus size rather than exactly:
+once it is patched, anything else in the process that reaches it is counted too. The other eight are
+asserted exactly, and all nine came in at 20000.
+
+The build is **`/MD`** for the same reason the count is loose: with the static CRT the patched export
+and the CRT the test itself runs on would be two different copies of the code, and the run would
+prove nothing about either.
+
+Comparisons are made on the **sign** of the ordering functions, not the magnitude, because that is
+what the C library specifies. The corpus pairs strings that are equal, differ only in case, differ
+at one random position, or end early — and draws the span sets partly *from* the subject string, so
+`strspn`/`strcspn` have a non-trivial answer rather than 0 or the whole length.
