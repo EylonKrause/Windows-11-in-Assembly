@@ -414,3 +414,37 @@ table — and a table that never loaded would still give the right answer for ev
 pair. The corpus therefore includes pairs differing **only** in case, where a broken fold produces a
 wrong answer rather than the same one, alongside prefixes in both directions, one-character
 differences at a random position, unequal lengths, and empty strings.
+
+## The six N-form converters (changes 016/021/022/027/028/031) — added 2026-09-20
+
+`build_ntconv_live.bat` / [`live_subst_ntconv.c`](live_subst_ntconv.c). All six share one signature
+— `(dst, dstBytes, PULONG produced, src, srcBytes) -> NTSTATUS` — which is what makes them one
+harness rather than six.
+
+```
+  translation tables built from the OS BEFORE any patch (they use these exports)
+  [pre-patch]  6000 cases x 6 exports recorded from the SHIPPED exports
+  patched prologue bytes: FF 25 (expect FF 25 = jmp [rip])
+  [patched]    36000 cases, 0 differ (status, produced AND the whole 4096-byte buffer);
+               our-code calls = 36000   (6000 through each of the six)
+  [post]       36000 cases through the RESTORED exports, 0 differ;  our-code calls = 0
+LIVE SUBSTITUTION: PASS
+```
+
+**An ordering hazard that is real, not theoretical.** Five of these changes carry a translation
+table built at startup by asking the OS — `ansimap.c` calls `RtlUnicodeStringToAnsiString` once per
+code unit, and *that* export is implemented on top of `RtlUnicodeToMultiByteN`, one of the six being
+patched. Every table is therefore built **before** the first patch goes on. Initialising a map while
+the patch was live would have our own half-built table answering the questions used to build it.
+
+**The whole destination is compared, not just `produced`.** A converter that writes one byte too
+many, or leaves a stale byte past the end, returns the right status and the right count and is still
+wrong — change 268's gate caught exactly that in change 016, 154 mismatches, every one a single
+`00` where ntdll left the caller's fill. Here the destination is poisoned with `0xE7` before every
+call and compared to the last of its 4096 bytes.
+
+**A third of the calls are given a destination too small to hold the answer**, at every shortfall
+from one byte upward, because that is where a converter's interesting behaviour lives:
+`STATUS_BUFFER_OVERFLOW`, the partial write, and whether a multi-byte sequence is split or withheld
+when one byte of room remains. The wide corpus includes ASCII, Latin-1, CJK, **lone surrogates** and
+uniformly random code units; the narrow one is raw bytes, including sequences valid in no code page.
