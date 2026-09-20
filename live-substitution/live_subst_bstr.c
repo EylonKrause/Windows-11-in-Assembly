@@ -102,7 +102,7 @@ typedef struct {
 } ans_t;
 
 static rec_t* C;
-static unsigned long seed = 0x0B57Ru;
+static unsigned long seed = 0x0B57C0DEu;
 static unsigned rnd(void){ seed = seed*1103515245u + 12345u; return seed >> 8; }
 
 static void build_corpus(void){
