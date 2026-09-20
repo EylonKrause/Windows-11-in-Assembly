@@ -31,6 +31,45 @@ The assembly must be indistinguishable from the routine it replaces.
 - Reported as ratio vs system, plus absolute ns and bytes/cycle, with run-to-run spread (the bad RAM
   makes single runs untrustworthy — see `PLATFORM.md`).
 
+### Gate 2's own resolution — the self-control
+
+A verdict is only worth as much as the harness that produced it, and on some subjects the harness
+cannot produce one at all. Before treating a `WORSE` row as a regression — and **before treating a
+`BETTER` row as a win** — ask what the bench can resolve on that subject:
+
+> **Measure the live export against ITSELF**, with the same min-of-N statistic the gate uses, over
+> N runs. Both sides are then literally the same function, so every verdict other than a tie is the
+> harness failing. Count them. That is the resolution floor, and no claim below it means anything.
+
+This has been needed twice, for the same underlying reason: a **large fixed cost inside the call**
+that varies between batches by more than the 0.97 threshold.
+
+- [298 `FindResourceExW`](../changes/298-findresourceexw/) — the loader path. The export scored a
+  size class `WORSE` against itself **23 times in 180**.
+- [299 `SysAllocString`](../changes/299-sysallocstring/) — the heap. **Every** size class scored
+  ≤ 0.97× against itself at least twice, and **17 of 18 runs** reported at least one class `WORSE`
+  with both sides the same function. The allocator's inter-batch state — free lists, page residency
+  — is not sampling error, so a minimum over 40 batches does not remove it.
+
+A self-control is copyable: [`changes/299-sysallocstring/probes/selfcontrol.c`](../changes/299-sysallocstring/probes/selfcontrol.c).
+One thing to get right, because the first version of that file got it wrong: **the control must use
+the same statistic as the gate.** Timing one batch per side where `wia_measure` takes a minimum over
+40 made every row look unresolvable, including one whose real margin is 7× and unmistakable. A
+control noisier than the thing it controls measures nothing.
+
+When a subject turns out to be unresolvable:
+
+- **Do not re-run until the verdict is favourable.** Four consecutive runs of 299 gave LANDS, PARKED,
+  PARKED, LANDS. Picking one is fishing; the control is the honest answer.
+- **Say which claim survives.** 299's margin from 32 characters up is 1.27×–7.14× in every run,
+  far outside the control's widest excursion at those sizes — that claim stands. Whether its 0–16
+  character rows differ at all does not, in either direction, and the RESULTS.md says so.
+- **Prefer a measurement that excludes the fixed cost**, where one exists. 299's real claim comes
+  from subtraction against the export's own `SysAllocStringLen` at matched allocation sizes, which
+  isolates the scan and is unambiguous: a flat 0.41 ns/char.
+- The mechanical verdict still stands as written. A change the gate cannot certify is **PARKED**,
+  and the `RESULTS.md` title says whether it is parked by the change or by the gate.
+
 ## Recording
 
 Each change's `RESULTS.md` records:
@@ -40,7 +79,9 @@ Each change's `RESULTS.md` records:
 - the correctness corpus result (PASS, with counts),
 - the benchmark table across size classes, with spread,
 - the ISA the impl uses and its runtime-dispatch/fallback story,
-- a one-line verdict: **LANDED** (clean win) or **PARKED** (couldn't beat it — kept for the record).
+- a one-line verdict: **LANDED** (clean win) or **PARKED** (kept for the record) — and where a
+  change is parked because the *harness* could not resolve it rather than because it lost, the
+  title says so and a self-control backs it up.
 
 ## Portability rule
 
