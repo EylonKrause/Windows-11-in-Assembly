@@ -13,6 +13,10 @@ to System32; see [the honest-constraints section of the top-level README](../REA
 | [`revalidate-here.ps1`](revalidate-here.ps1) | `vsenv.ps1` + `revalidate.ps1`. The entry point for a sweep on any machine but bench #1. |
 | [`new-variant.py`](new-variant.py) | Forks a landed change into a microarchitecture **variant** instead of editing it, so two machines' results stay attributable. |
 | [`platform-probe/`](platform-probe/) | CPUID/XCR0 capture in `name=0/1` form, so two benches can be diffed mechanically. |
+| [`revalidate-variants.ps1`](revalidate-variants.ps1) | **The gate the main sweep does not apply.** Runs every `build_<suffix>.bat`, which `revalidate.ps1` never invokes. |
+| [`machine-report.py`](machine-report.py) | Turns a sweep TSV into a per-machine results document, and diffs each row against the geomean in that change's own RESULTS.md. |
+| [`uncovered-exports.py`](uncovered-exports.py) | Mechanical subtraction: a DLL's exports minus `image/tree` minus the known-not-a-target classes. |
+| [`desktop-surface.py`](desktop-surface.py) | What the **running** desktop or boot path actually binds, ranked by fan-in. |
 | [`on-update.ps1`](on-update.ps1) | Scheduled-task action: hash-compare the watched DLLs, and run the full sweep only if one actually changed. |
 | [`install-update-watch.ps1`](install-update-watch.ps1) | Registers/removes that scheduled task. |
 
@@ -222,3 +226,79 @@ py tools/new-variant.py 023-rtlnumberofsetbits tgl --note "AVX512VPOPCNTDQ vpopc
 
 The suffix (`tgl`, `zen3`, `zen4`) sorts the variant directly after its parent, so a sweep prints
 them adjacent and a divergence is visible at a glance.
+
+
+---
+
+## The variants nobody was checking
+
+`revalidate.ps1` walks `changes/*` and runs each directory's `build.bat`. That is the implementation
+of record, and it is the right thing for it to run. But a change can carry variants beside it:
+
+```
+changes/047-strlwr/impl_2ndpc.asm            + build_2ndpc.bat + RESULTS-2ndpc.md
+changes/023-rtlnumberofsetbits/impl_tgl.asm  + build_tgl.bat   + RESULTS-tgl.md
+```
+
+and `build_2ndpc.bat` / `build_tgl.bat` are **never invoked** by that sweep. Sixteen implementations
+sat outside every automated gate from the day they were written.
+
+They are also the files most likely to rot. A variant exists *because* the shipped function behaved
+differently on one machine, which makes it exactly what a servicing update is most likely to
+invalidate — and nothing was looking.
+
+```powershell
+.	oolsevalidate-variants.ps1                 # every variant of every change
+.	oolsevalidate-variants.ps1 -Suffix tgl     # only the Tiger Lake ones
+.	oolsevalidate-variants.ps1 -Only 023,124
+```
+
+It reads each variant's own `RESULTS-<suffix>.md` verdict and separates *regressed* from *regressed
+exactly as documented*, for the same reason the main sweep does: noise is what buries a real finding.
+It deliberately does **not** modify `revalidate.ps1` — the two sweeps answer different questions, and
+folding them together would make a variant failure read as a failure of the change itself.
+
+First run of the fifteen: **0 correctness failures, 0 undocumented regressions.** Including the six
+Zen 4 variants, written on different hardware, which are all still bit-exact against this machine's
+live exports and five of which land here too.
+
+### A bug in it worth keeping, because the failure looked like a real one
+
+PowerShell variable names are **case-insensitive**, so the loop's `$suffix` was the same variable as
+the `[string[]] $Suffix` parameter. Assigning a string to it coerced back to `string[]`, every log
+path became `...__System.String[].log`, and the square brackets in that made PowerShell treat the
+stdout/stderr redirect targets as **wildcards**. The output was fifteen rows of `TIMEOUT` with no
+build ever having started — a report indistinguishable from fifteen broken variants.
+
+---
+
+## Finding the next thing to convert
+
+Three tools, in the order you use them.
+
+**[`uncovered-exports.py`](uncovered-exports.py)** — the mechanical subtraction. A DLL's exports,
+minus what `image/tree` already covers, minus the classes that are known not to be targets. Each
+filter carries its reason into the report rather than dropping names silently, so you can disagree
+with one rule instead of with the whole list.
+
+**[`desktop-surface.py`](desktop-surface.py)** — what the **running** system actually binds. It asks
+the live processes which modules they have loaded (not a static dependency walk, which both
+over-counts unresolved imports and misses everything brought in by `LoadLibrary`), reads the
+**import table** of each, and ranks by **fan-in** — how many distinct modules of that profile bind
+each function.
+
+```bash
+py tools/desktop-surface.py --profile desktop --out discovery/desktop-surface.md
+py tools/desktop-surface.py --profile startup --out discovery/startup-surface.md --refresh
+```
+
+An export is a function that exists; an import is a function something actually binds to. The second
+is the useful one. `--profile startup` reads the boot and service spine — those processes started at
+boot and never restarted, so their module set *is* what the startup path loaded. (`smss.exe` exits
+before anything can sample it; the report says so rather than leaving it to be noticed.)
+
+**Then time it.** Fan-in is pervasiveness, not cost, and this is the step that decides. On the first
+run of [`discovery/desktop_startup_top.c`](../discovery/desktop_startup_top.c), **nine of
+twenty-four** high-fan-in candidates turned out to be flat in their input — `GetLengthSid` is bound
+by 84 desktop modules and costs 4.85 ns; `WindowsGetStringLen` is 1.90 ns, a load and a return. Their
+ceiling is call overhead and there is nothing to vectorize. Ruling those out is the point.
