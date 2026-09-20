@@ -31,6 +31,8 @@ semantics rather than sloppiness.
 | [`upcase_nonascii_rows.c`](upcase_nonascii_rows.c) | **audit** — the same question asked of the four upcase conversions, which all bench on `L'a' + (k & 15)`. Two of them are fine; changes **027 and 031 are 0.59×** on Cyrillic or CJK, and their own sibling 020 does the same job at 2.62× |
 | [`cmpordinal_foldpath.c`](cmpordinal_foldpath.c) | **audit** — change 210's row labelled “table path” compares a string with **itself**, which its own first tier answers before the table is consulted. The implementation is fine there (3.89× once the row reaches it); what the probe found instead was a **0.91×** short row hidden under the harness floor |
 | [`sid_inet_bstr.c`](sid_inet_bstr.c) | three families no earlier sweep touched, found by subtracting `image/tree` from the export tables of twenty-four DLLs: advapi32's **SIDs**, ws2_32's **addresses**, oleaut32's **BSTRs**. The SID PARSER costs **45 ns per decimal number** and is where the next change comes from |
+| [`oleaut32_bstr.c`](oleaut32_bstr.c) | oleaut32 was the last DLL in the default set with **zero** conversions — 417 exports, none replaced. Every allocating row is measured against `SysAllocStringLen(NULL, n)`, which performs the same allocation and no conversion, so the remainder is the only part assembly could replace. **Four negative results** and one target |
+| [`oleaut32_sysallocstring.c`](oleaut32_sysallocstring.c) | the follow-up that turned the one unexplained row into a target: `SysAllocString` against its own two documented parts, at matched allocation sizes, from 0 to 4096 characters. The excess is **0.41 ns per character, constant** — a scalar `while (*p++)` |
 
 ### What `shlwapi_url_str.c` found
 
@@ -439,3 +441,66 @@ tables from the polynomial rather than pasting either.
 This is the same lesson change 109 learned about the wide parsers and change 118 about GUID braces,
 arrived at from the opposite direction: **measure what a function COMPUTES before assuming it computes
 the obvious thing.** Two probes, an afternoon, and two large mistakes not made.
+
+
+## The oleaut32 sweep (2026-09-20) — four negative results and one target
+
+`oleaut32` was the last DLL in `tools/uncovered-exports.py`'s default set with **zero** conversions:
+417 exports, none replaced, two passing mentions in this whole directory. Its 65 shaped candidates
+are dominated by the two classes this repository has repeatedly ruled out, so the sweep was built to
+separate them rather than to rank totals:
+
+* **the allocator** — a BSTR is a length-prefixed heap block, so every `SysAlloc*`, `VarBstrCat` and
+  `VarBstrFrom*` is an allocation plus a copy. Each allocating row is therefore measured against
+  `SysAllocStringLen(NULL, n)`, which performs the *same allocation and no conversion*. What is left
+  is the only part any assembly could replace.
+* **the locale** — every `VarXxxFromStr` takes an LCID. Rows are timed at `LOCALE_INVARIANT`, the
+  best case for us, so a row still slow there is slow because of the machinery.
+
+### Negative results
+
+| candidate | measurement | why it is not a target |
+|---|---|---|
+| `SysAllocStringLen`, `VarBstrCat` | 19.3 ns vs an 18.4 ns allocator-only baseline at 16 chars; 29.3 vs 16.1 at 256 | **90%+ of the call is the allocator.** The copy is already at memcpy speed |
+| `SysStringLen`, `SysStringByteLen` | **1.45 ns**, flat at every length | already O(1) — a load of the length prefix. There is nothing there |
+| `VarBstrCmp` | **1.2–2.8 ns/char**, and `NORM_IGNORECASE` costs the *same as flags = 0* | the linguistic wall, for the same reason as `lstrcmpA`/`StrCmpNW`/`StrChrIW`. Flags = 0 goes through the collation path too; this repository's own bounded UTF-16 compare runs at 0.038 ns/byte |
+| `LHashValOfNameSys` | 454–512 ns and **flat** from 16 to 256 characters (28.4 → 1.9 ns/char) | a flat total is a fixed per-call cost, not a loop. No assembly removes it |
+| `VarI4FromStr`, `VarUI4FromStr`, `VarI8FromStr`, `VarR8FromStr` | 34–42 ns for `"1234567"` | this repository's own parsers (change 295, changes 110–113) do the same work in single-digit nanoseconds, so the difference is the locale object. Baking a table in would not be honest across locales |
+| `VarBstrFromR8` | 343 ns | float→decimal is a precision contract, not a byte loop |
+
+### The target: `SysAllocString`
+
+One row would not explain itself. `SysAllocString` is documented as, and can only be, *measure the
+string, then do what `SysAllocStringLen` does* — and its two parts cost about 36 ns together while
+it costs 221.
+
+[`oleaut32_sysallocstring.c`](oleaut32_sysallocstring.c) separates the three things a single timing
+cannot: whether the cost scales with length, whether the allocation is bigger, and whether it is a
+first-call effect. Allocation sizes matched exactly, lengths 0 to 4096:
+
+```
+  len       SysAlloc SysAllocLen  alloc only      wcslen    SAS/parts
+  0           16.60       16.85       25.75        5.45        0.74x
+  32          32.60       22.25       19.60        9.10        1.04x
+  128         84.50       21.60       17.70       10.40        2.64x
+  512        236.90       25.90       19.00       17.40        5.47x
+  4096      1769.10       99.40       24.25      108.05        8.53x
+```
+
+The ratio **grows with length**, so it is a loop and not a fixed cost. And the excess over
+`SysAllocStringLen` at the same length is constant:
+
+| len | (`SysAllocString` − `SysAllocStringLen`) / len |
+|---|---|
+| 512 | 0.412 ns/char |
+| 1024 | 0.409 ns/char |
+| 2048 | 0.390 ns/char |
+| 4096 | 0.408 ns/char |
+
+**0.41 ns per character, flat** — about 1.7 cycles, which is a scalar `while (*p++)`. The function
+is `SysAllocStringLen(s, strlen(s))` with a byte-at-a-time strlen in front of it, and the strlen is
+the whole difference.
+
+That makes it a target of a shape this repository already owns twice over (changes 001 and 003), and
+one where the part that is *not* replaceable — the allocation — can simply be left to the real
+`SysAllocStringLen`, the way change 293 leaves its last-error to `ntdll`.
