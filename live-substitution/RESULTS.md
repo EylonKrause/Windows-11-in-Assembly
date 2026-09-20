@@ -378,3 +378,39 @@ sibling does not: 259 characters truncate, 260 are left completely untouched.
 **336 080** cases, each comparing the WHOLE BUFFER (the export writes exactly one byte and clears
 nothing past it): **238 267** containing a space, **110 881** actually cutting an extension, and
 **87** at 260+ characters where the guard must do nothing.
+
+## The six counted-string comparison exports (changes 009–014) — added 2026-09-20
+
+`build_rtlstr_live.bat` / [`live_subst_rtlstr.c`](live_subst_rtlstr.c).
+
+**Why these, and why together.** An audit of live coverage found that **135 of the 270 LANDED
+changes have their export hot-patched somewhere and 135 do not**, and that the uncovered half is
+dominated by the early `ntdll` Rtl string family. These six are the coherent block at its front:
+pure functions over counted strings, no allocation, no side effects, and nothing the loader or heap
+calls — the shape that can be patched safely, and the shape whose *correctness gate* is easiest to
+mistake for a live proof.
+
+They also **share their case-folding table** — 010/011 ship byte-identical `upcase.c`, 012/013/014
+byte-identical `upcase_ansi.c`, and 009's differs from 010's only in whitespace — so one of each
+links for all six, and a fold bug would surface in five places at once rather than one.
+
+```
+== LIVE SUBSTITUTION: six ntdll counted-string exports (changes 009-014) ==
+  [pre-patch]  40000 cases recorded from the SHIPPED exports
+  patched prologue bytes: FF 25 (expect FF 25 = jmp [rip])
+  [patched]    40000 cases, 0 differ;  our-code calls = 240000
+               (hash 40000, equW 40000, preW 40000, cmpA 40000, equA 40000, preA 40000)
+  [post]       40000 cases through the RESTORED exports, 0 differ;  our-code calls = 0 (must be 0)
+LIVE SUBSTITUTION: PASS
+```
+
+**`our-code calls = 240000` is 40000 x 6 exactly**, and the harness fails if it is not: a corpus
+that quietly bypassed one of the six would otherwise report "0 differ" and prove nothing about it.
+`our-code calls = 0` in the third pass is what proves the prologues really went back, checked
+alongside a byte-for-byte verification of the restore.
+
+**Half the corpus is case-INSENSITIVE on purpose**, because that is the path that reaches the upcase
+table — and a table that never loaded would still give the right answer for every ASCII-identical
+pair. The corpus therefore includes pairs differing **only** in case, where a broken fold produces a
+wrong answer rather than the same one, alongside prefixes in both directions, one-character
+differences at a random position, unequal lengths, and empty strings.
