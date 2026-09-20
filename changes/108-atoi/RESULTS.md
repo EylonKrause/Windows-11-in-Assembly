@@ -1,7 +1,7 @@
 # 108 — `ucrtbase!atoi` — **LANDS** (2.11× geomean)
 
-The parse-side complement to the repo's integer formatters ([itoa](../itoa/), [i64toa](../i64toa/),
-[ultoa](../ultoa/), …): `int atoi(const char*)`. ucrtbase routes it through the locale-aware CRT
+The parse-side complement to the repo's integer formatters ([itoa](../056-itoa/), [i64toa](../057-i64toa/),
+[ultoa](../054-ultoa/), …): `int atoi(const char*)`. ucrtbase routes it through the locale-aware CRT
 (`~8–17 ns`); this is a frameless scalar loop with no CRT and no locale lookup.
 
 ## Contract (matched bit-exact vs live ucrtbase)

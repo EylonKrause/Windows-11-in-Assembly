@@ -1,6 +1,6 @@
 # 109 — `ucrtbase!_atoi64` — **LANDS** (2.20× geomean)
 
-The 64-bit sibling of [108 atoi](../108-atoi/) and the parse-side complement to [i64toa](../i64toa/):
+The 64-bit sibling of [108 atoi](../108-atoi/) and the parse-side complement to [i64toa](../057-i64toa/):
 `__int64 _atoi64(const char*)`. Same parse as `atoi` — skip C-locale whitespace `{09 0A 0B 0C 0D 20}`,
 one optional `+`/`-` sign, decimal digits until the first non-digit — with a 64-bit result that
 **saturates** on overflow: positive → `_I64_MAX` (9223372036854775807), negative → `_I64_MIN`

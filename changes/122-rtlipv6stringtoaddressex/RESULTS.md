@@ -66,7 +66,7 @@ On a parse that fails, the shipped export **writes partial data** into the calle
 and this implementation leaves it untouched. `RtlIpv6StringToAddressA("182.77.169.58", ...)` returns
 `STATUS_INVALID_PARAMETER` with the same terminator either way, and ntdll has left `B6 4D A9` —
 182, 77, 169 — in the first three bytes.
-[`probes/failbuf.c`](probes/failbuf.c) shows it directly.
+[`probes/failbuf.c`](../121-rtlipv6stringtoaddress/probes/failbuf.c) (it lives in the sibling change 121 and covers the IPv6 **pair**, as its own header says) shows it directly.
 
 [`live-substitution/live_subst_parseaddr.c`](../../live-substitution/live_subst_parseaddr.c) counts
 it separately from its verdict: **13822 of 40000 calls**, with the NTSTATUS and the terminator
@@ -79,6 +79,6 @@ than its success behaviour: how far it got before giving up, on every malformed 
 with compression, embedded IPv4, scope ids and ports. That is a piece of reverse engineering in its
 own right and is not attempted here.
 
-Anyone narrowing this should start from `probes/failbuf.c` and the counter in the live harness,
+Anyone narrowing this should start from [`121/probes/failbuf.c`](../121-rtlipv6stringtoaddress/probes/failbuf.c) and the counter in the live harness,
 which will drop to zero when it is right.
 
