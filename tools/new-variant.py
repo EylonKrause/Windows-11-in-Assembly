@@ -137,7 +137,11 @@ Files copied: {', '.join('`' + c + '`' for c in copied)}
 
     print(f"created {dst.relative_to(REPO)}")
     print(f"  {len(copied)} file(s) copied; impl.asm is still the parent's")
-    print(f"  next: .\tools\revalidate-here.ps1 -Only {dst.name}")
+    # Built from chr(92) so no quoting layer between this source and whatever runs it can
+    # turn the path separators into control characters. An earlier revision of this line
+    # shipped a literal TAB and CR inside the hint it printed.
+    bs = chr(92)
+    print("  next: ." + bs + "tools" + bs + "revalidate-here.ps1 -Only " + dst.name)
     return 0
 
 

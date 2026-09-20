@@ -83,6 +83,40 @@ See [`docs/PLATFORM.md`](docs/PLATFORM.md) for the full capture. Summary:
 not AVX-512. Any implementation intended to be portable off this machine must CPUID-dispatch at runtime
 and carry a baseline fallback — an AVX-512 or GFNI path may exist in source but cannot be *validated here*.
 
+### The other benches
+
+A ratio is a statement about hardware, so each machine keeps its own capture and its own results file.
+The bench above proved the numbers in `SUMMARY.md`; the others re-prove the same contracts independently.
+
+| bench | machine | what it adds |
+|---|---|---|
+| #1 | AMD Ryzen 9 5950X (Zen 3) — [`docs/PLATFORM.md`](docs/PLATFORM.md) | the reference bench; every geomean in `SUMMARY.md` |
+| #2 | AMD Ryzen 9 8940HX (Zen 4) — [`RESULTS-2ND-PC.md`](RESULTS-2ND-PC.md) | a second AMD generation |
+| #3 | Intel Core i9-11900H (Tiger Lake-H) — [`docs/PLATFORM-i9-11900H.md`](docs/PLATFORM-i9-11900H.md) | the first **Intel** bench, and the first with **AVX-512**, **GFNI** and **VBMI2** |
+
+Bench #3 matters for two reasons beyond being one more data point.
+
+**It lifts the AVX-512 restriction stated just above.** That paragraph says a 512-bit path "cannot be
+validated here". On bench #3 it can: `AVX512F/BW/DQ/VL/VBMI/VBMI2/VNNI/BITALG/VPOPCNTDQ/IFMA`, `GFNI`,
+`VAES` and `VPCLMULQDQ` are all present, along with Intel's `ERMS`/`FSRM` fast `rep movsb` — which is
+also a *competitor* at mid sizes that Zen 3 tuning never had to beat.
+
+**It runs a newer Windows.** Bench #1 baselined its disassembly against build 26200.8655; bench #3 runs
+26200.9457, with `ntdll`, `ucrtbase` and `kernelbase` all serviced past that point. Because every
+`correctness.c` resolves its comparand through `GetProcAddress` against the **live** export, a sweep
+there is not a replay of a stored number — it re-proves each contract against newer Windows code than
+it was written for.
+
+When two benches disagree, the rule is **fork, do not edit**
+([`tools/new-variant.py`](tools/new-variant.py)): the parent's `RESULTS.md` records a measurement taken
+on different hardware, and editing the implementation it describes would silently re-attribute that
+measurement to a machine that never ran it. Both versions stay in the repository, share the same oracle
+and the same gates byte-for-byte, and each says which bench proved it.
+
+To run any sweep on a machine that is not bench #1, start with
+[`tools/revalidate-here.ps1`](tools/revalidate-here.ps1): every `build.bat` hardcodes one machine's
+Visual Studio path and fails *silently* elsewhere. See [`tools/README.md`](tools/README.md).
+
 ---
 
 ## Honest constraints (read before assuming "replace the whole OS")
