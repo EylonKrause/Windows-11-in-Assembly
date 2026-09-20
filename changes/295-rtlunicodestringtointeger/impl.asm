@@ -1,4 +1,58 @@
-; v8 = v4 prologue + PEELED first digit + rotated steady-state loop (load at top, conditional back-edge)
+; changes/295-rtlunicodestringtointeger/impl.asm
+; LONG wia_ustr2int(const UNICODE_STRING* s, ULONG Base, ULONG* Value)   [Win64: rcx, edx, r8 -> eax]
+;
+; Reimplements ntdll!RtlUnicodeStringToInteger -- the COUNTED-UNICODE sibling of the landed
+; 129 RtlCharToInteger, and the parse-side complement of 278 RtlIntegerToUnicodeString.
+;
+; THE CONTRACT IS NOT 129's. Two rules differ, both measured, and taking either one from the ANSI
+; sibling instead of from this export would have been silently wrong:
+;
+;   * the leading skip here is an UNSIGNED 16-bit compare against 0x20, so U+0000..U+0020 are all
+;     whitespace -- a leading NUL is skipped as a SPACE, not stepped over as a special case -- and
+;     U+0080..U+FFFF are NOT whitespace. 129's ANSI skip is a SIGNED char compare and therefore also
+;     eats 0x80-0xFF, and it needs an explicit "step over one leading NUL" rule that has no
+;     counterpart here;
+;   * every failure path WRITES *Value = 0 before returning STATUS_INVALID_PARAMETER. 129's leaves
+;     the caller's word untouched. In the shipped code this is not an accident of one branch: both
+;     length rejections and the base rejection `jmp` to a point that falls straight into the COMMON
+;     `mov [r14],eax` with eax still zero.
+;
+; Accepted bases are 0, 2, 8, 10, 16 and nothing else. Base 0 infers "0x"/"0o"/"0b" LOWERCASE ONLY and
+; a bare leading '0' means DECIMAL. Digits are 0-9 plus A-F/a-f. Accumulation is mod 2^32 with no
+; overflow detection and no status change. reference.c carries the full rule list and where each one
+; was measured; probes/contract.c and probes/pageguard.c are the measurements.
+;
+; ISA: baseline x86-64. No SSE/AVX at all -- RESULTS.md records why the vector idea was rejected on
+; page-safety grounds before it was ever worth timing. No stack frame, no non-volatile register, no
+; memory written but the caller's ULONG.
+;
+; REGISTERS (all volatile, so the ABI gate is satisfied by construction):
+;       rax  accumulated value  (and the only scratch before a digit loop is entered)
+;       rcx  the current code unit (the UNICODE_STRING pointer on entry, dead after the prologue)
+;       rdx  the base on entry; the decoded digit inside the loop, where the base is an IMMEDIATE
+;       r8   the caller's ULONG*
+;       r9   END = Buffer + Length
+;       r10  a NEGATIVE byte offset from that end; the current code unit is [r9+r10]
+;       r11  the '-' flag
+;
+; TWO STRUCTURAL CHOICES, and both of them are about uops per character rather than instructions:
+;
+;  1. THE CURSOR IS A NEGATIVE OFFSET FROM THE END, not a pointer compared against one. Advancing and
+;     testing for the end then become a single `add r10,2 / jz`, where a forward cursor needs
+;     `add / cmp / jae`. That is one fewer uop in EVERY loop in this file, including the whitespace
+;     skip -- and because Length is a USHORT count of bytes and the odd case has already been
+;     refused, the offset lands exactly on zero and can never step over it.
+;
+;  2. FOUR DIGIT LOOPS INSTEAD OF ONE. The shipped export runs a single loop carrying the base in one
+;     register and a shift count in another, so every iteration pays `cmp edx,r9d` against a register
+;     plus a `test r11d,r11d` to choose between a multiply and a shift. Splitting on the base at
+;     dispatch time turns both into immediates, and that is what frees the seventh register: with the
+;     base gone from the loop there is room for the sign flag, and the whole function then needs no
+;     stack slot, no push, and no non-volatile register at all.
+;
+; THE STEADY-STATE LOOP IS ROTATED: the first digit is PEELED, then the loop loads at the top and
+; closes with a conditional back-edge. That removes the entry test from the common case of a short
+; decimal number, which is what the bench's "dec 1 digit" and "dec 2 digits" rows measure.
 .code
 wia_ustr2int PROC
         movzx   eax, word ptr [rcx]
