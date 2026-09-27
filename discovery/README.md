@@ -609,3 +609,52 @@ possible:
 result implied: **between the two CRTs, formatting agrees and parsing does not.** `int -> string`
 is identical across all 35 bases; `string -> int` is not. No parser is in `MSVCRT_ALSO`, and none
 may be added without re-running this.
+
+## The SID primitives are not a target (2026-09-27), a negative result with a clean control
+
+`tools/uncovered-exports.py` still lists every SID primitive: `RtlEqualSid`, `RtlEqualPrefixSid`,
+`RtlCopySid`, `RtlLengthSid`, `RtlValidSid`, `RtlLengthRequiredSid`. They look ideal on paper for
+exactly the reasons the NLS functions are not. A SID is a fixed binary layout with no locale, no
+code page, no collation table and no heap:
+
+```
+  UCHAR Revision; UCHAR SubAuthorityCount; UCHAR IdentifierAuthority[6]; ULONG SubAuthority[n];
+```
+
+so the object is 8 + 4n bytes, n <= 15, and everything these functions do is a length computation or
+a compare of at most 68 bytes. The SID *formatters* are already converted (067, 269-272), so the
+primitives underneath them were the obvious next step.
+
+[`sid_primitives.c`](sid_primitives.c) timed them at the four SIDs that actually occur, from
+S-1-5-18 at 12 bytes to the maximum legal SID at 68:
+
+```
+  function                  12 B      16 B      28 B      68 B
+  RtlLengthSid           1.11 ns   1.11 ns   1.11 ns   1.11 ns
+  RtlValidSid            1.78      1.78      1.78      1.78
+  RtlEqualSid  equal     1.38      1.41      1.38      1.38
+  RtlEqualSid  last-dif  1.33      1.33      1.33      1.33
+  RtlEqualPrefixSid      2.67      2.67      2.67      2.67
+  RtlCopySid             1.78      1.78      1.78      1.78
+
+  control: RtlLengthRequiredSid(5), which reads no SID at all      1.11 ns
+```
+
+Every row is flat across a 5.7x change in size, and the control that touches no memory at all costs
+exactly what `RtlLengthSid` costs on a 68-byte SID. The cost is the call, not the work, and no
+assembly removes a call. The bytes-per-nanosecond column climbs from 10.8 to 61.2 purely because a
+constant is being divided by a growing byte count; there is no loop visible above the call overhead
+anywhere in the family.
+
+Recorded here rather than as a change directory. The probe said so in its own preamble before it was
+run, which is the point of writing the expected outcome down first.
+
+## The bitmap fills, where the same method found a target (2026-09-27)
+
+The same sweep asked the same question of `RtlSetAllBits` and got the opposite answer, which is the
+useful contrast. [`bitmap_setall.c`](bitmap_setall.c) times it against `RtlClearAllBits`, the
+identical function with a different constant, and the gap is 2.67x at 64 bits and 3.91x at 1024
+while being 1.00x from 8 KB up. Unlike the SID family the cost there is *not* the call: `ClearAll`
+is 2.67 ns at both 8 and 128 bytes and `SetAll` is already climbing, so one of the two has a small
+path and the other does not. That became change 300, which lands at 1.996x with every size class
+better.
