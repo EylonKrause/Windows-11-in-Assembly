@@ -658,3 +658,54 @@ while being 1.00x from 8 KB up. Unlike the SID family the cost there is *not* th
 is 2.67 ns at both 8 and 128 bytes and `SetAll` is already climbing, so one of the two has a small
 path and the other does not. That became change 300, which lands at 1.996x with every size class
 better.
+
+## RtlRunEncodeUnicodeString: the slowest function found so far, and not convertible (2026-09-27)
+
+[`ntdll_runenc_append.c`](ntdll_runenc_append.c) swept four candidates that still had per-byte work
+in them. Three were unremarkable and one was not:
+
+```
+  RtlRunEncodeUnicodeString   0.53 bytes/ns   at every length from 16 B to 32 KB
+  RtlRunDecodeUnicodeString   2.04 bytes/ns   at every length from 16 B to 32 KB
+  RtlAppendStringToString    71.9  bytes/ns   at 4 KB   (already wide; consistent with 102/103 parked)
+  RtlSetBitsEx               identical to RtlClearBitsEx at all four sizes; no asymmetry to exploit
+```
+
+0.53 B/ns is about eight cycles per byte, below even a naive byte loop, and the export that computes
+the *inverse* runs 3.9x faster. Two functions that invert each other are the cleanest control there
+is, so the gap is implementation and not workload. At 32 KB the encode costs 61.7 us against the
+decode's 16.1 us.
+
+It is still not a target, and the reason is worth writing down precisely.
+
+**With `Seed = 0` the routine invents a seed.** [`runencode_seed.c`](runencode_seed.c) calls it six
+times, 120 ms apart, on identical input:
+
+```
+  call 0: seed out=13    call 2: seed out=1A    call 4: seed out=91
+  call 1: seed out=E9    call 3: seed out=4A    call 5: seed out=5A
+```
+
+Six calls, six seeds, six different ciphertexts from the same plaintext. That is clock-derived, and
+a routine whose output is not a function of its input cannot be reimplemented bit-exactly by anyone,
+at any speed. Zero is what real callers pass: the point of the API is to get a fresh seed back.
+
+**With any non-zero seed it is perfectly deterministic.** The same probe fixes the seed at `0x5A`
+and gets byte-identical output on all six calls, then sweeps all 255 non-zero values twice each:
+
+```
+  255 non-zero seeds: 0 misbehaved
+```
+
+every one returned unchanged, every payload stable. The transform itself is a pure function of
+(input, seed) and could be reimplemented; the *seed selection* is what cannot. Confirming this,
+the run that happened to be handed an invented `5A` produced exactly the ciphertext that an explicit
+`0x5A` produces.
+
+So the boundary is sharp: **255/256 of the input space is reproducible and the remaining slice is
+the one that matters.** Parked, not because the contract is undiscovered but because the default
+path has no contract to discover. It would become a target only if the invented seed turned out to
+come from a source a caller can read at the same instant, and a clock is definitionally not that.
+
+Recorded here rather than as a change directory, since there is nothing to land.
+
