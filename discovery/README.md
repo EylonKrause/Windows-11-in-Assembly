@@ -709,3 +709,62 @@ come from a source a caller can read at the same instant, and a clock is definit
 
 Recorded here rather than as a change directory, since there is nothing to land.
 
+## RtlIsNameInUnUpcasedExpression: a backtracking matcher, and its rule derived in full (2026-09-27)
+
+[`ntdll_ntcopy_wildcard.c`](ntdll_ntcopy_wildcard.c) timed the wildcard matcher behind file name
+matching, on the patterns that actually occur:
+
+```
+  pattern            name=16     name=64    name=256   name=1024
+  "*"                5.78 ns     5.78 ns     5.78 ns     5.78 ns
+  "file*"            9.56        9.56        9.56        9.56
+  "*abc*def*"      369.14     1679.30     6876.56    27748.44
+  "a*b*c*d*e*f*g*h" 956.45     4576.56    18889.06    76520.31
+```
+
+A leading or trailing star is flat and cheap. An *interior* star costs about 27 nanoseconds per
+character of name, roughly a hundred cycles each, and eight of them cost **76 microseconds** to
+match one file name. That is a backtracking matcher. With `IgnoreCase = FALSE` it touches no case
+table, so unlike most of the name-matching surface it is locale-free and reproducible.
+
+The same sweep ruled out two neighbours: `RtlAppendStringToString` is already wide at 71.9 B/ns,
+consistent with its UTF-16 siblings 102 and 103 being parked, and `RtlSetBitsEx` matches
+`RtlClearBitsEx` at all four sizes, so there is no asymmetry to exploit the way change 300 found one.
+
+### The rule, and the three wrong guesses it took to get it
+
+Four probes, each killing a hypothesis:
+
+[`wildcard_semantics.c`](wildcard_semantics.c) settled `*` and `?` over 85,995 cases. A plain greedy
+matcher agrees everywhere except five, and all five are one rule: **a zero-length name matches only
+a zero-length expression**, so `"*"` against `""` is FALSE where every ordinary glob says TRUE.
+
+[`wildcard_dos.c`](wildcard_dos.c) killed the convenient assumption that `<` and `>` are just
+aliases of `*` and `?`. Running every pattern twice, once as written and once with the DOS
+characters rewritten, **9,220 of 127,260 comparisons differ** as soon as the name contains a dot.
+
+[`wildcard_qm.c`](wildcard_qm.c) resolved a flat contradiction. `">"` matches `"."`, which needs
+`>` to consume a dot; `">a"` does not match `".a"`, which needs it not to. Both cannot hold of `>`
+alone, and the control rows show the trailing dot is not generally ignorable either, since `"a"`
+does not match `"a."`. The truth table separates them.
+
+[`wildcard_rule.c`](wildcard_rule.c) states the result and tests it to destruction:
+
+```
+  *   any sequence, including empty
+  ?   exactly one character
+  <   DOS_STAR  zero or more, but never past the final '.' of the remaining name
+  >   DOS_QM    one NON-dot character, or zero at end-of-name or at a dot,
+                or a dot that is the LAST character of the name
+  "   DOS_DOT   a '.', or zero characters at the end of the name
+      and before any of it: an empty name matches only an empty expression
+```
+
+```
+  1019564 cases over pattern{a . * ? < > "} x name{a b .}, 0 differ
+```
+
+`>` having three alternatives rather than one is the whole difficulty, and it is why the first two
+candidate rules each explained about half the data. The contract is settled; what remains is to
+replace the backtracking with a linear two-pointer matcher.
+
