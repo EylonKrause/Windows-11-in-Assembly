@@ -76,7 +76,25 @@ static int mt(int pi, int ni) {
 int ref_name_in_expression(const unsigned short* expr, int expr_bytes,
                            const unsigned short* name, int name_bytes) {
     static signed char memo[(MAXP + 1) * (MAXN + 1)];
-    int pl = expr_bytes / 2, nl = name_bytes / 2;
+    // ceil, not floor: the export walks each string by byte offset while offset < Length, so an odd
+    // Length contributes one more wchar straddling the end (found by correctness.c's odd-length pass)
+    int pl = (expr_bytes + 1) / 2, nl = (name_bytes + 1) / 2;
+
+    // "*" + a literal suffix and no other wildcard: the export takes a fast path for exactly this shape,
+    // and that path counts the NAME as floor(Length/2) instead of ceil. Only an odd Length separates
+    // the two; probes/oddsuffix.c and probes/oddfloor.c establish it (every such pattern over {q . t x}
+    // up to four characters agrees with floor, none with ceil only).
+    if (pl >= 2 && expr[0] == '*') {
+        int literal = 1;
+        for (int i = 1; i < pl; ++i) {
+            unsigned short c = expr[i];
+            if (c == '*' || c == '?' || c == '<' || c == '>' || c == '"') { literal = 0; break; }
+        }
+        if (literal) {
+            int nf = name_bytes / 2, sl = pl - 1;
+            return nf >= sl && memcmp(name + nf - sl, expr + 1, (size_t)sl * 2) == 0;
+        }
+    }
     if (nl == 0) return pl == 0;                  // the zero-length-name rule
     if (pl > MAXP || nl > MAXN) return -1;        // out of the oracle's range; harness must not ask
     g_pat = expr; g_nam = name; g_pl = pl; g_nl = nl;
