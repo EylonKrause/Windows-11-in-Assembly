@@ -1,8 +1,9 @@
-# kernelbase.dll — reimplemented exports (30)
+# kernelbase.dll — reimplemented exports (31)
 
 | export | speedup | source |
 |---|---|---|
 | `CompareStringOrdinal` | 3.19x | [changes/210-comparestringordinal](../../../../../changes/210-comparestringordinal/) |
+| `FindResourceExW` |  | [changes/298-findresourceexw](../../../../../changes/298-findresourceexw/) |
 | `FindStringOrdinal` | 24.8x | [changes/254-findstringordinal](../../../../../changes/254-findstringordinal/) |
 | `FoldStringW` | 4.88x | [changes/288-foldstringw-digits](../../../../../changes/288-foldstringw-digits/) — **PARTIAL**: the MAP_FOLDDIGITS flag only, 1 of the export's 5 flag paths |
 | `GetStringTypeW` | 3.79x | [changes/287-getstringtypew](../../../../../changes/287-getstringtypew/) |

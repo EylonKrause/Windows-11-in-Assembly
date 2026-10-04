@@ -1,4 +1,4 @@
-# 298 — `kernel32!FindResourceExW` → `kernelbase!FindResourceExW` (AVX2) — **PARKED** (1.2×–5.4× on the string-name path, but the common ID path is at parity and the bench cannot resolve it: the live export measured against *itself* scores a size class WORSE 23 times in 180)
+# 298 — `kernel32!FindResourceExW` → `kernelbase!FindResourceExW` (AVX2) — **LANDED on bench #1** after the harness fix (6 of 6 runs; the ID path a tie, string names 1.2×–6.9×) — **PARKED on bench #3** (1.2×–5.4× on the string-name path, but the common ID path is at parity and the bench cannot resolve it: the live export measured against *itself* scores a size class WORSE 23 times in 180)
 
 - **Contract:** `HRSRC FindResourceExW(HMODULE hModule, LPCWSTR lpType, LPCWSTR lpName, WORD wLanguage)`.
 - **Compared against:** live `kernel32!FindResourceExW` via `GetProcAddress`. `kernel32.dll` /
@@ -332,3 +332,26 @@ benches, so there is **no CPUID dispatch and no fallback path**. Nothing above A
 `vzeroupper` on every return from a subject whose strings average 27 characters. `ymm0`–`ymm2`
 only, so no `xmm6`–`xmm15` is touched in either half; `rbx`, `rsi` and `rdi` are pushed and popped
 on every one of the nineteen exit paths the dynamic probe drives.
+
+## Re-measured on bench #1 after the harness fix (2026-10-04)
+
+Change 304 found that Windows 11 power throttling (EcoQoS) ran whole measurements at half speed when
+the bench's terminal was not the foreground window — a state that outlasts a min-of-batches statistic
+— and made `harness/bench.h` opt out of it. That is exactly the shape of this change's second park
+reason: a control in which the export lost to **itself**. So both were run again on bench #1 (AMD Ryzen
+9 5950X, Windows 11 25H2 build 26200.8655), unchanged except for the harness:
+
+| | bench #3, as recorded above | bench #1, after the fix |
+|---|---|---|
+| `probes/control.c`, the export against itself | 23 WORSE of 180 measurements; 8 of 20 runs would pass | **1 WORSE row in 10 runs** (about 1 in 200 rows) |
+| `bench.c`, three sections | the ID section passes in 11 of 20 runs | **all three sections LAND in 6 of 6 runs** |
+| [1] ID path | ~1.03×, unresolvable | **1.00×–1.01×, a tie on every row** |
+| [2] NAME path, names that exist | 1.2×–1.4× | 1.22× geomean (1.13×–1.34×) |
+| [3] NAME path isolated (the normaliser) | 1.5×–5.4× | 2.47×–2.52× geomean (1.22×–6.92×) |
+
+**On bench #1 the gate now resolves this subject, and the change LANDS.** Reason (1) above still
+stands and is now measured rather than inferred: the common two-integer call is a **tie** — there is
+no string in it to remove — so the win is confined to string-named lookups. A tie is not a
+regression under the gate, so the bench #1 verdict is LANDS; the bench #3 verdict above is left as it
+was measured.
+

@@ -138,3 +138,21 @@ changes\299-sysallocstring\build.bat
 changes\299-sysallocstring\probes\selfcontrol.exe      REM the resolution floor
 discovery\oleaut32_sysallocstring.exe                  REM why it is a target
 ```
+
+## Re-measured on bench #1 after the harness fix (2026-10-04)
+
+The park reason above — the export failing against itself — matched the symptom change 304 traced to
+Windows 11 power throttling (EcoQoS), which `harness/bench.h` now opts out of. On bench #1 (AMD Ryzen 9
+5950X, Windows 11 25H2 build 26200.8655), unchanged except for the harness:
+
+- `probes/selfcontrol.exe`: **0 of 18 runs** report a size class WORSE with both sides the same
+  function, every row 0.99×–1.02×. **The gate now resolves every row of this subject.**
+- `bench.exe`: **0 characters 0.96×, 4 characters 0.95× — WORSE** — 16 characters 1.05×, and
+  1.22×–4.97× from 32 characters up; geomean 1.978×.
+
+So on bench #1 this is **parked by the change, not by the gate**: the two shortest rows are a real
+4–5% loss. The export inlines its own `wcslen` and allocation path, while this implementation
+tail-calls the exported `SysAllocStringLen`, which costs a few cycles more than the scan it saves when
+there is nothing to scan. Closing it would mean reaching oleaut32's internal allocator, which is not
+exported.
+
