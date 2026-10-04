@@ -1,4 +1,4 @@
-# kernelbase.dll — reimplemented exports (37)
+# kernelbase.dll — reimplemented exports (39)
 
 | export | speedup | source |
 |---|---|---|
@@ -28,6 +28,8 @@
 | `PathCchRenameExtension` | 3.37x | [changes/159-pathcchrenameextension](../../../../../changes/159-pathcchrenameextension/) |
 | `PathIsURLA` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
 | `PathIsURLW` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
+| `StrToInt64ExA` | 8.26x | [changes/313-strtointexa](../../../../../changes/313-strtointexa/) |
+| `StrToIntExA` | 8.26x | [changes/313-strtointexa](../../../../../changes/313-strtointexa/) |
 | `UrlHashA` | 2.68x | [changes/249-urlhasha](../../../../../changes/249-urlhasha/) |
 | `UrlUnescapeA` | 34.66x | [changes/248-urlunescapea](../../../../../changes/248-urlunescapea/) |
 | `UrlUnescapeW` | 14.24x | [changes/245-urlunescapew](../../../../../changes/245-urlunescapew/) |
