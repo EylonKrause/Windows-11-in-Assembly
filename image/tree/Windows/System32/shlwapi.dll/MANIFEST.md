@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (54)
+# shlwapi.dll — reimplemented exports (65)
 
 | export | speedup | source |
 |---|---|---|
@@ -38,12 +38,23 @@
 | `StrCSpnW` | 11.26x | [changes/136-strcspnw](../../../../../changes/136-strcspnw/) |
 | `StrCatBuffA` | 4.27x | [changes/231-strcatbuffa](../../../../../changes/231-strcatbuffa/) |
 | `StrCatBuffW` | 3.59x | [changes/170-strcatbuffw](../../../../../changes/170-strcatbuffw/) |
+| `StrCatW` | 4.27x | [changes/303-strcpyw](../../../../../changes/303-strcpyw/) |
 | `StrChrA` | 11.42x | [changes/220-strchra](../../../../../changes/220-strchra/) |
 | `StrChrIW` | 145.36x | [changes/281-strchriw](../../../../../changes/281-strchriw/) |
 | `StrChrNIW` | 125.64x | [changes/286-strchrniw](../../../../../changes/286-strchrniw/) |
 | `StrChrNW` | 3.48x | [changes/169-strchrnw](../../../../../changes/169-strchrnw/) |
 | `StrChrW` | 3.67x | [changes/131-strchrw](../../../../../changes/131-strchrw/) |
+| `StrCmpCA` | 3.05x | [changes/305-strcmpca](../../../../../changes/305-strcmpca/) |
+| `StrCmpCW` | 2.28x | [changes/304-strcmpcw](../../../../../changes/304-strcmpcw/) |
+| `StrCmpICA` | 3.05x | [changes/305-strcmpca](../../../../../changes/305-strcmpca/) |
+| `StrCmpICW` | 2.28x | [changes/304-strcmpcw](../../../../../changes/304-strcmpcw/) |
+| `StrCmpNCA` | 3.05x | [changes/305-strcmpca](../../../../../changes/305-strcmpca/) |
+| `StrCmpNCW` | 2.28x | [changes/304-strcmpcw](../../../../../changes/304-strcmpcw/) |
+| `StrCmpNICA` | 3.05x | [changes/305-strcmpca](../../../../../changes/305-strcmpca/) |
+| `StrCmpNICW` | 2.28x | [changes/304-strcmpcw](../../../../../changes/304-strcmpcw/) |
 | `StrCpyNW` | 5.01x | [changes/168-strcpynw](../../../../../changes/168-strcpynw/) |
+| `StrCpyW` | 4.27x | [changes/303-strcpyw](../../../../../changes/303-strcpyw/) |
+| `StrNCatW` | 3.28x | [changes/306-strncatw](../../../../../changes/306-strncatw/) |
 | `StrPBrkA` | 167.54x | [changes/215-strpbrka](../../../../../changes/215-strpbrka/) |
 | `StrPBrkW` | 8.83x | [changes/137-strpbrkw](../../../../../changes/137-strpbrkw/) |
 | `StrRChrA` | 149.12x | [changes/213-strrchra](../../../../../changes/213-strrchra/) |

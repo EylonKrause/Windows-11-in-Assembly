@@ -1,4 +1,4 @@
-# ntdll.dll — reimplemented exports (86)
+# ntdll.dll — reimplemented exports (88)
 
 | export | speedup | source |
 |---|---|---|
@@ -57,6 +57,7 @@
 | `RtlIpv6StringToAddressExA` | 4.17x | [changes/122-rtlipv6stringtoaddressex](../../../../../changes/122-rtlipv6stringtoaddressex/) |
 | `RtlIpv6StringToAddressExW` | 4.96x | [changes/250-rtlipv6stringtoaddressexw](../../../../../changes/250-rtlipv6stringtoaddressexw/) |
 | `RtlIpv6StringToAddressW` | 3.62x | [changes/166-rtlipv6stringtoaddressw](../../../../../changes/166-rtlipv6stringtoaddressw/) |
+| `RtlIsNameInUnUpcasedExpression` | 12.73x | [changes/301-rtlisnameinunupcasedexpression](../../../../../changes/301-rtlisnameinunupcasedexpression/) |
 | `RtlIsTextUnicode` | 5.71x | [changes/193-rtlistextunicode](../../../../../changes/193-rtlistextunicode/) |
 | `RtlIsZeroMemory` | 12.38x | [changes/266-rtliszeromemory](../../../../../changes/266-rtliszeromemory/) |
 | `RtlLargeIntegerToChar` | 3.25x | [changes/280-rtllargeintegertochar](../../../../../changes/280-rtllargeintegertochar/) |
@@ -70,6 +71,7 @@
 | `RtlPrefixString` | 2.88x | [changes/014-rtlprefixstring](../../../../../changes/014-rtlprefixstring/) |
 | `RtlPrefixUnicodeString` | 1.97x | [changes/011-rtlprefixunicodestring](../../../../../changes/011-rtlprefixunicodestring/) |
 | `RtlSecondsSince1970ToTime` | 2.00x | [changes/128-rtlsecondssince1970totime](../../../../../changes/128-rtlsecondssince1970totime/) |
+| `RtlSetAllBits` | 1.996x | [changes/300-rtlsetallbits](../../../../../changes/300-rtlsetallbits/) |
 | `RtlStringFromGUIDEx` | 25.5x | [changes/058-rtlstringfromguidex](../../../../../changes/058-rtlstringfromguidex/) |
 | `RtlTimeFieldsToTime` | 1.54x | [changes/127-rtltimefieldstotime](../../../../../changes/127-rtltimefieldstotime/) |
 | `RtlTimeToTimeFields` | 1.73x | [changes/126-rtltimetotimefields](../../../../../changes/126-rtltimetotimefields/) |
