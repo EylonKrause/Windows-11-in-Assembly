@@ -1,4 +1,4 @@
-# user32.dll — reimplemented exports (12)
+# user32.dll — reimplemented exports (16)
 
 | export | speedup | source |
 |---|---|---|
@@ -6,11 +6,15 @@
 | `CharLowerBuffA` | 11.75x | [changes/308-charuppera](../../../../../changes/308-charuppera/) |
 | `CharLowerBuffW` | 7.94x | [changes/277-charupperbuffw](../../../../../changes/277-charupperbuffw/) |
 | `CharLowerW` | 7.79x | [changes/302-charupperw](../../../../../changes/302-charupperw/) |
+| `CharToOemA` | 4.42x | [changes/310-chartooema](../../../../../changes/310-chartooema/) |
+| `CharToOemBuffA` | 4.42x | [changes/310-chartooema](../../../../../changes/310-chartooema/) |
 | `CharToOemBuffW` | 4.42x | [changes/309-chartooem](../../../../../changes/309-chartooem/) |
 | `CharToOemW` | 4.42x | [changes/309-chartooem](../../../../../changes/309-chartooem/) |
 | `CharUpperA` | 11.75x | [changes/308-charuppera](../../../../../changes/308-charuppera/) |
 | `CharUpperBuffA` | 11.75x | [changes/308-charuppera](../../../../../changes/308-charuppera/) |
 | `CharUpperBuffW` | 7.94x | [changes/277-charupperbuffw](../../../../../changes/277-charupperbuffw/) |
 | `CharUpperW` | 7.79x | [changes/302-charupperw](../../../../../changes/302-charupperw/) |
+| `OemToCharA` | 4.42x | [changes/310-chartooema](../../../../../changes/310-chartooema/) |
+| `OemToCharBuffA` | 4.42x | [changes/310-chartooema](../../../../../changes/310-chartooema/) |
 | `OemToCharBuffW` | 4.42x | [changes/309-chartooem](../../../../../changes/309-chartooem/) |
 | `OemToCharW` | 4.42x | [changes/309-chartooem](../../../../../changes/309-chartooem/) |
