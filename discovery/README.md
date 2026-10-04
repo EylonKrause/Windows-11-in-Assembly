@@ -45,6 +45,7 @@ semantics rather than sloppiness.
 | [`ucrt_copy_family.c`](ucrt_copy_family.c) | **negative result** -- ucrtbase `strcpy`/`wcscpy`/`strncpy`/`wcsncpy`/`strcat`/`wcscat`/`strncat`/`wcsncat`/`strnlen`/`wcsnlen`, each next to `memcpy` of the same bytes. They are SSE2 already: 0.04-0.06 ns per unit at 4096 and `strcpy` of 16 bytes in 2.22 ns. A long row would win 3-5x, but the short rows are the trap that parked change 253 (`strcat`) |
 | [`user32_char_family.c`](user32_char_family.c) | user32's conversion exports per character against the ntdll primitive doing the same job: the ANSI case maps at **1.5-3.2 ns/char** (slower than the wide forms), the OEM converters at ~2x `RtlUnicodeToOemN` / `RtlOemToUnicodeN` (a strlen pass plus the call), the ANSI<->OEM pair at 0.3-0.5. The case maps became **change 308** |
 | [`charuppera_contract.c`](charuppera_contract.c) | `CharUpperA`/`CharLowerA`/`...BuffA` at the edges: char mode maps the low byte and keeps bits 8..15, one per-byte table in all modes, context-free, locale-free, every byte written, an unreadable byte faults with nothing written, Buff counts >= 0x80000000 are not counts. The contract of **change 308** |
+| [`chartooem_contract.c`](chartooem_contract.c) | user32's OEM converters at the edges: per unit, context-free, default character '_' (not 028's table), glyph chars in the other direction, sequential writes before a fault, and the asymmetric n == 0 returns. The contract of **change 309** |
 
 ### What `shlwapi_url_str.c` found
 

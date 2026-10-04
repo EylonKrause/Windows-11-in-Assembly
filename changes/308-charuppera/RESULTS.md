@@ -81,7 +81,7 @@ buffer; the string form is `CharUpperBuffA(p, strlen(p) + 1)`.
 
 16 calls per op, each (function, side) through its own monomorphic call site (change 304's shape). Case
 mapping is idempotent and the export does the same work on already-mapped text, so each row runs on
-one buffer with no restore. ns per call is the table's ns / 16. Three runs: **10.87× (before the scan
+one buffer with no restore. ns per call is the table's ns / 16. Runs: **10.87× (before the scan
 lead-in), 11.73×, 11.68×, 11.75×** — all LANDS. The last:
 
 | row | ours ns /16 | export ns /16 | ratio |
