@@ -146,6 +146,11 @@ def main():
         for line in f:
             m = row.match(line.rstrip('\n'))
             if not m:
+                # A change row the pattern rejects vanishes from the tree with no error -- change 311
+                # did, because its export column ended "(shlwapi thunks)" instead of a backtick.
+                # Say so instead.
+                if re.match(r'^\|\s*\[\d+\]\(changes/', line):
+                    print('  WARNING: change row not parsed, NOT materialized: ' + line[:100].rstrip())
                 continue
             num, cdir, desc, field, verdict = m.groups()
             fm = first_exp.search(field)
