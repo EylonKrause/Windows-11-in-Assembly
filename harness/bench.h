@@ -25,7 +25,20 @@ static double wia_qpc_freq(void) {
     LARGE_INTEGER f; QueryPerformanceFrequency(&f); return (double)f.QuadPart;
 }
 
+// Opt the process and this thread OUT of Windows 11 power throttling (EcoQoS). Without it, a bench
+// started from a terminal that is not the foreground window ran whole measurements at HALF speed:
+// the export against itself through two call sites, CW equal 256, min-of-300 batches, came out
+// 1932 ns and 3866 ns in 16 of 40 runs (changes/304-strcmpcw). With this, 0 of 40. A minimum over
+// batches cannot remove it, because the slow state lasts longer than a measurement.
+static void wia_no_throttle(void) {
+    PROCESS_POWER_THROTTLING_STATE ps = { PROCESS_POWER_THROTTLING_CURRENT_VERSION, PROCESS_POWER_THROTTLING_EXECUTION_SPEED, 0 };
+    THREAD_POWER_THROTTLING_STATE  ts = { THREAD_POWER_THROTTLING_CURRENT_VERSION,  THREAD_POWER_THROTTLING_EXECUTION_SPEED,  0 };
+    SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &ps, sizeof ps);
+    SetThreadInformation(GetCurrentThread(), ThreadPowerThrottling, &ts, sizeof ts);
+}
+
 static void wia_pin(int core) {
+    wia_no_throttle();
     SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)1 << core);
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);

@@ -70,6 +70,31 @@ When a subject turns out to be unresolvable:
 - The mechanical verdict still stands as written. A change the gate cannot certify is **PARKED**,
   and the `RESULTS.md` title says whether it is parked by the change or by the gate.
 
+### Two artifacts that are not the function — found by change 304
+
+[304 `StrCmpCW`](../changes/304-strcmpcw/) compares functions whose short rows cost 7–8 cycles
+including the call. At that size two things outside both functions decided the verdict, and both
+are now handled:
+
+- **Windows power throttling (EcoQoS).** A bench launched from a terminal that is not the foreground
+  window ran whole measurements at **half speed**: the export against itself, `CW equal 256`,
+  min-of-300, gave 1932 ns and 3866 ns in **16 of 40** runs. A minimum over batches cannot remove a
+  state that outlasts the measurement. `wia_pin` now opts the process and the thread out
+  (`ProcessPowerThrottling` / `ThreadPowerThrottling`, `EXECUTION_SPEED` off): **0 of 40**. This
+  applies to every bench from 304 on; earlier results were not re-run.
+- **The shape of the call.** A shared wrapper that calls whichever pointer the case holds has an
+  indirect call that turns **polymorphic** after its second target, and every target after that pays
+  about 3 cycles: byte-identical code measured 1.42 ns while the site had seen only it and 2.08 ns
+  afterwards at 62 other addresses. A wrapper calling ours *directly* against the export through a
+  pointer is a different asymmetry. Real callers reach an export through a monomorphic
+  `call [__imp_X]`, so a bench whose rows are a few nanoseconds should give **every (function, side)
+  pair its own call site**, an indirect call through a `volatile` pointer, and time **several calls
+  per op** (304 uses 16) so the harness's own per-op cost is amortised.
+
+What remains after both is code placement — two call sites at different addresses still differ by
+up to ±10% on the 2 ns rows of 304's self-control, deterministically per binary — so a short row's
+margin has to be read against that control, not against 1.03.
+
 ## Recording
 
 Each change's `RESULTS.md` records:
