@@ -35,6 +35,7 @@ semantics rather than sloppiness.
 | [`oleaut32_sysallocstring.c`](oleaut32_sysallocstring.c) | the follow-up that turned the one unexplained row into a target: `SysAllocString` against its own two documented parts, at matched allocation sizes, from 0 to 4096 characters. The excess is **0.41 ns per character, constant** — a scalar `while (*p++)` |
 | [`msvcrt_vs_ucrt.c`](msvcrt_vs_ucrt.c) | **negative result** — 41 functions are converted for `ucrtbase` and not for `msvcrt`, and the existing assembly cannot simply be pointed at msvcrt's exports: the two CRTs **disagree on 27 cases**. Also two probe bugs worth the file: the invalid-parameter handler and `errno` are both PER-CRT |
 | [`msvcrt_also_audit.c`](msvcrt_also_audit.c) | **audit** — the 38 exports `image/materialize.py` already writes into msvcrt's folder rested on a *disassembly* of msvcrt, not a differential test. Driven exhaustively where possible (every byte, every wchar, every byte pair): **400353 cases, 0 differences**. The claim holds, and the boundary is now stated: between the two CRTs, **formatting agrees and parsing does not** |
+| [`charupperw_string.c`](charupperw_string.c) | user32's `CharUpperW` / `CharLowerW` in **string** mode, which no earlier sweep timed: the mode test, both return values, the mapping on every code unit, fault behaviour, and the cost per character. Became **change 302** |
 
 ### What `shlwapi_url_str.c` found
 
