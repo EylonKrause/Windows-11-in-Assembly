@@ -1,4 +1,4 @@
-# 049 — `_wcslwr` (in-place ASCII lowercase, wide) — **PARKED** (narrowed to 0.91× at 8 wchars)
+# 049 — `_wcslwr` (in-place ASCII lowercase, wide) — **LANDED** on re-measure (2.90× geomean; the 8-wchar row a tie) — originally PARKED (0.91× at 8 wchars)
 
 `wchar_t* _wcslwr(wchar_t* s)` — lowercase a UTF-16 string in place. Correct and a large win at every
 size >= 32, but **parked**: ucrtbase's `_wcslwr` has an unusually tight small-size path (4.68 ns for 8
@@ -48,3 +48,24 @@ Recorded honestly rather than shipped as a regression, consistent with the proje
 ```
 changes\049-wcslwr\build.bat
 ```
+
+## Re-measured after the harness fix (2026-10-04)
+
+Change 304 found Windows 11 power throttling (EcoQoS) running whole measurements at half speed when
+the bench's terminal was not the foreground window, and made `harness/bench.h` opt out of it. Every
+parked change was then re-run, unchanged, on bench #1 (AMD Ryzen 9 5950X, build 26200.8655). This is
+one of two whose verdict moved:
+
+| row | before (as recorded above) | after, seven consecutive runs |
+|---|---|---|
+| 8 | 0.91× | **4.44 vs 4.44 ns, 1.00× in all seven** |
+| 32 | — | 1.21× |
+| 128 | — | 3.21×–3.23× |
+| 512 | — | 5.27× |
+| 4096 | — | 5.73×–5.77× |
+| 32000 | — | 5.04×–5.11× |
+| geomean | PARKED | **2.898×–2.909×, LANDS in 7 of 7** |
+
+The 8-wchar row is a tie, not a win — the shipped serial loop really is at the floor there — but a tie
+is not a regression, so under the gate this change LANDS. The code is the 2026-09-05 retry, unchanged.
+

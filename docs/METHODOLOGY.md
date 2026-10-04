@@ -81,7 +81,11 @@ are now handled:
   min-of-300, gave 1932 ns and 3866 ns in **16 of 40** runs. A minimum over batches cannot remove a
   state that outlasts the measurement. `wia_pin` now opts the process and the thread out
   (`ProcessPowerThrottling` / `ThreadPowerThrottling`, `EXECUTION_SPEED` off): **0 of 40**. This
-  applies to every bench from 304 on; earlier results were not re-run.
+  applies to every bench from 304 on. Every PARKED change was then re-run on bench #1, three times
+  each, unchanged: two verdicts moved — [049 `_wcslwr`](../changes/049-wcslwr/RESULTS.md) (its 8-wchar
+  row now an exact tie, LANDS 7 of 7) and [298 `FindResourceExW`](../changes/298-findresourceexw/RESULTS.md)
+  (its export-vs-itself control now clean, LANDS 6 of 6) — and [299](../changes/299-sysallocstring/RESULTS.md)
+  went from unresolvable to a measured loss. The other fifteen lose on the rows they were parked for.
 - **The shape of the call.** A shared wrapper that calls whichever pointer the case holds has an
   indirect call that turns **polymorphic** after its second target, and every target after that pays
   about 3 cycles: byte-identical code measured 1.42 ns while the site had seen only it and 2.08 ns

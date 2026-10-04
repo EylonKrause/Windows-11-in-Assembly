@@ -1,4 +1,4 @@
-# msvcrt.dll — reimplemented exports (34)
+# msvcrt.dll — reimplemented exports (35)
 
 | export | speedup | source |
 |---|---|---|
@@ -18,6 +18,7 @@
 | `_ultoa` | 1.50x | [changes/054-ultoa](../../../../../changes/054-ultoa/) |
 | `_ultow` | 1.55x | [changes/072-ultow](../../../../../changes/072-ultow/) |
 | `_wcsicmp` | 7.66x | [changes/042-wcsicmp](../../../../../changes/042-wcsicmp/) |
+| `_wcslwr` | 2.90x | [changes/049-wcslwr](../../../../../changes/049-wcslwr/) |
 | `_wcsnicmp` | 7.44x | [changes/044-wcsnicmp](../../../../../changes/044-wcsnicmp/) |
 | `_wcsnset` | 6.45x | [changes/080-wcsnset](../../../../../changes/080-wcsnset/) |
 | `_wcsrev` | 6.60x | [changes/071-wcsrev](../../../../../changes/071-wcsrev/) |

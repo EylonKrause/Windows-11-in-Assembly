@@ -1,4 +1,4 @@
-# ucrtbase.dll — reimplemented exports (75)
+# ucrtbase.dll — reimplemented exports (76)
 
 | export | speedup | source |
 |---|---|---|
@@ -35,6 +35,7 @@
 | `_ultow` | 1.55x | [changes/072-ultow](../../../../../changes/072-ultow/) |
 | `_ultow_s` | 1.55x | [changes/201-ultow-s](../../../../../changes/201-ultow-s/) |
 | `_wcsicmp` | 7.66x | [changes/042-wcsicmp](../../../../../changes/042-wcsicmp/) |
+| `_wcslwr` | 2.90x | [changes/049-wcslwr](../../../../../changes/049-wcslwr/) |
 | `_wcslwr_s` | 4.10x | [changes/180-wcslwr-s](../../../../../changes/180-wcslwr-s/) |
 | `_wcsnicmp` | 7.44x | [changes/044-wcsnicmp](../../../../../changes/044-wcsnicmp/) |
 | `_wcsnset` | 6.45x | [changes/080-wcsnset](../../../../../changes/080-wcsnset/) |
