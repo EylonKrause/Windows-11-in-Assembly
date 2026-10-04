@@ -1,4 +1,4 @@
-# kernelbase.dll — reimplemented exports (31)
+# kernelbase.dll — reimplemented exports (37)
 
 | export | speedup | source |
 |---|---|---|
@@ -8,6 +8,10 @@
 | `FoldStringW` | 4.88x | [changes/288-foldstringw-digits](../../../../../changes/288-foldstringw-digits/) — **PARTIAL**: the MAP_FOLDDIGITS flag only, 1 of the export's 5 flag paths |
 | `GetStringTypeW` | 3.79x | [changes/287-getstringtypew](../../../../../changes/287-getstringtypew/) |
 | `HashData` | 2.58x | [changes/244-hashdata](../../../../../changes/244-hashdata/) |
+| `IsCharAlphaA` | 5.07x | [changes/312-ischaralphaa](../../../../../changes/312-ischaralphaa/) |
+| `IsCharAlphaNumericA` | 5.07x | [changes/312-ischaralphaa](../../../../../changes/312-ischaralphaa/) |
+| `IsCharLowerA` | 5.07x | [changes/312-ischaralphaa](../../../../../changes/312-ischaralphaa/) |
+| `IsCharUpperA` | 5.07x | [changes/312-ischaralphaa](../../../../../changes/312-ischaralphaa/) |
 | `PathAddExtensionW` | 7.25x | [changes/247-pathaddextensionw](../../../../../changes/247-pathaddextensionw/) |
 | `PathCanonicalizeW` | 22.11x | [changes/246-pathcanonicalizew](../../../../../changes/246-pathcanonicalizew/) |
 | `PathCchAddBackslash` | 2.17x | [changes/164-pathcchaddbackslash](../../../../../changes/164-pathcchaddbackslash/) |
@@ -22,6 +26,8 @@
 | `PathCchRemoveExtension` | 2.59x | [changes/144-pathcchremoveextension](../../../../../changes/144-pathcchremoveextension/) |
 | `PathCchRemoveFileSpec` | 4.87x | [changes/240-pathcchremovefilespec](../../../../../changes/240-pathcchremovefilespec/) |
 | `PathCchRenameExtension` | 3.37x | [changes/159-pathcchrenameextension](../../../../../changes/159-pathcchrenameextension/) |
+| `PathIsURLA` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
+| `PathIsURLW` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
 | `UrlHashA` | 2.68x | [changes/249-urlhasha](../../../../../changes/249-urlhasha/) |
 | `UrlUnescapeA` | 34.66x | [changes/248-urlunescapea](../../../../../changes/248-urlunescapea/) |
 | `UrlUnescapeW` | 14.24x | [changes/245-urlunescapew](../../../../../changes/245-urlunescapew/) |
