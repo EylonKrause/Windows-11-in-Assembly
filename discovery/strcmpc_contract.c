@@ -152,6 +152,24 @@ int main(void) {
         printf("  StrCmpICA vs ASCII-upper fold (unsigned): %lld disagree, vs ASCII-lower fold: %lld\n", iwU, iwL);
         printf("  StrCmpICA vs ASCII-lower fold on SIGNED chars: %lld sign disagreements, %lld exact-value disagreements\n", iwLS, iwLSv);
         a[0] = (char)0xC0; b[0] = (char)0xE0; printf("  StrCmpICA(\"\\xC0\", \"\\xE0\") = %d\n", ICA(a, b));
+        /* the counted A forms: which byte model, exactly? (n = 1 and n = -1) */
+        long long ncU = 0, ncS = 0, nicS = 0, nicU = 0;
+        for (int x = 1; x < 256; ++x)
+            for (int y = 1; y < 256; ++y) {
+                a[0] = (char)x; b[0] = (char)y;
+                int sx = (signed char)x, sy = (signed char)y;
+                int fls = (sx >= 'A' && sx <= 'Z') ? sx + 32 : sx, gls = (sy >= 'A' && sy <= 'Z') ? sy + 32 : sy;
+                int flu = (x >= 'A' && x <= 'Z') ? x + 32 : x, glu = (y >= 'A' && y <= 'Z') ? y + 32 : y;
+                for (int k = 0; k < 2; ++k) {
+                    int nn = k ? -1 : 1;
+                    if (NCA(a, b, nn) != x - y) ++ncU;
+                    if (NCA(a, b, nn) != sx - sy) ++ncS;
+                    if (NICA(a, b, nn) != fls - gls) ++nicS;
+                    if (NICA(a, b, nn) != flu - glu) ++nicU;
+                }
+            }
+        printf("  StrCmpNCA  exact value vs unsigned bytes: %lld disagree, vs signed: %lld\n", ncU, ncS);
+        printf("  StrCmpNICA exact value vs signed lower fold: %lld disagree, vs unsigned lower fold: %lld\n", nicS, nicU);
     }
 
     /* 5: N forms */
