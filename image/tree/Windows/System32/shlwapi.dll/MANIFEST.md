@@ -1,4 +1,4 @@
-# shlwapi.dll — reimplemented exports (65)
+# shlwapi.dll — reimplemented exports (66)
 
 | export | speedup | source |
 |---|---|---|
@@ -17,6 +17,7 @@
 | `PathIsPrefixW` | 81.4x | [changes/177-pathisprefixw](../../../../../changes/177-pathisprefixw/) |
 | `PathIsSameRootW` | 335x | [changes/251-pathissamerootw](../../../../../changes/251-pathissamerootw/) |
 | `PathMakePrettyA` | 26.85x | [changes/238-pathmakeprettya](../../../../../changes/238-pathmakeprettya/) |
+| `PathMakePrettyW` | 8.19x | [changes/307-pathmakeprettyw](../../../../../changes/307-pathmakeprettyw/) |
 | `PathQuoteSpacesA` | 3.34x | [changes/233-pathquotespacesa](../../../../../changes/233-pathquotespacesa/) |
 | `PathQuoteSpacesW` | 2.06x | [changes/172-pathquotespacesw](../../../../../changes/172-pathquotespacesw/) |
 | `PathRemoveArgsA` | 34.73x | [changes/226-pathremoveargsa](../../../../../changes/226-pathremoveargsa/) |
