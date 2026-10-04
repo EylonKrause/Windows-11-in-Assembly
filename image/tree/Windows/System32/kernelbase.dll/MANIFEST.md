@@ -1,4 +1,4 @@
-# kernelbase.dll — reimplemented exports (39)
+# kernelbase.dll — reimplemented exports (41)
 
 | export | speedup | source |
 |---|---|---|
@@ -28,6 +28,8 @@
 | `PathCchRenameExtension` | 3.37x | [changes/159-pathcchrenameextension](../../../../../changes/159-pathcchrenameextension/) |
 | `PathIsURLA` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
 | `PathIsURLW` | 4.60x | [changes/311-pathisurlw](../../../../../changes/311-pathisurlw/) |
+| `StrChrIA` | 836x | [changes/314-strchria](../../../../../changes/314-strchria/) |
+| `StrRChrIA` | 836x | [changes/314-strchria](../../../../../changes/314-strchria/) |
 | `StrToInt64ExA` | 8.26x | [changes/313-strtointexa](../../../../../changes/313-strtointexa/) |
 | `StrToIntExA` | 8.26x | [changes/313-strtointexa](../../../../../changes/313-strtointexa/) |
 | `UrlHashA` | 2.68x | [changes/249-urlhasha](../../../../../changes/249-urlhasha/) |
