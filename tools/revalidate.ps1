@@ -228,9 +228,13 @@ foreach ($d in $dirs) {
     # including 260-rtlcopybitmap, which has EIGHT rows below parity on bench #3. A lazy label
     # backtracks into the right split at no cost: for "bad32 64" it tries label="bad32", fails to
     # find a ratio, and retries with label="bad32 64".
+    #
+    # The GB/s column is optional. 266-rtliszeromemory prints its own table without one
+    # (`label  ours  system  ratio  verdict`), so it read as BENCH_UNPARSED -- a "failure" -- on
+    # the 2026-10-11 sweep while its own last line said LANDS at 3.33x.
     $worst = $null; $worstSize = '-'; $reg = @()
     foreach ($line in ($txt -split "`r?`n")) {
-        if ($line -match '^\s*(.*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x\s+([\d.]+)\s+(BETTER|WORSE|~tie)\s*$') {
+        if ($line -match '^\s*(.*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)x(?:\s+([\d.]+))?\s+(BETTER|WORSE|~tie)\s*$') {
             $sz = $matches[1]; $r = [double]$matches[4]; $v = $matches[6]
             if ($null -eq $worst -or $r -lt $worst) { $worst = $r; $worstSize = $sz }
             if ($v -eq 'WORSE') { $reg += "$sz=$($matches[4])x" }
@@ -257,8 +261,15 @@ foreach ($d in $dirs) {
         else                                              { $regressions       += "$name $regStr" }
     }
 
-    "$name`t$status`t$corr`t$geo`t$worstStr`t$worstSize`t$regStr`t$([int]$sw.Elapsed.TotalSeconds)`t$exit" |
-        Add-Content -Encoding utf8 $tsv
+    # Retried: any reader holding the TSV open (an editor, a `tail -f`) makes Add-Content throw,
+    # and on 2026-10-11 that silently cost 307 of 313 rows -- the console line below was the only
+    # record left.
+    $row = "$name`t$status`t$corr`t$geo`t$worstStr`t$worstSize`t$regStr`t$([int]$sw.Elapsed.TotalSeconds)`t$exit"
+    for ($try = 0; $try -lt 50; $try++) {
+        try { [IO.File]::AppendAllText($tsv, $row + "`r`n", [Text.UTF8Encoding]::new($false)); break }
+        catch { Start-Sleep -Milliseconds 200 }
+    }
+    if ($try -ge 50) { Write-Host "  warn: could not append $name to $tsv" -ForegroundColor Yellow }
     $done++
     Write-Host ("[{0,4}/{1}] {2,-26} {3,-18} geo={4,-7} worst={5}@{6}" -f $done, $dirs.Count, $name, $status, $geo, $worstStr, $worstSize)
 }
@@ -284,7 +295,11 @@ if (Test-Path $abiScript) {
 }
 
 # ---- live-substitution harnesses ---------------------------------------------------------------
-$liveFails = @()
+$liveFails = @(); $liveSkips = @()
+if (-not ('Wia.Cpu' -as [type])) {
+    Add-Type -Namespace Wia -Name Cpu -MemberDefinition '[DllImport("kernel32.dll")] public static extern bool IsProcessorFeaturePresent(uint f);'
+}
+$hasAvx512 = [Wia.Cpu]::IsProcessorFeaturePresent(41)                  # PF_AVX512F_INSTRUCTIONS_AVAILABLE
 if (-not $SkipLive) {
     $liveDir = Join-Path $Repo 'live-substitution'
     foreach ($b in (Get-ChildItem $liveDir -Filter 'build*.bat' | Sort-Object Name)) {
@@ -293,17 +308,25 @@ if (-not $SkipLive) {
         $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$($b.FullName)`"" `
                 -WorkingDirectory $liveDir -NoNewWindow -PassThru `
                 -RedirectStandardOutput $so -RedirectStandardError $se
+        $null = $p.Handle                        # without a cached handle, ExitCode reads back empty
         $ok = $p.WaitForExit($TimeoutSec * 1000)
         if (-not $ok) { try { Stop-Process -Id $p.Id -Force -EA SilentlyContinue } catch {}; $ex = 'TIMEOUT' }
-        else { $ex = $p.ExitCode }
+        else { $p.WaitForExit(); $ex = $p.ExitCode }
         $t = ''
         foreach ($f in @($so,$se)) { if (Test-Path $f) { $t += (Get-Content $f -Raw -EA SilentlyContinue) } }
         Set-Content -Path $lg -Value $t -Encoding utf8
         Remove-Item $so,$se -EA SilentlyContinue
+        # An AVX-512 variant (the *_tgl_* harnesses, bench #3's Tiger Lake) dies with
+        # STATUS_ILLEGAL_INSTRUCTION on a CPU without AVX-512F. That is "cannot run here", not a
+        # failed contract, and reporting it as FAIL on every AVX2 machine trains you to ignore the
+        # live column. Only that exact exit code on a CPU that genuinely lacks the feature is a skip.
+        $illegal = ($ex -is [int]) -and ($ex -eq -1073741795)          # 0xC000001D
         $verdict = if ($t -match 'LIVE SUBSTITUTION: PASS') { 'PASS' }
                    elseif ($t -match 'FAILURE\(S\)|UNPROVEN') { 'FAIL' }
+                   elseif ($illegal -and -not $hasAvx512) { 'SKIP (needs AVX-512)' }
                    elseif ($ex -eq 0) { 'PASS' } else { 'FAIL' }
         if ($verdict -eq 'FAIL') { $liveFails += $b.BaseName }
+        if ($verdict -like 'SKIP*') { $liveSkips += $b.BaseName }
         Write-Host ("[live] {0,-28} {1}" -f $b.BaseName, $verdict)
     }
 }
@@ -336,6 +359,7 @@ $lines += "* size classes below 0.97x in changes already documented PARKED: **$(
 $lines += "  (expected -- a parked change is one that ties or loses somewhere, which is why it never"
 $lines += "  landed; listed separately so a real regression is not buried in them)"
 if (-not $SkipLive) { $lines += "* live-substitution harness failures: **$($liveFails.Count)**" }
+if ($liveSkips.Count) { $lines += "* live-substitution harnesses skipped (need AVX-512, which this CPU lacks): **$($liveSkips.Count)** -- $($liveSkips -join ', ')" }
 $lines += "* ABI audit (callee-saved vector registers): **$(if ($abiFails.Count) { "$($abiFails.Count) file(s) FAIL" } else { 'clean' })**"
 $lines += ""
 if ($fails.Count) {
